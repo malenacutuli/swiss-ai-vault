@@ -12,6 +12,7 @@ import Evaluations from "./pages/Evaluations";
 import Models from "./pages/Models";
 import Playground from "./pages/Playground";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/dashboard/models" element={<Models />} />
           <Route path="/dashboard/playground" element={<Playground />} />
           <Route path="/dashboard/settings" element={<Settings />} />
+          <Route path="/dashboard/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
