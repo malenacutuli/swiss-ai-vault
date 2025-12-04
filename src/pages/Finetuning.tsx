@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -33,80 +44,24 @@ import {
   Trash2,
   Check,
   Sparkles,
+  AlertCircle,
+  Loader2,
+  Play,
+  XCircle,
 } from "lucide-react";
+import { 
+  useFinetuningJobs, 
+  useCreateFinetuningJob,
+  useUpdateFinetuningJob,
+  useDeleteFinetuningJob,
+  useDatasets,
+  useProjects,
+} from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
+import { BASE_MODELS, DEFAULT_HYPERPARAMETERS } from "@/types/database";
+import type { FinetuningStatus, FinetuningMethod, HyperParameters } from "@/types/database";
 
-type JobStatus = "pending" | "queued" | "training" | "completed" | "failed" | "cancelled";
-type Method = "lora" | "qlora" | "full";
-
-interface FinetuningJob {
-  id: string;
-  name: string;
-  baseModel: string;
-  datasetName: string;
-  method: Method;
-  status: JobStatus;
-  progress?: number;
-  trainingTime?: string;
-  finalLoss?: number;
-  createdAt: string;
-}
-
-const mockJobs: FinetuningJob[] = [
-  {
-    id: "1",
-    name: "customer-support-v2",
-    baseModel: "Llama 3.2 3B",
-    datasetName: "customer-support-v1.jsonl",
-    method: "lora",
-    status: "completed",
-    trainingTime: "2h 34m",
-    finalLoss: 0.42,
-    createdAt: "2024-01-20",
-  },
-  {
-    id: "2",
-    name: "sales-assistant-v1",
-    baseModel: "Mistral 7B",
-    datasetName: "sales-faq-synthetic",
-    method: "qlora",
-    status: "training",
-    progress: 67,
-    trainingTime: "1h 12m",
-    createdAt: "2024-01-22",
-  },
-  {
-    id: "3",
-    name: "code-reviewer",
-    baseModel: "Qwen 2.5 7B",
-    datasetName: "code-reviews.jsonl",
-    method: "lora",
-    status: "queued",
-    createdAt: "2024-01-23",
-  },
-  {
-    id: "4",
-    name: "legal-analyzer-v1",
-    baseModel: "Llama 3.2 1B",
-    datasetName: "legal-docs-enriched",
-    method: "full",
-    status: "failed",
-    createdAt: "2024-01-21",
-  },
-];
-
-const baseModels = [
-  { id: "llama3.2-1b", name: "Llama 3.2 1B", params: "1B", context: "128K", recommended: false },
-  { id: "llama3.2-3b", name: "Llama 3.2 3B", params: "3B", context: "128K", recommended: true },
-  { id: "mistral-7b", name: "Mistral 7B", params: "7B", context: "32K", recommended: false },
-  { id: "qwen2.5-0.5b", name: "Qwen 2.5 0.5B", params: "0.5B", context: "32K", recommended: false },
-  { id: "qwen2.5-1.5b", name: "Qwen 2.5 1.5B", params: "1.5B", context: "32K", recommended: false },
-  { id: "qwen2.5-3b", name: "Qwen 2.5 3B", params: "3B", context: "32K", recommended: false },
-  { id: "qwen2.5-7b", name: "Qwen 2.5 7B", params: "7B", context: "32K", recommended: false },
-  { id: "gemma2-2b", name: "Gemma 2 2B", params: "2B", context: "8K", recommended: false },
-  { id: "gemma2-9b", name: "Gemma 2 9B", params: "9B", context: "8K", recommended: false },
-];
-
-const methodBadges: Record<Method, string> = {
+const methodBadges: Record<FinetuningMethod, string> = {
   lora: "bg-info/20 text-info",
   qlora: "bg-purple-500/20 text-purple-400",
   full: "bg-warning/20 text-warning",
@@ -116,7 +71,54 @@ const Finetuning = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
-  const [selectedModel, setSelectedModel] = useState("");
+  const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+
+  // Form state for create modal
+  const [formData, setFormData] = useState({
+    name: "",
+    projectId: "",
+    datasetId: "",
+    snapshotId: "",
+    baseModel: "",
+    method: "lora" as FinetuningMethod,
+    hyperparameters: { ...DEFAULT_HYPERPARAMETERS },
+  });
+
+  // Hooks for data fetching and mutations
+  const { jobs, loading, error, refetch } = useFinetuningJobs();
+  const { datasets } = useDatasets();
+  const { projects } = useProjects();
+  const { createJob, loading: isCreating } = useCreateFinetuningJob();
+  const { updateJob, loading: isUpdating } = useUpdateFinetuningJob();
+  const { deleteJob, loading: isDeleting } = useDeleteFinetuningJob();
+
+  // Filter datasets to only show ready ones
+  const readyDatasets = useMemo(() => 
+    datasets?.filter(d => d.status === 'ready') || [], 
+    [datasets]
+  );
+
+  // Get snapshots for selected dataset (mock for now - would need separate hook)
+  const [snapshots, setSnapshots] = useState<Array<{ id: string; name: string; row_count: number }>>([]);
+
+  useEffect(() => {
+    const fetchSnapshots = async () => {
+      if (!formData.datasetId) {
+        setSnapshots([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('dataset_snapshots')
+        .select('id, name, row_count')
+        .eq('dataset_id', formData.datasetId)
+        .order('version', { ascending: false });
+
+      setSnapshots(data || []);
+    };
+
+    fetchSnapshots();
+  }, [formData.datasetId]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -124,6 +126,150 @@ const Finetuning = () => {
       day: "numeric",
     });
   };
+
+  const formatDuration = (startedAt: string | null, completedAt: string | null) => {
+    if (!startedAt) return null;
+    const start = new Date(startedAt);
+    const end = completedAt ? new Date(completedAt) : new Date();
+    const diffMs = end.getTime() - start.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
+
+  const getProgressFromMetrics = (metrics: Record<string, unknown> | null, hyperparams: Record<string, unknown> | null) => {
+    if (!metrics || !hyperparams) return 0;
+    const currentStep = (metrics as { current_step?: number }).current_step || 0;
+    const totalSteps = (metrics as { total_steps?: number }).total_steps || 100;
+    return Math.min(100, Math.round((currentStep / totalSteps) * 100));
+  };
+
+  const getStatusFromString = (status: string | null): FinetuningStatus => {
+    const validStatuses: FinetuningStatus[] = ['pending', 'queued', 'training', 'completed', 'failed', 'cancelled'];
+    if (status && validStatuses.includes(status as FinetuningStatus)) {
+      return status as FinetuningStatus;
+    }
+    return 'pending';
+  };
+
+  const getMethodFromString = (method: string | null): FinetuningMethod => {
+    const validMethods: FinetuningMethod[] = ['full', 'lora', 'qlora'];
+    if (method && validMethods.includes(method as FinetuningMethod)) {
+      return method as FinetuningMethod;
+    }
+    return 'lora';
+  };
+
+  const handleCreateJob = async () => {
+    if (!formData.name.trim() || !formData.snapshotId || !formData.baseModel) return;
+
+    const result = await createJob(
+      formData.name.trim(),
+      formData.snapshotId,
+      formData.baseModel,
+      formData.method,
+      formData.hyperparameters,
+      formData.projectId || undefined
+    );
+
+    if (result) {
+      resetForm();
+      refetch();
+    }
+  };
+
+  const handleStartJob = async (jobId: string) => {
+    await updateJob(jobId, { status: 'queued' });
+    refetch();
+  };
+
+  const handleCancelJob = async (jobId: string) => {
+    await updateJob(jobId, { status: 'cancelled' });
+    refetch();
+  };
+
+  const handleDeleteJob = async () => {
+    if (!deleteJobId) return;
+    const success = await deleteJob(deleteJobId);
+    if (success) {
+      setDeleteJobId(null);
+      refetch();
+    }
+  };
+
+  const resetForm = () => {
+    setIsCreateModalOpen(false);
+    setCreateStep(1);
+    setFormData({
+      name: "",
+      projectId: "",
+      datasetId: "",
+      snapshotId: "",
+      baseModel: "",
+      method: "lora",
+      hyperparameters: { ...DEFAULT_HYPERPARAMETERS },
+    });
+  };
+
+  const canProceedStep = (step: number) => {
+    switch (step) {
+      case 1:
+        return formData.name.trim() && formData.snapshotId;
+      case 2:
+        return formData.baseModel;
+      case 3:
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  // Get selected model info
+  const selectedModelInfo = BASE_MODELS.find(m => m.id === formData.baseModel);
+  const selectedDataset = datasets?.find(d => d.id === formData.datasetId);
+  const selectedSnapshot = snapshots.find(s => s.id === formData.snapshotId);
+
+  // Loading skeleton
+  const renderSkeleton = () => (
+    <div className="grid gap-4 md:grid-cols-2">
+      {[1, 2, 3, 4].map((i) => (
+        <Card key={i} className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-5 w-20" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-16" />
+            </div>
+            <Skeleton className="h-2 w-full" />
+            <div className="flex gap-4">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  // Error state
+  const renderError = () => (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+      <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load jobs</h3>
+      <p className="text-muted-foreground mb-4">{error?.message || "An unexpected error occurred"}</p>
+      <Button onClick={refetch} variant="outline">
+        Try Again
+      </Button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,8 +304,12 @@ const Finetuning = () => {
             </Button>
           </div>
 
-          {/* Jobs Grid */}
-          {mockJobs.length === 0 ? (
+          {/* Content Area */}
+          {loading ? (
+            renderSkeleton()
+          ) : error ? (
+            renderError()
+          ) : !jobs || jobs.length === 0 ? (
             <EmptyState
               icon={SlidersHorizontal}
               title="No fine-tuning jobs yet"
@@ -169,82 +319,121 @@ const Finetuning = () => {
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              {mockJobs.map((job, index) => (
-                <Card
-                  key={job.id}
-                  className="bg-card border-border animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-foreground">{job.name}</h3>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {job.datasetName}
-                        </p>
-                      </div>
-                      <StatusBadge status={job.status} />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Model & Method */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-1 rounded-full bg-secondary text-foreground">
-                        {job.baseModel}
-                      </span>
-                      <span className={cn("text-xs px-2 py-1 rounded-full uppercase", methodBadges[job.method])}>
-                        {job.method}
-                      </span>
-                    </div>
+              {jobs.map((job, index) => {
+                const status = getStatusFromString(job.status);
+                const method = getMethodFromString(job.method);
+                const trainingMetrics = job.training_metrics as Record<string, unknown> | null;
+                const hyperparams = job.hyperparameters as Record<string, unknown> | null;
+                const progress = getProgressFromMetrics(trainingMetrics, hyperparams);
+                const duration = formatDuration(job.started_at, job.completed_at);
+                const finalLoss = trainingMetrics?.final_loss as number | undefined;
 
-                    {/* Progress (for training jobs) */}
-                    {job.status === "training" && job.progress !== undefined && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="text-foreground font-medium">{job.progress}%</span>
+                return (
+                  <Card
+                    key={job.id}
+                    className="bg-card border-border animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-foreground">{job.name}</h3>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {job.base_model}
+                          </p>
                         </div>
-                        <Progress value={job.progress} className="h-2" />
+                        <StatusBadge status={status} />
                       </div>
-                    )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Model & Method */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-1 rounded-full bg-secondary text-foreground">
+                          {BASE_MODELS.find(m => m.id === job.base_model)?.name || job.base_model}
+                        </span>
+                        <span className={cn("text-xs px-2 py-1 rounded-full uppercase", methodBadges[method])}>
+                          {method}
+                        </span>
+                      </div>
 
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 text-sm">
-                      {job.trainingTime && (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>{job.trainingTime}</span>
-                        </div>
-                      )}
-                      {job.finalLoss !== undefined && (
-                        <div className="text-muted-foreground">
-                          Loss: <span className="text-foreground">{job.finalLoss}</span>
+                      {/* Progress (for training jobs) */}
+                      {status === "training" && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Progress</span>
+                            <span className="text-foreground font-medium">{progress}%</span>
+                          </div>
+                          <Progress value={progress} className="h-2" />
                         </div>
                       )}
-                      <div className="text-muted-foreground ml-auto">
-                        {formatDate(job.createdAt)}
-                      </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-border">
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Details
-                      </Button>
-                      {job.status === "completed" && (
+                      {/* Stats */}
+                      <div className="flex items-center gap-4 text-sm">
+                        {duration && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            <span>{duration}</span>
+                          </div>
+                        )}
+                        {finalLoss !== undefined && (
+                          <div className="text-muted-foreground">
+                            Loss: <span className="text-foreground">{finalLoss.toFixed(4)}</span>
+                          </div>
+                        )}
+                        <div className="text-muted-foreground ml-auto">
+                          {formatDate(job.created_at)}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-border">
+                        {status === "pending" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-success hover:text-success"
+                            onClick={() => handleStartJob(job.id)}
+                            disabled={isUpdating}
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Start
+                          </Button>
+                        )}
+                        {(status === "queued" || status === "training") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-warning hover:text-warning"
+                            onClick={() => handleCancelJob(job.id)}
+                            disabled={isUpdating}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
+                          <Eye className="h-4 w-4 mr-1" />
+                          Details
                         </Button>
-                      )}
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive ml-auto">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        {status === "completed" && (
+                          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive ml-auto"
+                          onClick={() => setDeleteJobId(job.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </main>
@@ -252,11 +441,8 @@ const Finetuning = () => {
 
       {/* Create Job Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={(open) => {
-        setIsCreateModalOpen(open);
-        if (!open) {
-          setCreateStep(1);
-          setSelectedModel("");
-        }
+        if (!open) resetForm();
+        else setIsCreateModalOpen(true);
       }}>
         <DialogContent className="bg-card border-border sm:max-w-[700px]">
           <DialogHeader>
@@ -266,7 +452,7 @@ const Finetuning = () => {
             <DialogDescription className="text-muted-foreground">
               Step {createStep} of 4 -{" "}
               {createStep === 1
-                ? "Basics"
+                ? "Select Dataset & Snapshot"
                 : createStep === 2
                 ? "Select Model"
                 : createStep === 3
@@ -279,31 +465,74 @@ const Finetuning = () => {
             {createStep === 1 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-foreground">Job Name</Label>
-                  <Input placeholder="e.g., customer-support-v3" className="bg-secondary border-border" />
+                  <Label className="text-foreground">Job Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="e.g., customer-support-v3"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="bg-secondary border-border"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground">Dataset</Label>
-                  <Select>
+                  <Label className="text-foreground">Project (optional)</Label>
+                  <Select
+                    value={formData.projectId}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value }))}
+                  >
                     <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="Select a dataset" />
+                      <SelectValue placeholder="Select a project" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
-                      <SelectItem value="1">customer-support-v1.jsonl (Ready)</SelectItem>
-                      <SelectItem value="2">sales-faq-synthetic (Ready)</SelectItem>
-                      <SelectItem value="3">code-reviews.jsonl (Ready)</SelectItem>
+                      {projects?.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground">Snapshot</Label>
-                  <Select>
+                  <Label className="text-foreground">Dataset <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={formData.datasetId}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, datasetId: value, snapshotId: "" }))}
+                  >
                     <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="Select a snapshot" />
+                      <SelectValue placeholder="Select a dataset" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
-                      <SelectItem value="v1">v1.0 - 15,420 rows</SelectItem>
-                      <SelectItem value="v2">v2.0 - 18,200 rows</SelectItem>
+                      {readyDatasets.length === 0 ? (
+                        <SelectItem value="none" disabled>No ready datasets available</SelectItem>
+                      ) : (
+                        readyDatasets.map((dataset) => (
+                          <SelectItem key={dataset.id} value={dataset.id}>
+                            {dataset.name} ({dataset.row_count} rows)
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground">Snapshot <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={formData.snapshotId}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, snapshotId: value }))}
+                    disabled={!formData.datasetId}
+                  >
+                    <SelectTrigger className="bg-secondary border-border">
+                      <SelectValue placeholder={formData.datasetId ? "Select a snapshot" : "Select a dataset first"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {snapshots.length === 0 ? (
+                        <SelectItem value="none" disabled>No snapshots available</SelectItem>
+                      ) : (
+                        snapshots.map((snapshot) => (
+                          <SelectItem key={snapshot.id} value={snapshot.id}>
+                            {snapshot.name} - {snapshot.row_count} rows
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -312,18 +541,18 @@ const Finetuning = () => {
 
             {createStep === 2 && (
               <div className="grid grid-cols-3 gap-3">
-                {baseModels.map((model) => (
+                {BASE_MODELS.map((model) => (
                   <button
                     key={model.id}
-                    onClick={() => setSelectedModel(model.id)}
+                    onClick={() => setFormData(prev => ({ ...prev, baseModel: model.id }))}
                     className={cn(
                       "flex flex-col items-start p-4 rounded-lg border transition-colors text-left",
-                      selectedModel === model.id
+                      formData.baseModel === model.id
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-muted-foreground"
                     )}
                   >
-                    {model.recommended && (
+                    {model.id === 'meta-llama/Llama-3.2-3B' && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-success mb-2">
                         <Sparkles className="h-3 w-3 inline mr-1" />
                         Recommended
@@ -331,9 +560,9 @@ const Finetuning = () => {
                     )}
                     <span className="font-medium text-foreground">{model.name}</span>
                     <span className="text-xs text-muted-foreground mt-1">
-                      {model.params} params • {model.context} context
+                      {model.parameters} params • {model.family}
                     </span>
-                    {selectedModel === model.id && (
+                    {formData.baseModel === model.id && (
                       <Check className="h-4 w-4 text-primary mt-2" />
                     )}
                   </button>
@@ -346,13 +575,15 @@ const Finetuning = () => {
                 <div className="space-y-2">
                   <Label className="text-foreground">Training Method</Label>
                   <div className="flex gap-2">
-                    {["LoRA", "QLoRA", "Full"].map((method) => (
+                    {(["lora", "qlora", "full"] as const).map((method) => (
                       <Button
                         key={method}
+                        type="button"
                         variant="outline"
+                        onClick={() => setFormData(prev => ({ ...prev, method }))}
                         className={cn(
-                          "flex-1 border-border",
-                          method === "LoRA" && "border-primary bg-primary/10"
+                          "flex-1 border-border uppercase",
+                          formData.method === method && "border-primary bg-primary/10"
                         )}
                       >
                         {method}
@@ -363,30 +594,62 @@ const Finetuning = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-foreground">Batch Size</Label>
-                    <Input type="number" defaultValue={4} className="bg-secondary border-border" />
+                    <Input
+                      type="number"
+                      value={formData.hyperparameters.batch_size}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        hyperparameters: { ...prev.hyperparameters, batch_size: parseInt(e.target.value) || 4 }
+                      }))}
+                      className="bg-secondary border-border"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-foreground">Learning Rate</Label>
-                    <Input type="text" defaultValue="0.0002" className="bg-secondary border-border" />
+                    <Input
+                      type="text"
+                      value={formData.hyperparameters.learning_rate}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        hyperparameters: { ...prev.hyperparameters, learning_rate: parseFloat(e.target.value) || 0.0002 }
+                      }))}
+                      className="bg-secondary border-border"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-foreground">Epochs</Label>
-                    <Input type="number" defaultValue={3} className="bg-secondary border-border" />
+                    <Input
+                      type="number"
+                      value={formData.hyperparameters.epochs}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        hyperparameters: { ...prev.hyperparameters, epochs: parseInt(e.target.value) || 3 }
+                      }))}
+                      className="bg-secondary border-border"
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-foreground">LoRA Rank</Label>
-                    <Select defaultValue="16">
-                      <SelectTrigger className="bg-secondary border-border">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        <SelectItem value="8">8</SelectItem>
-                        <SelectItem value="16">16</SelectItem>
-                        <SelectItem value="32">32</SelectItem>
-                        <SelectItem value="64">64</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {(formData.method === "lora" || formData.method === "qlora") && (
+                    <div className="space-y-2">
+                      <Label className="text-foreground">LoRA Rank</Label>
+                      <Select
+                        value={String(formData.hyperparameters.lora_r || 16)}
+                        onValueChange={(value) => setFormData(prev => ({
+                          ...prev,
+                          hyperparameters: { ...prev.hyperparameters, lora_r: parseInt(value) }
+                        }))}
+                      >
+                        <SelectTrigger className="bg-secondary border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          <SelectItem value="8">8</SelectItem>
+                          <SelectItem value="16">16</SelectItem>
+                          <SelectItem value="32">32</SelectItem>
+                          <SelectItem value="64">64</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -396,27 +659,35 @@ const Finetuning = () => {
                 <div className="p-4 bg-secondary rounded-lg space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Job Name</span>
-                    <span className="text-foreground">customer-support-v3</span>
+                    <span className="text-foreground">{formData.name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Model</span>
-                    <span className="text-foreground">Llama 3.2 3B</span>
+                    <span className="text-foreground">{selectedModelInfo?.name || formData.baseModel}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Method</span>
-                    <span className="text-foreground">LoRA</span>
+                    <span className="text-foreground uppercase">{formData.method}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Dataset</span>
-                    <span className="text-foreground">customer-support-v1.jsonl</span>
+                    <span className="text-foreground">{selectedDataset?.name || "—"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Estimated Time</span>
-                    <span className="text-foreground">~2-3 hours</span>
+                    <span className="text-muted-foreground">Snapshot</span>
+                    <span className="text-foreground">{selectedSnapshot?.name || "—"} ({selectedSnapshot?.row_count || 0} rows)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Estimated Cost</span>
-                    <span className="text-foreground">$6.25</span>
+                    <span className="text-muted-foreground">Epochs</span>
+                    <span className="text-foreground">{formData.hyperparameters.epochs}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Batch Size</span>
+                    <span className="text-foreground">{formData.hyperparameters.batch_size}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="text-foreground">Will be set to "pending"</span>
                   </div>
                 </div>
               </div>
@@ -428,12 +699,13 @@ const Finetuning = () => {
               variant="ghost"
               onClick={() => {
                 if (createStep === 1) {
-                  setIsCreateModalOpen(false);
+                  resetForm();
                 } else {
                   setCreateStep(createStep - 1);
                 }
               }}
               className="text-muted-foreground"
+              disabled={isCreating}
             >
               {createStep === 1 ? "Cancel" : "Back"}
             </Button>
@@ -442,17 +714,60 @@ const Finetuning = () => {
                 if (createStep < 4) {
                   setCreateStep(createStep + 1);
                 } else {
-                  setIsCreateModalOpen(false);
-                  setCreateStep(1);
+                  handleCreateJob();
                 }
               }}
+              disabled={!canProceedStep(createStep) || isCreating}
               className="bg-primary hover:bg-primary/90"
             >
-              {createStep === 4 ? "Start Training" : "Next"}
+              {createStep === 4 ? (
+                isCreating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Job"
+                )
+              ) : (
+                "Next"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteJobId} onOpenChange={(open) => !open && setDeleteJobId(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Delete Fine-tuning Job</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this job? This action cannot be undone.
+              All related experiments and training data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-secondary border-border text-foreground">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteJob}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Job"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
