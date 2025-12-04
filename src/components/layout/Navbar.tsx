@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,10 +12,10 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <SwissFlag className="h-6 w-6" />
             <span className="text-xl font-bold">SwissVault<span className="text-primary">.ai</span></span>
-          </div>
+          </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
@@ -34,11 +35,11 @@ export const Navbar = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Sign In
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/auth">Sign In</Link>
             </Button>
-            <Button variant="swiss" size="sm">
-              Get Started
+            <Button variant="swiss" size="sm" asChild>
+              <Link to="/auth">Get Started</Link>
             </Button>
           </div>
 
@@ -68,11 +69,11 @@ export const Navbar = () => {
                 Docs
               </a>
               <div className="flex gap-3 pt-4 border-t border-border/50">
-                <Button variant="ghost" size="sm" className="flex-1">
-                  Sign In
+                <Button variant="ghost" size="sm" className="flex-1" asChild>
+                  <Link to="/auth">Sign In</Link>
                 </Button>
-                <Button variant="swiss" size="sm" className="flex-1">
-                  Get Started
+                <Button variant="swiss" size="sm" className="flex-1" asChild>
+                  <Link to="/auth">Get Started</Link>
                 </Button>
               </div>
             </div>
