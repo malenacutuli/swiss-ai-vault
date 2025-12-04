@@ -166,16 +166,36 @@ const Datasets = () => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith(".jsonl") || file.name.endsWith(".json"))) {
+    // Validate by file extension (not MIME type, which is unreliable for .jsonl)
+    const validExtensions = ['.jsonl', '.json'];
+    const fileExtension = file?.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (file && validExtensions.includes(fileExtension)) {
       setUploadFile(file);
       setUploadName(file.name.replace(/\.(jsonl|json)$/, ""));
       loadPreview(file);
+    } else if (file) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a .jsonl or .json file',
+        variant: 'destructive',
+      });
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate by file extension (not MIME type, which is unreliable for .jsonl)
+      const validExtensions = ['.jsonl', '.json'];
+      const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+      if (!validExtensions.includes(fileExtension)) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please upload a .jsonl or .json file',
+          variant: 'destructive',
+        });
+        return;
+      }
       setUploadFile(file);
       setUploadName(file.name.replace(/\.(jsonl|json)$/, ""));
       loadPreview(file);
@@ -231,11 +251,14 @@ const Datasets = () => {
 
       setUploadProgress(25);
 
+      // Use application/json contentType for both .json and .jsonl files
+      // This bypasses MIME type detection issues with .jsonl files
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('datasets')
         .upload(filePath, uploadFile, {
           cacheControl: '3600',
           upsert: false,
+          contentType: 'application/json',
         });
 
       if (uploadError) {
@@ -759,7 +782,7 @@ const Datasets = () => {
                   </p>
                   <input
                     type="file"
-                    accept=".jsonl,.json"
+                    accept=".jsonl,.json,application/json,application/x-jsonlines,text/plain"
                     onChange={handleFileSelect}
                     className="hidden"
                     id="file-upload"
