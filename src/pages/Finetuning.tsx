@@ -92,11 +92,15 @@ const Finetuning = () => {
   const { updateJob, loading: isUpdating } = useUpdateFinetuningJob();
   const { deleteJob, loading: isDeleting } = useDeleteFinetuningJob();
 
-  // Filter datasets to only show ready ones
-  const readyDatasets = useMemo(() => 
-    datasets?.filter(d => d.status === 'ready') || [], 
-    [datasets]
-  );
+  // Filter datasets to only show ready ones, optionally filtered by project
+  const readyDatasets = useMemo(() => {
+    let filtered = datasets?.filter(d => d.status === 'ready') || [];
+    // If a project is selected, filter to only show datasets from that project
+    if (formData.projectId && formData.projectId !== 'none') {
+      filtered = filtered.filter(d => d.project_id === formData.projectId);
+    }
+    return filtered;
+  }, [datasets, formData.projectId]);
 
   // Get snapshots for selected dataset (mock for now - would need separate hook)
   const [snapshots, setSnapshots] = useState<Array<{ id: string; name: string; row_count: number }>>([]);
@@ -476,13 +480,19 @@ const Finetuning = () => {
                 <div className="space-y-2">
                   <Label className="text-foreground">Project (optional)</Label>
                   <Select
-                    value={formData.projectId}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value }))}
+                    value={formData.projectId || 'none'}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      projectId: value === 'none' ? '' : value,
+                      datasetId: '',
+                      snapshotId: ''
+                    }))}
                   >
                     <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="Select a project" />
+                      <SelectValue placeholder="All projects" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
+                      <SelectItem value="none">All projects</SelectItem>
                       {projects?.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}
