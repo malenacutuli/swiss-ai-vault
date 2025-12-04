@@ -208,25 +208,33 @@ const Datasets = () => {
     // Upload file to storage
     const filePath = await uploadToStorage(uploadFile, dataset.id);
 
-    if (filePath) {
-      // Update dataset with s3_path
-      await supabase
-        .from('datasets')
-        .update({ s3_path: filePath, status: 'processing' })
-        .eq('id', dataset.id);
+    if (!filePath) {
+      // Upload failed - toast already shown by hook
+      return;
+    }
 
-      // Trigger processing Edge Function
-      try {
-        const { error: processError } = await supabase.functions.invoke('process-dataset', {
-          body: { dataset_id: dataset.id }
-        });
-        
-        if (processError) {
-          console.error('Error processing dataset:', processError);
-        }
-      } catch (err) {
-        console.error('Failed to invoke process-dataset:', err);
-      }
+    // Update dataset with s3_path
+    const { error: updateError } = await supabase
+      .from('datasets')
+      .update({ s3_path: filePath, status: 'pending' })
+      .eq('id', dataset.id);
+
+    if (updateError) {
+      console.error('Error updating dataset path:', updateError);
+      return;
+    }
+
+    // Call process-dataset Edge Function
+    console.log('Calling process-dataset for dataset:', dataset.id);
+    const { data: processResult, error: processError } = await supabase.functions.invoke('process-dataset', {
+      body: { dataset_id: dataset.id }
+    });
+
+    if (processError) {
+      console.error('Failed to process dataset:', processError);
+      // Don't show error toast - file is uploaded, processing can be retried
+    } else {
+      console.log('Process dataset result:', processResult);
     }
 
     // Reset form and close modal
