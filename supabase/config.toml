@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.webhook-finetuning]
 verify_jwt = false
+
+[functions.start-finetuning]
+verify_jwt = true
