@@ -402,6 +402,156 @@ export function useCreateDataset() {
   return { createDataset, loading, error };
 }
 
+export function useUpdateDataset() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const updateDataset = async (id: string, updates: Partial<Tables['datasets']['Update']>) => {
+    try {
+      setLoading(true);
+      const { data, error: updateError } = await supabase
+        .from('datasets')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      return data;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error updating dataset',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { updateDataset, loading, error };
+}
+
+export function useDeleteDataset() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const deleteDataset = async (id: string, s3Path?: string | null) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to delete a dataset',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    try {
+      setLoading(true);
+
+      // Delete from storage if path exists
+      if (s3Path) {
+        const { error: storageError } = await supabase.storage
+          .from('datasets')
+          .remove([s3Path]);
+
+        if (storageError) {
+          console.error('Error deleting from storage:', storageError);
+          // Continue with database deletion even if storage fails
+        }
+      }
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('datasets')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: 'Dataset deleted',
+        description: 'Dataset has been removed',
+      });
+
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error deleting dataset',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteDataset, loading, error };
+}
+
+export function useUploadDatasetFile() {
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const uploadFile = async (file: File, datasetId: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to upload files',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      setProgress(0);
+
+      const filePath = `${user.id}/${datasetId}/${file.name}`;
+
+      // Upload to storage
+      const { data, error: uploadError } = await supabase.storage
+        .from('datasets')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      setProgress(100);
+
+      return data.path;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error uploading file',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { uploadFile, loading, progress, error };
+}
+
 // ============================================
 // FINETUNING JOB HOOKS
 // ============================================
