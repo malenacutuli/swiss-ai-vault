@@ -1086,19 +1086,18 @@ export function useCreateEvaluation() {
 
     try {
       setLoading(true);
-      const { data, error: createError } = await supabase
+      // Insert without .select().single() to avoid type validation issues
+      const { error: createError } = await supabase
         .from('evaluations')
         .insert({
           model_id: modelId,
           snapshot_id: snapshotId,
           metric_ids: metricIds,
-          project_id: projectId,
-          byoe_endpoint: byoeEndpoint,
+          project_id: projectId || null,
+          byoe_endpoint: byoeEndpoint || null,
           user_id: user.id,
           status: 'pending',
-        })
-        .select()
-        .single();
+        });
 
       if (createError) throw createError;
 
@@ -1107,7 +1106,7 @@ export function useCreateEvaluation() {
         description: 'Evaluation has been queued for processing',
       });
 
-      return data;
+      return true;
     } catch (err) {
       const error = err as Error;
       setError(error);
