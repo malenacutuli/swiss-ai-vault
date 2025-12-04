@@ -61,6 +61,94 @@ export type Database = {
           },
         ]
       }
+      billing_customers: {
+        Row: {
+          created_at: string | null
+          current_period_end: string | null
+          email: string
+          id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          tier: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_period_end?: string | null
+          email: string
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          tier?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_period_end?: string | null
+          email?: string
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          tier?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_customers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_invoices: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          paid_at: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          paid_at?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          paid_at?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_stripe_customer_id_fkey"
+            columns: ["stripe_customer_id"]
+            isOneToOne: false
+            referencedRelation: "billing_customers"
+            referencedColumns: ["stripe_customer_id"]
+          },
+        ]
+      }
       dataset_snapshots: {
         Row: {
           created_at: string | null
@@ -733,6 +821,86 @@ export type Database = {
           },
         ]
       }
+      usage_daily: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          metric: string
+          user_id: string | null
+          value: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          metric: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          metric?: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_daily_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_finetuning: {
+        Row: {
+          base_model: string | null
+          cost: number | null
+          created_at: string | null
+          gpu_minutes: number | null
+          id: string
+          job_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          base_model?: string | null
+          cost?: number | null
+          created_at?: string | null
+          gpu_minutes?: number | null
+          id?: string
+          job_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          base_model?: string | null
+          cost?: number | null
+          created_at?: string | null
+          gpu_minutes?: number | null
+          id?: string
+          job_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_finetuning_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "finetuning_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_finetuning_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -803,6 +971,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: {
+          p_date: string
+          p_metric: string
+          p_user_id: string
+          p_value: number
+        }
+        Returns: undefined
       }
     }
     Enums: {
