@@ -29,7 +29,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -79,6 +81,14 @@ const getScoreColor = (score: number) => {
   if (score >= 50) return "text-warning";
   return "text-destructive";
 };
+
+// Base models available for evaluation
+const BASE_EVALUATION_MODELS = [
+  { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
+  { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI" },
+  { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", provider: "Anthropic" },
+  { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku", provider: "Anthropic" },
+];
 
 const Evaluations = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -388,7 +398,10 @@ const Evaluations = () => {
                         const status = getStatusFromString(evaluation.status);
                         const avgScore = calculateAvgScore(evaluation.results as Record<string, unknown> | null);
                         const metricNames = getMetricNames(evaluation.metric_ids);
-                        const model = models?.find(m => m.id === evaluation.model_id);
+                        // Find model name from fine-tuned models or base models
+                        const fineTunedModel = models?.find(m => m.id === evaluation.model_id);
+                        const baseModel = BASE_EVALUATION_MODELS.find(m => m.id === evaluation.model_id);
+                        const modelName = fineTunedModel?.name || baseModel?.name || evaluation.model_id;
                         const hasDetailedResults = evaluation.detailed_results && 
                           Array.isArray(evaluation.detailed_results) && 
                           evaluation.detailed_results.length > 0;
@@ -399,7 +412,7 @@ const Evaluations = () => {
                               <TableRow className="border-border hover:bg-secondary/50">
                                 <TableCell>
                                   <span className="text-xs px-2 py-1 rounded-full bg-secondary text-foreground">
-                                    {model?.name || evaluation.model_id}
+                                    {modelName}
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">
@@ -611,15 +624,29 @@ const Evaluations = () => {
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
-                  {!models || models.length === 0 ? (
-                    <SelectItem value="none" disabled>No models available</SelectItem>
-                  ) : (
-                    models.map((model) => (
+                  <SelectGroup>
+                    <SelectLabel className="text-muted-foreground text-xs font-semibold px-2 py-1.5">Base Models</SelectLabel>
+                    {BASE_EVALUATION_MODELS.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
                         {model.name}
+                        <span className="text-muted-foreground ml-2 text-xs">({model.provider})</span>
                       </SelectItem>
-                    ))
-                  )}
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel className="text-muted-foreground text-xs font-semibold px-2 py-1.5">Your Models</SelectLabel>
+                    {!models || models.length === 0 ? (
+                      <SelectItem value="none" disabled className="text-muted-foreground italic">
+                        No fine-tuned models yet
+                      </SelectItem>
+                    ) : (
+                      models.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
