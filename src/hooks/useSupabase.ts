@@ -1211,6 +1211,84 @@ export function useModels(projectId?: string) {
   return { models, loading, error, refetch: fetchModels };
 }
 
+export function useUpdateModel() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const updateModel = async (id: string, updates: Partial<Tables['models']['Update']>) => {
+    try {
+      setLoading(true);
+      const { data, error: updateError } = await supabase
+        .from('models')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: 'Model updated',
+        description: 'Changes saved successfully',
+      });
+
+      return data;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error updating model',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { updateModel, loading, error };
+}
+
+export function useDeleteModel() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const deleteModel = async (id: string) => {
+    try {
+      setLoading(true);
+      const { error: deleteError } = await supabase
+        .from('models')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: 'Model deleted',
+        description: 'Model has been removed',
+      });
+
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error deleting model',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteModel, loading, error };
+}
+
 // ============================================
 // API KEYS HOOKS
 // ============================================
