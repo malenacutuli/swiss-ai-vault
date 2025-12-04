@@ -82,13 +82,26 @@ const getScoreColor = (score: number) => {
   return "text-destructive";
 };
 
-// Base models available for evaluation
+// Base models available for evaluation with deterministic UUIDs
+// These UUIDs are deterministic so evaluations can reference base models
 const BASE_EVALUATION_MODELS = [
-  { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
-  { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI" },
-  { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", provider: "Anthropic" },
-  { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku", provider: "Anthropic" },
+  { id: "gpt-4o-mini", uuid: "00000000-0000-0000-0000-000000000001", name: "GPT-4o Mini", provider: "OpenAI" },
+  { id: "gpt-4o", uuid: "00000000-0000-0000-0000-000000000002", name: "GPT-4o", provider: "OpenAI" },
+  { id: "claude-sonnet-4-5", uuid: "00000000-0000-0000-0000-000000000003", name: "Claude Sonnet 4.5", provider: "Anthropic" },
+  { id: "claude-3-5-haiku-20241022", uuid: "00000000-0000-0000-0000-000000000004", name: "Claude 3.5 Haiku", provider: "Anthropic" },
 ];
+
+// Convert model ID to UUID (for base models, use deterministic UUID; for fine-tuned models, use as-is)
+const getModelUUID = (modelId: string): string => {
+  const baseModel = BASE_EVALUATION_MODELS.find(m => m.id === modelId);
+  return baseModel ? baseModel.uuid : modelId;
+};
+
+// Get model ID from UUID (for display purposes)
+const getModelIdFromUUID = (uuid: string): string => {
+  const baseModel = BASE_EVALUATION_MODELS.find(m => m.uuid === uuid);
+  return baseModel ? baseModel.id : uuid;
+};
 
 const Evaluations = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -213,8 +226,11 @@ const Evaluations = () => {
   const handleCreateEvaluation = async () => {
     if (!evalForm.modelId || !evalForm.snapshotId || selectedMetrics.length === 0) return;
 
+    // Convert base model ID to deterministic UUID
+    const modelUUID = getModelUUID(evalForm.modelId);
+
     const result = await createEvaluation(
-      evalForm.modelId,
+      modelUUID,
       evalForm.snapshotId,
       selectedMetrics
     );
@@ -398,9 +414,9 @@ const Evaluations = () => {
                         const status = getStatusFromString(evaluation.status);
                         const avgScore = calculateAvgScore(evaluation.results as Record<string, unknown> | null);
                         const metricNames = getMetricNames(evaluation.metric_ids);
-                        // Find model name from fine-tuned models or base models
+                        // Find model name from fine-tuned models or base models (base models stored with UUID)
                         const fineTunedModel = models?.find(m => m.id === evaluation.model_id);
-                        const baseModel = BASE_EVALUATION_MODELS.find(m => m.id === evaluation.model_id);
+                        const baseModel = BASE_EVALUATION_MODELS.find(m => m.uuid === evaluation.model_id);
                         const modelName = fineTunedModel?.name || baseModel?.name || evaluation.model_id;
                         const hasDetailedResults = evaluation.detailed_results && 
                           Array.isArray(evaluation.detailed_results) && 
