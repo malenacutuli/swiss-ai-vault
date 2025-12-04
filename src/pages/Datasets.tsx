@@ -68,12 +68,11 @@ import {
 } from "lucide-react";
 import { 
   useDatasets, 
-  useCreateDataset, 
   useDeleteDataset, 
-  useUploadDatasetFile,
   useProjects 
 } from "@/hooks/useSupabase";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { DatasetStatus, SourceType } from "@/types/database";
 
 const sourceIcons: Record<SourceType, typeof Upload> = {
@@ -103,9 +102,11 @@ const Datasets = () => {
   // Hooks for data fetching and mutations
   const { datasets, loading, error, refetch } = useDatasets();
   const { projects } = useProjects();
-  const { createDataset, loading: isCreating } = useCreateDataset();
   const { deleteDataset, loading: isDeleting } = useDeleteDataset();
-  const { uploadFile: uploadToStorage, loading: isUploading, progress: uploadProgress } = useUploadDatasetFile();
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Real-time subscription for dataset status changes
   useEffect(() => {
@@ -195,77 +196,184 @@ const Datasets = () => {
   const handleUpload = async () => {
     if (!uploadFile || !uploadName.trim()) return;
 
-    // Create dataset record first
-    const dataset = await createDataset(
-      uploadName.trim(),
-      uploadProject || null,
-      'upload',
-      { originalFilename: uploadFile.name, size: uploadFile.size }
-    );
+    setIsUploading(true);
+    setUploadProgress(0);
 
-    if (!dataset) return;
+    console.log('=== Starting dataset upload ===');
+    console.log('File:', uploadFile.name, 'Size:', uploadFile.size);
+    console.log('Dataset name:', uploadName.trim());
+    console.log('Project ID:', uploadProject || 'none');
 
-    // Upload file to storage
-    const filePath = await uploadToStorage(uploadFile, dataset.id);
+    try {
+      // Step 1: Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to upload datasets',
+          variant: 'destructive',
+        });
+        return;
+      }
+      console.log('User ID:', user.id);
 
-    if (!filePath) {
-      // Upload failed - toast already shown by hook
-      return;
+      // Step 2: Generate dataset ID
+      const datasetId = crypto.randomUUID();
+      console.log('Generated dataset ID:', datasetId);
+
+      // Step 3: Upload file to Storage
+      const filePath = `${user.id}/${datasetId}/${uploadFile.name}`;
+      console.log('Uploading to storage path:', filePath);
+
+      setUploadProgress(25);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('datasets')
+        .upload(filePath, uploadFile, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        toast({
+          title: 'Upload failed',
+          description: uploadError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+      console.log('File uploaded successfully:', uploadData.path);
+      setUploadProgress(50);
+
+      // Step 4: Create database record
+      const insertData = {
+        id: datasetId,
+        user_id: user.id,
+        project_id: uploadProject || null,
+        name: uploadName.trim(),
+        source_type: 'upload' as const,
+        status: 'pending' as const,
+        s3_path: filePath,
+        source_config: {
+          originalFilename: uploadFile.name,
+          size: uploadFile.size,
+        },
+      };
+      console.log('Inserting dataset record:', insertData);
+
+      const { data: dataset, error: insertError } = await supabase
+        .from('datasets')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Database insert error:', insertError);
+        toast({
+          title: 'Failed to save dataset',
+          description: insertError.message,
+          variant: 'destructive',
+        });
+        // Clean up uploaded file
+        await supabase.storage.from('datasets').remove([filePath]);
+        return;
+      }
+      console.log('Dataset record created:', dataset);
+      setUploadProgress(75);
+
+      toast({
+        title: 'Dataset uploaded',
+        description: `"${uploadName.trim()}" has been uploaded. Processing...`,
+      });
+
+      // Step 5: Call process-dataset Edge Function
+      console.log('Calling process-dataset Edge Function for:', datasetId);
+      const { data: processResult, error: processError } = await supabase.functions.invoke('process-dataset', {
+        body: { dataset_id: datasetId }
+      });
+
+      if (processError) {
+        console.error('Process dataset error:', processError);
+        toast({
+          title: 'Processing started with warnings',
+          description: 'File uploaded but automatic processing may have issues. Check status.',
+          variant: 'default',
+        });
+      } else {
+        console.log('Process dataset result:', processResult);
+      }
+
+      setUploadProgress(100);
+
+      // Reset form and close modal
+      setIsUploadModalOpen(false);
+      setUploadFile(null);
+      setUploadName("");
+      setUploadProject("");
+      setPreviewData([]);
+      refetch();
+    } finally {
+      setIsUploading(false);
     }
-
-    // Update dataset with s3_path
-    const { error: updateError } = await supabase
-      .from('datasets')
-      .update({ s3_path: filePath, status: 'pending' })
-      .eq('id', dataset.id);
-
-    if (updateError) {
-      console.error('Error updating dataset path:', updateError);
-      return;
-    }
-
-    // Call process-dataset Edge Function
-    console.log('Calling process-dataset for dataset:', dataset.id);
-    const { data: processResult, error: processError } = await supabase.functions.invoke('process-dataset', {
-      body: { dataset_id: dataset.id }
-    });
-
-    if (processError) {
-      console.error('Failed to process dataset:', processError);
-      // Don't show error toast - file is uploaded, processing can be retried
-    } else {
-      console.log('Process dataset result:', processResult);
-    }
-
-    // Reset form and close modal
-    setIsUploadModalOpen(false);
-    setUploadFile(null);
-    setUploadName("");
-    setUploadProject("");
-    setPreviewData([]);
-    refetch();
   };
 
   const handleSyntheticGenerate = async () => {
     if (!syntheticName.trim()) return;
 
-    await createDataset(
-      syntheticName.trim(),
-      syntheticProject || null,
-      'synthetic',
-      {
-        pairsPerSource: syntheticConfig.pairsPerSource,
-        creativity: syntheticConfig.creativity,
+    setIsCreating(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to generate datasets',
+          variant: 'destructive',
+        });
+        return;
       }
-    );
 
-    // Reset form and close modal
-    setIsSyntheticModalOpen(false);
-    setSyntheticStep(1);
-    setSyntheticName("");
-    setSyntheticProject("");
-    setSyntheticConfig({ pairsPerSource: 20, creativity: 50 });
-    refetch();
+      const { data: dataset, error: createError } = await supabase
+        .from('datasets')
+        .insert({
+          name: syntheticName.trim(),
+          project_id: syntheticProject || null,
+          source_type: 'synthetic' as const,
+          user_id: user.id,
+          source_config: {
+            pairsPerSource: syntheticConfig.pairsPerSource,
+            creativity: syntheticConfig.creativity,
+          },
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      toast({
+        title: 'Dataset created',
+        description: `"${syntheticName.trim()}" has been created`,
+      });
+
+      // Reset form and close modal
+      setIsSyntheticModalOpen(false);
+      setSyntheticStep(1);
+      setSyntheticName("");
+      setSyntheticProject("");
+      setSyntheticConfig({ pairsPerSource: 20, creativity: 50 });
+      refetch();
+    } catch (err) {
+      const error = err as Error;
+      toast({
+        title: 'Error creating dataset',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleDelete = async () => {
