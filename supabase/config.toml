@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.generate-synthetic]
 verify_jwt = false
+
+[functions.run-evaluation]
+verify_jwt = false
