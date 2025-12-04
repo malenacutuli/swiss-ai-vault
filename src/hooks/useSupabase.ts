@@ -779,6 +779,87 @@ export function useCreateFinetuningJob() {
   return { createJob, loading, error };
 }
 
+export function useUpdateFinetuningJob() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const updateJob = async (id: string, updates: Partial<Tables['finetuning_jobs']['Update']>) => {
+    try {
+      setLoading(true);
+      const { data, error: updateError } = await supabase
+        .from('finetuning_jobs')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      return data;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error updating job',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { updateJob, loading, error };
+}
+
+export function useDeleteFinetuningJob() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const deleteJob = async (id: string) => {
+    try {
+      setLoading(true);
+
+      // Delete related experiments first
+      await supabase
+        .from('experiments')
+        .delete()
+        .eq('job_id', id);
+
+      // Delete the job
+      const { error: deleteError } = await supabase
+        .from('finetuning_jobs')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: 'Job deleted',
+        description: 'Fine-tuning job has been removed',
+      });
+
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error deleting job',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteJob, loading, error };
+}
+
 // ============================================
 // EVALUATION HOOKS
 // ============================================
