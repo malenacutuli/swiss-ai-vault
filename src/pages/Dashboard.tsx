@@ -4,7 +4,10 @@ import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDashboardStats, useRecentActivity, formatNumber } from "@/hooks/useDashboardStats";
 import {
   FolderKanban,
   Database,
@@ -16,91 +19,22 @@ import {
   BookOpen,
   ArrowUpRight,
   Clock,
+  AlertCircle,
 } from "lucide-react";
-
-const statsCards = [
-  {
-    title: "Total Projects",
-    value: "12",
-    icon: FolderKanban,
-    change: "+2 this month",
-    color: "text-info",
-    bgColor: "bg-info/10",
-  },
-  {
-    title: "Total Datasets",
-    value: "47,832",
-    subtitle: "rows",
-    icon: Database,
-    change: "+5,234 this week",
-    color: "text-success",
-    bgColor: "bg-success/10",
-  },
-  {
-    title: "Fine-tuned Models",
-    value: "8",
-    icon: Cpu,
-    change: "+1 this week",
-    color: "text-warning",
-    bgColor: "bg-warning/10",
-  },
-  {
-    title: "API Calls",
-    value: "24.5K",
-    subtitle: "this month",
-    icon: Activity,
-    change: "+12% from last month",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-];
-
-const recentActivity = [
-  {
-    action: "Fine-tuning completed",
-    target: "customer-support-v2",
-    time: "2 hours ago",
-    type: "success",
-  },
-  {
-    action: "Dataset uploaded",
-    target: "sales-faq-2024.jsonl",
-    time: "5 hours ago",
-    type: "info",
-  },
-  {
-    action: "Evaluation started",
-    target: "product-assistant model",
-    time: "1 day ago",
-    type: "warning",
-  },
-  {
-    action: "New project created",
-    target: "Legal Document Analyzer",
-    time: "2 days ago",
-    type: "info",
-  },
-  {
-    action: "Model deployed",
-    target: "sv-llama3-support-v1",
-    time: "3 days ago",
-    type: "success",
-  },
-];
 
 const quickActions = [
   {
     title: "Create New Project",
     description: "Start a new AI fine-tuning project",
     icon: Plus,
-    href: "/dashboard/projects/new",
+    href: "/dashboard/projects",
     variant: "primary" as const,
   },
   {
     title: "Upload Dataset",
     description: "Add training data to your project",
     icon: Upload,
-    href: "/dashboard/datasets/upload",
+    href: "/dashboard/datasets",
     variant: "secondary" as const,
   },
   {
@@ -121,6 +55,46 @@ const quickActions = [
 
 const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { user } = useAuth();
+  const { stats, loading: statsLoading } = useDashboardStats();
+  const { activities, loading: activityLoading } = useRecentActivity();
+
+  // Get user's first name for greeting
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
+
+  // Build stats cards with real data
+  const statsCards = [
+    {
+      title: "Total Projects",
+      value: formatNumber(stats.totalProjects),
+      icon: FolderKanban,
+      color: "text-info",
+      bgColor: "bg-info/10",
+    },
+    {
+      title: "Dataset Rows",
+      value: formatNumber(stats.totalDatasetRows),
+      subtitle: "total",
+      icon: Database,
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
+    {
+      title: "Fine-tuned Models",
+      value: formatNumber(stats.totalModels),
+      icon: Cpu,
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+    },
+    {
+      title: "API Calls",
+      value: formatNumber(stats.apiCallsThisMonth),
+      subtitle: "this month",
+      icon: Activity,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,7 +115,7 @@ const Dashboard = () => {
           {/* Welcome message */}
           <div className="animate-fade-in">
             <h1 className="text-2xl font-semibold text-foreground">
-              Welcome back, <span className="text-primary">John</span>
+              Welcome back, <span className="text-primary">{firstName}</span>
             </h1>
             <p className="text-muted-foreground mt-1">
               Here's what's happening with your AI projects today.
@@ -165,19 +139,20 @@ const Dashboard = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-foreground">
-                      {stat.value}
-                    </span>
-                    {stat.subtitle && (
-                      <span className="text-sm text-muted-foreground">
-                        {stat.subtitle}
+                  {statsLoading ? (
+                    <Skeleton className="h-8 w-20" />
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-foreground">
+                        {stat.value}
                       </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {stat.change}
-                  </p>
+                      {stat.subtitle && (
+                        <span className="text-sm text-muted-foreground">
+                          {stat.subtitle}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -194,33 +169,58 @@ const Dashboard = () => {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 pb-3 border-b border-border last:border-0 last:pb-0"
-                  >
-                    <div
-                      className={cn(
-                        "mt-0.5 h-2 w-2 rounded-full",
-                        activity.type === "success" && "bg-success",
-                        activity.type === "info" && "bg-info",
-                        activity.type === "warning" && "bg-warning"
-                      )}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">
-                        {activity.action}
-                      </p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {activity.target}
-                      </p>
+                {activityLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-start gap-3 pb-3 border-b border-border last:border-0 last:pb-0">
+                      <Skeleton className="h-2 w-2 rounded-full mt-1.5" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                      </div>
+                      <Skeleton className="h-3 w-16" />
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {activity.time}
-                    </div>
+                  ))
+                ) : activities.length === 0 ? (
+                  // Empty state
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">No recent activity</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Create a project or upload a dataset to get started
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  // Activity list
+                  activities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-3 pb-3 border-b border-border last:border-0 last:pb-0"
+                    >
+                      <div
+                        className={cn(
+                          "mt-0.5 h-2 w-2 rounded-full",
+                          activity.type === "success" && "bg-success",
+                          activity.type === "info" && "bg-info",
+                          activity.type === "warning" && "bg-warning",
+                          activity.type === "error" && "bg-destructive"
+                        )}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground">
+                          {activity.action}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {activity.target}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {activity.time}
+                      </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
 
