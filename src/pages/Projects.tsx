@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -16,12 +17,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
@@ -32,68 +49,12 @@ import {
   Database,
   Cpu,
   Calendar,
+  MoreVertical,
+  Trash2,
+  AlertCircle,
 } from "lucide-react";
-
-type ProjectStatus = "setup" | "dataset" | "finetuning" | "evaluation" | "complete";
-
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  status: ProjectStatus;
-  datasetsCount: number;
-  modelsCount: number;
-  createdAt: string;
-}
-
-// Mock data
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    name: "Customer Support Bot",
-    description: "AI assistant for handling customer inquiries and support tickets with multilingual capabilities.",
-    status: "finetuning",
-    datasetsCount: 3,
-    modelsCount: 2,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Legal Document Analyzer",
-    description: "Specialized model for analyzing contracts and legal documents.",
-    status: "dataset",
-    datasetsCount: 1,
-    modelsCount: 0,
-    createdAt: "2024-01-20",
-  },
-  {
-    id: "3",
-    name: "Sales Assistant",
-    description: "AI model trained on sales conversations and product knowledge.",
-    status: "complete",
-    datasetsCount: 5,
-    modelsCount: 3,
-    createdAt: "2024-01-10",
-  },
-  {
-    id: "4",
-    name: "Code Review Helper",
-    description: "Automated code review assistant for Python and TypeScript projects.",
-    status: "evaluation",
-    datasetsCount: 2,
-    modelsCount: 1,
-    createdAt: "2024-01-18",
-  },
-  {
-    id: "5",
-    name: "Medical Q&A",
-    description: "Healthcare information assistant with verified medical knowledge base.",
-    status: "setup",
-    datasetsCount: 0,
-    modelsCount: 0,
-    createdAt: "2024-01-22",
-  },
-];
+import { useProjects, useCreateProject, useDeleteProject } from "@/hooks/useSupabase";
+import type { ProjectStatus } from "@/types/database";
 
 const Projects = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -102,41 +63,62 @@ const Projects = () => {
   const [sortBy, setSortBy] = useState<string>("newest");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: "", description: "" });
-  const [isCreating, setIsCreating] = useState(false);
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+
+  // Hooks for data fetching and mutations
+  const { projects, loading, error, refetch } = useProjects();
+  const { createProject, loading: isCreating } = useCreateProject();
+  const { deleteProject, loading: isDeleting } = useDeleteProject();
 
   // Filter and sort projects
-  const filteredProjects = mockProjects
-    .filter((project) => {
-      const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === "all" || project.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case "oldest":
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        default:
-          return 0;
-      }
-    });
+  const filteredProjects = useMemo(() => {
+    if (!projects) return [];
+    
+    return projects
+      .filter((project) => {
+        const matchesSearch = 
+          project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+        const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case "newest":
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          case "oldest":
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          case "name-asc":
+            return a.name.localeCompare(b.name);
+          case "name-desc":
+            return b.name.localeCompare(a.name);
+          default:
+            return 0;
+        }
+      });
+  }, [projects, searchQuery, statusFilter, sortBy]);
 
   const handleCreateProject = async () => {
     if (!newProject.name.trim()) return;
     
-    setIsCreating(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsCreating(false);
-    setIsCreateModalOpen(false);
-    setNewProject({ name: "", description: "" });
-    // TODO: Add actual project creation with Supabase
+    const result = await createProject(newProject.name.trim(), newProject.description.trim() || undefined);
+    
+    if (result) {
+      setIsCreateModalOpen(false);
+      setNewProject({ name: "", description: "" });
+      refetch();
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deleteProjectId) return;
+    
+    const success = await deleteProject(deleteProjectId);
+    
+    if (success) {
+      setDeleteProjectId(null);
+      refetch();
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -146,6 +128,49 @@ const Projects = () => {
       year: "numeric",
     });
   };
+
+  const getStatusFromString = (status: string | null): ProjectStatus => {
+    const validStatuses: ProjectStatus[] = ['setup', 'dataset', 'finetuning', 'evaluation', 'complete'];
+    if (status && validStatuses.includes(status as ProjectStatus)) {
+      return status as ProjectStatus;
+    }
+    return 'setup';
+  };
+
+  // Loading skeleton
+  const renderSkeleton = () => (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <Card key={i} className="bg-card border-border">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between mb-3">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4 mb-4" />
+            <div className="flex items-center gap-4 mb-3">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+            <Skeleton className="h-3 w-28" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  // Error state
+  const renderError = () => (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+      <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load projects</h3>
+      <p className="text-muted-foreground mb-4">{error?.message || "An unexpected error occurred"}</p>
+      <Button onClick={refetch} variant="outline">
+        Try Again
+      </Button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -217,52 +242,92 @@ const Projects = () => {
             </Select>
           </div>
 
-          {/* Projects Grid or Empty State */}
-          {filteredProjects.length === 0 ? (
+          {/* Content Area */}
+          {loading ? (
+            renderSkeleton()
+          ) : error ? (
+            renderError()
+          ) : filteredProjects.length === 0 ? (
             <EmptyState
               icon={FolderKanban}
-              title="No projects yet"
-              subtitle="Create your first project to start building AI models"
-              actionLabel="Create Project"
-              onAction={() => setIsCreateModalOpen(true)}
+              title={searchQuery || statusFilter !== "all" ? "No matching projects" : "No projects yet"}
+              subtitle={
+                searchQuery || statusFilter !== "all"
+                  ? "Try adjusting your search or filters"
+                  : "Create your first project to start building AI models"
+              }
+              actionLabel={searchQuery || statusFilter !== "all" ? undefined : "Create Project"}
+              onAction={searchQuery || statusFilter !== "all" ? undefined : () => setIsCreateModalOpen(true)}
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredProjects.map((project, index) => (
-                <Link
+                <div
                   key={project.id}
-                  to={`/dashboard/projects/${project.id}`}
-                  className="block animate-fade-in"
+                  className="relative group animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <Card className="bg-card border-border h-full transition-all duration-200 hover:shadow-elevated hover:border-border/80 cursor-pointer">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-foreground line-clamp-1">
-                          {project.name}
-                        </h3>
-                        <StatusBadge status={project.status} />
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                        {project.description}
-                      </p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Database className="h-4 w-4" />
-                          <span>{project.datasetsCount} datasets</span>
+                  <Link
+                    to={`/dashboard/projects/${project.id}`}
+                    className="block"
+                  >
+                    <Card className="bg-card border-border h-full transition-all duration-200 hover:shadow-elevated hover:border-border/80 cursor-pointer">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <h3 className="font-semibold text-foreground line-clamp-1 pr-8">
+                            {project.name}
+                          </h3>
+                          <StatusBadge status={getStatusFromString(project.status)} />
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Cpu className="h-4 w-4" />
-                          <span>{project.modelsCount} models</span>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4 min-h-[40px]">
+                          {project.description || "No description"}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-1">
+                            <Database className="h-4 w-4" />
+                            <span>0 datasets</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Cpu className="h-4 w-4" />
+                            <span>0 models</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>Created {formatDate(project.createdAt)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span>Created {formatDate(project.created_at)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                  
+                  {/* Actions Menu */}
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 bg-card/80 backdrop-blur-sm hover:bg-secondary"
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setDeleteProjectId(project.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Project
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -289,6 +354,11 @@ const Projects = () => {
                 value={newProject.name}
                 onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                 className="bg-secondary border-border"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newProject.name.trim()) {
+                    handleCreateProject();
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -322,6 +392,31 @@ const Projects = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteProjectId} onOpenChange={(open) => !open && setDeleteProjectId(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Delete Project</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this project? This action cannot be undone.
+              All associated datasets, models, and evaluations will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-secondary border-border text-foreground">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete Project"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
