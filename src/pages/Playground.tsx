@@ -19,13 +19,16 @@ import {
   Send,
   Trash2,
   Copy,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   Sparkles,
   Bot,
   User,
+  Loader2,
 } from "lucide-react";
+import { useModels } from "@/hooks/useSupabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -35,16 +38,17 @@ interface Message {
   latency?: number;
 }
 
+const providerModels = [
+  { id: "gpt-4o-mini", name: "GPT-4o Mini", group: "openai", provider: "OpenAI" },
+  { id: "gpt-4o", name: "GPT-4o", group: "openai", provider: "OpenAI" },
+  { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet", group: "anthropic", provider: "Anthropic" },
+  { id: "claude-3-5-haiku", name: "Claude 3.5 Haiku", group: "anthropic", provider: "Anthropic" },
+];
+
 const baseModels = [
   { id: "llama3.2-3b", name: "Llama 3.2 3B", group: "base" },
   { id: "mistral-7b", name: "Mistral 7B", group: "base" },
-  { id: "qwen2.5-7b", name: "Qwen 2.5 7B", group: "base" },
-];
-
-const fineTunedModels = [
-  { id: "sv-customer-support-v2", name: "Customer Support v2", group: "finetuned" },
-  { id: "sv-sales-assistant-v1", name: "Sales Assistant v1", group: "finetuned" },
-  { id: "sv-code-reviewer", name: "Code Reviewer", group: "finetuned" },
+  { id: "qwen2.5-3b", name: "Qwen 2.5 3B", group: "base" },
 ];
 
 const systemPromptTemplates = [
@@ -56,7 +60,7 @@ const systemPromptTemplates = [
 const Playground = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [configPanelOpen, setConfigPanelOpen] = useState(true);
-  const [selectedModel, setSelectedModel] = useState("sv-customer-support-v2");
+  const [selectedModel, setSelectedModel] = useState("gpt-4o-mini");
   const [systemPrompt, setSystemPrompt] = useState(systemPromptTemplates[0].prompt);
   const [temperature, setTemperature] = useState([0.7]);
   const [maxTokens, setMaxTokens] = useState([1024]);
@@ -64,6 +68,9 @@ const Playground = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { models: userModels } = useModels();
+  const { session } = useAuth();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -72,29 +79,96 @@ const Playground = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    if (!session?.access_token) {
+      toast.error("Please sign in to use the playground");
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: input.trim(),
     };
 
+    const allMessages = [
+      ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
+      ...messages.map(m => ({ role: m.role, content: m.content })),
+      { role: "user" as const, content: input.trim() },
+    ];
+
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
-    // Simulate API response
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const startTime = Date.now();
 
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: "This is a simulated response from the AI model. In production, this would connect to your SwissVault API endpoint and stream the response in real-time.\n\n```python\ndef hello_world():\n    print(\"Hello from SwissVault!\")\n```\n\nThe model is configured with temperature " + temperature[0] + " and max tokens " + maxTokens[0] + ".",
-      tokens: { prompt: 42, completion: 78 },
-      latency: 1234,
-    };
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            model: selectedModel,
+            messages: allMessages,
+            temperature: temperature[0],
+            max_tokens: maxTokens[0],
+            stream: false,
+          }),
+        }
+      );
 
-    setMessages((prev) => [...prev, assistantMessage]);
-    setIsLoading(false);
+      const latency = Date.now() - startTime;
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 401) {
+          toast.error("Authentication failed. Please sign in again.");
+          return;
+        }
+        if (response.status === 429) {
+          toast.error("Rate limit exceeded. Please wait a moment and try again.");
+          return;
+        }
+        
+        throw new Error(errorData.error?.message || `Request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message || "Unknown error");
+      }
+
+      const assistantContent = data.choices?.[0]?.message?.content || "No response received.";
+      const usage = data.usage || {};
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: assistantContent,
+        tokens: {
+          prompt: usage.prompt_tokens || 0,
+          completion: usage.completion_tokens || 0,
+        },
+        latency,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to get response";
+      toast.error(errorMessage);
+      
+      // Remove the user message if we failed
+      setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const clearChat = () => {
@@ -103,6 +177,21 @@ const Playground = () => {
 
   const copyMessage = (content: string) => {
     navigator.clipboard.writeText(content);
+    toast.success("Copied to clipboard");
+  };
+
+  // Get display name for selected model
+  const getModelDisplayName = () => {
+    const providerModel = providerModels.find(m => m.id === selectedModel);
+    if (providerModel) return providerModel.name;
+    
+    const baseModel = baseModels.find(m => m.id === selectedModel);
+    if (baseModel) return baseModel.name;
+    
+    const userModel = userModels?.find(m => m.model_id === selectedModel);
+    if (userModel) return userModel.name;
+    
+    return selectedModel;
   };
 
   return (
@@ -121,7 +210,7 @@ const Playground = () => {
         {/* Config Panel */}
         <aside
           className={cn(
-            "fixed top-0 bottom-0 border-r border-border bg-card transition-all duration-300 overflow-y-auto",
+            "fixed top-0 bottom-0 border-r border-border bg-card transition-all duration-300 overflow-y-auto z-20",
             sidebarCollapsed ? "left-16" : "left-[280px]",
             configPanelOpen ? "w-80" : "w-0"
           )}
@@ -135,20 +224,45 @@ const Playground = () => {
                   <SelectTrigger className="bg-secondary border-border">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover">
+                  <SelectContent className="bg-popover border-border z-50">
+                    {/* User's Fine-tuned Models */}
+                    {userModels && userModels.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Your Models</SelectLabel>
+                        {userModels.map((model) => (
+                          <SelectItem key={model.model_id} value={model.model_id}>
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-3 w-3 text-primary" />
+                              {model.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    
+                    {/* OpenAI Models */}
                     <SelectGroup>
-                      <SelectLabel>Fine-tuned Models</SelectLabel>
-                      {fineTunedModels.map((model) => (
+                      <SelectLabel>OpenAI</SelectLabel>
+                      {providerModels.filter(m => m.group === "openai").map((model) => (
                         <SelectItem key={model.id} value={model.id}>
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="h-3 w-3 text-primary" />
-                            {model.name}
-                          </div>
+                          {model.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>
+                    
+                    {/* Anthropic Models */}
                     <SelectGroup>
-                      <SelectLabel>Base Models</SelectLabel>
+                      <SelectLabel>Anthropic</SelectLabel>
+                      {providerModels.filter(m => m.group === "anthropic").map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    
+                    {/* Base Open Source Models */}
+                    <SelectGroup>
+                      <SelectLabel>Open Source</SelectLabel>
                       {baseModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
                           {model.name}
@@ -176,6 +290,9 @@ const Playground = () => {
                     step={0.1}
                     className="w-full"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Lower = more focused, Higher = more creative
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -188,7 +305,7 @@ const Playground = () => {
                     onValueChange={setMaxTokens}
                     max={4096}
                     min={1}
-                    step={1}
+                    step={64}
                     className="w-full"
                   />
                 </div>
@@ -209,7 +326,7 @@ const Playground = () => {
                     <SelectTrigger className="w-32 h-7 text-xs bg-secondary border-border">
                       <SelectValue placeholder="Template" />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover">
+                    <SelectContent className="bg-popover border-border z-50">
                       {systemPromptTemplates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.name}
@@ -233,7 +350,7 @@ const Playground = () => {
         <button
           onClick={() => setConfigPanelOpen(!configPanelOpen)}
           className={cn(
-            "fixed top-1/2 -translate-y-1/2 z-10 p-1 bg-card border border-border rounded-r-lg transition-all",
+            "fixed top-1/2 -translate-y-1/2 z-30 p-1 bg-card border border-border rounded-r-lg transition-all",
             sidebarCollapsed ? "left-16" : "left-[280px]",
             configPanelOpen && (sidebarCollapsed ? "left-[336px]" : "left-[600px]")
           )}
@@ -259,8 +376,7 @@ const Playground = () => {
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="font-medium text-foreground">
-                {fineTunedModels.find((m) => m.id === selectedModel)?.name ||
-                  baseModels.find((m) => m.id === selectedModel)?.name}
+                {getModelDisplayName()}
               </span>
             </div>
             <Button
@@ -334,7 +450,7 @@ const Playground = () => {
                         {message.latency && <span>{message.latency}ms</span>}
                         <button
                           onClick={() => copyMessage(message.content)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
                         >
                           <Copy className="h-3 w-3" />
                         </button>
@@ -352,7 +468,7 @@ const Playground = () => {
             {isLoading && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-primary animate-pulse" />
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
                 </div>
                 <div className="bg-secondary rounded-lg px-4 py-3">
                   <div className="flex gap-1">
@@ -380,13 +496,18 @@ const Playground = () => {
                 placeholder="Type a message... (Cmd+Enter to send)"
                 className="bg-secondary border-border min-h-[48px] max-h-[120px] resize-none"
                 rows={1}
+                disabled={isLoading}
               />
               <Button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
                 className="bg-primary hover:bg-primary/90 px-4"
               >
-                <Send className="h-4 w-4" />
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
