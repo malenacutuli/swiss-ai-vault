@@ -1024,6 +1024,145 @@ export function useCreateMetric() {
   return { createMetric, loading, error };
 }
 
+export function useDeleteMetric() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const deleteMetric = async (id: string) => {
+    try {
+      setLoading(true);
+      const { error: deleteError } = await supabase
+        .from('metrics')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: 'Metric deleted',
+        description: 'Custom metric has been removed',
+      });
+
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error deleting metric',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteMetric, loading, error };
+}
+
+export function useCreateEvaluation() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const createEvaluation = async (
+    modelId: string,
+    snapshotId: string,
+    metricIds: string[],
+    projectId?: string,
+    byoeEndpoint?: string
+  ) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to create an evaluation',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error: createError } = await supabase
+        .from('evaluations')
+        .insert({
+          model_id: modelId,
+          snapshot_id: snapshotId,
+          metric_ids: metricIds,
+          project_id: projectId,
+          byoe_endpoint: byoeEndpoint,
+          user_id: user.id,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      toast({
+        title: 'Evaluation created',
+        description: 'Evaluation has been queued for processing',
+      });
+
+      return data;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error creating evaluation',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { createEvaluation, loading, error };
+}
+
+export function useDeleteEvaluation() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const deleteEvaluation = async (id: string) => {
+    try {
+      setLoading(true);
+      const { error: deleteError } = await supabase
+        .from('evaluations')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: 'Evaluation deleted',
+        description: 'Evaluation has been removed',
+      });
+
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error deleting evaluation',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteEvaluation, loading, error };
+}
+
 // ============================================
 // MODELS HOOKS
 // ============================================
