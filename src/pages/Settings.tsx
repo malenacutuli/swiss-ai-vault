@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -45,35 +56,13 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface ApiKey {
-  id: string;
-  name: string;
-  prefix: string;
-  permissions: string[];
-  createdAt: string;
-  lastUsed?: string;
-}
-
-const mockApiKeys: ApiKey[] = [
-  {
-    id: "1",
-    name: "Production API",
-    prefix: "sv_prod_",
-    permissions: ["read", "write"],
-    createdAt: "2024-01-15",
-    lastUsed: "2024-01-23",
-  },
-  {
-    id: "2",
-    name: "Development",
-    prefix: "sv_dev_",
-    permissions: ["read"],
-    createdAt: "2024-01-20",
-  },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 const Settings = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -83,9 +72,38 @@ const Settings = () => {
   const [newKeyExpiration, setNewKeyExpiration] = useState("never");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [deleteKeyId, setDeleteKeyId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const formatDate = (dateString: string) => {
+  const { apiKeys, loading, error, refetch } = useApiKeys();
+  const { createApiKey, loading: createLoading } = useCreateApiKey();
+  const { deleteApiKey, loading: deleteLoading } = useDeleteApiKey();
+
+  // Subscribe to real-time API key updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('api-keys-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'api_keys',
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -93,10 +111,33 @@ const Settings = () => {
     });
   };
 
-  const handleCreateKey = () => {
-    // Simulate key creation
-    const fakeKey = `sv_${newKeyExpiration === "never" ? "prod" : "temp"}_${Math.random().toString(36).substring(2, 15)}`;
-    setCreatedKey(fakeKey);
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim()) return;
+
+    // Calculate expiration date
+    let expiresAt: string | null = null;
+    if (newKeyExpiration !== "never") {
+      const days = parseInt(newKeyExpiration);
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+      expiresAt = date.toISOString();
+    }
+
+    const result = await createApiKey(newKeyName.trim());
+    
+    if (result?.fullKey) {
+      // Update the key with permissions and expiration
+      await supabase
+        .from('api_keys')
+        .update({
+          permissions: newKeyPermissions as unknown as Json,
+          expires_at: expiresAt,
+        })
+        .eq('id', result.id);
+
+      setCreatedKey(result.fullKey);
+      refetch();
+    }
   };
 
   const copyKey = () => {
@@ -104,6 +145,34 @@ const Settings = () => {
       navigator.clipboard.writeText(createdKey);
       toast({ title: "API key copied to clipboard" });
     }
+  };
+
+  const handleDeleteKey = async () => {
+    if (!deleteKeyId) return;
+    const success = await deleteApiKey(deleteKeyId);
+    if (success) {
+      refetch();
+    }
+    setDeleteKeyId(null);
+  };
+
+  const resetCreateModal = () => {
+    setCreatedKey(null);
+    setNewKeyName("");
+    setNewKeyPermissions(["read"]);
+    setNewKeyExpiration("never");
+  };
+
+  const getInitials = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user?.email?.slice(0, 2).toUpperCase() || 'U';
   };
 
   return (
@@ -150,9 +219,9 @@ const Settings = () => {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <Avatar className="h-20 w-20">
-                        <AvatarImage src="" />
+                        <AvatarImage src={user?.user_metadata?.avatar_url || ""} />
                         <AvatarFallback className="bg-primary/20 text-primary text-xl">
-                          JD
+                          {getInitials()}
                         </AvatarFallback>
                       </Avatar>
                       <button className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground">
@@ -160,20 +229,29 @@ const Settings = () => {
                       </button>
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">John Doe</p>
-                      <p className="text-sm text-muted-foreground">john@company.com</p>
+                      <p className="font-medium text-foreground">
+                        {user?.user_metadata?.full_name || 'User'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{user?.email}</p>
                     </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label className="text-foreground">Full Name</Label>
-                      <Input defaultValue="John Doe" className="bg-secondary border-border" />
+                      <Input 
+                        defaultValue={user?.user_metadata?.full_name || ''} 
+                        className="bg-secondary border-border" 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-foreground">Email</Label>
                       <div className="flex items-center gap-2">
-                        <Input defaultValue="john@company.com" disabled className="bg-muted border-border" />
+                        <Input 
+                          defaultValue={user?.email || ''} 
+                          disabled 
+                          className="bg-muted border-border" 
+                        />
                         <span className="text-xs px-2 py-1 rounded-full bg-success/20 text-success">
                           Verified
                         </span>
@@ -252,7 +330,24 @@ const Settings = () => {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  {mockApiKeys.length === 0 ? (
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="flex items-center gap-4">
+                          <Skeleton className="h-10 w-32" />
+                          <Skeleton className="h-10 w-24" />
+                          <Skeleton className="h-10 w-20" />
+                          <Skeleton className="h-10 w-24" />
+                          <Skeleton className="h-10 w-24" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-8">
+                      <p className="text-destructive mb-4">Error loading API keys</p>
+                      <Button onClick={() => refetch()}>Retry</Button>
+                    </div>
+                  ) : apiKeys.length === 0 ? (
                     <EmptyState
                       icon={Key}
                       title="No API keys yet"
@@ -269,43 +364,58 @@ const Settings = () => {
                           <TableHead className="text-muted-foreground">Permissions</TableHead>
                           <TableHead className="text-muted-foreground">Created</TableHead>
                           <TableHead className="text-muted-foreground">Last Used</TableHead>
+                          <TableHead className="text-muted-foreground">Expires</TableHead>
                           <TableHead className="w-12"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {mockApiKeys.map((key) => (
-                          <TableRow key={key.id} className="border-border hover:bg-secondary/50">
-                            <TableCell className="font-medium text-foreground">{key.name}</TableCell>
-                            <TableCell>
-                              <code className="text-sm text-muted-foreground font-mono">
-                                {key.prefix}****
-                              </code>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                {key.permissions.map((perm) => (
-                                  <span
-                                    key={perm}
-                                    className="text-xs px-2 py-0.5 rounded-full bg-info/20 text-info"
-                                  >
-                                    {perm}
-                                  </span>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {formatDate(key.createdAt)}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {key.lastUsed ? formatDate(key.lastUsed) : "Never"}
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {apiKeys.map((key) => {
+                          const permissions = Array.isArray(key.permissions) 
+                            ? key.permissions as string[]
+                            : ['read', 'write'];
+                          
+                          return (
+                            <TableRow key={key.id} className="border-border hover:bg-secondary/50">
+                              <TableCell className="font-medium text-foreground">{key.name}</TableCell>
+                              <TableCell>
+                                <code className="text-sm text-muted-foreground font-mono">
+                                  {key.key_prefix}••••••••
+                                </code>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  {permissions.map((perm) => (
+                                    <span
+                                      key={perm}
+                                      className="text-xs px-2 py-0.5 rounded-full bg-info/20 text-info"
+                                    >
+                                      {perm}
+                                    </span>
+                                  ))}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {formatDate(key.created_at)}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {formatDate(key.last_used_at)}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {key.expires_at ? formatDate(key.expires_at) : 'Never'}
+                              </TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteKeyId(key.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   )}
@@ -377,9 +487,7 @@ const Settings = () => {
         onOpenChange={(open) => {
           setIsCreateKeyModalOpen(open);
           if (!open) {
-            setCreatedKey(null);
-            setNewKeyName("");
-            setNewKeyPermissions(["read"]);
+            resetCreateModal();
           }
         }}
       >
@@ -455,11 +563,26 @@ const Settings = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsCreateKeyModalOpen(false)} className="text-muted-foreground">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setIsCreateKeyModalOpen(false)} 
+                  className="text-muted-foreground"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateKey} disabled={!newKeyName} className="bg-primary hover:bg-primary/90">
-                  Create
+                <Button 
+                  onClick={handleCreateKey} 
+                  disabled={!newKeyName.trim() || createLoading} 
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  {createLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create'
+                  )}
                 </Button>
               </DialogFooter>
             </>
@@ -496,6 +619,35 @@ const Settings = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete API Key Confirmation */}
+      <AlertDialog open={!!deleteKeyId} onOpenChange={() => setDeleteKeyId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete API Key</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this API key? Any applications using this key will lose access immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteKey}
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
