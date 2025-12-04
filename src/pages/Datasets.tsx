@@ -94,9 +94,12 @@ const Datasets = () => {
   const [syntheticStep, setSyntheticStep] = useState(1);
   const [syntheticName, setSyntheticName] = useState("");
   const [syntheticProject, setSyntheticProject] = useState("");
+  const [syntheticSourceType, setSyntheticSourceType] = useState<"text" | "url">("text");
+  const [syntheticSourceContent, setSyntheticSourceContent] = useState("");
   const [syntheticConfig, setSyntheticConfig] = useState({ pairsPerSource: 20, creativity: 50 });
   const [deleteDatasetInfo, setDeleteDatasetInfo] = useState<{ id: string; name: string; s3Path: string | null } | null>(null);
   const [previewData, setPreviewData] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   // Hooks for data fetching and mutations
@@ -320,9 +323,9 @@ const Datasets = () => {
   };
 
   const handleSyntheticGenerate = async () => {
-    if (!syntheticName.trim()) return;
+    if (!syntheticName.trim() || !syntheticSourceContent.trim()) return;
 
-    setIsCreating(true);
+    setIsGenerating(true);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -335,16 +338,23 @@ const Datasets = () => {
         return;
       }
 
+      // Step 1: Create dataset record with status='pending'
+      const datasetId = crypto.randomUUID();
+      console.log('Creating synthetic dataset:', datasetId);
+
       const { data: dataset, error: createError } = await supabase
         .from('datasets')
         .insert({
+          id: datasetId,
           name: syntheticName.trim(),
           project_id: syntheticProject || null,
           source_type: 'synthetic' as const,
           user_id: user.id,
+          status: 'pending' as const,
           source_config: {
-            pairsPerSource: syntheticConfig.pairsPerSource,
-            creativity: syntheticConfig.creativity,
+            content_type: syntheticSourceType,
+            content: syntheticSourceContent,
+            num_pairs: syntheticConfig.pairsPerSource,
           },
         })
         .select()
@@ -353,8 +363,44 @@ const Datasets = () => {
       if (createError) throw createError;
 
       toast({
-        title: 'Dataset created',
-        description: `"${syntheticName.trim()}" has been created`,
+        title: 'Generating synthetic data...',
+        description: 'This may take 30-60 seconds. Please wait.',
+      });
+
+      // Step 2: Call generate-synthetic Edge Function
+      console.log('Calling generate-synthetic Edge Function');
+      const { data: result, error: generateError } = await supabase.functions.invoke('generate-synthetic', {
+        body: { 
+          dataset_id: datasetId,
+          sources: [{
+            type: syntheticSourceType,
+            content: syntheticSourceContent,
+          }],
+          config: {
+            num_pairs: syntheticConfig.pairsPerSource,
+          }
+        }
+      });
+
+      if (generateError) {
+        console.error('Generate synthetic error:', generateError);
+        // Update dataset status to error
+        await supabase
+          .from('datasets')
+          .update({ 
+            status: 'error' as const, 
+            error_message: generateError.message 
+          })
+          .eq('id', datasetId);
+        
+        throw generateError;
+      }
+
+      console.log('Generate synthetic result:', result);
+
+      toast({
+        title: 'Synthetic dataset generated!',
+        description: `Generated ${result?.row_count || 0} QA pairs successfully.`,
       });
 
       // Reset form and close modal
@@ -362,17 +408,19 @@ const Datasets = () => {
       setSyntheticStep(1);
       setSyntheticName("");
       setSyntheticProject("");
+      setSyntheticSourceType("text");
+      setSyntheticSourceContent("");
       setSyntheticConfig({ pairsPerSource: 20, creativity: 50 });
       refetch();
     } catch (err) {
       const error = err as Error;
       toast({
-        title: 'Error creating dataset',
+        title: 'Error generating dataset',
         description: error.message,
         variant: 'destructive',
       });
     } finally {
-      setIsCreating(false);
+      setIsGenerating(false);
     }
   };
 
@@ -823,12 +871,16 @@ const Datasets = () => {
 
       {/* Generate Synthetic Modal */}
       <Dialog open={isSyntheticModalOpen} onOpenChange={(open) => {
-        setIsSyntheticModalOpen(open);
-        if (!open) {
-          setSyntheticStep(1);
-          setSyntheticName("");
-          setSyntheticProject("");
-          setSyntheticConfig({ pairsPerSource: 20, creativity: 50 });
+        if (!isGenerating) {
+          setIsSyntheticModalOpen(open);
+          if (!open) {
+            setSyntheticStep(1);
+            setSyntheticName("");
+            setSyntheticProject("");
+            setSyntheticSourceType("text");
+            setSyntheticSourceContent("");
+            setSyntheticConfig({ pairsPerSource: 20, creativity: 50 });
+          }
         }
       }}>
         <DialogContent className="bg-card border-border sm:max-w-[600px]">
@@ -839,9 +891,9 @@ const Datasets = () => {
             <DialogDescription className="text-muted-foreground">
               Step {syntheticStep} of 3 -{" "}
               {syntheticStep === 1
-                ? "Name & Project"
+                ? "Name & Source"
                 : syntheticStep === 2
-                ? "Configure Generation"
+                ? "Add Content"
                 : "Review & Generate"}
             </DialogDescription>
           </DialogHeader>
@@ -876,20 +928,38 @@ const Datasets = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  {[
-                    { icon: FileJson, label: "Files", desc: "PDF, DOCX, TXT" },
-                    { icon: LinkIcon, label: "Website", desc: "Scrape web pages" },
-                  ].map((source) => (
+                <div className="space-y-2">
+                  <Label className="text-foreground">Source Type <span className="text-destructive">*</span></Label>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
-                      key={source.label}
-                      className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                      type="button"
+                      onClick={() => setSyntheticSourceType("text")}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors",
+                        syntheticSourceType === "text" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border hover:border-primary hover:bg-primary/5"
+                      )}
                     >
-                      <source.icon className="h-8 w-8 text-muted-foreground" />
-                      <span className="font-medium text-foreground">{source.label}</span>
-                      <span className="text-xs text-muted-foreground">{source.desc}</span>
+                      <FileJson className="h-8 w-8 text-muted-foreground" />
+                      <span className="font-medium text-foreground">Text</span>
+                      <span className="text-xs text-muted-foreground">Paste text content</span>
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setSyntheticSourceType("url")}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors",
+                        syntheticSourceType === "url" 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border hover:border-primary hover:bg-primary/5"
+                      )}
+                    >
+                      <LinkIcon className="h-8 w-8 text-muted-foreground" />
+                      <span className="font-medium text-foreground">URL</span>
+                      <span className="text-xs text-muted-foreground">Scrape web page</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -897,35 +967,75 @@ const Datasets = () => {
             {syntheticStep === 2 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-foreground">QA Pairs per Source</Label>
-                  <Input 
-                    type="number" 
-                    value={syntheticConfig.pairsPerSource}
-                    onChange={(e) => setSyntheticConfig(prev => ({ ...prev, pairsPerSource: parseInt(e.target.value) || 20 }))}
-                    className="bg-secondary border-border" 
-                  />
+                  <Label className="text-foreground">
+                    {syntheticSourceType === "text" ? "Content" : "URL"} <span className="text-destructive">*</span>
+                  </Label>
+                  {syntheticSourceType === "text" ? (
+                    <textarea
+                      value={syntheticSourceContent}
+                      onChange={(e) => setSyntheticSourceContent(e.target.value)}
+                      placeholder="Paste your text content here. This will be used to generate QA pairs for fine-tuning..."
+                      className="w-full h-40 px-3 py-2 bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  ) : (
+                    <Input
+                      value={syntheticSourceContent}
+                      onChange={(e) => setSyntheticSourceContent(e.target.value)}
+                      placeholder="https://example.com/documentation"
+                      className="bg-secondary border-border"
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {syntheticSourceType === "text" 
+                      ? "The AI will analyze this text and generate question-answer pairs."
+                      : "The AI will scrape this URL and generate question-answer pairs from the content."}
+                  </p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground">Creativity Level: {syntheticConfig.creativity}%</Label>
+                  <Label className="text-foreground">Number of QA Pairs</Label>
                   <Input 
-                    type="range" 
-                    min={0} 
-                    max={100} 
-                    value={syntheticConfig.creativity}
-                    onChange={(e) => setSyntheticConfig(prev => ({ ...prev, creativity: parseInt(e.target.value) }))}
-                    className="w-full" 
+                    type="number" 
+                    min={5}
+                    max={50}
+                    value={syntheticConfig.pairsPerSource}
+                    onChange={(e) => setSyntheticConfig(prev => ({ ...prev, pairsPerSource: Math.min(50, Math.max(5, parseInt(e.target.value) || 20)) }))}
+                    className="bg-secondary border-border" 
                   />
+                  <p className="text-xs text-muted-foreground">Between 5 and 50 pairs (more pairs take longer)</p>
                 </div>
               </div>
             )}
 
             {syntheticStep === 3 && (
               <div className="space-y-4">
-                <div className="p-4 bg-secondary rounded-lg space-y-2">
-                  <p className="text-sm text-foreground"><strong>Name:</strong> {syntheticName}</p>
-                  <p className="text-sm text-muted-foreground">QA Pairs per Source: {syntheticConfig.pairsPerSource}</p>
-                  <p className="text-sm text-muted-foreground">Creativity: {syntheticConfig.creativity}%</p>
-                  <p className="text-sm text-muted-foreground">Status: Will be set to "pending" for processing</p>
+                <div className="p-4 bg-secondary rounded-lg space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Dataset Name</p>
+                    <p className="text-sm text-foreground font-medium">{syntheticName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Source Type</p>
+                    <p className="text-sm text-foreground">{syntheticSourceType === "text" ? "Text Content" : "Web URL"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      {syntheticSourceType === "text" ? "Content Preview" : "URL"}
+                    </p>
+                    <p className="text-sm text-foreground truncate">
+                      {syntheticSourceType === "text" 
+                        ? syntheticSourceContent.slice(0, 100) + (syntheticSourceContent.length > 100 ? "..." : "")
+                        : syntheticSourceContent}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">QA Pairs to Generate</p>
+                    <p className="text-sm text-foreground">{syntheticConfig.pairsPerSource}</p>
+                  </div>
+                </div>
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-sm text-foreground">
+                    <strong>Note:</strong> Generation typically takes 30-60 seconds. The AI will analyze your content and create high-quality question-answer pairs for fine-tuning.
+                  </p>
                 </div>
               </div>
             )}
@@ -939,12 +1049,14 @@ const Datasets = () => {
                   setIsSyntheticModalOpen(false);
                   setSyntheticName("");
                   setSyntheticProject("");
+                  setSyntheticSourceType("text");
+                  setSyntheticSourceContent("");
                 } else {
                   setSyntheticStep(syntheticStep - 1);
                 }
               }}
               className="text-muted-foreground"
-              disabled={isCreating}
+              disabled={isGenerating}
             >
               {syntheticStep === 1 ? "Cancel" : "Back"}
             </Button>
@@ -956,17 +1068,21 @@ const Datasets = () => {
                   handleSyntheticGenerate();
                 }
               }}
-              disabled={(syntheticStep === 1 && !syntheticName.trim()) || isCreating}
+              disabled={
+                (syntheticStep === 1 && !syntheticName.trim()) || 
+                (syntheticStep === 2 && !syntheticSourceContent.trim()) ||
+                isGenerating
+              }
               className="bg-primary hover:bg-primary/90"
             >
               {syntheticStep === 3 ? (
-                isCreating ? (
+                isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    Generating...
                   </>
                 ) : (
-                  "Generate"
+                  "Generate Dataset"
                 )
               ) : (
                 "Next"

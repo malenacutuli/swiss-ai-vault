@@ -2,25 +2,29 @@
 // Uses Claude to create QA pairs
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface SyntheticSource {
+  type: "text" | "url" | "youtube";
+  content: string;
+}
+
+interface SyntheticConfig {
+  num_pairs: number;
+  system_prompt?: string;
+  rules?: string[];
+  examples?: Array<{ question: string; answer: string }>;
+}
+
 interface SyntheticRequest {
   dataset_id: string;
-  sources: Array<{
-    type: "text" | "url" | "youtube";
-    content: string;
-  }>;
-  config: {
-    num_pairs: number;
-    system_prompt?: string;
-    rules?: string[];
-    examples?: Array<{ question: string; answer: string }>;
-  };
+  sources: SyntheticSource[];
+  config: SyntheticConfig;
 }
 
 serve(async (req) => {
@@ -28,11 +32,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let dataset_id: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let supabase: SupabaseClient<any, any, any> | null = null;
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+    
+    if (!anthropicKey) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
+    }
+    
+    supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get auth token
     const authHeader = req.headers.get("Authorization");
@@ -53,12 +66,20 @@ serve(async (req) => {
       });
     }
 
-    const body: SyntheticRequest = await req.json();
-    const { dataset_id, sources, config } = body;
+    const body = await req.json() as SyntheticRequest;
+    const { sources, config } = body;
+    dataset_id = body.dataset_id;
+
+    if (!dataset_id) {
+      return new Response(JSON.stringify({ error: "dataset_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     console.log("Generating synthetic data for dataset:", dataset_id);
 
-    // Update dataset status
+    // Update dataset status to processing
     await supabase
       .from("datasets")
       .update({ status: "processing" })
@@ -234,6 +255,23 @@ Return as JSON array: [{"question": "...", "answer": "..."}, ...]`;
   } catch (error) {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Update dataset status to error if we have the ID and supabase client
+    if (dataset_id && supabase) {
+      try {
+        await supabase
+          .from("datasets")
+          .update({ 
+            status: "error", 
+            error_message: errorMessage 
+          })
+          .eq("id", dataset_id);
+        console.log("Updated dataset status to error");
+      } catch (updateError) {
+        console.error("Failed to update dataset status:", updateError);
+      }
+    }
+    
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
