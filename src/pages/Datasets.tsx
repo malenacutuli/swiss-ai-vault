@@ -214,6 +214,19 @@ const Datasets = () => {
         .from('datasets')
         .update({ s3_path: filePath, status: 'processing' })
         .eq('id', dataset.id);
+
+      // Trigger processing Edge Function
+      try {
+        const { error: processError } = await supabase.functions.invoke('process-dataset', {
+          body: { dataset_id: dataset.id }
+        });
+        
+        if (processError) {
+          console.error('Error processing dataset:', processError);
+        }
+      } catch (err) {
+        console.error('Failed to invoke process-dataset:', err);
+      }
     }
 
     // Reset form and close modal
