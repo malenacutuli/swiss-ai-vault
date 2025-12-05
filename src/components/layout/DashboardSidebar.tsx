@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
   BarChart3,
   Cpu,
+  Library,
   Play,
   Settings,
   ChevronLeft,
@@ -39,7 +40,8 @@ const navItems = [
   { icon: Database, label: "Datasets", href: "/dashboard/datasets" },
   { icon: SlidersHorizontal, label: "Fine-tuning", href: "/dashboard/finetuning" },
   { icon: BarChart3, label: "Evaluations", href: "/dashboard/evaluations" },
-  { icon: Cpu, label: "Models", href: "/dashboard/models" },
+  { icon: Cpu, label: "Your Models", href: "/dashboard/models" },
+  { icon: Library, label: "Model Catalog", href: "/dashboard/catalog" },
   { icon: Play, label: "Playground", href: "/dashboard/playground" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
