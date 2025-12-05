@@ -18,6 +18,7 @@ import Playground from "./pages/Playground";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Stats from "./pages/Stats";
+import Traces from "./pages/Traces";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/dashboard/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/dashboard/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+            <Route path="/dashboard/traces" element={<ProtectedRoute><Traces /></ProtectedRoute>} />
             <Route path="/dashboard/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

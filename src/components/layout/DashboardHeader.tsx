@@ -36,6 +36,7 @@ const routeLabels: Record<string, string> = {
   notifications: "Notifications",
   catalog: "Model Catalog",
   stats: "Usage Statistics",
+  traces: "Traces",
 };
 
 export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
