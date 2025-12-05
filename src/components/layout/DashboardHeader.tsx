@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Search, Bell, Sun, Moon, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
 interface DashboardHeaderProps {
   sidebarCollapsed: boolean;
@@ -31,11 +33,16 @@ const routeLabels: Record<string, string> = {
   models: "Models",
   playground: "Playground",
   settings: "Settings",
+  notifications: "Notifications",
+  catalog: "Model Catalog",
 };
 
 export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const { data: unreadCount } = useUnreadCount();
+  const { data: notifications } = useNotifications();
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => ({
@@ -49,6 +56,8 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
     setTheme(newTheme);
     document.documentElement.classList.toggle("light", newTheme === "light");
   };
+
+  const recentNotifications = notifications?.slice(0, 5) || [];
 
   return (
     <header
@@ -112,27 +121,53 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
               className="relative text-muted-foreground hover:text-foreground"
             >
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                3
-              </span>
+              {unreadCount && unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 bg-popover">
-            <div className="p-3 border-b border-border">
+            <div className="p-3 border-b border-border flex items-center justify-between">
               <p className="font-semibold text-foreground">Notifications</p>
+              <button
+                onClick={() => navigate("/dashboard/notifications")}
+                className="text-xs text-primary hover:underline"
+              >
+                View all
+              </button>
             </div>
-            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-              <p className="text-sm font-medium text-foreground">Fine-tuning completed</p>
-              <p className="text-xs text-muted-foreground">Your model "customer-support-v2" is ready</p>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-              <p className="text-sm font-medium text-foreground">Dataset processed</p>
-              <p className="text-xs text-muted-foreground">"Sales FAQ" dataset is ready for training</p>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-              <p className="text-sm font-medium text-foreground">API usage alert</p>
-              <p className="text-xs text-muted-foreground">You've used 80% of your monthly quota</p>
-            </DropdownMenuItem>
+            {recentNotifications.length === 0 ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                No notifications
+              </div>
+            ) : (
+              recentNotifications.map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className="flex flex-col items-start gap-1 p-3 cursor-pointer"
+                  onClick={() => navigate("/dashboard/notifications")}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    {!notification.is_read && (
+                      <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                    )}
+                    <p className="text-sm font-medium text-foreground flex-1 truncate">
+                      {notification.title}
+                    </p>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(parseISO(notification.created_at), { addSuffix: false })}
+                    </span>
+                  </div>
+                  {notification.message && (
+                    <p className="text-xs text-muted-foreground truncate w-full">
+                      {notification.message}
+                    </p>
+                  )}
+                </DropdownMenuItem>
+              ))
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
