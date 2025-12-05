@@ -80,6 +80,8 @@ serve(async (req) => {
         config: job.hyperparameters,
         webhook_url: `${supabaseUrl}/functions/v1/webhook-finetuning`,
         webhook_secret: webhookSecret,
+        supabase_url: supabaseUrl,
+        supabase_key: supabaseKey,
       }),
     });
 
