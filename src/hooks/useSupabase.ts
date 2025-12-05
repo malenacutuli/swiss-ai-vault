@@ -1086,8 +1086,8 @@ export function useCreateEvaluation() {
 
     try {
       setLoading(true);
-      // Insert without .select().single() to avoid type validation issues
-      const { error: createError } = await supabase
+      // Insert and get the created evaluation ID
+      const { data, error: createError } = await supabase
         .from('evaluations')
         .insert({
           model_id: modelId,
@@ -1097,16 +1097,37 @@ export function useCreateEvaluation() {
           byoe_endpoint: byoeEndpoint || null,
           user_id: user.id,
           status: 'pending',
-        });
+        })
+        .select('id')
+        .single();
 
       if (createError) throw createError;
 
       toast({
         title: 'Evaluation created',
-        description: 'Evaluation has been queued for processing',
+        description: 'Starting evaluation...',
       });
 
-      return true;
+      // Immediately trigger the evaluation Edge Function
+      const { error: runError } = await supabase.functions.invoke('run-evaluation', {
+        body: { evaluation_id: data.id }
+      });
+
+      if (runError) {
+        console.error('Error starting evaluation:', runError);
+        toast({
+          title: 'Evaluation created but failed to start',
+          description: 'You can manually start it from the evaluations list',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Evaluation started',
+          description: 'Processing will complete in a few moments',
+        });
+      }
+
+      return data.id;
     } catch (err) {
       const error = err as Error;
       setError(error);
@@ -1122,6 +1143,44 @@ export function useCreateEvaluation() {
   };
 
   return { createEvaluation, loading, error };
+}
+
+export function useStartEvaluation() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const startEvaluation = async (evaluationId: string) => {
+    try {
+      setLoading(true);
+      
+      const { error: runError } = await supabase.functions.invoke('run-evaluation', {
+        body: { evaluation_id: evaluationId }
+      });
+
+      if (runError) throw runError;
+
+      toast({
+        title: 'Evaluation started',
+        description: 'Processing will complete in a few moments',
+      });
+
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      toast({
+        title: 'Error starting evaluation',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { startEvaluation, loading, error };
 }
 
 export function useDeleteEvaluation() {
