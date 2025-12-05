@@ -5,17 +5,7 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ProjectSetupWizard } from "@/components/projects/ProjectSetupWizard";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -61,8 +52,7 @@ const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: "", description: "" });
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
 
   // Hooks for data fetching and mutations
@@ -98,14 +88,13 @@ const Projects = () => {
       });
   }, [projects, searchQuery, statusFilter, sortBy]);
 
-  const handleCreateProject = async () => {
-    if (!newProject.name.trim()) return;
+  const handleCreateProject = async (name: string, description: string) => {
+    if (!name.trim()) return;
     
-    const result = await createProject(newProject.name.trim(), newProject.description.trim() || undefined);
+    const result = await createProject(name.trim(), description.trim() || undefined);
     
     if (result) {
-      setIsCreateModalOpen(false);
-      setNewProject({ name: "", description: "" });
+      setIsWizardOpen(false);
       refetch();
     }
   };
@@ -197,7 +186,7 @@ const Projects = () => {
               </p>
             </div>
             <Button
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => setIsWizardOpen(true)}
               className="bg-primary hover:bg-primary/90 gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -257,7 +246,7 @@ const Projects = () => {
                   : "Create your first project to start building AI models"
               }
               actionLabel={searchQuery || statusFilter !== "all" ? undefined : "Create Project"}
-              onAction={searchQuery || statusFilter !== "all" ? undefined : () => setIsCreateModalOpen(true)}
+              onAction={searchQuery || statusFilter !== "all" ? undefined : () => setIsWizardOpen(true)}
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -334,64 +323,13 @@ const Projects = () => {
         </main>
       </div>
 
-      {/* Create Project Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="bg-card border-border sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Create New Project</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Start a new AI model development project
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-foreground">
-                Project Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="e.g., Customer Support Bot"
-                value={newProject.name}
-                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                className="bg-secondary border-border"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && newProject.name.trim()) {
-                    handleCreateProject();
-                  }
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-foreground">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="Brief description of your project..."
-                value={newProject.description}
-                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                className="bg-secondary border-border min-h-[100px]"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setIsCreateModalOpen(false)}
-              className="text-muted-foreground"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateProject}
-              disabled={!newProject.name.trim() || isCreating}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {isCreating ? "Creating..." : "Create Project"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Project Setup Wizard */}
+      <ProjectSetupWizard
+        open={isWizardOpen}
+        onOpenChange={setIsWizardOpen}
+        onComplete={handleCreateProject}
+        isCreating={isCreating}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteProjectId} onOpenChange={(open) => !open && setDeleteProjectId(null)}>
