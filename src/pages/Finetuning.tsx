@@ -183,8 +183,22 @@ const Finetuning = () => {
   };
 
   const handleStartJob = async (jobId: string) => {
-    await updateJob(jobId, { status: 'queued' });
-    refetch();
+    try {
+      // Call the start-finetuning Edge Function
+      const { data, error } = await supabase.functions.invoke('start-finetuning', {
+        body: { job_id: jobId }
+      });
+      
+      if (error) {
+        console.error('Failed to start fine-tuning:', error);
+        return;
+      }
+      
+      console.log('Fine-tuning job started:', data);
+      refetch();
+    } catch (err) {
+      console.error('Error starting fine-tuning job:', err);
+    }
   };
 
   const handleCancelJob = async (jobId: string) => {
