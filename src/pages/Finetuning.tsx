@@ -576,10 +576,15 @@ const Finetuning = () => {
                         : "border-border hover:border-muted-foreground"
                     )}
                   >
-                    {model.id === 'meta-llama/Llama-3.2-3B' && (
+                    {model.id === 'Qwen/Qwen2.5-3B-Instruct' && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-success mb-2">
                         <Sparkles className="h-3 w-3 inline mr-1" />
                         Recommended
+                      </span>
+                    )}
+                    {model.gated && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-warning/20 text-warning mb-2">
+                        License Required
                       </span>
                     )}
                     <span className="font-medium text-foreground">{model.name}</span>
