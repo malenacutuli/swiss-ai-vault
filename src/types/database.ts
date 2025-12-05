@@ -147,15 +147,15 @@ export interface CreateFinetuningJobInput {
 
 // Base models available for fine-tuning
 export const BASE_MODELS = [
-  { id: 'meta-llama/Llama-3.2-1B', name: 'Llama 3.2 1B', parameters: '1B', family: 'Llama' },
-  { id: 'meta-llama/Llama-3.2-3B', name: 'Llama 3.2 3B', parameters: '3B', family: 'Llama' },
-  { id: 'mistralai/Mistral-7B-v0.3', name: 'Mistral 7B', parameters: '7B', family: 'Mistral' },
-  { id: 'Qwen/Qwen2.5-0.5B', name: 'Qwen 2.5 0.5B', parameters: '0.5B', family: 'Qwen' },
-  { id: 'Qwen/Qwen2.5-1.5B', name: 'Qwen 2.5 1.5B', parameters: '1.5B', family: 'Qwen' },
-  { id: 'Qwen/Qwen2.5-3B', name: 'Qwen 2.5 3B', parameters: '3B', family: 'Qwen' },
-  { id: 'Qwen/Qwen2.5-7B', name: 'Qwen 2.5 7B', parameters: '7B', family: 'Qwen' },
-  { id: 'google/gemma-2-2b', name: 'Gemma 2 2B', parameters: '2B', family: 'Gemma' },
-  { id: 'google/gemma-2-9b', name: 'Gemma 2 9B', parameters: '9B', family: 'Gemma' },
+  { id: 'Qwen/Qwen2.5-0.5B-Instruct', name: 'Qwen 2.5 0.5B', parameters: '0.5B', family: 'Qwen', gated: false },
+  { id: 'Qwen/Qwen2.5-1.5B-Instruct', name: 'Qwen 2.5 1.5B', parameters: '1.5B', family: 'Qwen', gated: false },
+  { id: 'Qwen/Qwen2.5-3B-Instruct', name: 'Qwen 2.5 3B', parameters: '3B', family: 'Qwen', gated: false },
+  { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen 2.5 7B', parameters: '7B', family: 'Qwen', gated: false },
+  { id: 'meta-llama/Llama-3.2-1B-Instruct', name: 'Llama 3.2 1B', parameters: '1B', family: 'Llama', gated: true },
+  { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B', parameters: '3B', family: 'Llama', gated: true },
+  { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B', parameters: '7B', family: 'Mistral', gated: false },
+  { id: 'google/gemma-2-2b-it', name: 'Gemma 2 2B', parameters: '2B', family: 'Gemma', gated: false },
+  { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B', parameters: '9B', family: 'Gemma', gated: false },
 ] as const;
 
 export type BaseModelId = typeof BASE_MODELS[number]['id'];
