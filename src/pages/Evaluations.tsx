@@ -56,6 +56,7 @@ import {
   Plus,
   BarChart3,
   Eye,
+  Play,
   RotateCw,
   Trash2,
   Lock,
@@ -70,6 +71,7 @@ import {
   useCreateMetric,
   useDeleteMetric,
   useDeleteEvaluation,
+  useStartEvaluation,
   useModels,
   useDatasets,
 } from "@/hooks/useSupabase";
@@ -128,6 +130,8 @@ const Evaluations = () => {
   const { createMetric, loading: isCreatingMetric } = useCreateMetric();
   const { deleteMetric, loading: isDeletingMetric } = useDeleteMetric();
   const { deleteEvaluation, loading: isDeletingEval } = useDeleteEvaluation();
+  const { startEvaluation, loading: isStartingEval } = useStartEvaluation();
+  const [startingEvalId, setStartingEvalId] = useState<string | null>(null);
 
   // Real-time subscription for evaluation status changes
   useEffect(() => {
@@ -261,6 +265,15 @@ const Evaluations = () => {
     const success = await deleteEvaluation(deleteEvaluationId);
     if (success) {
       setDeleteEvaluationId(null);
+      refetchEvaluations();
+    }
+  };
+
+  const handleStartEvaluation = async (evaluationId: string) => {
+    setStartingEvalId(evaluationId);
+    const success = await startEvaluation(evaluationId);
+    setStartingEvalId(null);
+    if (success) {
       refetchEvaluations();
     }
   };
@@ -470,11 +483,39 @@ const Evaluations = () => {
                                         </Button>
                                       </CollapsibleTrigger>
                                     )}
+                                    {status === 'pending' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-success hover:text-success"
+                                        onClick={() => handleStartEvaluation(evaluation.id)}
+                                        disabled={startingEvalId === evaluation.id}
+                                      >
+                                        {startingEvalId === evaluation.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Play className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    )}
+                                    {(status === 'completed' || status === 'failed') && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleStartEvaluation(evaluation.id)}
+                                        disabled={startingEvalId === evaluation.id}
+                                        title="Re-run evaluation"
+                                      >
+                                        {startingEvalId === evaluation.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <RotateCw className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    )}
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
                                       <Eye className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <RotateCw className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       variant="ghost"
