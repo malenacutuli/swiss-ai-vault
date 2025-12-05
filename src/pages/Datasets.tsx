@@ -49,8 +49,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { DatasetCreationWizard } from "@/components/datasets/DatasetCreationWizard";
 import { cn } from "@/lib/utils";
 import {
+  Plus,
   Upload,
   Sparkles,
   Database,
@@ -85,6 +87,7 @@ const sourceIcons: Record<SourceType, typeof Upload> = {
 const Datasets = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isSyntheticModalOpen, setIsSyntheticModalOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -547,19 +550,11 @@ const Datasets = () => {
             </div>
             <div className="flex gap-2">
               <Button
-                variant="outline"
-                onClick={() => setIsSyntheticModalOpen(true)}
-                className="gap-2 border-border text-foreground hover:bg-secondary"
-              >
-                <Sparkles className="h-4 w-4" />
-                Generate Synthetic
-              </Button>
-              <Button
-                onClick={() => setIsUploadModalOpen(true)}
+                onClick={() => setIsWizardOpen(true)}
                 className="bg-primary hover:bg-primary/90 gap-2"
               >
-                <Upload className="h-4 w-4" />
-                Upload JSONL
+                <Plus className="h-4 w-4" />
+                Create Dataset
               </Button>
             </div>
           </div>
@@ -606,8 +601,8 @@ const Datasets = () => {
               icon={Database}
               title="No datasets yet"
               subtitle="Upload a JSONL file or generate synthetic data to get started"
-              actionLabel="Upload Dataset"
-              onAction={() => setIsUploadModalOpen(true)}
+              actionLabel="Create Dataset"
+              onAction={() => setIsWizardOpen(true)}
             />
           ) : (
             <div className="border border-border rounded-lg bg-card animate-fade-in animate-delay-100">
@@ -1105,7 +1100,7 @@ const Datasets = () => {
                     Generating...
                   </>
                 ) : (
-                  "Generate Dataset"
+                "Generate Dataset"
                 )
               ) : (
                 "Next"
@@ -1114,6 +1109,14 @@ const Datasets = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dataset Creation Wizard */}
+      <DatasetCreationWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        projects={projects?.map(p => ({ id: p.id, name: p.name })) || []}
+        onSuccess={refetch}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteDatasetInfo} onOpenChange={(open) => !open && setDeleteDatasetInfo(null)}>
