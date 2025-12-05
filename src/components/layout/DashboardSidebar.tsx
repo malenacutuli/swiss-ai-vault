@@ -24,6 +24,7 @@ import {
   LogOut,
   User,
   CreditCard,
+  TrendingUp,
 } from "lucide-react";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,6 +44,7 @@ const navItems = [
   { icon: Cpu, label: "Your Models", href: "/dashboard/models" },
   { icon: Library, label: "Model Catalog", href: "/dashboard/catalog" },
   { icon: Play, label: "Playground", href: "/dashboard/playground" },
+  { icon: TrendingUp, label: "Usage Stats", href: "/dashboard/stats" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
