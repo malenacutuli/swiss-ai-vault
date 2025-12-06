@@ -706,6 +706,69 @@ export type Database = {
           },
         ]
       }
+      finetuning_templates: {
+        Row: {
+          created_at: string | null
+          default_hyperparameters: Json | null
+          description: string | null
+          difficulty: string | null
+          domain: string
+          estimated_time: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          language: string
+          language_code: string
+          name: string
+          recommended_method: string | null
+          recommended_model: string
+          sample_conversations: Json | null
+          sample_system_prompt: string | null
+          slug: string
+          use_cases: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_hyperparameters?: Json | null
+          description?: string | null
+          difficulty?: string | null
+          domain: string
+          estimated_time?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          language: string
+          language_code: string
+          name: string
+          recommended_method?: string | null
+          recommended_model: string
+          sample_conversations?: Json | null
+          sample_system_prompt?: string | null
+          slug: string
+          use_cases?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          default_hyperparameters?: Json | null
+          description?: string | null
+          difficulty?: string | null
+          domain?: string
+          estimated_time?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          language?: string
+          language_code?: string
+          name?: string
+          recommended_method?: string | null
+          recommended_model?: string
+          sample_conversations?: Json | null
+          sample_system_prompt?: string | null
+          slug?: string
+          use_cases?: string[] | null
+        }
+        Relationships: []
+      }
       metrics: {
         Row: {
           created_at: string | null
@@ -1274,7 +1337,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      template_summary: {
+        Row: {
+          description: string | null
+          difficulty: string | null
+          domain: string | null
+          estimated_time: string | null
+          icon: string | null
+          id: string | null
+          is_active: boolean | null
+          language: string | null
+          language_code: string | null
+          name: string | null
+          recommended_model: string | null
+          slug: string | null
+          use_cases: string[] | null
+        }
+        Insert: {
+          description?: string | null
+          difficulty?: string | null
+          domain?: string | null
+          estimated_time?: string | null
+          icon?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          language?: string | null
+          language_code?: string | null
+          name?: string | null
+          recommended_model?: string | null
+          slug?: string | null
+          use_cases?: string[] | null
+        }
+        Update: {
+          description?: string | null
+          difficulty?: string | null
+          domain?: string | null
+          estimated_time?: string | null
+          icon?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          language?: string | null
+          language_code?: string | null
+          name?: string | null
+          recommended_model?: string | null
+          slug?: string | null
+          use_cases?: string[] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       clear_conversation_documents: {
