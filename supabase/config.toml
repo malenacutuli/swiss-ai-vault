@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.import-huggingface]
 verify_jwt = true
+
+[functions.embed-document]
+verify_jwt = true
