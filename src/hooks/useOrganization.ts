@@ -211,19 +211,20 @@ export function useCreateOrganization() {
       // Generate slug from name if not provided
       const orgSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      // Create organization
+      // Create organization with owner_id
       const { data: org, error: orgError } = await supabase
         .from('organizations')
         .insert({
           name,
           slug: orgSlug,
+          owner_id: user.id,
         })
         .select()
         .single();
 
       if (orgError) throw orgError;
 
-      // Add creator as admin
+      // Add creator as admin member
       const { error: memberError } = await supabase
         .from('organization_members')
         .insert({
