@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -25,6 +27,10 @@ import {
   Bot,
   User,
   Loader2,
+  AlertCircle,
+  Zap,
+  Clock,
+  Info,
 } from "lucide-react";
 import { useModels } from "@/hooks/useSupabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,17 +44,32 @@ interface Message {
   latency?: number;
 }
 
-const providerModels = [
-  { id: "gpt-4o-mini", name: "GPT-4o Mini", group: "openai", provider: "OpenAI" },
-  { id: "gpt-4o", name: "GPT-4o", group: "openai", provider: "OpenAI" },
-  { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet", group: "anthropic", provider: "Anthropic" },
-  { id: "claude-3-5-haiku", name: "Claude 3.5 Haiku", group: "anthropic", provider: "Anthropic" },
+interface ModelInfo {
+  id: string;
+  name: string;
+  group: string;
+  provider?: string;
+  contextLength?: number;
+  parameters?: string;
+  coldStart?: boolean;
+}
+
+const providerModels: ModelInfo[] = [
+  { id: "gpt-4o-mini", name: "GPT-4o Mini", group: "openai", provider: "OpenAI", contextLength: 128000 },
+  { id: "gpt-4o", name: "GPT-4o", group: "openai", provider: "OpenAI", contextLength: 128000 },
+  { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet", group: "anthropic", provider: "Anthropic", contextLength: 200000 },
+  { id: "claude-3-5-haiku", name: "Claude 3.5 Haiku", group: "anthropic", provider: "Anthropic", contextLength: 200000 },
 ];
 
-const baseModels = [
-  { id: "llama3.2-3b", name: "Llama 3.2 3B", group: "base" },
-  { id: "mistral-7b", name: "Mistral 7B", group: "base" },
-  { id: "qwen2.5-3b", name: "Qwen 2.5 3B", group: "base" },
+const openSourceModels: ModelInfo[] = [
+  { id: "qwen2.5-0.5b", name: "Qwen 2.5 0.5B", group: "opensource", parameters: "0.5B", contextLength: 32768, coldStart: true },
+  { id: "qwen2.5-1.5b", name: "Qwen 2.5 1.5B", group: "opensource", parameters: "1.5B", contextLength: 32768, coldStart: true },
+  { id: "qwen2.5-3b", name: "Qwen 2.5 3B", group: "opensource", parameters: "3B", contextLength: 32768, coldStart: true },
+  { id: "qwen2.5-7b", name: "Qwen 2.5 7B", group: "opensource", parameters: "7B", contextLength: 32768, coldStart: true },
+  { id: "mistral-7b", name: "Mistral 7B", group: "opensource", parameters: "7B", contextLength: 32768, coldStart: true },
+  { id: "gemma2-2b", name: "Gemma 2 2B", group: "opensource", parameters: "2B", contextLength: 8192, coldStart: true },
+  { id: "llama3.2-1b", name: "Llama 3.2 1B", group: "opensource", parameters: "1B", contextLength: 131072, coldStart: true },
+  { id: "llama3.2-3b", name: "Llama 3.2 3B", group: "opensource", parameters: "3B", contextLength: 131072, coldStart: true },
 ];
 
 const systemPromptTemplates = [
@@ -67,7 +88,10 @@ const Playground = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingTime, setLoadingTime] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { models: userModels } = useModels();
   const { session } = useAuth();
@@ -75,6 +99,64 @@ const Playground = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Track loading time for cold start message
+  useEffect(() => {
+    if (isLoading) {
+      setLoadingTime(0);
+      setLoadingMessage("");
+      loadingTimerRef.current = setInterval(() => {
+        setLoadingTime(prev => {
+          const newTime = prev + 1;
+          if (newTime >= 5 && isColdStartModel(selectedModel)) {
+            setLoadingMessage("Model is warming up... This may take 30-60 seconds on first request.");
+          }
+          return newTime;
+        });
+      }, 1000);
+    } else {
+      if (loadingTimerRef.current) {
+        clearInterval(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+      setLoadingTime(0);
+      setLoadingMessage("");
+    }
+    return () => {
+      if (loadingTimerRef.current) {
+        clearInterval(loadingTimerRef.current);
+      }
+    };
+  }, [isLoading, selectedModel]);
+
+  // Check if model might have cold start
+  const isColdStartModel = (modelId: string) => {
+    return modelId.startsWith("sv-") || 
+           openSourceModels.some(m => m.id === modelId);
+  };
+
+  // Get model info for display
+  const getModelInfo = (modelId: string): ModelInfo | null => {
+    const provider = providerModels.find(m => m.id === modelId);
+    if (provider) return provider;
+    
+    const openSource = openSourceModels.find(m => m.id === modelId);
+    if (openSource) return openSource;
+    
+    const userModel = userModels?.find(m => m.model_id === modelId);
+    if (userModel) {
+      return {
+        id: userModel.model_id,
+        name: userModel.name,
+        group: "finetuned",
+        parameters: userModel.parameter_count ? `${(userModel.parameter_count / 1e9).toFixed(1)}B` : undefined,
+        contextLength: userModel.context_length || undefined,
+        coldStart: true,
+      };
+    }
+    
+    return null;
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -134,8 +216,40 @@ const Playground = () => {
           toast.error("Rate limit exceeded. Please wait a moment and try again.");
           return;
         }
+        if (response.status === 504) {
+          toast.error("Request timed out. The model may be starting up. Please try again in a minute.", {
+            duration: 8000,
+            action: {
+              label: "Use GPT-4o Mini",
+              onClick: () => setSelectedModel("gpt-4o-mini"),
+            },
+          });
+          setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
+          return;
+        }
         
-        throw new Error(errorData.error?.message || `Request failed with status ${response.status}`);
+        // Handle vLLM-specific errors
+        const errorMessage = errorData.error?.message || `Request failed with status ${response.status}`;
+        if (errorMessage.includes("cold start") || errorMessage.includes("warming up")) {
+          toast.error("Model is warming up. Please wait 30-60 seconds and try again.", {
+            duration: 8000,
+            action: {
+              label: "Use GPT-4o Mini",
+              onClick: () => setSelectedModel("gpt-4o-mini"),
+            },
+          });
+          setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
+          return;
+        }
+        if (errorMessage.includes("not found") || errorMessage.includes("not deployed")) {
+          toast.error(`Model not available: ${errorMessage}. Try using a different model.`, {
+            duration: 8000,
+          });
+          setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
+          return;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -162,9 +276,20 @@ const Playground = () => {
     } catch (error) {
       console.error("Chat error:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to get response";
-      toast.error(errorMessage);
       
-      // Remove the user message if we failed
+      // Suggest fallback for vLLM errors
+      if (errorMessage.includes("vLLM") || errorMessage.includes("Inference")) {
+        toast.error(errorMessage, {
+          duration: 8000,
+          action: {
+            label: "Use Claude instead",
+            onClick: () => setSelectedModel("claude-3-5-haiku"),
+          },
+        });
+      } else {
+        toast.error(errorMessage);
+      }
+      
       setMessages((prev) => prev.filter(m => m.id !== userMessage.id));
     } finally {
       setIsLoading(false);
@@ -182,16 +307,14 @@ const Playground = () => {
 
   // Get display name for selected model
   const getModelDisplayName = () => {
-    const providerModel = providerModels.find(m => m.id === selectedModel);
-    if (providerModel) return providerModel.name;
-    
-    const baseModel = baseModels.find(m => m.id === selectedModel);
-    if (baseModel) return baseModel.name;
-    
-    const userModel = userModels?.find(m => m.model_id === selectedModel);
-    if (userModel) return userModel.name;
-    
-    return selectedModel;
+    const info = getModelInfo(selectedModel);
+    return info?.name || selectedModel;
+  };
+
+  // Get base model for fine-tuned models
+  const getFinetunedBaseModel = (modelId: string) => {
+    const userModel = userModels?.find(m => m.model_id === modelId);
+    return userModel?.base_model || null;
   };
 
   return (
@@ -224,16 +347,28 @@ const Playground = () => {
                   <SelectTrigger className="bg-secondary border-border">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover border-border z-50">
+                  <SelectContent className="bg-popover border-border z-50 max-h-[400px]">
                     {/* User's Fine-tuned Models */}
                     {userModels && userModels.length > 0 && (
                       <SelectGroup>
-                        <SelectLabel>Your Models</SelectLabel>
+                        <SelectLabel className="flex items-center gap-2">
+                          <Sparkles className="h-3 w-3" />
+                          Your Fine-tuned Models
+                        </SelectLabel>
                         {userModels.map((model) => (
                           <SelectItem key={model.model_id} value={model.model_id}>
-                            <div className="flex items-center gap-2">
-                              <Sparkles className="h-3 w-3 text-primary" />
-                              {model.name}
+                            <div className="flex items-center gap-2 w-full">
+                              <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
+                              <span className="truncate">{model.name}</span>
+                              {model.is_deployed ? (
+                                <Badge variant="outline" className="ml-auto text-[10px] px-1 py-0 bg-success/10 text-success border-success/30">
+                                  deployed
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="ml-auto text-[10px] px-1 py-0">
+                                  ready
+                                </Badge>
+                              )}
                             </div>
                           </SelectItem>
                         ))}
@@ -245,7 +380,10 @@ const Playground = () => {
                       <SelectLabel>OpenAI</SelectLabel>
                       {providerModels.filter(m => m.group === "openai").map((model) => (
                         <SelectItem key={model.id} value={model.id}>
-                          {model.name}
+                          <div className="flex items-center gap-2">
+                            <Zap className="h-3 w-3 text-success flex-shrink-0" />
+                            {model.name}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -255,22 +393,68 @@ const Playground = () => {
                       <SelectLabel>Anthropic</SelectLabel>
                       {providerModels.filter(m => m.group === "anthropic").map((model) => (
                         <SelectItem key={model.id} value={model.id}>
-                          {model.name}
+                          <div className="flex items-center gap-2">
+                            <Zap className="h-3 w-3 text-success flex-shrink-0" />
+                            {model.name}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectGroup>
                     
-                    {/* Base Open Source Models */}
+                    {/* Open Source Models */}
                     <SelectGroup>
-                      <SelectLabel>Open Source</SelectLabel>
-                      {baseModels.map((model) => (
+                      <SelectLabel className="flex items-center gap-2">
+                        Open Source
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 text-warning border-warning/30">
+                          cold start
+                        </Badge>
+                      </SelectLabel>
+                      {openSourceModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
-                          {model.name}
+                          <div className="flex items-center gap-2 w-full">
+                            <Clock className="h-3 w-3 text-warning flex-shrink-0" />
+                            <span>{model.name}</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{model.parameters}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+                
+                {/* Model Info */}
+                {isColdStartModel(selectedModel) && (
+                  <div className="flex items-start gap-2 p-2 rounded-md bg-warning/10 border border-warning/20">
+                    <AlertCircle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-warning">
+                      First request may take 30-60s to warm up. Subsequent requests are fast.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Fine-tuned model info */}
+                {selectedModel.startsWith("sv-") && (
+                  <div className="space-y-1 text-xs text-muted-foreground p-2 rounded-md bg-secondary/50">
+                    {getFinetunedBaseModel(selectedModel) && (
+                      <div className="flex justify-between">
+                        <span>Base Model:</span>
+                        <span className="font-medium text-foreground">{getFinetunedBaseModel(selectedModel)}</span>
+                      </div>
+                    )}
+                    {getModelInfo(selectedModel)?.parameters && (
+                      <div className="flex justify-between">
+                        <span>Parameters:</span>
+                        <span className="font-medium text-foreground">{getModelInfo(selectedModel)?.parameters}</span>
+                      </div>
+                    )}
+                    {getModelInfo(selectedModel)?.contextLength && (
+                      <div className="flex justify-between">
+                        <span>Context:</span>
+                        <span className="font-medium text-foreground">{(getModelInfo(selectedModel)?.contextLength || 0).toLocaleString()} tokens</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Parameters */}
@@ -470,12 +654,21 @@ const Playground = () => {
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                   <Loader2 className="h-4 w-4 text-primary animate-spin" />
                 </div>
-                <div className="bg-secondary rounded-lg px-4 py-3">
+                <div className="bg-secondary rounded-lg px-4 py-3 space-y-2">
                   <div className="flex gap-1">
                     <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
                     <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />
                     <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
+                  {loadingMessage && (
+                    <p className="text-xs text-warning flex items-center gap-1.5">
+                      <Clock className="h-3 w-3" />
+                      {loadingMessage}
+                    </p>
+                  )}
+                  {loadingTime > 0 && (
+                    <p className="text-[10px] text-muted-foreground">{loadingTime}s</p>
+                  )}
                 </div>
               </div>
             )}
