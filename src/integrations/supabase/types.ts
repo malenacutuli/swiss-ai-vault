@@ -68,9 +68,12 @@ export type Database = {
           details: Json | null
           id: string
           ip_address: string | null
+          new_values: Json | null
+          old_values: Json | null
           org_id: string | null
           resource_id: string | null
           resource_type: string | null
+          user_agent: string | null
           user_id: string | null
         }
         Insert: {
@@ -79,9 +82,12 @@ export type Database = {
           details?: Json | null
           id?: string
           ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
           org_id?: string | null
           resource_id?: string | null
           resource_type?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Update: {
@@ -90,9 +96,12 @@ export type Database = {
           details?: Json | null
           id?: string
           ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
           org_id?: string | null
           resource_id?: string | null
           resource_type?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Relationships: [
