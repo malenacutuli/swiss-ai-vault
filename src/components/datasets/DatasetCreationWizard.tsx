@@ -168,6 +168,8 @@ export const DatasetCreationWizard = ({
   // Synthetic state
   const [sourceContent, setSourceContent] = useState("");
   const [pairsPerSource, setPairsPerSource] = useState(20);
+  const [syntheticFiles, setSyntheticFiles] = useState<File[]>([]);
+  const [isSyntheticDragging, setIsSyntheticDragging] = useState(false);
   
   // HuggingFace state
   const [hfDatasetId, setHfDatasetId] = useState("");
@@ -200,12 +202,17 @@ export const DatasetCreationWizard = ({
     if (currentStep === 1) {
       if (!creationMethod || !datasetName.trim()) return false;
       if (creationMethod === "upload") return uploadFiles.length > 0;
-      if (creationMethod === "synthetic") return syntheticSource && sourceContent.trim();
+      if (creationMethod === "synthetic") {
+        if (!syntheticSource) return false;
+        // For files source, check file selection instead of textarea
+        if (syntheticSource === "files") return syntheticFiles.length > 0;
+        return sourceContent.trim().length > 0;
+      }
       if (creationMethod === "huggingface") return hfDatasetId.trim().length > 0;
       return false;
     }
     return true;
-  }, [currentStep, creationMethod, datasetName, uploadFiles, syntheticSource, sourceContent, hfDatasetId]);
+  }, [currentStep, creationMethod, datasetName, uploadFiles, syntheticSource, sourceContent, syntheticFiles, hfDatasetId]);
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -233,6 +240,35 @@ export const DatasetCreationWizard = ({
 
   const removeFile = (index: number) => {
     setUploadFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Synthetic file handlers
+  const handleSyntheticFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsSyntheticDragging(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => {
+      const ext = f.name.toLowerCase().slice(f.name.lastIndexOf('.'));
+      return ['.pdf', '.docx', '.txt', '.html', '.pptx', '.md'].includes(ext);
+    });
+    setSyntheticFiles(prev => [...prev, ...files].slice(0, 20));
+    if (files.length > 0 && !datasetName) {
+      setDatasetName(files[0].name.replace(/\.(pdf|docx|txt|html|pptx|md)$/i, ""));
+    }
+  };
+
+  const handleSyntheticFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter(f => {
+      const ext = f.name.toLowerCase().slice(f.name.lastIndexOf('.'));
+      return ['.pdf', '.docx', '.txt', '.html', '.pptx', '.md'].includes(ext);
+    });
+    setSyntheticFiles(prev => [...prev, ...files].slice(0, 20));
+    if (files.length > 0 && !datasetName) {
+      setDatasetName(files[0].name.replace(/\.(pdf|docx|txt|html|pptx|md)$/i, ""));
+    }
+  };
+
+  const removeSyntheticFile = (index: number) => {
+    setSyntheticFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleCreate = async () => {
@@ -311,17 +347,41 @@ export const DatasetCreationWizard = ({
           return 'text';
         };
 
-        // Parse sources from content (each line is a source)
-        const parsedSources = sourceContent
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0)
-          .map(content => ({
-            type: detectSourceType(content),
-            content,
-          }));
+        let parsedSources: Array<{ type: string; content: string }> = [];
 
-        console.log('[DatasetWizard] Parsed sources:', parsedSources);
+        // Handle file uploads for "files" source type
+        if (syntheticSource === "files" && syntheticFiles.length > 0) {
+          toast({
+            title: "Uploading files...",
+            description: `Uploading ${syntheticFiles.length} file(s)`,
+          });
+
+          // Read file contents and send as text sources
+          for (const file of syntheticFiles) {
+            try {
+              const text = await file.text();
+              parsedSources.push({
+                type: 'text',
+                content: `[File: ${file.name}]\n\n${text.substring(0, 50000)}`, // Limit to 50KB per file
+              });
+              console.log(`[DatasetWizard] Read file ${file.name}: ${text.length} chars`);
+            } catch (err) {
+              console.error(`[DatasetWizard] Failed to read file ${file.name}:`, err);
+            }
+          }
+        } else {
+          // Parse sources from content (each line is a source)
+          parsedSources = sourceContent
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .map(content => ({
+              type: detectSourceType(content),
+              content,
+            }));
+        }
+
+        console.log('[DatasetWizard] Parsed sources:', parsedSources.length, 'sources');
 
         console.log('[DatasetWizard] Creating synthetic dataset record...');
         const { error: insertError } = await supabase
@@ -335,7 +395,7 @@ export const DatasetCreationWizard = ({
             status: 'pending',
             source_config: {
               source_type: syntheticSource,
-              content: sourceContent,
+              content: syntheticSource === 'files' ? `${syntheticFiles.length} files uploaded` : sourceContent,
               pairs_per_source: pairsPerSource,
               question_format: questionFormat,
               answer_format: answerFormat,
@@ -359,7 +419,7 @@ export const DatasetCreationWizard = ({
             dataset_id: datasetId,
             sources: parsedSources.length > 0 ? parsedSources : [{ type: 'text', content: sourceContent }],
             config: {
-              num_pairs: pairsPerSource,
+              num_pairs: pairsPerSource * (syntheticSource === 'files' ? syntheticFiles.length : 1),
               question_format: questionFormat,
               answer_format: answerFormat,
               creativity: creativity / 100,
@@ -477,6 +537,7 @@ export const DatasetCreationWizard = ({
     setDatasetName("");
     setProjectId("");
     setUploadFiles([]);
+    setSyntheticFiles([]);
     setSourceContent("");
     setPairsPerSource(20);
     setCreativity(50);
@@ -680,23 +741,81 @@ export const DatasetCreationWizard = ({
 
                   {syntheticSource && (
                     <div className="space-y-3 animate-fade-in">
-                      <Label>
-                        {syntheticSource === "web" ? "Enter URLs (one per line)" : 
-                         syntheticSource === "youtube" ? "Enter YouTube URLs (one per line)" :
-                         "Enter content or paste text"}
-                      </Label>
-                      <Textarea
-                        placeholder={
-                          syntheticSource === "web" 
-                            ? "https://example.com/page1\nhttps://example.com/page2" 
-                            : syntheticSource === "youtube"
-                            ? "https://youtube.com/watch?v=..."
-                            : "Paste your source text here..."
-                        }
-                        value={sourceContent}
-                        onChange={(e) => setSourceContent(e.target.value)}
-                        className="min-h-[120px] bg-secondary border-border"
-                      />
+                      {/* File Upload for "files" source */}
+                      {syntheticSource === "files" && (
+                        <div className="space-y-3">
+                          <Label>Upload Documents</Label>
+                          <div
+                            className={cn(
+                              "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+                              isSyntheticDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                            )}
+                            onDragOver={(e) => { e.preventDefault(); setIsSyntheticDragging(true); }}
+                            onDragLeave={() => setIsSyntheticDragging(false)}
+                            onDrop={handleSyntheticFileDrop}
+                            onClick={() => document.getElementById('synthetic-file-input')?.click()}
+                          >
+                            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                            <p className="text-sm text-foreground mb-1">
+                              Drop PDF, DOCX, TXT, HTML, PPTX, or Markdown files here
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              or click to browse
+                            </p>
+                            <input
+                              id="synthetic-file-input"
+                              type="file"
+                              className="hidden"
+                              multiple
+                              accept=".pdf,.docx,.txt,.html,.pptx,.md"
+                              onChange={handleSyntheticFileSelect}
+                            />
+                          </div>
+
+                          {syntheticFiles.length > 0 && (
+                            <div className="space-y-2">
+                              <Label>Selected Files ({syntheticFiles.length})</Label>
+                              {syntheticFiles.map((file, i) => (
+                                <div key={i} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{file.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      ({(file.size / 1024).toFixed(1)} KB)
+                                    </span>
+                                  </div>
+                                  <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); removeSyntheticFile(i); }}>
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Text/URL input for other sources */}
+                      {syntheticSource !== "files" && (
+                        <>
+                          <Label>
+                            {syntheticSource === "web" ? "Enter URLs (one per line)" : 
+                             syntheticSource === "youtube" ? "Enter YouTube URLs (one per line)" :
+                             "Enter content (URLs, YouTube links, or text - one per line)"}
+                          </Label>
+                          <Textarea
+                            placeholder={
+                              syntheticSource === "web" 
+                                ? "https://example.com/page1\nhttps://example.com/page2" 
+                                : syntheticSource === "youtube"
+                                ? "https://youtube.com/watch?v=..."
+                                : "Paste URLs, YouTube links, or text content here...\n\nEach line will be processed as a separate source."
+                            }
+                            value={sourceContent}
+                            onChange={(e) => setSourceContent(e.target.value)}
+                            className="min-h-[120px] bg-secondary border-border"
+                          />
+                        </>
+                      )}
                       
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -719,7 +838,7 @@ export const DatasetCreationWizard = ({
 
                       <div className="p-3 bg-info/10 border border-info/30 rounded-lg">
                         <p className="text-sm text-info">
-                          <strong>Total QA Pairs:</strong> {totalPairs}
+                          <strong>Total QA Pairs:</strong> {syntheticSource === "files" ? syntheticFiles.length * pairsPerSource : totalPairs}
                         </p>
                       </div>
                     </div>
