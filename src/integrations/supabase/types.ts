@@ -125,10 +125,13 @@ export type Database = {
           is_active: boolean | null
           is_finetunable: boolean | null
           license_type: string | null
+          model_type: string | null
           name: string
           output_price: number | null
           parameters: string | null
           provider: string
+          supports_images: boolean | null
+          supports_vision: boolean | null
         }
         Insert: {
           category?: string | null
@@ -140,10 +143,13 @@ export type Database = {
           is_active?: boolean | null
           is_finetunable?: boolean | null
           license_type?: string | null
+          model_type?: string | null
           name: string
           output_price?: number | null
           parameters?: string | null
           provider: string
+          supports_images?: boolean | null
+          supports_vision?: boolean | null
         }
         Update: {
           category?: string | null
@@ -155,10 +161,13 @@ export type Database = {
           is_active?: boolean | null
           is_finetunable?: boolean | null
           license_type?: string | null
+          model_type?: string | null
           name?: string
           output_price?: number | null
           parameters?: string | null
           provider?: string
+          supports_images?: boolean | null
+          supports_vision?: boolean | null
         }
         Relationships: []
       }
