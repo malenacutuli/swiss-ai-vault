@@ -74,6 +74,7 @@ interface ModelInfo {
   contextLength?: number;
   parameters?: string;
   coldStart?: boolean;
+  supportsVision?: boolean;
 }
 
 interface UploadedDocument {
@@ -90,8 +91,8 @@ interface SelectedImage {
 
 const providerModels: ModelInfo[] = [
   { id: "gpt-4o-mini", name: "GPT-4o Mini", group: "openai", provider: "OpenAI", contextLength: 128000 },
-  { id: "gpt-4o", name: "GPT-4o", group: "openai", provider: "OpenAI", contextLength: 128000 },
-  { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet", group: "anthropic", provider: "Anthropic", contextLength: 200000 },
+  { id: "gpt-4o", name: "GPT-4o", group: "openai", provider: "OpenAI", contextLength: 128000, supportsVision: true },
+  { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet", group: "anthropic", provider: "Anthropic", contextLength: 200000, supportsVision: true },
   { id: "claude-3-5-haiku", name: "Claude 3.5 Haiku", group: "anthropic", provider: "Anthropic", contextLength: 200000 },
 ];
 
@@ -707,6 +708,9 @@ const Playground = () => {
                           <div className="flex items-center gap-2">
                             <Zap className="h-3 w-3 text-success flex-shrink-0" />
                             {model.name}
+                            {model.supportsVision && (
+                              <Eye className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            )}
                           </div>
                         </SelectItem>
                       ))}
@@ -720,6 +724,9 @@ const Playground = () => {
                           <div className="flex items-center gap-2">
                             <Zap className="h-3 w-3 text-success flex-shrink-0" />
                             {model.name}
+                            {model.supportsVision && (
+                              <Eye className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            )}
                           </div>
                         </SelectItem>
                       ))}
