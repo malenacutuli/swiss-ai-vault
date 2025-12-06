@@ -852,6 +852,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          owner_id: string | null
           settings: Json | null
           slug: string
           tier: string | null
@@ -861,6 +862,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          owner_id?: string | null
           settings?: Json | null
           slug: string
           tier?: string | null
@@ -870,6 +872,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          owner_id?: string | null
           settings?: Json | null
           slug?: string
           tier?: string | null
@@ -1236,6 +1239,14 @@ export type Database = {
           p_value: number
         }
         Returns: undefined
+      }
+      is_org_admin: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
       }
       search_similar_chunks: {
         Args: {
