@@ -49,14 +49,15 @@ interface AuditStats {
 }
 
 const complianceChecklist = [
-  { id: 1, label: 'Data encrypted at rest (AWS S3 SSE)', status: 'complete', info: 'AES-256 encryption' },
-  { id: 2, label: 'Data encrypted in transit (TLS 1.3)', status: 'complete', info: 'All connections secured' },
-  { id: 3, label: 'Row Level Security enabled', status: 'complete', info: 'All tables protected' },
-  { id: 4, label: 'Audit logging active', status: 'complete', info: 'Full event tracking' },
-  { id: 5, label: 'Swiss data residency', status: 'complete', info: 'eu-central-2 (Zurich)' },
-  { id: 6, label: 'SOC 2 Type II', status: 'in_progress', info: 'Audit in progress' },
-  { id: 7, label: 'ISO 27001', status: 'planned', info: 'Q3 2025' },
-  { id: 8, label: 'GDPR Article 30 records', status: 'complete', info: 'Available for export', link: true },
+  { id: 1, label: 'Encryption at Rest', status: 'complete', info: 'AES-256 via AWS SSE - All data encrypted using industry-standard AES-256 encryption' },
+  { id: 2, label: 'Encryption in Transit', status: 'complete', info: 'TLS 1.3 for all connections - All API and data transfers secured' },
+  { id: 3, label: 'API Key Security', status: 'complete', info: 'SHA-256 hashed - Keys are never stored in plaintext' },
+  { id: 4, label: 'Row Level Security enabled', status: 'complete', info: 'All tables protected - User data isolation enforced' },
+  { id: 5, label: 'Audit logging active', status: 'complete', info: 'Full event tracking - All actions logged and immutable' },
+  { id: 6, label: 'Swiss Data Residency', status: 'complete', info: 'AWS eu-central-2 (Zurich) - All data stored exclusively in Switzerland' },
+  { id: 7, label: 'SOC 2 Type II', status: 'in_progress', info: 'Audit in progress - Expected Q2 2025' },
+  { id: 8, label: 'ISO 27001', status: 'planned', info: 'Q3 2025 - Certification roadmap active' },
+  { id: 9, label: 'GDPR Article 30 records', status: 'complete', info: 'Available for export', link: true },
 ];
 
 const dataResidencyItems = [
