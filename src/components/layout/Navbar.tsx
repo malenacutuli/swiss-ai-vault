@@ -28,9 +28,9 @@ export const Navbar = () => {
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </a>
-            <a href="#docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Docs
-            </a>
+            <Link to="/docs/api" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              API Docs
+            </Link>
           </div>
 
           {/* CTA Buttons */}
@@ -65,9 +65,9 @@ export const Navbar = () => {
               <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Pricing
               </a>
-              <a href="#docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Docs
-              </a>
+              <Link to="/docs/api" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                API Docs
+              </Link>
               <div className="flex gap-3 pt-4 border-t border-border/50">
                 <Button variant="ghost" size="sm" className="flex-1" asChild>
                   <Link to="/auth">Sign In</Link>
