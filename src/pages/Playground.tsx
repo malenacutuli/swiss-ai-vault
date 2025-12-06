@@ -48,6 +48,7 @@ import {
   X,
   Upload,
   Lock,
+  Shield,
 } from "lucide-react";
 import { useModels } from "@/hooks/useSupabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -807,6 +808,14 @@ const Playground = () => {
                   {getModelDisplayName()}
                 </span>
               </div>
+              
+              {/* Zero-Retention Mode Indicator */}
+              {zeroRetentionMode && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-green-500/10 px-3 py-1 rounded-full">
+                  <Shield className="h-3 w-3 text-green-500" />
+                  <span>Zero-Retention Mode Active</span>
+                </div>
+              )}
               
               {/* Document Context Indicator */}
               {uploadedDocuments.length > 0 && (
