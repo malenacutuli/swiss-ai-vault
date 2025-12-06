@@ -82,8 +82,7 @@ const CREATION_METHODS = [
     title: "Import from Hugging Face",
     description: "Import existing datasets from HF Hub",
     icon: FileJson,
-    available: false,
-    badge: "Coming Soon",
+    available: true,
   },
 ];
 
@@ -170,6 +169,12 @@ export const DatasetCreationWizard = ({
   const [sourceContent, setSourceContent] = useState("");
   const [pairsPerSource, setPairsPerSource] = useState(20);
   
+  // HuggingFace state
+  const [hfDatasetId, setHfDatasetId] = useState("");
+  const [hfSubset, setHfSubset] = useState("");
+  const [hfSplit, setHfSplit] = useState("train");
+  const [hfMaxRows, setHfMaxRows] = useState(1000);
+  
   // Step 2 state
   const [questionFormat, setQuestionFormat] = useState("Generate a clear, specific question about the content.");
   const [answerFormat, setAnswerFormat] = useState("Provide a comprehensive, accurate answer based on the source material.");
@@ -196,10 +201,11 @@ export const DatasetCreationWizard = ({
       if (!creationMethod || !datasetName.trim()) return false;
       if (creationMethod === "upload") return uploadFiles.length > 0;
       if (creationMethod === "synthetic") return syntheticSource && sourceContent.trim();
+      if (creationMethod === "huggingface") return hfDatasetId.trim().length > 0;
       return false;
     }
     return true;
-  }, [currentStep, creationMethod, datasetName, uploadFiles, syntheticSource, sourceContent]);
+  }, [currentStep, creationMethod, datasetName, uploadFiles, syntheticSource, sourceContent, hfDatasetId]);
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -367,6 +373,65 @@ export const DatasetCreationWizard = ({
           title: "Synthetic dataset generated!",
           description: `Created ${result?.row_count || 0} QA pairs.`,
         });
+      } else if (creationMethod === "huggingface") {
+        // Handle HuggingFace import
+        const datasetId = crypto.randomUUID();
+
+        console.log('[DatasetWizard] Creating HuggingFace import dataset record...');
+        const { error: insertError } = await supabase
+          .from('datasets')
+          .insert({
+            id: datasetId,
+            user_id: user.id,
+            project_id: resolvedProjectId,
+            name: datasetName.trim(),
+            source_type: 'upload', // Use 'upload' as HuggingFace imports are like uploads
+            status: 'pending',
+            source_config: {
+              hf_dataset_id: hfDatasetId,
+              subset: hfSubset || null,
+              split: hfSplit,
+              max_rows: hfMaxRows,
+            },
+          });
+
+        if (insertError) {
+          console.error('[DatasetWizard] Insert failed:', insertError);
+          throw insertError;
+        }
+        console.log('[DatasetWizard] Dataset record created, invoking import-huggingface...');
+
+        toast({
+          title: "Importing from HuggingFace...",
+          description: "This may take a moment.",
+        });
+
+        const { data: result, error: importError } = await supabase.functions.invoke('import-huggingface', {
+          body: {
+            dataset_id: datasetId,
+            hf_dataset_id: hfDatasetId,
+            subset: hfSubset || undefined,
+            split: hfSplit,
+            max_rows: hfMaxRows,
+          }
+        });
+
+        if (importError) {
+          console.error('[DatasetWizard] import-huggingface error:', importError);
+          
+          await supabase
+            .from('datasets')
+            .update({ status: 'error', error_message: importError.message })
+            .eq('id', datasetId);
+          
+          throw importError;
+        }
+
+        console.log('[DatasetWizard] HuggingFace import complete:', result);
+        toast({
+          title: "Dataset imported!",
+          description: `Imported ${result?.row_count || 0} rows from HuggingFace.`,
+        });
       }
 
       onSuccess();
@@ -394,6 +459,10 @@ export const DatasetCreationWizard = ({
     setSourceContent("");
     setPairsPerSource(20);
     setCreativity(50);
+    setHfDatasetId("");
+    setHfSubset("");
+    setHfSplit("train");
+    setHfMaxRows(1000);
     onClose();
   };
 
@@ -493,8 +562,8 @@ export const DatasetCreationWizard = ({
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium text-foreground">{method.title}</h3>
-                            {method.badge && (
-                              <Badge variant="outline" className="text-xs">{method.badge}</Badge>
+                            {'badge' in method && method.badge && (
+                              <Badge variant="outline" className="text-xs">{String(method.badge)}</Badge>
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground">{method.description}</p>
@@ -634,6 +703,74 @@ export const DatasetCreationWizard = ({
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* HuggingFace Import Section */}
+              {creationMethod === "huggingface" && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="space-y-2">
+                    <Label>HuggingFace Dataset ID</Label>
+                    <Input
+                      placeholder="e.g., tatsu-lab/alpaca, openai/gsm8k"
+                      value={hfDatasetId}
+                      onChange={(e) => setHfDatasetId(e.target.value)}
+                      className="bg-secondary border-border"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter the full dataset ID from HuggingFace Hub
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Subset (Optional)</Label>
+                      <Input
+                        placeholder="e.g., main, default"
+                        value={hfSubset}
+                        onChange={(e) => setHfSubset(e.target.value)}
+                        className="bg-secondary border-border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Split</Label>
+                      <Select value={hfSplit} onValueChange={setHfSplit}>
+                        <SelectTrigger className="bg-secondary border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          <SelectItem value="train">Train</SelectItem>
+                          <SelectItem value="test">Test</SelectItem>
+                          <SelectItem value="validation">Validation</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Max Rows to Import</Label>
+                      <span className="text-sm text-muted-foreground">{hfMaxRows.toLocaleString()}</span>
+                    </div>
+                    <Slider
+                      value={[hfMaxRows]}
+                      onValueChange={([v]) => setHfMaxRows(v)}
+                      min={100}
+                      max={10000}
+                      step={100}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>100</span>
+                      <span>10,000</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-info/10 border border-info/30 rounded-lg">
+                    <p className="text-sm text-info">
+                      <strong>Supported formats:</strong> instruction/output, question/answer, prompt/completion, messages, conversations
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -808,12 +945,26 @@ export const DatasetCreationWizard = ({
 
           {currentStep < 3 ? (
             <Button
-              onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={!canProceed || (creationMethod === "upload" && currentStep === 1)}
+              onClick={() => {
+                // Skip step 2 for upload and huggingface methods
+                if ((creationMethod === "upload" || creationMethod === "huggingface") && currentStep === 1) {
+                  handleCreate();
+                } else {
+                  setCurrentStep(currentStep + 1);
+                }
+              }}
+              disabled={!canProceed}
               className="gap-2"
             >
-              {creationMethod === "upload" && currentStep === 1 ? (
-                <>Create Dataset</>
+              {(creationMethod === "upload" || creationMethod === "huggingface") && currentStep === 1 ? (
+                isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {creationMethod === "huggingface" ? "Importing..." : "Creating..."}
+                  </>
+                ) : (
+                  <>{creationMethod === "huggingface" ? "Import Dataset" : "Create Dataset"}</>
+                )
               ) : (
                 <>
                   Next
@@ -832,21 +983,6 @@ export const DatasetCreationWizard = ({
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Creating...
                 </>
-              ) : (
-                <>Create Dataset</>
-              )}
-            </Button>
-          )}
-          
-          {/* Quick upload button for upload method */}
-          {creationMethod === "upload" && currentStep === 1 && canProceed && (
-            <Button
-              onClick={handleCreate}
-              disabled={isProcessing}
-              className="gap-2 bg-primary ml-2"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>Create Dataset</>
               )}
