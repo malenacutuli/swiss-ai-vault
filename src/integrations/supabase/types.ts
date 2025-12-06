@@ -114,6 +114,54 @@ export type Database = {
           },
         ]
       }
+      base_models: {
+        Row: {
+          category: string | null
+          context_length: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          input_price: number | null
+          is_active: boolean | null
+          is_finetunable: boolean | null
+          license_type: string | null
+          name: string
+          output_price: number | null
+          parameters: string | null
+          provider: string
+        }
+        Insert: {
+          category?: string | null
+          context_length?: number | null
+          created_at?: string | null
+          description?: string | null
+          id: string
+          input_price?: number | null
+          is_active?: boolean | null
+          is_finetunable?: boolean | null
+          license_type?: string | null
+          name: string
+          output_price?: number | null
+          parameters?: string | null
+          provider: string
+        }
+        Update: {
+          category?: string | null
+          context_length?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          input_price?: number | null
+          is_active?: boolean | null
+          is_finetunable?: boolean | null
+          license_type?: string | null
+          name?: string
+          output_price?: number | null
+          parameters?: string | null
+          provider?: string
+        }
+        Relationships: []
+      }
       billing_customers: {
         Row: {
           created_at: string | null
