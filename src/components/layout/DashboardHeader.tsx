@@ -42,7 +42,7 @@ const routeLabels: Record<string, string> = {
 export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light">("light");
   const { data: unreadCount } = useUnreadCount();
   const { data: notifications } = useNotifications();
 
@@ -56,14 +56,14 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
-    document.documentElement.classList.toggle("light", newTheme === "light");
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
   const recentNotifications = notifications?.slice(0, 5) || [];
 
   return (
     <header
-      className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6"
+      className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-6"
     >
       {/* Breadcrumb */}
       <Breadcrumb>
@@ -96,7 +96,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search..."
-            className="w-64 pl-9 bg-secondary border-border focus:ring-primary"
+            className="w-64 pl-9"
           />
         </div>
 
@@ -124,13 +124,13 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
             >
               <Bell className="h-5 w-5" />
               {unreadCount && unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 bg-popover">
+          <DropdownMenuContent align="end" className="w-80 bg-popover border border-border shadow-lg">
             <div className="p-3 border-b border-border flex items-center justify-between">
               <p className="font-semibold text-foreground">Notifications</p>
               <button
@@ -174,7 +174,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
         </DropdownMenu>
 
         {/* Upgrade button */}
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+        <Button variant="premium" className="gap-2">
           <Sparkles className="h-4 w-4" />
           Upgrade to Pro
         </Button>
