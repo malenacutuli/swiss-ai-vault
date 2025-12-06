@@ -1,7 +1,7 @@
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -68,15 +68,19 @@ const Traces = () => {
   };
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full bg-background">
-        <DashboardSidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-        <SidebarInset className="flex-1">
-          <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-          <main className="flex-1 p-6">
+    <div className="min-h-screen bg-background">
+      <DashboardSidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
+      <div
+        className={cn(
+          "transition-all duration-300",
+          sidebarCollapsed ? "ml-16" : "ml-[280px]"
+        )}
+      >
+        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
+        <main className="flex-1 p-6">
             <div className="max-w-6xl mx-auto space-y-6">
               {/* Header */}
               <div>
@@ -114,10 +118,9 @@ const Traces = () => {
               )}
             </div>
           </main>
-        </SidebarInset>
+        </div>
       </div>
-    </SidebarProvider>
-  );
+    );
 };
 
 function EmptyState() {
