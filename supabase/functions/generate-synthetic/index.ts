@@ -13,10 +13,11 @@ const corsHeaders = {
 const COST_PER_PAIR = 0.002;
 
 interface SyntheticSource {
-  type: "text" | "url" | "youtube" | "file";
-  content: string;
-  path?: string;     // For file sources - storage path
-  filename?: string; // For file sources - original filename
+  type: "text" | "url" | "youtube" | "file" | "files";
+  content?: string;
+  path?: string;      // For single file source - storage path
+  filename?: string;  // For single file source - original filename
+  filePaths?: string[]; // For multiple files source
 }
 
 interface SyntheticConfig {
@@ -339,11 +340,11 @@ serve(async (req) => {
     const processingResults: ProcessingResult[] = [];
     
     for (const source of sources) {
-      const sourceId = source.filename || source.path || source.content.substring(0, 50);
+      const sourceId = source.filename || source.path || source.content?.substring(0, 50) || 'unknown';
       console.log(`Processing source type: ${source.type}, id: ${sourceId.substring(0, 100)}...`);
       
       try {
-        if (source.type === "text") {
+        if (source.type === "text" && source.content) {
           // Handle text content (including inline file content from frontend)
           const extractedContent = extractTextFromContent(source.content, source.filename);
           if (extractedContent.length > 0) {
@@ -352,7 +353,7 @@ serve(async (req) => {
             console.log(`Text source processed: ${extractedContent.length} chars`);
           }
         } else if (source.type === "file" && source.path) {
-          // Handle file sources from storage - use Claude for binary files
+          // Handle single file source from storage - use Claude for binary files
           try {
             const fileData = await downloadFileFromStorage(supabase, source.path, source.filename || 'file');
             let fileContent: string;
@@ -380,7 +381,39 @@ serve(async (req) => {
             console.error(`Failed to process file ${source.filename}:`, errMsg);
             processingResults.push({ source: source.filename || source.path, contentLength: 0, success: false, error: errMsg });
           }
-        } else if (source.type === "url") {
+        } else if (source.type === "files" && source.filePaths) {
+          // Handle multiple files source - process each file with Claude
+          console.log(`Processing ${source.filePaths.length} files from filePaths array`);
+          
+          for (const filePath of source.filePaths) {
+            const fileName = filePath.split('/').pop() || 'file';
+            try {
+              const fileData = await downloadFileFromStorage(supabase, filePath, fileName);
+              let fileContent: string;
+              
+              if (fileData.isText && fileData.textContent) {
+                fileContent = fileData.textContent;
+              } else {
+                fileContent = await extractTextWithClaude(
+                  anthropicKey,
+                  fileData.base64,
+                  fileData.mimeType,
+                  fileName
+                );
+              }
+              
+              if (fileContent.length > 0) {
+                combinedContent += `\n\n--- Source: ${fileName} ---\n${fileContent}\n\n`;
+                processingResults.push({ source: fileName, contentLength: fileContent.length, success: true });
+                console.log(`File processed: ${fileContent.length} chars from ${fileName}`);
+              }
+            } catch (fileErr) {
+              const errMsg = fileErr instanceof Error ? fileErr.message : 'Unknown error';
+              console.error(`Failed to process file ${fileName}:`, errMsg);
+              processingResults.push({ source: fileName, contentLength: 0, success: false, error: errMsg });
+            }
+          }
+        } else if (source.type === "url" && source.content) {
           // Validate URL to prevent SSRF
           if (!isAllowedUrl(source.content)) {
             console.warn(`Blocked potentially unsafe URL: ${source.content}`);
@@ -409,7 +442,7 @@ serve(async (req) => {
             console.error("Failed to fetch URL:", e);
             processingResults.push({ source: source.content, contentLength: 0, success: false, error: 'Failed to fetch URL' });
           }
-        } else if (source.type === "youtube") {
+        } else if (source.type === "youtube" && source.content) {
           // Extract video ID from YouTube URL
           const videoIdMatch = source.content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
           if (videoIdMatch) {

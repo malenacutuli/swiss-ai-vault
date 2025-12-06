@@ -349,7 +349,7 @@ export const DatasetCreationWizard = ({
           return 'text';
         };
 
-        let parsedSources: Array<{ type: string; content: string; path?: string; filename?: string }> = [];
+        let parsedSources: Array<{ type: string; content?: string; path?: string; filename?: string; filePaths?: string[] }> = [];
 
         // Handle file uploads for "files" source type
         if (syntheticSource === "files" && syntheticFiles.length > 0) {
@@ -362,7 +362,6 @@ export const DatasetCreationWizard = ({
           const uploadedFilePaths: string[] = [];
           
           for (const file of syntheticFiles) {
-            const fileExt = file.name.split('.').pop()?.toLowerCase();
             const filePath = `${user.id}/synthetic-sources/${datasetId}/${Date.now()}-${file.name}`;
             
             console.log(`[DatasetWizard] Uploading file ${file.name} to ${filePath}`);
@@ -386,19 +385,17 @@ export const DatasetCreationWizard = ({
             
             console.log(`[DatasetWizard] Successfully uploaded ${file.name}`);
             uploadedFilePaths.push(filePath);
-            
-            // Add as file source with storage path (edge function will process with Claude)
-            parsedSources.push({
-              type: 'file',
-              content: '', // Content will be extracted by edge function
-              path: filePath,
-              filename: file.name,
-            });
           }
           
           if (uploadedFilePaths.length === 0) {
             throw new Error('No files were successfully uploaded');
           }
+          
+          // Send as single 'files' source with array of paths
+          parsedSources.push({
+            type: 'files',
+            filePaths: uploadedFilePaths,
+          });
           
           console.log(`[DatasetWizard] Uploaded ${uploadedFilePaths.length} files to storage`);
         } else {
