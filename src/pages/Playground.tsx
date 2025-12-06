@@ -283,7 +283,7 @@ const Playground = () => {
     }
 
     try {
-      // Generate embedding for the query using OpenAI
+      // Generate embedding for the query via Edge Function
       const embeddingResponse = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
         {
@@ -308,34 +308,20 @@ const Playground = () => {
       const embedding = embeddingData.embedding;
 
       if (!embedding) {
-        // Fallback: use RPC directly if embedding action not supported
-        const { data: user } = await supabase.auth.getUser();
-        if (!user.user) return [];
-
-        const { data: chunks, error } = await supabase.rpc("search_similar_chunks", {
-          p_user_id: user.user.id,
-          p_embedding: embedding,
-          p_limit: 5,
-          p_conversation_id: conversationId,
-        });
-
-        if (error) {
-          console.error("Search error:", error);
-          return [];
-        }
-
-        return (chunks || []).map((c: { content: string }) => c.content);
+        console.error("No embedding returned from API");
+        return [];
       }
 
-      // Call search function with embedding
+      // Search for similar chunks using the embedding
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return [];
 
-      const { data: chunks, error } = await supabase.rpc("search_similar_chunks", {
+      const { data: chunks, error } = await supabase.rpc("search_document_chunks", {
         p_user_id: user.user.id,
-        p_embedding: embedding,
-        p_limit: 5,
         p_conversation_id: conversationId,
+        p_embedding: JSON.stringify(embedding),
+        p_match_count: 5,
+        p_match_threshold: 0.7,
       });
 
       if (error) {
