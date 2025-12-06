@@ -408,6 +408,42 @@ export type Database = {
           },
         ]
       }
+      document_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          conversation_id: string | null
+          created_at: string | null
+          embedding: string | null
+          filename: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          conversation_id?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          filename: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          filename?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       evaluations: {
         Row: {
           byoe_endpoint: string | null
@@ -1200,6 +1236,20 @@ export type Database = {
           p_value: number
         }
         Returns: undefined
+      }
+      search_similar_chunks: {
+        Args: {
+          p_conversation_id?: string
+          p_embedding: string
+          p_limit?: number
+          p_user_id: string
+        }
+        Returns: {
+          content: string
+          filename: string
+          id: string
+          similarity: number
+        }[]
       }
     }
     Enums: {
