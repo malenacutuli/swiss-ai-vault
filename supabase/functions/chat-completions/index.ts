@@ -373,6 +373,27 @@ async function handleAnthropicRequest(
   const data = await response.json();
   const latencyMs = Date.now() - startTime;
   
+  // Check for Anthropic API errors
+  if (data.error) {
+    console.error("[chat-completions] Anthropic API error:", JSON.stringify(data.error));
+    return new Response(JSON.stringify({ 
+      error: { message: data.error.message || "Anthropic API error" }
+    }), {
+      status: response.status >= 400 ? response.status : 500,
+      headers: { ...responseHeaders, "Content-Type": "application/json" }
+    });
+  }
+
+  if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
+    console.error("[chat-completions] Unexpected Anthropic response:", JSON.stringify(data));
+    return new Response(JSON.stringify({ 
+      error: { message: "Invalid response from Anthropic API" }
+    }), {
+      status: 500,
+      headers: { ...responseHeaders, "Content-Type": "application/json" }
+    });
+  }
+  
   // Convert Anthropic response to OpenAI format
   const openaiResponse = {
     id: `chatcmpl-${crypto.randomUUID()}`,
