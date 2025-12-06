@@ -218,7 +218,7 @@ export function useCreateOrganization() {
           name,
           slug: orgSlug,
           owner_id: user.id,
-        })
+        } as any)
         .select()
         .single();
 
