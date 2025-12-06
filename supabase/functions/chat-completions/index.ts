@@ -30,12 +30,21 @@ const BASE_MODELS: Record<string, string> = {
   "llama3.2-3b": "meta-llama/Llama-3.2-3B-Instruct",
   "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
   "qwen2.5-0.5b": "Qwen/Qwen2.5-0.5B-Instruct",
+  "qwen2.5-1.5b": "Qwen/Qwen2.5-1.5B-Instruct",
   "qwen2.5-3b": "Qwen/Qwen2.5-3B-Instruct",
+  "qwen2.5-7b": "Qwen/Qwen2.5-7B-Instruct",
+  "gemma2-2b": "google/gemma-2-2b-it",
   "gpt-4o-mini": "gpt-4o-mini",
   "gpt-4o": "gpt-4o",
   "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
   "claude-3-5-haiku": "claude-3-5-haiku-20241022",
 };
+
+// Models that should route to vLLM
+const VLLM_MODELS = [
+  "qwen2.5-0.5b", "qwen2.5-1.5b", "qwen2.5-3b", "qwen2.5-7b",
+  "mistral-7b", "gemma2-2b", "llama3.2-1b", "llama3.2-3b"
+];
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -109,7 +118,7 @@ serve(async (req) => {
     const { model, messages, temperature = 0.7, max_tokens = 1024, stream = false } = body;
 
     // Determine which provider to use
-    let provider: "openai" | "anthropic" = "openai";
+    let provider: "openai" | "anthropic" | "vllm" = "openai";
     let actualModel = model;
 
     if (model.startsWith("claude") || model.includes("claude")) {
@@ -118,8 +127,13 @@ serve(async (req) => {
     } else if (model.startsWith("gpt") || model.includes("gpt")) {
       provider = "openai";
       actualModel = BASE_MODELS[model] || model;
+    } else if (VLLM_MODELS.includes(model)) {
+      // Route open-source models to vLLM
+      provider = "vllm";
+      actualModel = BASE_MODELS[model] || model;
+      console.log(`[chat-completions] Routing ${model} to vLLM as ${actualModel}`);
     } else if (model.startsWith("sv-")) {
-      // Custom fine-tuned model - check if it exists
+      // Custom fine-tuned model - route to vLLM
       const { data: customModel } = await supabase
         .from("models")
         .select("*")
@@ -134,14 +148,20 @@ serve(async (req) => {
         );
       }
       
-      // For now, use OpenAI as fallback for custom models
-      // In production, this would route to vLLM endpoint
-      provider = "openai";
-      actualModel = "gpt-4o-mini"; // Fallback
+      // Route fine-tuned models to vLLM with checkpoint path
+      provider = "vllm";
+      actualModel = customModel.s3_checkpoint_path || customModel.model_id;
+      console.log(`[chat-completions] Routing fine-tuned ${model} to vLLM`);
     } else {
-      // Base model - use OpenAI-compatible routing
-      actualModel = BASE_MODELS[model] || model;
-      provider = "openai";
+      // Unknown model - try vLLM first if it looks like a HuggingFace model
+      if (model.includes("/")) {
+        provider = "vllm";
+        actualModel = model;
+      } else {
+        // Fallback to OpenAI
+        actualModel = BASE_MODELS[model] || model;
+        provider = "openai";
+      }
     }
 
     // Track usage
@@ -156,6 +176,8 @@ serve(async (req) => {
     // Call the appropriate provider
     if (provider === "anthropic") {
       return await handleAnthropicRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase);
+    } else if (provider === "vllm") {
+      return await handleVLLMRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase);
     } else {
       return await handleOpenAIRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase);
     }
@@ -329,4 +351,93 @@ async function handleAnthropicRequest(
   return new Response(JSON.stringify(openaiResponse), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function handleVLLMRequest(
+  messages: Message[],
+  model: string,
+  temperature: number,
+  maxTokens: number,
+  stream: boolean,
+  userId: string,
+  supabase: any
+) {
+  const vllmEndpoint = Deno.env.get("VLLM_ENDPOINT");
+  
+  if (!vllmEndpoint) {
+    console.error("[chat-completions] VLLM_ENDPOINT not configured");
+    return new Response(
+      JSON.stringify({ error: { message: "vLLM endpoint not configured" } }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  console.log(`[chat-completions] Calling vLLM at ${vllmEndpoint} with model ${model}`);
+
+  try {
+    const response = await fetch(vllmEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        stream,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[chat-completions] vLLM error: ${response.status} - ${errorText}`);
+      return new Response(
+        JSON.stringify({ error: { message: `vLLM error: ${response.status}`, details: errorText } }),
+        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (stream) {
+      // Return streaming response
+      return new Response(response.body, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+      });
+    }
+
+    const data = await response.json();
+    console.log(`[chat-completions] vLLM response received`);
+    
+    // Track token usage
+    if (data.usage) {
+      const today = new Date().toISOString().split("T")[0];
+      await supabase.rpc("increment_usage", {
+        p_user_id: userId,
+        p_date: today,
+        p_metric: "tokens_input",
+        p_value: data.usage.prompt_tokens || 0,
+      });
+      await supabase.rpc("increment_usage", {
+        p_user_id: userId,
+        p_date: today,
+        p_metric: "tokens_output",
+        p_value: data.usage.completion_tokens || 0,
+      });
+    }
+
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("[chat-completions] vLLM request failed:", error);
+    return new Response(
+      JSON.stringify({ error: { message: `vLLM request failed: ${error instanceof Error ? error.message : 'Unknown error'}` } }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 }
