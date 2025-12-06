@@ -27,6 +27,7 @@ import {
   TrendingUp,
   Activity,
   Shield,
+  LayoutTemplate,
 } from "lucide-react";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
@@ -43,6 +44,7 @@ const navItems = [
   { icon: FolderKanban, label: "Projects", href: "/dashboard/projects" },
   { icon: Database, label: "Datasets", href: "/dashboard/datasets" },
   { icon: SlidersHorizontal, label: "Fine-tuning", href: "/dashboard/finetuning" },
+  { icon: LayoutTemplate, label: "Templates", href: "/dashboard/templates" },
   { icon: BarChart3, label: "Evaluations", href: "/dashboard/evaluations" },
   { icon: Cpu, label: "Your Models", href: "/dashboard/models" },
   { icon: Library, label: "Model Catalog", href: "/dashboard/catalog" },

@@ -14,6 +14,7 @@ import Datasets from "./pages/Datasets";
 import DatasetDetail from "./pages/DatasetDetail";
 import Finetuning from "./pages/Finetuning";
 import FinetuningJobDetail from "./pages/FinetuningJobDetail";
+import Templates from "./pages/Templates";
 import Evaluations from "./pages/Evaluations";
 import EvaluationDetail from "./pages/EvaluationDetail";
 import Models from "./pages/Models";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/dashboard/datasets/:id" element={<ProtectedRoute><DatasetDetail /></ProtectedRoute>} />
             <Route path="/dashboard/finetuning" element={<ProtectedRoute><Finetuning /></ProtectedRoute>} />
             <Route path="/dashboard/finetuning/:id" element={<ProtectedRoute><FinetuningJobDetail /></ProtectedRoute>} />
+            <Route path="/dashboard/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
             <Route path="/dashboard/evaluations" element={<ProtectedRoute><Evaluations /></ProtectedRoute>} />
             <Route path="/dashboard/evaluations/:id" element={<ProtectedRoute><EvaluationDetail /></ProtectedRoute>} />
             <Route path="/dashboard/models" element={<ProtectedRoute><Models /></ProtectedRoute>} />
