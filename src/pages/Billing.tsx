@@ -107,7 +107,10 @@ const Billing = () => {
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <div className="flex-1 flex flex-col">
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        sidebarCollapsed ? "ml-16" : "ml-[280px]"
+      )}>
         <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
 
         <main className="flex-1 px-6 py-8 space-y-8">
