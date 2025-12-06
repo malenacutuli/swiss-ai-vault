@@ -21,6 +21,7 @@ import Notifications from "./pages/Notifications";
 import Stats from "./pages/Stats";
 import Traces from "./pages/Traces";
 import Admin from "./pages/Admin";
+import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/dashboard/traces" element={<ProtectedRoute><Traces /></ProtectedRoute>} />
             <Route path="/dashboard/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
             <Route path="/dashboard/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/dashboard/admin/audit-logs" element={<AdminRoute><AuditLogs /></AdminRoute>} />
             <Route path="/design-system" element={<DesignSystem />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
