@@ -9,6 +9,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Synthetic data pricing: $0.002 per Q&A pair
+const COST_PER_PAIR = 0.002;
+
 interface SyntheticSource {
   type: "text" | "url" | "youtube";
   content: string;
@@ -77,6 +80,43 @@ serve(async (req) => {
       });
     }
 
+    const numPairs = config.num_pairs || 10;
+    
+    // Calculate credit cost
+    const creditCost = numPairs * COST_PER_PAIR;
+    console.log(`Deducting ${creditCost} credits for ${numPairs} Q&A pairs`);
+
+    // Deduct credits before generating
+    const { data: deductResult, error: deductError } = await supabase.rpc('deduct_credits', {
+      p_user_id: user.id,
+      p_amount: creditCost,
+      p_service_type: 'SYNTHETIC_DATA',
+      p_description: `Synthetic data: ${numPairs} Q&A pairs`,
+      p_metadata: { dataset_id: dataset_id, num_pairs: numPairs }
+    });
+
+    if (deductError) {
+      console.error("Error calling deduct_credits:", deductError);
+      return new Response(
+        JSON.stringify({ error: "Failed to process payment", details: deductError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!deductResult?.success) {
+      console.log("Credit deduction failed:", deductResult);
+      return new Response(
+        JSON.stringify({ 
+          error: deductResult?.message || "Insufficient credits",
+          error_code: deductResult?.error,
+          current_balance: deductResult?.current_balance,
+          required: deductResult?.required || creditCost
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Credits deducted successfully. Transaction ID: ${deductResult.transaction_id}`);
     console.log("Generating synthetic data for dataset:", dataset_id);
 
     // Update dataset status to processing
@@ -176,7 +216,7 @@ ${config.examples.map(e => `Q: ${e.question}\nA: ${e.answer}`).join("\n\n")}` : 
 Output format: Return a JSON array of objects with "question" and "answer" fields.
 Only output valid JSON, no markdown or explanation.`;
 
-    const userPrompt = `Generate ${config.num_pairs} high-quality question-answer pairs from this content:
+    const userPrompt = `Generate ${numPairs} high-quality question-answer pairs from this content:
 
 ${combinedContent.substring(0, 15000)}
 
@@ -298,6 +338,8 @@ Return as JSON array: [{"question": "...", "answer": "..."}, ...]`;
         success: true,
         row_count: qaPairs.length,
         total_tokens: totalTokens,
+        credits_charged: creditCost,
+        transaction_id: deductResult.transaction_id,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
