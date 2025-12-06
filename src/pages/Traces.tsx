@@ -1,6 +1,7 @@
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { useTraces, useTraceModels, Trace } from "@/hooks/useTraces";
+import { useZeroRetentionMode } from "@/hooks/useZeroRetentionMode";
 import { formatDistanceToNow } from "date-fns";
 import {
   Activity,
@@ -32,6 +34,7 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -44,6 +47,7 @@ const Traces = () => {
 
   const { data: tracesData, isLoading } = useTraces(modelFilter, page, pageSize);
   const { data: models } = useTraceModels();
+  const { data: zeroRetentionMode } = useZeroRetentionMode();
 
   const traces = tracesData?.data || [];
   const totalCount = tracesData?.count || 0;
@@ -94,6 +98,16 @@ const Traces = () => {
                   Track your model interactions and collect feedback to improve performance.
                 </p>
               </div>
+
+              {/* Zero-Retention Mode Notice */}
+              {zeroRetentionMode && (
+                <Alert className="bg-amber-500/10 border-amber-500/20">
+                  <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <AlertDescription className="text-amber-700 dark:text-amber-300">
+                    Zero-retention mode is enabled. New API requests will not be logged here.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {isLoading ? (
                 <div className="space-y-4">

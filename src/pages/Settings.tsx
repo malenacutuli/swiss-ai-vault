@@ -642,10 +642,11 @@ const Settings = () => {
 
                       {/* Zero-retention mode */}
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1 pr-4">
                           <Label className="text-foreground">Zero-retention mode</Label>
                           <p className="text-sm text-muted-foreground">
-                            Don't log any inference requests or responses
+                            When enabled, your API requests and responses will not be logged to the traces table.
+                            Your conversations remain private and are not stored.
                           </p>
                         </div>
                         <Switch
