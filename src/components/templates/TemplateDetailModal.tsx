@@ -31,9 +31,10 @@ import { useToast } from "@/hooks/use-toast";
 interface TemplateDetailModalProps {
   templateId: string | null;
   onClose: () => void;
+  onGenerateDataset?: (templateId: string) => void;
 }
 
-export const TemplateDetailModal = ({ templateId, onClose }: TemplateDetailModalProps) => {
+export const TemplateDetailModal = ({ templateId, onClose, onGenerateDataset }: TemplateDetailModalProps) => {
   const { data: template, isLoading } = useFinetuningTemplate(templateId);
   const [copied, setCopied] = useState(false);
   const [conversationsOpen, setConversationsOpen] = useState(false);
@@ -53,10 +54,9 @@ export const TemplateDetailModal = ({ templateId, onClose }: TemplateDetailModal
   };
 
   const handleGenerateDataset = () => {
-    toast({
-      title: "Coming soon",
-      description: "Dataset generation from templates will be available soon",
-    });
+    if (template && onGenerateDataset) {
+      onGenerateDataset(template.id);
+    }
     onClose();
   };
 

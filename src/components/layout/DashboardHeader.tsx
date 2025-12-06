@@ -32,6 +32,7 @@ const routeLabels: Record<string, string> = {
   projects: "Projects",
   datasets: "Datasets",
   finetuning: "Fine-tuning",
+  templates: "Templates",
   evaluations: "Evaluations",
   models: "Models",
   playground: "Playground",

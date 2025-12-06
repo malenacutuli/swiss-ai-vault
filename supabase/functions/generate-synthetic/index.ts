@@ -29,11 +29,28 @@ interface SyntheticConfig {
   answer_format?: string;
 }
 
+interface TemplateRequest {
+  dataset_id: string;
+  template_mode: true;
+  template_id: string;
+  num_examples: number;
+  variation: "low" | "medium" | "high";
+  topics?: string[];
+  language: string;
+  language_code: string;
+  domain: string;
+  system_prompt?: string;
+  sample_conversations?: Array<{ messages: Array<{ role: string; content: string }> }>;
+}
+
 interface SyntheticRequest {
   dataset_id: string;
+  template_mode?: false;
   sources: SyntheticSource[];
   config: SyntheticConfig;
 }
+
+type RequestBody = TemplateRequest | SyntheticRequest;
 
 interface ProcessingResult {
   source: string;
@@ -234,8 +251,7 @@ serve(async (req) => {
       });
     }
 
-    const body = await req.json() as SyntheticRequest;
-    const { sources, config } = body;
+    const body = await req.json() as RequestBody;
     dataset_id = body.dataset_id;
 
     if (!dataset_id) {
@@ -245,6 +261,196 @@ serve(async (req) => {
       });
     }
 
+    // Check if this is a template-based generation
+    if (body.template_mode === true) {
+      const templateBody = body as TemplateRequest;
+      console.log(`Template mode: generating ${templateBody.num_examples} examples from template ${templateBody.template_id}`);
+      
+      const numPairs = templateBody.num_examples || 50;
+      const creditCost = numPairs * COST_PER_PAIR;
+      
+      // Deduct credits
+      const { data: deductResult, error: deductError } = await supabase.rpc('deduct_credits', {
+        p_user_id: user.id,
+        p_amount: creditCost,
+        p_service_type: 'SYNTHETIC_DATA',
+        p_description: `Template dataset: ${numPairs} examples (${templateBody.language})`,
+        p_metadata: { dataset_id, template_id: templateBody.template_id, num_examples: numPairs }
+      });
+
+      if (deductError) {
+        console.error("Error calling deduct_credits:", deductError);
+        return new Response(
+          JSON.stringify({ error: "Failed to process payment", details: deductError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!deductResult?.success) {
+        console.log("Credit deduction failed:", deductResult);
+        return new Response(
+          JSON.stringify({ 
+            error: deductResult?.message || "Insufficient credits",
+            error_code: deductResult?.error,
+            current_balance: deductResult?.current_balance,
+            required: deductResult?.required || creditCost
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update dataset status
+      await supabase.from("datasets").update({ status: "processing" }).eq("id", dataset_id);
+
+      // Build prompt for template-based generation
+      const variationInstructions = {
+        low: "Stay very close to the example style and structure. Vary only the specific details.",
+        medium: "Follow the general style but introduce moderate variety in phrasing and scenarios.",
+        high: "Be creative with scenarios and phrasing while maintaining the core domain and language style."
+      };
+
+      const topicsInstruction = templateBody.topics && templateBody.topics.length > 0
+        ? `Focus on these specific topics: ${templateBody.topics.join(", ")}`
+        : "";
+
+      const sampleConversationsText = templateBody.sample_conversations
+        ? templateBody.sample_conversations.slice(0, 3).map((conv, i) => {
+            return `Example ${i + 1}:\n${conv.messages.map(m => `${m.role}: ${m.content}`).join("\n")}`;
+          }).join("\n\n")
+        : "";
+
+      const systemPromptForGeneration = `You are an expert at creating high-quality training data for AI fine-tuning.
+Generate realistic ${templateBody.language} conversations for the ${templateBody.domain} domain.
+
+Language: ${templateBody.language} (${templateBody.language_code})
+Domain: ${templateBody.domain}
+System prompt to use: ${templateBody.system_prompt || "You are a helpful assistant."}
+
+${variationInstructions[templateBody.variation]}
+${topicsInstruction}
+
+${sampleConversationsText ? `Reference examples to learn the style:\n\n${sampleConversationsText}` : ""}
+
+CRITICAL: All generated content MUST be in ${templateBody.language}. Do not mix languages.
+Output format: Return a JSON array of conversation objects. Each object should have a "messages" array with objects containing "role" (system/user/assistant) and "content" fields.`;
+
+      const userPromptForGeneration = `Generate exactly ${numPairs} diverse and realistic ${templateBody.language} conversations for the ${templateBody.domain} domain.
+
+Each conversation should:
+1. Start with a system message using this prompt: "${templateBody.system_prompt || 'You are a helpful assistant.'}"
+2. Include a realistic user query in ${templateBody.language}
+3. Include a helpful, professional assistant response in ${templateBody.language}
+
+Return as a JSON array: [{"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}, ...]`;
+
+      console.log("Calling Claude for template-based generation...");
+      
+      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": anthropicKey,
+          "Content-Type": "application/json",
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 8192,
+          system: systemPromptForGeneration,
+          messages: [{ role: "user", content: userPromptForGeneration }],
+        }),
+      });
+
+      const claudeData = await claudeResponse.json();
+      const responseText = claudeData.content?.[0]?.text || "[]";
+
+      console.log("Claude response received, parsing...");
+
+      // Parse generated conversations
+      let conversations: Array<{ messages: Array<{ role: string; content: string }> }>;
+      try {
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        conversations = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
+      } catch (e) {
+        console.error("Failed to parse Claude response:", e);
+        conversations = [];
+      }
+
+      if (conversations.length === 0) {
+        await supabase.from("datasets").update({ 
+          status: "error",
+          error_message: "Failed to generate conversations from template"
+        }).eq("id", dataset_id);
+
+        return new Response(
+          JSON.stringify({ error: "no_conversations_generated", message: "Failed to generate conversations" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Convert to JSONL format
+      const jsonlContent = conversations.map(conv => JSON.stringify(conv)).join("\n");
+
+      // Upload to storage
+      const filePath = `${user.id}/${dataset_id}/template-generated.jsonl`;
+      const { error: uploadError } = await supabase.storage
+        .from("datasets")
+        .upload(filePath, new Blob([jsonlContent], { type: "application/jsonl" }), { upsert: true });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Calculate tokens
+      const totalTokens = Math.ceil(jsonlContent.length / 4);
+      const avgConversationLength = 3;
+
+      // Update dataset record
+      await supabase.from("datasets").update({
+        status: "ready",
+        s3_path: filePath,
+        row_count: conversations.length,
+        total_tokens: totalTokens,
+        avg_conversation_length: avgConversationLength,
+      }).eq("id", dataset_id);
+
+      // Create initial snapshot
+      const trainRowCount = Math.floor(conversations.length * 0.9);
+      const valRowCount = conversations.length - trainRowCount;
+
+      const { data: dataset } = await supabase
+        .from("datasets")
+        .select("name")
+        .eq("id", dataset_id)
+        .single();
+
+      await supabase.from("dataset_snapshots").insert({
+        dataset_id: dataset_id,
+        name: `${dataset?.name || 'Dataset'} v1`,
+        version: 1,
+        row_count: conversations.length,
+        train_split_pct: 0.9,
+        train_row_count: trainRowCount,
+        val_row_count: valRowCount,
+        s3_path: filePath,
+      });
+
+      console.log(`Template dataset generated: ${conversations.length} conversations, ${totalTokens} tokens`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          row_count: conversations.length,
+          total_tokens: totalTokens,
+          credits_charged: creditCost,
+          transaction_id: deductResult.transaction_id,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Regular source-based generation (existing logic)
+    const syntheticBody = body as SyntheticRequest;
+    const { sources, config } = syntheticBody;
     const numPairs = config.num_pairs || 10;
     
     // Calculate credit cost

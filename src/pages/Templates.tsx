@@ -12,6 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateDetailModal } from "@/components/templates/TemplateDetailModal";
+import { GenerateDatasetModal } from "@/components/templates/GenerateDatasetModal";
 import { 
   useFinetuningTemplates, 
   TEMPLATE_LANGUAGES, 
@@ -24,7 +25,7 @@ const Templates = () => {
   const [languageFilter, setLanguageFilter] = useState("all");
   const [domainFilter, setDomainFilter] = useState("all");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-
+  const [generateTemplateId, setGenerateTemplateId] = useState<string | null>(null);
   const { data: templates, isLoading } = useFinetuningTemplates({
     language: languageFilter,
     domain: domainFilter,
@@ -145,6 +146,13 @@ const Templates = () => {
       <TemplateDetailModal
         templateId={selectedTemplateId}
         onClose={() => setSelectedTemplateId(null)}
+        onGenerateDataset={(id) => setGenerateTemplateId(id)}
+      />
+
+      {/* Generate Dataset Modal */}
+      <GenerateDatasetModal
+        templateId={generateTemplateId}
+        onClose={() => setGenerateTemplateId(null)}
       />
     </div>
   );
