@@ -415,9 +415,11 @@ export type Database = {
           conversation_id: string | null
           created_at: string | null
           embedding: string | null
+          file_type: string | null
           filename: string
           id: string
           metadata: Json | null
+          token_count: number | null
           user_id: string
         }
         Insert: {
@@ -426,9 +428,11 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string | null
           embedding?: string | null
+          file_type?: string | null
           filename: string
           id?: string
           metadata?: Json | null
+          token_count?: number | null
           user_id: string
         }
         Update: {
@@ -437,9 +441,11 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string | null
           embedding?: string | null
+          file_type?: string | null
           filename?: string
           id?: string
           metadata?: Json | null
+          token_count?: number | null
           user_id?: string
         }
         Relationships: []
@@ -1214,6 +1220,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_conversation_documents: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: number
+      }
       deduct_credits: {
         Args: {
           p_amount: number
@@ -1247,6 +1257,22 @@ export type Database = {
       is_org_member: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
+      }
+      search_document_chunks: {
+        Args: {
+          p_conversation_id?: string
+          p_embedding?: string
+          p_match_count?: number
+          p_match_threshold?: number
+          p_user_id: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          filename: string
+          id: string
+          similarity: number
+        }[]
       }
       search_similar_chunks: {
         Args: {
