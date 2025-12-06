@@ -233,11 +233,17 @@ export const DatasetCreationWizard = ({
     setIsProcessing(true);
     
     try {
+      console.log('[DatasetWizard] Starting dataset creation...', { creationMethod, datasetName, projectId });
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({ title: "Authentication required", variant: "destructive" });
         return;
       }
+
+      // Fix: Handle "none" project selection properly
+      const resolvedProjectId = (projectId && projectId !== 'none') ? projectId : null;
+      console.log('[DatasetWizard] Resolved project_id:', resolvedProjectId);
 
       if (creationMethod === "upload") {
         // Handle file upload
@@ -245,25 +251,35 @@ export const DatasetCreationWizard = ({
         const datasetId = crypto.randomUUID();
         const filePath = `${user.id}/${datasetId}/${file.name}`;
 
+        console.log('[DatasetWizard] Uploading file to storage:', filePath);
         const { error: uploadError } = await supabase.storage
           .from('datasets')
           .upload(filePath, file, { contentType: 'application/json' });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('[DatasetWizard] Storage upload failed:', uploadError);
+          throw uploadError;
+        }
+        console.log('[DatasetWizard] Storage upload successful');
 
+        console.log('[DatasetWizard] Inserting dataset record...');
         const { error: insertError } = await supabase
           .from('datasets')
           .insert({
             id: datasetId,
             user_id: user.id,
-            project_id: projectId || null,
+            project_id: resolvedProjectId,
             name: datasetName.trim(),
             source_type: 'upload',
             status: 'pending',
             s3_path: filePath,
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('[DatasetWizard] Insert failed:', insertError);
+          throw insertError;
+        }
+        console.log('[DatasetWizard] Dataset record created, invoking process-dataset...');
 
         await supabase.functions.invoke('process-dataset', {
           body: { dataset_id: datasetId }
@@ -277,12 +293,13 @@ export const DatasetCreationWizard = ({
         // Handle synthetic generation
         const datasetId = crypto.randomUUID();
 
+        console.log('[DatasetWizard] Creating synthetic dataset record...');
         const { error: insertError } = await supabase
           .from('datasets')
           .insert({
             id: datasetId,
             user_id: user.id,
-            project_id: projectId || null,
+            project_id: resolvedProjectId,
             name: datasetName.trim(),
             source_type: 'synthetic',
             status: 'pending',
@@ -296,7 +313,11 @@ export const DatasetCreationWizard = ({
             },
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('[DatasetWizard] Insert failed:', insertError);
+          throw insertError;
+        }
+        console.log('[DatasetWizard] Dataset record created, invoking generate-synthetic...');
 
         toast({
           title: "Generating synthetic data...",
@@ -319,14 +340,29 @@ export const DatasetCreationWizard = ({
           }
         });
 
+        // Check for insufficient credits (402 error)
         if (generateError) {
+          console.error('[DatasetWizard] generate-synthetic error:', generateError);
+          
           await supabase
             .from('datasets')
             .update({ status: 'error', error_message: generateError.message })
             .eq('id', datasetId);
-          throw generateError;
+          
+          // Check if it's a credits error
+          if (generateError.message?.includes('Insufficient') || generateError.message?.includes('402')) {
+            toast({
+              title: "Insufficient Credits",
+              description: "Please add more credits to generate synthetic data.",
+              variant: "destructive",
+            });
+          } else {
+            throw generateError;
+          }
+          return;
         }
 
+        console.log('[DatasetWizard] Synthetic generation complete:', result);
         toast({
           title: "Synthetic dataset generated!",
           description: `Created ${result?.row_count || 0} QA pairs.`,
@@ -337,6 +373,7 @@ export const DatasetCreationWizard = ({
       handleClose();
     } catch (err) {
       const error = err as Error;
+      console.error('[DatasetWizard] Error:', error);
       toast({
         title: "Error creating dataset",
         description: error.message,
