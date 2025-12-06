@@ -26,6 +26,7 @@ import {
   CreditCard,
   TrendingUp,
   Activity,
+  Shield,
 } from "lucide-react";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
@@ -48,6 +49,7 @@ const navItems = [
   { icon: Play, label: "Playground", href: "/dashboard/playground" },
   { icon: Activity, label: "Traces", href: "/dashboard/traces" },
   { icon: TrendingUp, label: "Usage Stats", href: "/dashboard/stats" },
+  { icon: Shield, label: "Compliance", href: "/dashboard/admin/compliance" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
