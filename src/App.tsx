@@ -15,6 +15,7 @@ import DatasetDetail from "./pages/DatasetDetail";
 import Finetuning from "./pages/Finetuning";
 import FinetuningJobDetail from "./pages/FinetuningJobDetail";
 import Evaluations from "./pages/Evaluations";
+import EvaluationDetail from "./pages/EvaluationDetail";
 import Models from "./pages/Models";
 import ModelDetail from "./pages/ModelDetail";
 import ModelsCatalog from "./pages/ModelsCatalog";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/dashboard/finetuning" element={<ProtectedRoute><Finetuning /></ProtectedRoute>} />
             <Route path="/dashboard/finetuning/:id" element={<ProtectedRoute><FinetuningJobDetail /></ProtectedRoute>} />
             <Route path="/dashboard/evaluations" element={<ProtectedRoute><Evaluations /></ProtectedRoute>} />
+            <Route path="/dashboard/evaluations/:id" element={<ProtectedRoute><EvaluationDetail /></ProtectedRoute>} />
             <Route path="/dashboard/models" element={<ProtectedRoute><Models /></ProtectedRoute>} />
             <Route path="/dashboard/models/:id" element={<ProtectedRoute><ModelDetail /></ProtectedRoute>} />
             <Route path="/dashboard/catalog" element={<ProtectedRoute><ModelsCatalog /></ProtectedRoute>} />

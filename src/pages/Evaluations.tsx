@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +96,7 @@ const BASE_EVALUATION_MODELS = [
 ];
 
 const Evaluations = () => {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isCreateEvalModalOpen, setIsCreateEvalModalOpen] = useState(false);
   const [isCreateMetricModalOpen, setIsCreateMetricModalOpen] = useState(false);
@@ -546,7 +548,12 @@ const Evaluations = () => {
                                         )}
                                       </Button>
                                     )}
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8"
+                                      onClick={() => navigate(`/dashboard/evaluations/${evaluation.id}`)}
+                                    >
                                       <Eye className="h-4 w-4" />
                                     </Button>
                                     <Button
