@@ -80,12 +80,12 @@ function extractTextFromContent(content: string, filename?: string): string {
   return content;
 }
 
-// Download and extract content from a file in storage
-async function extractFileFromStorage(
+// Download file from storage and get base64 for Claude document processing
+async function downloadFileFromStorage(
   supabase: SupabaseClient<any, any, any>,
   filePath: string,
   filename: string
-): Promise<string> {
+): Promise<{ base64: string; mimeType: string; isText: boolean; textContent?: string }> {
   console.log(`Downloading file from storage: ${filePath}`);
   
   const { data, error } = await supabase.storage
@@ -98,35 +98,100 @@ async function extractFileFromStorage(
   
   const ext = filename.split('.').pop()?.toLowerCase();
   
-  // Handle text-based files
+  // Map extensions to MIME types for Claude
+  const mimeTypeMap: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'txt': 'text/plain',
+    'md': 'text/markdown',
+    'html': 'text/html',
+    'htm': 'text/html',
+    'csv': 'text/csv',
+    'json': 'application/json',
+    'xml': 'text/xml',
+  };
+  
+  const mimeType = mimeTypeMap[ext || ''] || 'application/octet-stream';
+  
+  // Handle text-based files - read as text
   if (['txt', 'md', 'html', 'htm', 'csv', 'json', 'xml'].includes(ext || '')) {
     const text = await data.text();
-    console.log(`Extracted ${text.length} chars from ${filename}`);
-    return extractTextFromContent(text, filename);
+    console.log(`Read ${text.length} chars from text file ${filename}`);
+    return { 
+      base64: '', 
+      mimeType, 
+      isText: true, 
+      textContent: extractTextFromContent(text, filename) 
+    };
   }
   
-  // For binary formats (PDF, DOCX), we can't easily extract text in Deno
-  // Return a message indicating the limitation
+  // For binary formats (PDF, DOCX, PPTX), convert to base64 for Claude
   if (['pdf', 'docx', 'pptx', 'xlsx'].includes(ext || '')) {
-    console.warn(`Binary file format not fully supported: ${ext}. Attempting basic extraction...`);
-    
-    // Try to get any text content (works for some formats)
-    try {
-      const text = await data.text();
-      // Filter out binary garbage, keep only printable ASCII
-      const cleanText = text.replace(/[^\x20-\x7E\n\t]/g, ' ').replace(/\s+/g, ' ').trim();
-      if (cleanText.length > 100) {
-        console.log(`Extracted ${cleanText.length} chars from binary file ${filename}`);
-        return cleanText.substring(0, 20000);
-      }
-    } catch (e) {
-      console.log(`Could not extract text from binary file: ${e}`);
+    const arrayBuffer = await data.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
-    
-    throw new Error(`Cannot extract text from ${ext} files. Please convert to TXT or copy/paste the content.`);
+    const base64 = btoa(binary);
+    console.log(`Converted ${filename} to base64: ${base64.length} chars`);
+    return { base64, mimeType, isText: false };
   }
   
   throw new Error(`Unsupported file type: ${ext}`);
+}
+
+// Use Claude to extract text from a document
+async function extractTextWithClaude(
+  anthropicKey: string,
+  base64Content: string,
+  mimeType: string,
+  filename: string
+): Promise<string> {
+  console.log(`Using Claude to extract text from ${filename} (${mimeType})`);
+  
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": anthropicKey,
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 8192,
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "document",
+            source: {
+              type: "base64",
+              media_type: mimeType,
+              data: base64Content,
+            },
+          },
+          {
+            type: "text",
+            text: `Extract ALL the text content from this document. Return ONLY the extracted text, preserving the structure and formatting as much as possible. Do not add any commentary or explanation - just the document's text content.`,
+          },
+        ],
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Claude document extraction failed: ${response.status} - ${errorText}`);
+    throw new Error(`Failed to extract text from ${filename}: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const extractedText = data.content?.[0]?.text || '';
+  console.log(`Claude extracted ${extractedText.length} chars from ${filename}`);
+  return extractedText;
 }
 
 serve(async (req) => {
@@ -287,9 +352,24 @@ serve(async (req) => {
             console.log(`Text source processed: ${extractedContent.length} chars`);
           }
         } else if (source.type === "file" && source.path) {
-          // Handle file sources from storage
+          // Handle file sources from storage - use Claude for binary files
           try {
-            const fileContent = await extractFileFromStorage(supabase, source.path, source.filename || 'file');
+            const fileData = await downloadFileFromStorage(supabase, source.path, source.filename || 'file');
+            let fileContent: string;
+            
+            if (fileData.isText && fileData.textContent) {
+              // Text file - use extracted content directly
+              fileContent = fileData.textContent;
+            } else {
+              // Binary file (PDF, DOCX, etc.) - use Claude to extract text
+              fileContent = await extractTextWithClaude(
+                anthropicKey,
+                fileData.base64,
+                fileData.mimeType,
+                source.filename || 'file'
+              );
+            }
+            
             if (fileContent.length > 0) {
               combinedContent += `\n\n--- Source: ${source.filename || source.path} ---\n${fileContent}\n\n`;
               processingResults.push({ source: source.filename || source.path, contentLength: fileContent.length, success: true });
