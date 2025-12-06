@@ -202,67 +202,173 @@ serve(async (req) => {
         } catch (e) {
           console.error("Failed to fetch URL:", e);
         }
-      } else if (source.type === "youtube") {
+    } else if (source.type === "youtube") {
         // Extract video ID from YouTube URL
         const videoIdMatch = source.content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
         if (videoIdMatch) {
           const videoId = videoIdMatch[1];
           console.log(`Extracting content for YouTube video: ${videoId}`);
           
+          let videoTitle = '';
+          let videoAuthor = '';
+          let transcriptContent = '';
+          let videoDescription = '';
+          
+          // Step 1: Get video metadata via oEmbed
           try {
-            // Fetch video info using oEmbed API (no API key required)
             const oembedResponse = await fetch(
               `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
             );
             
             if (oembedResponse.ok) {
               const oembedData = await oembedResponse.json();
-              const title = oembedData.title || '';
-              const author = oembedData.author_name || '';
-              
-              // Add video metadata as context
-              combinedContent += `YouTube Video: "${title}" by ${author}\n\n`;
-              console.log(`YouTube video metadata: ${title} by ${author}`);
+              videoTitle = oembedData.title || '';
+              videoAuthor = oembedData.author_name || '';
+              console.log(`YouTube metadata: "${videoTitle}" by ${videoAuthor}`);
             }
+          } catch (e) {
+            console.log("oEmbed fetch failed:", e);
+          }
+          
+          // Step 2: Try multiple transcript APIs
+          // API 1: yt.lemnoslife.com
+          try {
+            console.log(`Trying transcript API 1: yt.lemnoslife.com for ${videoId}`);
+            const transcriptResponse = await fetch(
+              `https://yt.lemnoslife.com/noKey/captions?videoId=${videoId}&lang=en`,
+              { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' } }
+            );
             
-            // Try to get transcript using a public transcript service
+            if (transcriptResponse.ok) {
+              const transcriptData = await transcriptResponse.json();
+              if (transcriptData?.captions?.length > 0) {
+                transcriptContent = transcriptData.captions
+                  .map((c: { text: string }) => c.text)
+                  .join(' ')
+                  .substring(0, 15000);
+                console.log(`API 1 success: Got ${transcriptContent.length} chars of transcript`);
+              } else {
+                console.log("API 1: No captions found in response");
+              }
+            } else {
+              console.log(`API 1 failed with status: ${transcriptResponse.status}`);
+            }
+          } catch (e) {
+            console.log("API 1 (yt.lemnoslife.com) failed:", e);
+          }
+          
+          // API 2: youtubetranscript.com (if API 1 failed)
+          if (!transcriptContent) {
             try {
+              console.log(`Trying transcript API 2: youtubetranscript.com for ${videoId}`);
               const transcriptResponse = await fetch(
-                `https://yt.lemnoslife.com/noKey/captions?videoId=${videoId}&lang=en`
+                `https://youtubetranscript.com/?server_vid2=${videoId}`,
+                { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' } }
               );
               
               if (transcriptResponse.ok) {
-                const transcriptData = await transcriptResponse.json();
-                if (transcriptData?.captions?.length > 0) {
-                  const transcript = transcriptData.captions
-                    .map((c: { text: string }) => c.text)
+                const html = await transcriptResponse.text();
+                // Extract text from transcript HTML response
+                const textMatch = html.match(/<text[^>]*>([^<]+)<\/text>/g);
+                if (textMatch && textMatch.length > 0) {
+                  transcriptContent = textMatch
+                    .map(t => t.replace(/<[^>]+>/g, '').trim())
                     .join(' ')
-                    .substring(0, 10000);
-                  combinedContent += `Transcript: ${transcript}\n\n`;
-                  console.log(`Got YouTube transcript: ${transcript.substring(0, 200)}...`);
+                    .substring(0, 15000);
+                  console.log(`API 2 success: Got ${transcriptContent.length} chars of transcript`);
+                } else {
+                  console.log("API 2: No transcript text found in response");
                 }
+              } else {
+                console.log(`API 2 failed with status: ${transcriptResponse.status}`);
               }
-            } catch (transcriptError) {
-              console.log("Could not fetch transcript, using video title only:", transcriptError);
+            } catch (e) {
+              console.log("API 2 (youtubetranscript.com) failed:", e);
             }
-          } catch (e) {
-            console.error("Failed to fetch YouTube content:", e);
-            // Fallback: just use the URL as context
-            combinedContent += `YouTube Video URL: ${source.content}\n\n`;
           }
+          
+          // API 3: Try noembed for description (different from oEmbed, has more data)
+          if (!transcriptContent) {
+            try {
+              console.log(`Trying to get video description via noembed for ${videoId}`);
+              const noembedResponse = await fetch(
+                `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
+              );
+              
+              if (noembedResponse.ok) {
+                const noembedData = await noembedResponse.json();
+                if (noembedData.title && !videoTitle) {
+                  videoTitle = noembedData.title;
+                }
+                // Noembed might have more metadata
+                console.log(`noembed data: ${JSON.stringify(noembedData).substring(0, 500)}`);
+              }
+            } catch (e) {
+              console.log("noembed fetch failed:", e);
+            }
+          }
+          
+          // Build content from what we gathered
+          let sourceContent = '';
+          
+          if (videoTitle) {
+            sourceContent += `YouTube Video: "${videoTitle}"`;
+            if (videoAuthor) {
+              sourceContent += ` by ${videoAuthor}`;
+            }
+            sourceContent += '\n\n';
+          }
+          
+          if (transcriptContent) {
+            sourceContent += `Transcript:\n${transcriptContent}\n\n`;
+          } else if (videoDescription) {
+            sourceContent += `Description:\n${videoDescription}\n\n`;
+          }
+          
+          // Log what we got for this source
+          const contentLength = sourceContent.length;
+          console.log(`YouTube source "${videoId}": extracted ${contentLength} chars (transcript: ${transcriptContent.length} chars)`);
+          
+          if (contentLength < 100) {
+            console.warn(`WARNING: Only got ${contentLength} chars for video ${videoId}. No transcript available.`);
+          }
+          
+          combinedContent += sourceContent;
         } else {
           console.warn(`Invalid YouTube URL format: ${source.content}`);
         }
       }
     }
     
-    // Check if we got any content
-    if (!combinedContent.trim()) {
-      console.error("No content could be extracted from sources");
-      throw new Error("Could not extract content from the provided sources. Please check your URLs or provide text content directly.");
+    // Log per-source extraction results
+    console.log(`Total combined content length: ${combinedContent.length} characters`);
+    
+    // Minimum content validation BEFORE calling Claude
+    const MIN_CONTENT_LENGTH = 500;
+    if (combinedContent.trim().length < MIN_CONTENT_LENGTH) {
+      const errorMsg = `Could not extract enough content from sources. Got ${combinedContent.length} characters, need at least ${MIN_CONTENT_LENGTH}. For YouTube videos, please ensure they have captions/subtitles enabled, or try using text/URL sources instead.`;
+      console.error(errorMsg);
+      
+      await supabase
+        .from("datasets")
+        .update({ 
+          status: "error",
+          error_message: errorMsg
+        })
+        .eq("id", dataset_id);
+
+      return new Response(
+        JSON.stringify({ 
+          error: "insufficient_content",
+          message: errorMsg,
+          content_length: combinedContent.length,
+          min_required: MIN_CONTENT_LENGTH
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
-    console.log(`Total combined content length: ${combinedContent.length} characters`);
+    // Content validation is now done above after source processing
 
     // Build prompt for Claude
     const systemPrompt = `You are an expert at creating high-quality training data for AI fine-tuning.
@@ -318,16 +424,23 @@ Return as JSON array: [{"question": "...", "answer": "..."}, ...]`;
     }
 
     if (qaPairs.length === 0) {
+      const errorMsg = `Claude returned 0 Q&A pairs. The content (${combinedContent.length} chars) may not be suitable for Q&A generation, or the content format was not recognized. Try providing more detailed text content or different source URLs.`;
+      console.error(errorMsg);
+      
       await supabase
         .from("datasets")
         .update({ 
           status: "error",
-          error_message: "Failed to generate Q&A pairs from the provided content"
+          error_message: errorMsg
         })
         .eq("id", dataset_id);
 
       return new Response(
-        JSON.stringify({ error: "Failed to generate Q&A pairs" }),
+        JSON.stringify({ 
+          error: "no_qa_pairs_generated",
+          message: errorMsg,
+          content_length: combinedContent.length
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
