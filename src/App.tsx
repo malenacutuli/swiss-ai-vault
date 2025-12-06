@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Datasets from "./pages/Datasets";
+import DatasetDetail from "./pages/DatasetDetail";
 import Finetuning from "./pages/Finetuning";
 import Evaluations from "./pages/Evaluations";
 import Models from "./pages/Models";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/dashboard/datasets" element={<ProtectedRoute><Datasets /></ProtectedRoute>} />
+            <Route path="/dashboard/datasets/:id" element={<ProtectedRoute><DatasetDetail /></ProtectedRoute>} />
             <Route path="/dashboard/finetuning" element={<ProtectedRoute><Finetuning /></ProtectedRoute>} />
             <Route path="/dashboard/evaluations" element={<ProtectedRoute><Evaluations /></ProtectedRoute>} />
             <Route path="/dashboard/models" element={<ProtectedRoute><Models /></ProtectedRoute>} />
