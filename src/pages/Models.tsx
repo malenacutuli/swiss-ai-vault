@@ -188,8 +188,9 @@ const Models = () => {
               {models.map((model, index) => (
                 <Card
                   key={model.id}
-                  className="bg-card border-border animate-fade-in"
+                  className="bg-card border-border animate-fade-in cursor-pointer hover:border-primary/50 transition-colors"
                   style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() => navigate(`/dashboard/models/${model.id}`)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -204,7 +205,12 @@ const Models = () => {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -275,7 +281,10 @@ const Models = () => {
                     {/* Deployment Status */}
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <button
-                        onClick={() => handleToggleDeploy(model.id, model.is_deployed ?? false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleDeploy(model.id, model.is_deployed ?? false);
+                        }}
                         disabled={deployingModelId === model.id}
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity disabled:opacity-50"
                       >
@@ -297,7 +306,10 @@ const Models = () => {
                         variant="outline" 
                         size="sm" 
                         className="gap-1 border-border"
-                        onClick={() => handleTestModel(model.model_id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTestModel(model.model_id);
+                        }}
                       >
                         <Play className="h-3 w-3" />
                         Test

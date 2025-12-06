@@ -14,6 +14,7 @@ import Datasets from "./pages/Datasets";
 import Finetuning from "./pages/Finetuning";
 import Evaluations from "./pages/Evaluations";
 import Models from "./pages/Models";
+import ModelDetail from "./pages/ModelDetail";
 import ModelsCatalog from "./pages/ModelsCatalog";
 import Playground from "./pages/Playground";
 import Settings from "./pages/Settings";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/dashboard/finetuning" element={<ProtectedRoute><Finetuning /></ProtectedRoute>} />
             <Route path="/dashboard/evaluations" element={<ProtectedRoute><Evaluations /></ProtectedRoute>} />
             <Route path="/dashboard/models" element={<ProtectedRoute><Models /></ProtectedRoute>} />
+            <Route path="/dashboard/models/:id" element={<ProtectedRoute><ModelDetail /></ProtectedRoute>} />
             <Route path="/dashboard/catalog" element={<ProtectedRoute><ModelsCatalog /></ProtectedRoute>} />
             <Route path="/dashboard/playground" element={<ProtectedRoute><Playground /></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
