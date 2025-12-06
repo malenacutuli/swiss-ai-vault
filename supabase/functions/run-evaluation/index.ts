@@ -8,6 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Evaluation pricing: $0.01 per sample
+const COST_PER_SAMPLE = 0.01;
+
 interface EvalRequest {
   evaluation_id: string;
 }
@@ -83,12 +86,6 @@ serve(async (req) => {
       });
     }
 
-    // Update status to running
-    await supabase
-      .from("evaluations")
-      .update({ status: "running", started_at: new Date().toISOString() })
-      .eq("id", evaluationId);
-
     // Get metrics
     const { data: metrics, error: metricsError } = await supabase
       .from("metrics")
@@ -129,6 +126,49 @@ serve(async (req) => {
     // Use validation portion (last 10%) or limit to 20 samples for demo
     const valCount = Math.min(20, Math.ceil(allRows.length * 0.1));
     const samples = allRows.slice(-valCount);
+    const sampleCount = samples.length;
+
+    // Calculate credit cost
+    const creditCost = sampleCount * COST_PER_SAMPLE;
+    console.log(`Deducting ${creditCost} credits for ${sampleCount} samples`);
+
+    // Deduct credits before running evaluation
+    const { data: deductResult, error: deductError } = await supabase.rpc('deduct_credits', {
+      p_user_id: user.id,
+      p_amount: creditCost,
+      p_service_type: 'EVALUATION',
+      p_description: `Evaluation: ${sampleCount} samples`,
+      p_metadata: { evaluation_id: evaluationId, sample_count: sampleCount, metrics: evaluation.metric_ids }
+    });
+
+    if (deductError) {
+      console.error("Error calling deduct_credits:", deductError);
+      return new Response(
+        JSON.stringify({ error: "Failed to process payment", details: deductError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!deductResult?.success) {
+      console.log("Credit deduction failed:", deductResult);
+      return new Response(
+        JSON.stringify({ 
+          error: deductResult?.message || "Insufficient credits",
+          error_code: deductResult?.error,
+          current_balance: deductResult?.current_balance,
+          required: deductResult?.required || creditCost
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Credits deducted successfully. Transaction ID: ${deductResult.transaction_id}`);
+
+    // Update status to running
+    await supabase
+      .from("evaluations")
+      .update({ status: "running", started_at: new Date().toISOString() })
+      .eq("id", evaluationId);
 
     // Initialize results tracking
     const results: Record<string, { total: number; count: number; scores: number[] }> = {};
@@ -317,7 +357,12 @@ Respond with ONLY a JSON object in this exact format:
       .eq("id", evaluationId);
 
     return new Response(
-      JSON.stringify({ success: true, results: aggregateResults }),
+      JSON.stringify({ 
+        success: true, 
+        results: aggregateResults,
+        credits_charged: creditCost,
+        transaction_id: deductResult.transaction_id
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
