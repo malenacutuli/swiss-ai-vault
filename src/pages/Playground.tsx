@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,10 @@ import {
   Shield,
   Image as ImageIcon,
   Eye,
+  Code,
 } from "lucide-react";
+import { PlaygroundModeToggle } from "@/components/playground/PlaygroundModeToggle";
+import { CodeModeEditor } from "@/components/playground/CodeModeEditor";
 import { useModels } from "@/hooks/useSupabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,6 +110,17 @@ const openSourceModels: ModelInfo[] = [
   { id: "llama3.2-3b", name: "Llama 3.2 3B", group: "opensource", parameters: "3B", contextLength: 131072, coldStart: true },
 ];
 
+// Code-specific models
+const codeModels: ModelInfo[] = [
+  { id: "qwen2.5-coder-7b", name: "Qwen 2.5 Coder 7B", group: "code", parameters: "7B", contextLength: 32768, coldStart: true },
+  { id: "qwen2.5-coder-3b", name: "Qwen 2.5 Coder 3B", group: "code", parameters: "3B", contextLength: 32768, coldStart: true },
+  { id: "qwen2.5-coder-1.5b", name: "Qwen 2.5 Coder 1.5B", group: "code", parameters: "1.5B", contextLength: 32768, coldStart: true },
+  { id: "codellama-7b", name: "Code Llama 7B", group: "code", parameters: "7B", contextLength: 16384, coldStart: true },
+  { id: "codellama-13b", name: "Code Llama 13B", group: "code", parameters: "13B", contextLength: 16384, coldStart: true },
+  { id: "starcoder2-7b", name: "StarCoder2 7B", group: "code", parameters: "7B", contextLength: 16384, coldStart: true },
+  { id: "deepseek-coder-7b", name: "DeepSeek Coder 7B", group: "code", parameters: "7B", contextLength: 16384, coldStart: true },
+];
+
 const systemPromptTemplates = [
   { id: "helpful", name: "Helpful Assistant", prompt: "You are a helpful, harmless, and honest AI assistant." },
   { id: "code", name: "Code Helper", prompt: "You are an expert programmer. Help users write clean, efficient code." },
@@ -117,6 +131,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_FILE_TYPES = [".txt", ".md", ".pdf", ".docx"];
 
 const Playground = () => {
+  const [playgroundMode, setPlaygroundMode] = useState<"chat" | "code">("chat");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [configPanelOpen, setConfigPanelOpen] = useState(true);
   const [selectedModel, setSelectedModel] = useState("gpt-4o-mini");
@@ -189,7 +204,8 @@ const Playground = () => {
   // Check if model might have cold start
   const isColdStartModel = (modelId: string) => {
     return modelId.startsWith("sv-") || 
-           openSourceModels.some(m => m.id === modelId);
+           openSourceModels.some(m => m.id === modelId) ||
+           codeModels.some(m => m.id === modelId);
   };
 
   // Get model info for display
@@ -199,6 +215,9 @@ const Playground = () => {
     
     const openSource = openSourceModels.find(m => m.id === modelId);
     if (openSource) return openSource;
+
+    const codeModel = codeModels.find(m => m.id === modelId);
+    if (codeModel) return codeModel;
     
     const userModel = userModels?.find(m => m.model_id === modelId);
     if (userModel) {
@@ -214,6 +233,46 @@ const Playground = () => {
     
     return null;
   };
+
+  // Handle code mode execution
+  const handleCodeExecute = useCallback(async (code: string, userPrompt: string, systemPrompt: string): Promise<string> => {
+    if (!session?.access_token) {
+      throw new Error("Please sign in to use the code assistant");
+    }
+
+    const codeModel = playgroundMode === "code" ? 
+      (codeModels.some(m => m.id === selectedModel) ? selectedModel : "qwen2.5-coder-7b") :
+      selectedModel;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          model: codeModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.3,
+          max_tokens: 4096,
+          stream: false,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `Request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "No response received.";
+  }, [session, selectedModel, playgroundMode]);
 
   // Handle file upload for RAG
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -750,6 +809,26 @@ const Playground = () => {
                         </SelectItem>
                       ))}
                     </SelectGroup>
+
+                    {/* Code Models */}
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-2">
+                        <Code className="h-3 w-3" />
+                        Code Models
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 text-warning border-warning/30">
+                          cold start
+                        </Badge>
+                      </SelectLabel>
+                      {codeModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex items-center gap-2 w-full">
+                            <Code className="h-3 w-3 text-info flex-shrink-0" />
+                            <span>{model.name}</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground">{model.parameters}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
                 
@@ -886,11 +965,17 @@ const Playground = () => {
         >
           <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
 
-          {/* Chat Header */}
+          {/* Header with Mode Toggle */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-border">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
+              <PlaygroundModeToggle mode={playgroundMode} onModeChange={setPlaygroundMode} />
+              
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+                {playgroundMode === "code" ? (
+                  <Code className="h-4 w-4 text-info" />
+                ) : (
+                  <Sparkles className="h-4 w-4 text-primary" />
+                )}
                 <span className="font-medium text-foreground">
                   {getModelDisplayName()}
                 </span>
@@ -987,34 +1072,43 @@ const Playground = () => {
             </Button>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  Start a conversation
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-sm mb-6">
-                  Select a model and start chatting. Upload documents for context-aware responses.
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    "Explain quantum computing simply",
-                    "Write a Python function to...",
-                    "Help me draft an email about...",
-                  ].map((prompt) => (
-                    <button
-                      key={prompt}
-                      onClick={() => setInput(prompt)}
-                      className="px-3 py-1.5 text-sm rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
+          {/* Content Area - Chat or Code Mode */}
+          {playgroundMode === "code" ? (
+            <CodeModeEditor
+              onExecute={handleCodeExecute}
+              isLoading={isLoading}
+              selectedModel={codeModels.some(m => m.id === selectedModel) ? selectedModel : "qwen2.5-coder-7b"}
+            />
+          ) : (
+            <>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      Start a conversation
+                    </h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                      Select a model and start chatting. Upload documents for context-aware responses.
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {[
+                        "Explain quantum computing simply",
+                        "Write a Python function to...",
+                        "Help me draft an email about...",
+                      ].map((prompt) => (
+                        <button
+                          key={prompt}
+                          onClick={() => setInput(prompt)}
+                          className="px-3 py-1.5 text-sm rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
               messages.map((message) => (
                 <div
                   key={message.id}
@@ -1239,6 +1333,8 @@ const Playground = () => {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
