@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -70,6 +71,7 @@ const methodBadges: Record<FinetuningMethod, string> = {
 };
 
 const Finetuning = () => {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
@@ -464,7 +466,12 @@ const Finetuning = () => {
                             Cancel
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => navigate(`/dashboard/finetuning/${job.id}`)}
+                        >
                           <Eye className="h-4 w-4 mr-1" />
                           Details
                         </Button>
