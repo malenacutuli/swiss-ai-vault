@@ -113,6 +113,22 @@ serve(async (req) => {
       userId = user.id;
     }
 
+    // Check user's zero-retention mode setting
+    let zeroRetentionMode = false;
+    try {
+      const { data: userSettings } = await supabase
+        .from("user_settings")
+        .select("zero_retention_mode")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      zeroRetentionMode = userSettings?.zero_retention_mode ?? false;
+      console.log(`[chat-completions] User ${userId} zero_retention_mode: ${zeroRetentionMode}`);
+    } catch (settingsError) {
+      console.error("[chat-completions] Error fetching user settings:", settingsError);
+      // Continue with default (false) if settings fetch fails
+    }
+
     // Parse request body
     const body: ChatRequest = await req.json();
     const { model, messages, temperature = 0.7, max_tokens = 1024, stream = false } = body;
@@ -164,7 +180,7 @@ serve(async (req) => {
       }
     }
 
-    // Track usage
+    // Track usage (always track API requests, even in zero-retention mode)
     const today = new Date().toISOString().split("T")[0];
     await supabase.rpc("increment_usage", {
       p_user_id: userId,
@@ -173,13 +189,18 @@ serve(async (req) => {
       p_value: 1,
     });
 
-    // Call the appropriate provider
+    // Call the appropriate provider with zero-retention context
+    const responseHeaders: Record<string, string> = { ...corsHeaders };
+    if (zeroRetentionMode) {
+      responseHeaders["X-Zero-Retention"] = "true";
+    }
+
     if (provider === "anthropic") {
-      return await handleAnthropicRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase);
+      return await handleAnthropicRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
     } else if (provider === "vllm") {
-      return await handleVLLMRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase);
+      return await handleVLLMRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
     } else {
-      return await handleOpenAIRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase);
+      return await handleOpenAIRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
     }
 
   } catch (error) {
@@ -199,9 +220,13 @@ async function handleOpenAIRequest(
   maxTokens: number,
   stream: boolean,
   userId: string,
-  supabase: any
+  supabase: any,
+  zeroRetentionMode: boolean,
+  originalRequest: ChatRequest,
+  responseHeaders: Record<string, string>
 ) {
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
+  const startTime = Date.now();
   
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -222,7 +247,7 @@ async function handleOpenAIRequest(
     // Return streaming response
     return new Response(response.body, {
       headers: {
-        ...corsHeaders,
+        ...responseHeaders,
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
@@ -231,6 +256,7 @@ async function handleOpenAIRequest(
   }
 
   const data = await response.json();
+  const latencyMs = Date.now() - startTime;
   
   // Track token usage
   if (data.usage) {
@@ -249,8 +275,30 @@ async function handleOpenAIRequest(
     });
   }
 
+  // Log trace only if NOT in zero-retention mode
+  if (!zeroRetentionMode) {
+    try {
+      await supabase.from("traces").insert({
+        user_id: userId,
+        model_id: model,
+        request: originalRequest,
+        response: data,
+        latency_ms: latencyMs,
+        prompt_tokens: data.usage?.prompt_tokens || null,
+        completion_tokens: data.usage?.completion_tokens || null,
+        total_tokens: data.usage?.total_tokens || null,
+        status_code: response.status,
+      });
+      console.log(`[chat-completions] Trace logged for user ${userId}`);
+    } catch (traceError) {
+      console.error("[chat-completions] Error logging trace:", traceError);
+    }
+  } else {
+    console.log(`[chat-completions] Skipping trace logging (zero-retention mode)`);
+  }
+
   return new Response(JSON.stringify(data), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...responseHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -261,9 +309,13 @@ async function handleAnthropicRequest(
   maxTokens: number,
   stream: boolean,
   userId: string,
-  supabase: any
+  supabase: any,
+  zeroRetentionMode: boolean,
+  originalRequest: ChatRequest,
+  responseHeaders: Record<string, string>
 ) {
   const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const startTime = Date.now();
   
   // Convert OpenAI format to Anthropic format
   let systemPrompt = "";
@@ -303,7 +355,7 @@ async function handleAnthropicRequest(
     
     return new Response(response.body?.pipeThrough(transformStream), {
       headers: {
-        ...corsHeaders,
+        ...responseHeaders,
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
       },
@@ -311,6 +363,7 @@ async function handleAnthropicRequest(
   }
 
   const data = await response.json();
+  const latencyMs = Date.now() - startTime;
   
   // Convert Anthropic response to OpenAI format
   const openaiResponse = {
@@ -348,8 +401,30 @@ async function handleAnthropicRequest(
     p_value: openaiResponse.usage.completion_tokens,
   });
 
+  // Log trace only if NOT in zero-retention mode
+  if (!zeroRetentionMode) {
+    try {
+      await supabase.from("traces").insert({
+        user_id: userId,
+        model_id: model,
+        request: originalRequest,
+        response: openaiResponse,
+        latency_ms: latencyMs,
+        prompt_tokens: openaiResponse.usage.prompt_tokens,
+        completion_tokens: openaiResponse.usage.completion_tokens,
+        total_tokens: openaiResponse.usage.total_tokens,
+        status_code: response.status,
+      });
+      console.log(`[chat-completions] Trace logged for user ${userId}`);
+    } catch (traceError) {
+      console.error("[chat-completions] Error logging trace:", traceError);
+    }
+  } else {
+    console.log(`[chat-completions] Skipping trace logging (zero-retention mode)`);
+  }
+
   return new Response(JSON.stringify(openaiResponse), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...responseHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -360,7 +435,10 @@ async function handleVLLMRequest(
   maxTokens: number,
   stream: boolean,
   userId: string,
-  supabase: any
+  supabase: any,
+  zeroRetentionMode: boolean,
+  originalRequest: ChatRequest,
+  responseHeaders: Record<string, string>
 ) {
   const vllmEndpoint = Deno.env.get("VLLM_ENDPOINT");
   
@@ -368,7 +446,7 @@ async function handleVLLMRequest(
     console.error("[chat-completions] VLLM_ENDPOINT not configured");
     return new Response(
       JSON.stringify({ error: { message: "vLLM endpoint not configured. Please contact support." } }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...responseHeaders, "Content-Type": "application/json" } }
     );
   }
 
@@ -415,7 +493,7 @@ async function handleVLLMRequest(
       
       return new Response(
         JSON.stringify({ error: { message: userMessage, status: response.status, details: errorText } }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: response.status, headers: { ...responseHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -423,7 +501,7 @@ async function handleVLLMRequest(
       // Return streaming response
       return new Response(response.body, {
         headers: {
-          ...corsHeaders,
+          ...responseHeaders,
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           "Connection": "keep-alive",
@@ -481,8 +559,30 @@ async function handleVLLMRequest(
       }
     }
 
+    // Log trace only if NOT in zero-retention mode
+    if (!zeroRetentionMode) {
+      try {
+        await supabase.from("traces").insert({
+          user_id: userId,
+          model_id: model,
+          request: originalRequest,
+          response: data,
+          latency_ms: latencyMs,
+          prompt_tokens: data.usage?.prompt_tokens || null,
+          completion_tokens: data.usage?.completion_tokens || null,
+          total_tokens: data.usage?.total_tokens || null,
+          status_code: response.status,
+        });
+        console.log(`[chat-completions] Trace logged for user ${userId}`);
+      } catch (traceError) {
+        console.error("[chat-completions] Error logging trace:", traceError);
+      }
+    } else {
+      console.log(`[chat-completions] Skipping trace logging (zero-retention mode)`);
+    }
+
     return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...responseHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     const latencyMs = Date.now() - startTime;
@@ -497,14 +597,14 @@ async function handleVLLMRequest(
             timeout: true 
           } 
         }),
-        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 504, headers: { ...responseHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.error(`[chat-completions] vLLM request failed after ${latencyMs}ms:`, error);
+    console.error(`[chat-completions] vLLM error after ${latencyMs}ms:`, error);
     return new Response(
-      JSON.stringify({ error: { message: `Inference failed: ${error instanceof Error ? error.message : 'Unknown error'}` } }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: { message: error instanceof Error ? error.message : "Unknown vLLM error" } }),
+      { status: 500, headers: { ...responseHeaders, "Content-Type": "application/json" } }
     );
   }
 }

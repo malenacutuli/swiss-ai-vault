@@ -1,6 +1,7 @@
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   useCreditTransactions,
   SERVICE_COLORS,
 } from "@/hooks/useCreditTransactions";
+import { useZeroRetentionMode } from "@/hooks/useZeroRetentionMode";
 import {
   AreaChart,
   Area,
@@ -40,7 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BarChart3, Download, TrendingUp, Zap, Brain, Database } from "lucide-react";
+import { BarChart3, Download, TrendingUp, Zap, Brain, Database, Info } from "lucide-react";
 import { format } from "date-fns";
 
 const CHART_COLORS = [
@@ -59,6 +61,7 @@ const Stats = () => {
   const { dailyUsage, serviceTypes, isLoading: chartLoading } = useDailyUsageChart(days);
   const { summary, total, isLoading: summaryLoading } = useUsageSummary(days);
   const { data: transactions } = useCreditTransactions(days);
+  const { data: zeroRetentionMode } = useZeroRetentionMode();
 
   const formatServiceName = (name: string) => {
     return name
@@ -165,6 +168,16 @@ const Stats = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Zero-Retention Mode Notice */}
+              {zeroRetentionMode && (
+                <Alert className="bg-amber-500/10 border-amber-500/20">
+                  <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <AlertDescription className="text-amber-700 dark:text-amber-300">
+                    Zero-retention mode is enabled. Usage data shown may be incomplete as API requests made with zero-retention mode are not logged to traces.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

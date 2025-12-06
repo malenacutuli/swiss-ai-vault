@@ -24,6 +24,12 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Send,
   Trash2,
   Copy,
@@ -41,11 +47,13 @@ import {
   FileText,
   X,
   Upload,
+  Lock,
 } from "lucide-react";
 import { useModels } from "@/hooks/useSupabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useZeroRetentionMode } from "@/hooks/useZeroRetentionMode";
 
 interface Message {
   id: string;
@@ -123,6 +131,7 @@ const Playground = () => {
   
   const { models: userModels } = useModels();
   const { session } = useAuth();
+  const { data: zeroRetentionMode } = useZeroRetentionMode();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -866,6 +875,23 @@ const Playground = () => {
                     </div>
                   </PopoverContent>
                 </Popover>
+              )}
+              
+              {/* Zero-Retention Mode Indicator */}
+              {zeroRetentionMode && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                        <Lock className="h-3 w-3" />
+                        <span className="text-xs font-medium">Private</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Zero-retention mode active - this conversation is not logged</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             <Button
