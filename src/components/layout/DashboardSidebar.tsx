@@ -75,14 +75,14 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-background transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-all duration-300",
+        collapsed ? "w-16" : "w-[280px]"
       )}
     >
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className={cn(
-          "flex h-16 items-center border-b border-border px-4",
+          "flex h-16 items-center border-b border-sidebar-border px-4",
           collapsed ? "justify-center" : "justify-between"
         )}>
           <Link to="/dashboard" className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
               <SwissFlag className="h-5 w-5" />
             </div>
             {!collapsed && (
-              <span className="text-lg font-semibold text-foreground">
+              <span className="text-lg font-semibold text-sidebar-foreground">
                 SwissVault<span className="text-primary">.ai</span>
               </span>
             )}
@@ -110,9 +110,9 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-sidebar-accent text-primary border-l-2 border-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  collapsed && "justify-center px-2 border-l-0"
+                    ? "bg-sidebar-accent text-primary"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                  collapsed && "justify-center px-2"
                 )}
               >
                 <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-primary")} />
@@ -123,13 +123,13 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
         </nav>
 
         {/* Collapse Button */}
-        <div className="border-t border-border p-3">
+        <div className="border-t border-sidebar-border p-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggle}
             className={cn(
-              "w-full text-muted-foreground hover:bg-muted hover:text-foreground",
+              "w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
               collapsed && "px-2"
             )}
           >
@@ -145,24 +145,24 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
         </div>
 
         {/* User Profile */}
-        <div className="border-t border-border p-3">
+        <div className="border-t border-sidebar-border p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted",
+                  "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-sidebar-accent",
                   collapsed && "justify-center"
                 )}
               >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.user_metadata?.avatar_url} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                  <AvatarFallback className="bg-primary/20 text-primary text-sm">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
                 {!collapsed && (
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">
                       {userName}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
@@ -172,7 +172,7 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-popover border border-border shadow-lg">
+            <DropdownMenuContent align="end" className="w-56 bg-popover">
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="/dashboard/settings">
                   <User className="mr-2 h-4 w-4" />
