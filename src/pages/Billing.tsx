@@ -82,9 +82,10 @@ const Billing = () => {
     }
   };
 
-  // Prepare chart data from transactions
+  // Prepare chart data from transactions (only show usage, not purchases)
   const chartData = transactions
     ? transactions
+        .filter((tx) => tx.credits_used > 0) // Only show usage (positive values)
         .slice(0, 30)
         .reduce((acc: { date: string; amount: number }[], tx) => {
           const date = format(new Date(tx.created_at), "MMM d");
@@ -186,6 +187,7 @@ const Billing = () => {
                         <YAxis
                           tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                           tickFormatter={(v) => `$${v}`}
+                          domain={[0, 'auto']}
                         />
                         <Tooltip
                           contentStyle={{
@@ -195,7 +197,7 @@ const Billing = () => {
                           }}
                           formatter={(value: number) => [`$${value.toFixed(4)}`, "Credits Used"]}
                         />
-                        <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="amount" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
