@@ -22,6 +22,7 @@ import Stats from "./pages/Stats";
 import Traces from "./pages/Traces";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import DesignSystem from "./pages/DesignSystem";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/dashboard/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
             <Route path="/dashboard/traces" element={<ProtectedRoute><Traces /></ProtectedRoute>} />
             <Route path="/dashboard/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/design-system" element={<DesignSystem />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
