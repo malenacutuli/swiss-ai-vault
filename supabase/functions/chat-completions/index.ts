@@ -22,6 +22,30 @@ interface ChatRequest {
   stream?: boolean;
   top_p?: number;
   stop?: string | string[];
+  rag_context?: string; // Optional RAG context to prepend to system message
+}
+
+// Inject RAG context into messages by prepending to system message
+function injectRagContext(messages: Message[], ragContext?: string): Message[] {
+  if (!ragContext) return messages;
+  
+  const hasSystemMessage = messages.some(m => m.role === "system");
+  
+  if (hasSystemMessage) {
+    // Prepend context to existing system message
+    return messages.map(m => {
+      if (m.role === "system") {
+        return { ...m, content: `${ragContext}\n\n${m.content}` };
+      }
+      return m;
+    });
+  } else {
+    // Create new system message with context and default instruction
+    return [
+      { role: "system" as const, content: `${ragContext}\n\nYou are a helpful assistant.` },
+      ...messages
+    ];
+  }
 }
 
 // Base models we support
@@ -206,7 +230,13 @@ serve(async (req) => {
     }
 
     // Use the already parsed body for chat completions
-    const { model, messages, temperature = 0.7, max_tokens = 1024, stream = false } = body as ChatRequest;
+    const { model, messages: rawMessages, temperature = 0.7, max_tokens = 1024, stream = false, rag_context } = body as ChatRequest;
+    
+    // Inject RAG context if provided
+    const messages = injectRagContext(rawMessages, rag_context);
+    if (rag_context) {
+      console.log(`[chat-completions] RAG context injected (${rag_context.length} chars)`);
+    }
 
     // Determine which provider to use
     let provider: "openai" | "anthropic" | "vllm" = "openai";
