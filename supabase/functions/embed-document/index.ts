@@ -14,6 +14,7 @@ interface ChunkMetadata {
   page_number?: number;
   char_start: number;
   char_end: number;
+  original_size?: number;
 }
 
 interface DocumentChunk {
@@ -22,7 +23,7 @@ interface DocumentChunk {
 }
 
 // Extract text from different document types
-async function extractText(file: File): Promise<string> {
+async function extractText(file: File, anthropicKey: string): Promise<string> {
   const filename = file.name.toLowerCase();
   const arrayBuffer = await file.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
@@ -32,115 +33,68 @@ async function extractText(file: File): Promise<string> {
     return new TextDecoder().decode(bytes);
   }
   
-  if (filename.endsWith('.pdf')) {
-    // For PDF, we'll extract text using a simple approach
-    // Convert to string and extract readable text between stream markers
-    const text = new TextDecoder('latin1').decode(bytes);
-    return extractTextFromPDF(text);
-  }
-  
-  if (filename.endsWith('.docx')) {
-    // DOCX is a zip file with XML content
-    return await extractTextFromDOCX(bytes);
+  if (filename.endsWith('.pdf') || filename.endsWith('.docx') || filename.endsWith('.pptx')) {
+    // Use Claude for binary document extraction
+    return await extractWithClaude(bytes, filename, anthropicKey);
   }
   
   throw new Error(`Unsupported file type: ${filename}`);
 }
 
-// Simple PDF text extraction (extracts text objects from PDF)
-function extractTextFromPDF(pdfContent: string): string {
-  const textParts: string[] = [];
+// Use Claude's document capability for PDF/DOCX/PPTX extraction
+async function extractWithClaude(bytes: Uint8Array, filename: string, anthropicKey: string): Promise<string> {
+  const base64 = btoa(String.fromCharCode(...bytes));
   
-  // Find all text objects between BT and ET markers
-  const textObjectRegex = /BT\s*([\s\S]*?)\s*ET/g;
-  let match;
-  
-  while ((match = textObjectRegex.exec(pdfContent)) !== null) {
-    const textBlock = match[1];
-    
-    // Extract text from Tj and TJ operators
-    const tjRegex = /\(([^)]*)\)\s*Tj/g;
-    let tjMatch;
-    while ((tjMatch = tjRegex.exec(textBlock)) !== null) {
-      textParts.push(decodeEscapedString(tjMatch[1]));
-    }
-    
-    // Extract text from TJ arrays
-    const tjArrayRegex = /\[(.*?)\]\s*TJ/g;
-    let tjArrayMatch;
-    while ((tjArrayMatch = tjArrayRegex.exec(textBlock)) !== null) {
-      const arrayContent = tjArrayMatch[1];
-      const stringRegex = /\(([^)]*)\)/g;
-      let stringMatch;
-      while ((stringMatch = stringRegex.exec(arrayContent)) !== null) {
-        textParts.push(decodeEscapedString(stringMatch[1]));
-      }
-    }
+  let mediaType = "application/pdf";
+  if (filename.endsWith('.docx')) {
+    mediaType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  } else if (filename.endsWith('.pptx')) {
+    mediaType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
   }
-  
-  // If no text extracted via operators, try to find readable ASCII sequences
-  if (textParts.length === 0) {
-    const readableRegex = /[\x20-\x7E]{20,}/g;
-    let readableMatch;
-    while ((readableMatch = readableRegex.exec(pdfContent)) !== null) {
-      const text = readableMatch[0];
-      // Filter out PDF syntax
-      if (!text.includes('/') && !text.includes('<<') && !text.includes('stream')) {
-        textParts.push(text);
-      }
-    }
-  }
-  
-  return textParts.join(' ').replace(/\s+/g, ' ').trim();
-}
 
-function decodeEscapedString(str: string): string {
-  return str
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
-    .replace(/\\\\/g, '\\')
-    .replace(/\\([0-7]{1,3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
-}
+  console.log(`Sending ${filename} to Claude for extraction (media_type: ${mediaType})...`);
 
-// Extract text from DOCX (ZIP with XML)
-async function extractTextFromDOCX(bytes: Uint8Array): Promise<string> {
-  // DOCX is a ZIP file, we need to extract document.xml
-  // Using a simple approach to find and extract the content
+  const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": anthropicKey,
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-5",
+      max_tokens: 16000,
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "document",
+            source: { type: "base64", media_type: mediaType, data: base64 },
+          },
+          {
+            type: "text",
+            text: "Extract ALL text content from this document. Preserve structure with headings, paragraphs, and bullet points. Return only the extracted text content, no commentary or explanations.",
+          },
+        ],
+      }],
+    }),
+  });
+
+  const claudeData = await claudeResponse.json();
   
-  // Find the PK signature and locate document.xml content
-  const str = new TextDecoder('latin1').decode(bytes);
-  
-  // Look for XML content in the document
-  const xmlContentStart = str.indexOf('<?xml');
-  if (xmlContentStart === -1) {
-    throw new Error('Invalid DOCX file: No XML content found');
+  if (claudeData.error) {
+    console.error("Claude extraction error:", claudeData.error);
+    throw new Error(`Claude extraction failed: ${claudeData.error.message}`);
   }
   
-  // Extract all text between <w:t> tags (Word text elements)
-  const textParts: string[] = [];
-  const textRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
-  let match;
+  const extractedText = claudeData.content?.[0]?.text || "";
+  console.log(`Claude extracted ${extractedText.length} characters`);
   
-  while ((match = textRegex.exec(str)) !== null) {
-    if (match[1]) {
-      textParts.push(match[1]);
-    }
-  }
-  
-  // Also look for paragraph breaks
-  const result = str.replace(/<w:p[^>]*>/g, '\n').replace(/<[^>]+>/g, '');
-  
-  if (textParts.length > 0) {
-    return textParts.join(' ');
-  }
-  
-  // Fallback: return cleaned result
-  return result.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s+/g, ' ').trim();
+  return extractedText;
 }
 
 // Chunk text into smaller pieces with overlap
-function chunkText(text: string): DocumentChunk[] {
+function chunkText(text: string, originalSize: number): DocumentChunk[] {
   const chunks: DocumentChunk[] = [];
   const paragraphs = text.split(/\n\n+/);
   
@@ -151,7 +105,7 @@ function chunkText(text: string): DocumentChunk[] {
   for (const paragraph of paragraphs) {
     const trimmedParagraph = paragraph.trim();
     if (!trimmedParagraph) {
-      currentCharPos += paragraph.length + 2; // Account for \n\n
+      currentCharPos += paragraph.length + 2;
       continue;
     }
     
@@ -164,6 +118,7 @@ function chunkText(text: string): DocumentChunk[] {
           metadata: {
             char_start: charStart,
             char_end: currentCharPos,
+            original_size: originalSize,
           },
         });
       }
@@ -187,6 +142,7 @@ function chunkText(text: string): DocumentChunk[] {
       metadata: {
         char_start: charStart,
         char_end: currentCharPos,
+        original_size: originalSize,
       },
     });
   }
@@ -198,6 +154,7 @@ function chunkText(text: string): DocumentChunk[] {
       metadata: {
         char_start: 0,
         char_end: text.length,
+        original_size: originalSize,
       },
     });
   }
@@ -229,6 +186,12 @@ async function generateEmbeddings(texts: string[], openaiApiKey: string): Promis
   return data.data.map((item: { embedding: number[] }) => item.embedding);
 }
 
+// Get file extension
+function getFileExtension(filename: string): string {
+  const parts = filename.split('.');
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+}
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -251,9 +214,14 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || Deno.env.get('EXTERNAL_SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')!;
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
     
     if (!openaiApiKey) {
       throw new Error('OPENAI_API_KEY is not configured');
+    }
+    
+    if (!anthropicKey) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
     
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -288,23 +256,23 @@ serve(async (req) => {
     
     // Validate file type
     const filename = file.name.toLowerCase();
-    const validExtensions = ['.txt', '.md', '.pdf', '.docx'];
-    const hasValidExtension = validExtensions.some(ext => filename.endsWith(ext));
+    const fileType = getFileExtension(filename);
+    const validExtensions = ['txt', 'md', 'pdf', 'docx', 'pptx'];
     
-    if (!hasValidExtension) {
+    if (!validExtensions.includes(fileType)) {
       return new Response(
-        JSON.stringify({ error: `Unsupported file type. Supported: ${validExtensions.join(', ')}` }),
+        JSON.stringify({ error: `Unsupported file type: .${fileType}. Supported: ${validExtensions.map(e => '.' + e).join(', ')}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     // Extract text from document
     console.log('Extracting text from document...');
-    const text = await extractText(file);
+    const text = await extractText(file, anthropicKey);
     
-    if (!text || text.trim().length === 0) {
+    if (!text || text.trim().length < 50) {
       return new Response(
-        JSON.stringify({ error: 'Could not extract text from document' }),
+        JSON.stringify({ error: 'Could not extract sufficient text from document (minimum 50 characters)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -313,7 +281,7 @@ serve(async (req) => {
     
     // Chunk the text
     console.log('Chunking text...');
-    const chunks = chunkText(text);
+    const chunks = chunkText(text, file.size);
     console.log(`Created ${chunks.length} chunks`);
     
     if (chunks.length === 0) {
@@ -337,14 +305,16 @@ serve(async (req) => {
       allEmbeddings.push(...embeddings);
     }
     
-    // Prepare records for insertion
+    // Prepare records for insertion with new columns
     const records = chunks.map((chunk, index) => ({
       user_id: user.id,
       conversation_id: conversationId || null,
       filename: file.name,
+      file_type: fileType,
       chunk_index: index,
       content: chunk.content,
       embedding: JSON.stringify(allEmbeddings[index]),
+      token_count: Math.ceil(chunk.content.length / 4),
       metadata: chunk.metadata,
     }));
     
@@ -367,6 +337,9 @@ serve(async (req) => {
         success: true,
         chunks_created: chunks.length,
         filename: file.name,
+        file_type: fileType,
+        total_characters: text.length,
+        conversation_id: conversationId,
         processing_time_ms: processingTime,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
