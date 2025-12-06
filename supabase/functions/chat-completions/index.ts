@@ -53,64 +53,72 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate request
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: { message: "Missing authorization header" } }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Extract API key or JWT
-    const token = authHeader.replace("Bearer ", "");
-    
-    // Initialize Supabase client
+    // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validate API key or JWT
-    let userId: string;
+    // Get authorization header
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+    const apiKeyHeader = req.headers.get("apikey") || "";
     
-    if (token.startsWith("sv_")) {
-      // API key authentication
+    let userId: string | null = null;
+
+    // Check for custom API key (svk_... or sv_...)
+    if (authHeader.includes("svk_") || authHeader.includes("sv_") || apiKeyHeader.startsWith("svk_") || apiKeyHeader.startsWith("sv_")) {
+      const apiKey = authHeader.includes("svk_") || authHeader.includes("sv_")
+        ? authHeader.replace("Bearer ", "").trim()
+        : apiKeyHeader;
+      
+      console.log(`[chat-completions] API key auth attempt: ${apiKey.substring(0, 6)}...`);
+      
+      // Hash the key and look it up
       const encoder = new TextEncoder();
-      const data = encoder.encode(token);
+      const data = encoder.encode(apiKey);
       const hashBuffer = await crypto.subtle.digest("SHA-256", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const keyHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
       
-      const { data: apiKey, error } = await supabase
+      const { data: keyRecord, error: keyError } = await supabase
         .from("api_keys")
         .select("user_id")
         .eq("key_hash", keyHash)
         .single();
       
-      if (error || !apiKey) {
-        return new Response(
-          JSON.stringify({ error: { message: "Invalid API key" } }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (keyRecord) {
+        userId = keyRecord.user_id;
+        console.log(`[chat-completions] API key validated for user: ${userId}`);
+        
+        // Update last_used_at
+        await supabase
+          .from("api_keys")
+          .update({ last_used_at: new Date().toISOString() })
+          .eq("key_hash", keyHash);
+      } else {
+        console.log(`[chat-completions] API key lookup failed: ${keyError?.message}`);
       }
-      
-      userId = apiKey.user_id;
-      
-      // Update last_used_at
-      await supabase
-        .from("api_keys")
-        .update({ last_used_at: new Date().toISOString() })
-        .eq("key_hash", keyHash);
-    } else {
-      // JWT authentication
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (error || !user) {
-        return new Response(
-          JSON.stringify({ error: { message: "Invalid token" } }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    }
+    
+    // If no API key match, try JWT auth
+    if (!userId && authHeader.startsWith("Bearer ey")) {
+      try {
+        const token = authHeader.replace("Bearer ", "").trim();
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (user && !error) {
+          userId = user.id;
+          console.log(`[chat-completions] JWT validated for user: ${userId}`);
+        }
+      } catch (jwtError) {
+        console.log(`[chat-completions] JWT validation failed: ${jwtError}`);
       }
-      userId = user.id;
+    }
+
+    // Require authentication
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: { message: "Unauthorized. Provide a valid API key (svk_...) or JWT token." } }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Check user's zero-retention mode setting
