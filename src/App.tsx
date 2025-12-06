@@ -27,6 +27,7 @@ import Traces from "./pages/Traces";
 import Admin from "./pages/Admin";
 import AuditLogs from "./pages/AuditLogs";
 import Compliance from "./pages/Compliance";
+import ApiDocs from "./pages/ApiDocs";
 import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
@@ -43,6 +44,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/docs/api" element={<ApiDocs />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/dashboard/datasets" element={<ProtectedRoute><Datasets /></ProtectedRoute>} />
