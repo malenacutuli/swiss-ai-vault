@@ -349,28 +349,58 @@ export const DatasetCreationWizard = ({
           return 'text';
         };
 
-        let parsedSources: Array<{ type: string; content: string }> = [];
+        let parsedSources: Array<{ type: string; content: string; path?: string; filename?: string }> = [];
 
         // Handle file uploads for "files" source type
         if (syntheticSource === "files" && syntheticFiles.length > 0) {
           toast({
             title: "Uploading files...",
-            description: `Uploading ${syntheticFiles.length} file(s)`,
+            description: `Uploading ${syntheticFiles.length} file(s) to storage`,
           });
 
-          // Read file contents and send as text sources
+          // Upload files to Storage first, then pass paths to edge function
+          const uploadedFilePaths: string[] = [];
+          
           for (const file of syntheticFiles) {
-            try {
-              const text = await file.text();
-              parsedSources.push({
-                type: 'text',
-                content: `[File: ${file.name}]\n\n${text.substring(0, 50000)}`, // Limit to 50KB per file
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
+            const filePath = `${user.id}/synthetic-sources/${datasetId}/${Date.now()}-${file.name}`;
+            
+            console.log(`[DatasetWizard] Uploading file ${file.name} to ${filePath}`);
+            
+            const { error: uploadError } = await supabase.storage
+              .from('datasets')
+              .upload(filePath, file, {
+                contentType: file.type || 'application/octet-stream',
+                upsert: true
               });
-              console.log(`[DatasetWizard] Read file ${file.name}: ${text.length} chars`);
-            } catch (err) {
-              console.error(`[DatasetWizard] Failed to read file ${file.name}:`, err);
+            
+            if (uploadError) {
+              console.error(`[DatasetWizard] Upload error for ${file.name}:`, uploadError);
+              toast({
+                title: "Upload Failed",
+                description: `Failed to upload ${file.name}: ${uploadError.message}`,
+                variant: "destructive"
+              });
+              continue;
             }
+            
+            console.log(`[DatasetWizard] Successfully uploaded ${file.name}`);
+            uploadedFilePaths.push(filePath);
+            
+            // Add as file source with storage path (edge function will process with Claude)
+            parsedSources.push({
+              type: 'file',
+              content: '', // Content will be extracted by edge function
+              path: filePath,
+              filename: file.name,
+            });
           }
+          
+          if (uploadedFilePaths.length === 0) {
+            throw new Error('No files were successfully uploaded');
+          }
+          
+          console.log(`[DatasetWizard] Uploaded ${uploadedFilePaths.length} files to storage`);
         } else {
           // Parse sources from content (each line is a source)
           parsedSources = sourceContent
