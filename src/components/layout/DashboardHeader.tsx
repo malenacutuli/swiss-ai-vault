@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -15,11 +16,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Search, Bell, Sun, Moon, Sparkles } from "lucide-react";
+import { Search, Bell, Sun, Moon, Sparkles, CheckCircle, XCircle, AlertCircle, Info } from "lucide-react";
 import { useState } from "react";
-import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
+import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from "@/hooks/useNotifications";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
+import { cn } from "@/lib/utils";
 
 interface DashboardHeaderProps {
   sidebarCollapsed: boolean;
@@ -41,12 +43,26 @@ const routeLabels: Record<string, string> = {
   billing: "Billing",
 };
 
+const NotificationIcon = ({ type }: { type: string }) => {
+  const config: Record<string, { icon: typeof CheckCircle; className: string }> = {
+    success: { icon: CheckCircle, className: 'text-green-500' },
+    error: { icon: XCircle, className: 'text-destructive' },
+    warning: { icon: AlertCircle, className: 'text-yellow-500' },
+    info: { icon: Info, className: 'text-primary' },
+  };
+  const { icon: Icon, className } = config[type] || config.info;
+  return <Icon className={cn("h-4 w-4 flex-shrink-0", className)} />;
+};
+
 export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { data: unreadCount } = useUnreadCount();
   const { data: notifications } = useNotifications();
+  const markAsRead = useMarkAsRead();
+  const markAllAsRead = useMarkAllAsRead();
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => ({
@@ -120,7 +136,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
         <CreditsDisplay />
 
         {/* Notifications */}
-        <DropdownMenu>
+        <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -129,7 +145,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
             >
               <Bell className="h-5 w-5" />
               {unreadCount && unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -138,43 +154,67 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
           <DropdownMenuContent align="end" className="w-80 bg-popover">
             <div className="p-3 border-b border-border flex items-center justify-between">
               <p className="font-semibold text-foreground">Notifications</p>
-              <button
-                onClick={() => navigate("/dashboard/notifications")}
-                className="text-xs text-primary hover:underline"
-              >
-                View all
-              </button>
-            </div>
-            {recentNotifications.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                No notifications
-              </div>
-            ) : (
-              recentNotifications.map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className="flex flex-col items-start gap-1 p-3 cursor-pointer"
-                  onClick={() => navigate("/dashboard/notifications")}
+              {unreadCount && unreadCount > 0 ? (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    markAllAsRead.mutate();
+                  }}
+                  className="text-xs text-primary hover:underline"
                 >
-                  <div className="flex items-center gap-2 w-full">
-                    {!notification.is_read && (
-                      <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                  Mark all read
+                </button>
+              ) : null}
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {recentNotifications.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No notifications yet</p>
+                </div>
+              ) : (
+                recentNotifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className={cn(
+                      "flex flex-col items-start gap-1 p-3 cursor-pointer",
+                      !notification.is_read && "bg-primary/5"
                     )}
-                    <p className="text-sm font-medium text-foreground flex-1 truncate">
-                      {notification.title}
-                    </p>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(parseISO(notification.created_at), { addSuffix: false })}
-                    </span>
-                  </div>
-                  {notification.message && (
-                    <p className="text-xs text-muted-foreground truncate w-full">
-                      {notification.message}
-                    </p>
-                  )}
-                </DropdownMenuItem>
-              ))
-            )}
+                    onClick={() => {
+                      if (!notification.is_read) {
+                        markAsRead.mutate(notification.id);
+                      }
+                      const link = notification.metadata?.link as string | undefined;
+                      if (link) {
+                        navigate(link);
+                      }
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <NotificationIcon type={notification.type} />
+                      <p className="text-sm font-medium text-foreground flex-1 truncate">
+                        {notification.title}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(parseISO(notification.created_at), { addSuffix: false })}
+                      </span>
+                    </div>
+                    {notification.message && (
+                      <p className="text-xs text-muted-foreground truncate w-full pl-6">
+                        {notification.message}
+                      </p>
+                    )}
+                  </DropdownMenuItem>
+                ))
+              )}
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="justify-center">
+              <Link to="/dashboard/notifications" className="w-full text-center text-sm text-primary">
+                View all notifications
+              </Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
