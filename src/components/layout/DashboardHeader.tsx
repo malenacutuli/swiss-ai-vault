@@ -16,7 +16,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Search, Bell, Sun, Moon, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useTheme } from "next-themes";
 import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow, parseISO } from "date-fns";
 
@@ -42,7 +42,7 @@ const routeLabels: Record<string, string> = {
 export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<"dark" | "light">("light");
+  const { theme, setTheme } = useTheme();
   const { data: unreadCount } = useUnreadCount();
   const { data: notifications } = useNotifications();
 
@@ -54,9 +54,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
   }));
 
   const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const recentNotifications = notifications?.slice(0, 5) || [];
