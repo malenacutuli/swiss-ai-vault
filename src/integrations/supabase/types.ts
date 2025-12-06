@@ -1093,6 +1093,8 @@ export type Database = {
           data_retention_days: number | null
           id: string
           log_retention_days: number | null
+          notification_browser: boolean | null
+          notification_email: boolean | null
           updated_at: string | null
           user_id: string
           zero_retention_mode: boolean | null
@@ -1102,6 +1104,8 @@ export type Database = {
           data_retention_days?: number | null
           id?: string
           log_retention_days?: number | null
+          notification_browser?: boolean | null
+          notification_email?: boolean | null
           updated_at?: string | null
           user_id: string
           zero_retention_mode?: boolean | null
@@ -1111,6 +1115,8 @@ export type Database = {
           data_retention_days?: number | null
           id?: string
           log_retention_days?: number | null
+          notification_browser?: boolean | null
+          notification_email?: boolean | null
           updated_at?: string | null
           user_id?: string
           zero_retention_mode?: boolean | null
