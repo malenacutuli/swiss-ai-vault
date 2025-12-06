@@ -666,7 +666,10 @@ export type Database = {
           base_model: string
           context_length: number | null
           created_at: string | null
+          deployed_at: string | null
           deployment_config: Json | null
+          deployment_endpoint: string | null
+          deployment_status: string | null
           description: string | null
           finetuning_job_id: string | null
           id: string
@@ -683,7 +686,10 @@ export type Database = {
           base_model: string
           context_length?: number | null
           created_at?: string | null
+          deployed_at?: string | null
           deployment_config?: Json | null
+          deployment_endpoint?: string | null
+          deployment_status?: string | null
           description?: string | null
           finetuning_job_id?: string | null
           id?: string
@@ -700,7 +706,10 @@ export type Database = {
           base_model?: string
           context_length?: number | null
           created_at?: string | null
+          deployed_at?: string | null
           deployment_config?: Json | null
+          deployment_endpoint?: string | null
+          deployment_status?: string | null
           description?: string | null
           finetuning_job_id?: string | null
           id?: string
