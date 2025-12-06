@@ -28,17 +28,24 @@ serve(async (req) => {
   }
 
   try {
-    // Verify webhook secret (optional - can be disabled for development)
+    // Verify webhook secret - REQUIRED for security
     const webhookSecret = req.headers.get("x-webhook-secret");
     const expectedSecret = Deno.env.get("WEBHOOK_SECRET");
     
-    // Only verify if WEBHOOK_SECRET is configured
-    if (expectedSecret && webhookSecret !== expectedSecret) {
+    if (!expectedSecret) {
+      console.error("WEBHOOK_SECRET not configured - rejecting request");
+      return new Response(
+        JSON.stringify({ error: "Webhook not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (webhookSecret !== expectedSecret) {
       console.error("Invalid webhook secret");
-      return new Response(JSON.stringify({ error: "Invalid webhook secret" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid webhook secret" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;

@@ -20,15 +20,46 @@ serve(async (req) => {
   let evaluationId: string | undefined;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Authenticate request
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const body: EvalRequest = await req.json();
     evaluationId = body.evaluation_id;
 
     console.log("Running evaluation:", evaluationId);
+
+    // Verify user owns this evaluation
+    const { data: ownerCheck } = await supabase
+      .from("evaluations")
+      .select("user_id")
+      .eq("id", evaluationId)
+      .single();
+
+    if (!ownerCheck || ownerCheck.user_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: "Not authorized to run this evaluation" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Get evaluation with related data
     const { data: evaluation, error: evalError } = await supabase

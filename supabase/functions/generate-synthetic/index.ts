@@ -37,8 +37,8 @@ serve(async (req) => {
   let supabase: SupabaseClient<any, any, any> | null = null;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
     
     if (!anthropicKey) {
@@ -88,10 +88,60 @@ serve(async (req) => {
     // Extract content from sources
     let combinedContent = "";
     
+    // URL validation to prevent SSRF attacks
+    function isAllowedUrl(url: string): boolean {
+      try {
+        const parsed = new URL(url);
+        const hostname = parsed.hostname.toLowerCase();
+        
+        // Block private IPs and internal domains
+        if (hostname === 'localhost' || 
+            hostname === '127.0.0.1' ||
+            hostname.startsWith('192.168.') ||
+            hostname.startsWith('10.') ||
+            hostname.startsWith('172.16.') ||
+            hostname.startsWith('172.17.') ||
+            hostname.startsWith('172.18.') ||
+            hostname.startsWith('172.19.') ||
+            hostname.startsWith('172.20.') ||
+            hostname.startsWith('172.21.') ||
+            hostname.startsWith('172.22.') ||
+            hostname.startsWith('172.23.') ||
+            hostname.startsWith('172.24.') ||
+            hostname.startsWith('172.25.') ||
+            hostname.startsWith('172.26.') ||
+            hostname.startsWith('172.27.') ||
+            hostname.startsWith('172.28.') ||
+            hostname.startsWith('172.29.') ||
+            hostname.startsWith('172.30.') ||
+            hostname.startsWith('172.31.') ||
+            hostname === '169.254.169.254' ||
+            hostname.endsWith('.local') ||
+            hostname.endsWith('.internal')) {
+          return false;
+        }
+        
+        // Only allow https for security
+        if (parsed.protocol !== 'https:') {
+          return false;
+        }
+        
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     for (const source of sources) {
       if (source.type === "text") {
         combinedContent += source.content + "\n\n";
       } else if (source.type === "url") {
+        // Validate URL to prevent SSRF
+        if (!isAllowedUrl(source.content)) {
+          console.warn(`Blocked potentially unsafe URL: ${source.content}`);
+          continue;
+        }
+        
         // Fetch URL content
         try {
           const response = await fetch(source.content);
