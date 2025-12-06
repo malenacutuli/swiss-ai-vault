@@ -367,14 +367,19 @@ async function handleVLLMRequest(
   if (!vllmEndpoint) {
     console.error("[chat-completions] VLLM_ENDPOINT not configured");
     return new Response(
-      JSON.stringify({ error: { message: "vLLM endpoint not configured" } }),
+      JSON.stringify({ error: { message: "vLLM endpoint not configured. Please contact support." } }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
+  const startTime = Date.now();
   console.log(`[chat-completions] Calling vLLM at ${vllmEndpoint} with model ${model}`);
 
   try {
+    // Create AbortController for timeout (90s to handle cold starts)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
     const response = await fetch(vllmEndpoint, {
       method: "POST",
       headers: {
@@ -387,13 +392,29 @@ async function handleVLLMRequest(
         max_tokens: maxTokens,
         stream,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
+    const latencyMs = Date.now() - startTime;
+    console.log(`[chat-completions] vLLM response in ${latencyMs}ms`);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[chat-completions] vLLM error: ${response.status} - ${errorText}`);
+      
+      // Provide helpful error messages
+      let userMessage = "Model inference failed";
+      if (response.status === 503) {
+        userMessage = "Model is starting up (cold start). Please try again in 30-60 seconds.";
+      } else if (response.status === 404) {
+        userMessage = `Model '${model}' not found on inference server. It may not be deployed yet.`;
+      } else if (response.status === 500) {
+        userMessage = "Inference server error. The model may have run out of memory.";
+      }
+      
       return new Response(
-        JSON.stringify({ error: { message: `vLLM error: ${response.status}`, details: errorText } }),
+        JSON.stringify({ error: { message: userMessage, status: response.status, details: errorText } }),
         { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -411,11 +432,16 @@ async function handleVLLMRequest(
     }
 
     const data = await response.json();
-    console.log(`[chat-completions] vLLM response received`);
+    console.log(`[chat-completions] vLLM response received, latency: ${latencyMs}ms`);
     
-    // Track token usage
+    // Track token usage and deduct credits
     if (data.usage) {
+      const totalTokens = (data.usage.prompt_tokens || 0) + (data.usage.completion_tokens || 0);
+      const creditCost = (totalTokens / 1000) * 0.001; // $0.001 per 1K tokens
+      
       const today = new Date().toISOString().split("T")[0];
+      
+      // Track usage metrics
       await supabase.rpc("increment_usage", {
         p_user_id: userId,
         p_date: today,
@@ -428,15 +454,56 @@ async function handleVLLMRequest(
         p_metric: "tokens_output",
         p_value: data.usage.completion_tokens || 0,
       });
+      
+      // Deduct credits (don't fail request if this fails)
+      if (creditCost > 0) {
+        try {
+          const { data: deductResult, error: deductError } = await supabase.rpc("deduct_credits", {
+            p_user_id: userId,
+            p_amount: creditCost,
+            p_service_type: "inference",
+            p_description: `Inference: ${model} (${totalTokens} tokens)`,
+            p_metadata: { model, tokens: totalTokens, latency_ms: latencyMs },
+          });
+          
+          if (deductError) {
+            console.error("[chat-completions] Credit deduction failed:", deductError);
+          } else if (deductResult && !deductResult.success) {
+            console.warn("[chat-completions] Insufficient credits:", deductResult);
+            // Note: We still return the response but log the warning
+          } else {
+            console.log(`[chat-completions] Deducted ${creditCost.toFixed(6)} credits for ${totalTokens} tokens`);
+          }
+        } catch (creditErr) {
+          console.error("[chat-completions] Credit deduction error:", creditErr);
+          // Don't fail the request
+        }
+      }
     }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[chat-completions] vLLM request failed:", error);
+    const latencyMs = Date.now() - startTime;
+    
+    // Handle timeout specifically
+    if (error instanceof Error && error.name === "AbortError") {
+      console.error(`[chat-completions] vLLM request timed out after ${latencyMs}ms`);
+      return new Response(
+        JSON.stringify({ 
+          error: { 
+            message: "Request timed out. The model may be experiencing a cold start or high load. Please try again.",
+            timeout: true 
+          } 
+        }),
+        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.error(`[chat-completions] vLLM request failed after ${latencyMs}ms:`, error);
     return new Response(
-      JSON.stringify({ error: { message: `vLLM request failed: ${error instanceof Error ? error.message : 'Unknown error'}` } }),
+      JSON.stringify({ error: { message: `Inference failed: ${error instanceof Error ? error.message : 'Unknown error'}` } }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
