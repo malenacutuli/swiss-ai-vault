@@ -862,6 +862,32 @@ export const DatasetCreationWizard = ({
                     </p>
                   </div>
 
+                  {/* Popular datasets quick select */}
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Popular Datasets</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: 'tatsu-lab/alpaca', name: 'Alpaca' },
+                        { id: 'databricks/dolly-15k', name: 'Dolly 15k' },
+                        { id: 'OpenAssistant/oasst1', name: 'OpenAssistant' },
+                        { id: 'squad', name: 'SQuAD' },
+                        { id: 'openai/gsm8k', name: 'GSM8K' },
+                      ].map((ds) => (
+                        <Badge
+                          key={ds.id}
+                          variant={hfDatasetId === ds.id ? "default" : "outline"}
+                          className="cursor-pointer hover:bg-accent transition-colors"
+                          onClick={() => {
+                            setHfDatasetId(ds.id);
+                            if (!datasetName) setDatasetName(ds.name);
+                          }}
+                        >
+                          {ds.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Subset (Optional)</Label>
