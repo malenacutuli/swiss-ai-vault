@@ -289,6 +289,40 @@ export function useDatasets(projectId?: string) {
     fetchDatasets();
   }, [fetchDatasets]);
 
+  // Real-time subscription for dataset changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('datasets-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'datasets',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setDatasets((prev) => [payload.new as Dataset, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setDatasets((prev) =>
+              prev.map((ds) =>
+                ds.id === (payload.new as Dataset).id ? (payload.new as Dataset) : ds
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setDatasets((prev) => prev.filter((ds) => ds.id !== (payload.old as Dataset).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return { datasets, loading, error, refetch: fetchDatasets };
 }
 
@@ -911,6 +945,40 @@ export function useEvaluations(projectId?: string) {
     fetchEvaluations();
   }, [fetchEvaluations]);
 
+  // Real-time subscription for evaluation changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('evaluations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'evaluations',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setEvaluations((prev) => [payload.new as Evaluation, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setEvaluations((prev) =>
+              prev.map((ev) =>
+                ev.id === (payload.new as Evaluation).id ? (payload.new as Evaluation) : ev
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setEvaluations((prev) => prev.filter((ev) => ev.id !== (payload.old as Evaluation).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return { evaluations, loading, error, refetch: fetchEvaluations };
 }
 
@@ -1265,6 +1333,40 @@ export function useModels(projectId?: string) {
   useEffect(() => {
     fetchModels();
   }, [fetchModels]);
+
+  // Real-time subscription for model changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('models-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'models',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setModels((prev) => [payload.new as Model, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setModels((prev) =>
+              prev.map((m) =>
+                m.id === (payload.new as Model).id ? (payload.new as Model) : m
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setModels((prev) => prev.filter((m) => m.id !== (payload.old as Model).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   return { models, loading, error, refetch: fetchModels };
 }
