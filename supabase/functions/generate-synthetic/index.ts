@@ -13,8 +13,10 @@ const corsHeaders = {
 const COST_PER_PAIR = 0.002;
 
 interface SyntheticSource {
-  type: "text" | "url" | "youtube";
+  type: "text" | "url" | "youtube" | "file";
   content: string;
+  path?: string;     // For file sources - storage path
+  filename?: string; // For file sources - original filename
 }
 
 interface SyntheticConfig {
@@ -22,12 +24,109 @@ interface SyntheticConfig {
   system_prompt?: string;
   rules?: string[];
   examples?: Array<{ question: string; answer: string }>;
+  question_format?: string;
+  answer_format?: string;
 }
 
 interface SyntheticRequest {
   dataset_id: string;
   sources: SyntheticSource[];
   config: SyntheticConfig;
+}
+
+interface ProcessingResult {
+  source: string;
+  contentLength: number;
+  success: boolean;
+  error?: string;
+}
+
+// Extract text content from file based on extension
+function extractTextFromContent(content: string, filename?: string): string {
+  // Check if content has a [File: xxx] prefix from frontend
+  const fileMatch = content.match(/^\[File: ([^\]]+)\]\n\n([\s\S]*)$/);
+  if (fileMatch) {
+    const extractedFilename = fileMatch[1];
+    const fileContent = fileMatch[2];
+    console.log(`Processing file content for: ${extractedFilename}, ${fileContent.length} chars`);
+    
+    // Clean up the content based on detected file type
+    const ext = extractedFilename.split('.').pop()?.toLowerCase();
+    
+    if (ext === 'html' || ext === 'htm') {
+      // Strip HTML tags
+      return fileContent
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    
+    if (ext === 'md') {
+      // Simple markdown cleanup - keep most content
+      return fileContent
+        .replace(/```[\s\S]*?```/g, '[code block]')  // Replace code blocks
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')     // Convert links to text
+        .replace(/[#*_`]/g, '')                       // Remove markdown chars
+        .trim();
+    }
+    
+    // For txt and other text files, return as-is
+    return fileContent.trim();
+  }
+  
+  // No file prefix, return content as-is
+  return content;
+}
+
+// Download and extract content from a file in storage
+async function extractFileFromStorage(
+  supabase: SupabaseClient<any, any, any>,
+  filePath: string,
+  filename: string
+): Promise<string> {
+  console.log(`Downloading file from storage: ${filePath}`);
+  
+  const { data, error } = await supabase.storage
+    .from('datasets')
+    .download(filePath);
+  
+  if (error) {
+    throw new Error(`Failed to download file ${filename}: ${error.message}`);
+  }
+  
+  const ext = filename.split('.').pop()?.toLowerCase();
+  
+  // Handle text-based files
+  if (['txt', 'md', 'html', 'htm', 'csv', 'json', 'xml'].includes(ext || '')) {
+    const text = await data.text();
+    console.log(`Extracted ${text.length} chars from ${filename}`);
+    return extractTextFromContent(text, filename);
+  }
+  
+  // For binary formats (PDF, DOCX), we can't easily extract text in Deno
+  // Return a message indicating the limitation
+  if (['pdf', 'docx', 'pptx', 'xlsx'].includes(ext || '')) {
+    console.warn(`Binary file format not fully supported: ${ext}. Attempting basic extraction...`);
+    
+    // Try to get any text content (works for some formats)
+    try {
+      const text = await data.text();
+      // Filter out binary garbage, keep only printable ASCII
+      const cleanText = text.replace(/[^\x20-\x7E\n\t]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (cleanText.length > 100) {
+        console.log(`Extracted ${cleanText.length} chars from binary file ${filename}`);
+        return cleanText.substring(0, 20000);
+      }
+    } catch (e) {
+      console.log(`Could not extract text from binary file: ${e}`);
+    }
+    
+    throw new Error(`Cannot extract text from ${ext} files. Please convert to TXT or copy/paste the content.`);
+  }
+  
+  throw new Error(`Unsupported file type: ${ext}`);
 }
 
 serve(async (req) => {
@@ -172,175 +271,180 @@ serve(async (req) => {
       }
     }
 
+    const processingResults: ProcessingResult[] = [];
+    
     for (const source of sources) {
-      console.log(`Processing source type: ${source.type}, content: ${source.content.substring(0, 100)}...`);
+      const sourceId = source.filename || source.path || source.content.substring(0, 50);
+      console.log(`Processing source type: ${source.type}, id: ${sourceId.substring(0, 100)}...`);
       
-      if (source.type === "text") {
-        combinedContent += source.content + "\n\n";
-      } else if (source.type === "url") {
-        // Validate URL to prevent SSRF
-        if (!isAllowedUrl(source.content)) {
-          console.warn(`Blocked potentially unsafe URL: ${source.content}`);
-          continue;
-        }
-        
-        // Fetch URL content
-        try {
-          const response = await fetch(source.content, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' }
-          });
-          const html = await response.text();
-          // Simple HTML to text extraction
-          const text = html
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-            .replace(/<[^>]+>/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-          combinedContent += text.substring(0, 10000) + "\n\n";
-          console.log(`Fetched URL content: ${text.substring(0, 200)}...`);
-        } catch (e) {
-          console.error("Failed to fetch URL:", e);
-        }
-    } else if (source.type === "youtube") {
-        // Extract video ID from YouTube URL
-        const videoIdMatch = source.content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-        if (videoIdMatch) {
-          const videoId = videoIdMatch[1];
-          console.log(`Extracting content for YouTube video: ${videoId}`);
-          
-          let videoTitle = '';
-          let videoAuthor = '';
-          let transcriptContent = '';
-          let videoDescription = '';
-          
-          // Step 1: Get video metadata via oEmbed
+      try {
+        if (source.type === "text") {
+          // Handle text content (including inline file content from frontend)
+          const extractedContent = extractTextFromContent(source.content, source.filename);
+          if (extractedContent.length > 0) {
+            combinedContent += `\n\n--- Source: ${source.filename || 'Text Input'} ---\n${extractedContent}\n\n`;
+            processingResults.push({ source: sourceId, contentLength: extractedContent.length, success: true });
+            console.log(`Text source processed: ${extractedContent.length} chars`);
+          }
+        } else if (source.type === "file" && source.path) {
+          // Handle file sources from storage
           try {
-            const oembedResponse = await fetch(
-              `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-            );
-            
-            if (oembedResponse.ok) {
-              const oembedData = await oembedResponse.json();
-              videoTitle = oembedData.title || '';
-              videoAuthor = oembedData.author_name || '';
-              console.log(`YouTube metadata: "${videoTitle}" by ${videoAuthor}`);
+            const fileContent = await extractFileFromStorage(supabase, source.path, source.filename || 'file');
+            if (fileContent.length > 0) {
+              combinedContent += `\n\n--- Source: ${source.filename || source.path} ---\n${fileContent}\n\n`;
+              processingResults.push({ source: source.filename || source.path, contentLength: fileContent.length, success: true });
+              console.log(`File source processed: ${fileContent.length} chars from ${source.filename}`);
             }
-          } catch (e) {
-            console.log("oEmbed fetch failed:", e);
+          } catch (fileErr) {
+            const errMsg = fileErr instanceof Error ? fileErr.message : 'Unknown error';
+            console.error(`Failed to process file ${source.filename}:`, errMsg);
+            processingResults.push({ source: source.filename || source.path, contentLength: 0, success: false, error: errMsg });
+          }
+        } else if (source.type === "url") {
+          // Validate URL to prevent SSRF
+          if (!isAllowedUrl(source.content)) {
+            console.warn(`Blocked potentially unsafe URL: ${source.content}`);
+            processingResults.push({ source: source.content, contentLength: 0, success: false, error: 'URL blocked for security' });
+            continue;
           }
           
-          // Step 2: Try multiple transcript APIs
-          // API 1: yt.lemnoslife.com
+          // Fetch URL content
           try {
-            console.log(`Trying transcript API 1: yt.lemnoslife.com for ${videoId}`);
-            const transcriptResponse = await fetch(
-              `https://yt.lemnoslife.com/noKey/captions?videoId=${videoId}&lang=en`,
-              { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' } }
-            );
-            
-            if (transcriptResponse.ok) {
-              const transcriptData = await transcriptResponse.json();
-              if (transcriptData?.captions?.length > 0) {
-                transcriptContent = transcriptData.captions
-                  .map((c: { text: string }) => c.text)
-                  .join(' ')
-                  .substring(0, 15000);
-                console.log(`API 1 success: Got ${transcriptContent.length} chars of transcript`);
-              } else {
-                console.log("API 1: No captions found in response");
-              }
-            } else {
-              console.log(`API 1 failed with status: ${transcriptResponse.status}`);
-            }
+            const response = await fetch(source.content, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' }
+            });
+            const html = await response.text();
+            // Simple HTML to text extraction
+            const text = html
+              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+              .replace(/<[^>]+>/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+            const urlContent = text.substring(0, 10000);
+            combinedContent += `\n\n--- Source: ${source.content} ---\n${urlContent}\n\n`;
+            processingResults.push({ source: source.content, contentLength: urlContent.length, success: true });
+            console.log(`URL content fetched: ${urlContent.length} chars`);
           } catch (e) {
-            console.log("API 1 (yt.lemnoslife.com) failed:", e);
+            console.error("Failed to fetch URL:", e);
+            processingResults.push({ source: source.content, contentLength: 0, success: false, error: 'Failed to fetch URL' });
           }
-          
-          // API 2: youtubetranscript.com (if API 1 failed)
-          if (!transcriptContent) {
+        } else if (source.type === "youtube") {
+          // Extract video ID from YouTube URL
+          const videoIdMatch = source.content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+          if (videoIdMatch) {
+            const videoId = videoIdMatch[1];
+            console.log(`Extracting content for YouTube video: ${videoId}`);
+            
+            let videoTitle = '';
+            let videoAuthor = '';
+            let transcriptContent = '';
+            
+            // Step 1: Get video metadata via oEmbed
             try {
-              console.log(`Trying transcript API 2: youtubetranscript.com for ${videoId}`);
+              const oembedResponse = await fetch(
+                `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+              );
+              
+              if (oembedResponse.ok) {
+                const oembedData = await oembedResponse.json();
+                videoTitle = oembedData.title || '';
+                videoAuthor = oembedData.author_name || '';
+                console.log(`YouTube metadata: "${videoTitle}" by ${videoAuthor}`);
+              }
+            } catch (e) {
+              console.log("oEmbed fetch failed:", e);
+            }
+            
+            // Step 2: Try multiple transcript APIs
+            // API 1: yt.lemnoslife.com
+            try {
+              console.log(`Trying transcript API 1: yt.lemnoslife.com for ${videoId}`);
               const transcriptResponse = await fetch(
-                `https://youtubetranscript.com/?server_vid2=${videoId}`,
+                `https://yt.lemnoslife.com/noKey/captions?videoId=${videoId}&lang=en`,
                 { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' } }
               );
               
               if (transcriptResponse.ok) {
-                const html = await transcriptResponse.text();
-                // Extract text from transcript HTML response
-                const textMatch = html.match(/<text[^>]*>([^<]+)<\/text>/g);
-                if (textMatch && textMatch.length > 0) {
-                  transcriptContent = textMatch
-                    .map(t => t.replace(/<[^>]+>/g, '').trim())
+                const transcriptData = await transcriptResponse.json();
+                if (transcriptData?.captions?.length > 0) {
+                  transcriptContent = transcriptData.captions
+                    .map((c: { text: string }) => c.text)
                     .join(' ')
                     .substring(0, 15000);
-                  console.log(`API 2 success: Got ${transcriptContent.length} chars of transcript`);
-                } else {
-                  console.log("API 2: No transcript text found in response");
+                  console.log(`API 1 success: Got ${transcriptContent.length} chars of transcript`);
                 }
-              } else {
-                console.log(`API 2 failed with status: ${transcriptResponse.status}`);
               }
             } catch (e) {
-              console.log("API 2 (youtubetranscript.com) failed:", e);
+              console.log("API 1 (yt.lemnoslife.com) failed:", e);
             }
-          }
-          
-          // API 3: Try noembed for description (different from oEmbed, has more data)
-          if (!transcriptContent) {
-            try {
-              console.log(`Trying to get video description via noembed for ${videoId}`);
-              const noembedResponse = await fetch(
-                `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
-              );
-              
-              if (noembedResponse.ok) {
-                const noembedData = await noembedResponse.json();
-                if (noembedData.title && !videoTitle) {
-                  videoTitle = noembedData.title;
+            
+            // API 2: youtubetranscript.com (if API 1 failed)
+            if (!transcriptContent) {
+              try {
+                console.log(`Trying transcript API 2: youtubetranscript.com for ${videoId}`);
+                const transcriptResponse = await fetch(
+                  `https://youtubetranscript.com/?server_vid2=${videoId}`,
+                  { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' } }
+                );
+                
+                if (transcriptResponse.ok) {
+                  const html = await transcriptResponse.text();
+                  const textMatch = html.match(/<text[^>]*>([^<]+)<\/text>/g);
+                  if (textMatch && textMatch.length > 0) {
+                    transcriptContent = textMatch
+                      .map(t => t.replace(/<[^>]+>/g, '').trim())
+                      .join(' ')
+                      .substring(0, 15000);
+                    console.log(`API 2 success: Got ${transcriptContent.length} chars of transcript`);
+                  }
                 }
-                // Noembed might have more metadata
-                console.log(`noembed data: ${JSON.stringify(noembedData).substring(0, 500)}`);
+              } catch (e) {
+                console.log("API 2 (youtubetranscript.com) failed:", e);
               }
-            } catch (e) {
-              console.log("noembed fetch failed:", e);
             }
-          }
-          
-          // Build content from what we gathered
-          let sourceContent = '';
-          
-          if (videoTitle) {
-            sourceContent += `YouTube Video: "${videoTitle}"`;
-            if (videoAuthor) {
-              sourceContent += ` by ${videoAuthor}`;
+            
+            // Build content from what we gathered
+            let ytContent = '';
+            
+            if (videoTitle) {
+              ytContent += `YouTube Video: "${videoTitle}"`;
+              if (videoAuthor) {
+                ytContent += ` by ${videoAuthor}`;
+              }
+              ytContent += '\n\n';
             }
-            sourceContent += '\n\n';
+            
+            if (transcriptContent) {
+              ytContent += `Transcript:\n${transcriptContent}\n\n`;
+            }
+            
+            const contentLength = ytContent.length;
+            console.log(`YouTube source "${videoId}": extracted ${contentLength} chars`);
+            
+            if (contentLength > 0) {
+              combinedContent += `\n\n--- Source: YouTube ${videoId} ---\n${ytContent}`;
+              processingResults.push({ source: `YouTube: ${videoId}`, contentLength, success: true });
+            } else {
+              console.warn(`No content extracted for video ${videoId}`);
+              processingResults.push({ source: `YouTube: ${videoId}`, contentLength: 0, success: false, error: 'No transcript available' });
+            }
+          } else {
+            console.warn(`Invalid YouTube URL format: ${source.content}`);
+            processingResults.push({ source: source.content, contentLength: 0, success: false, error: 'Invalid YouTube URL' });
           }
-          
-          if (transcriptContent) {
-            sourceContent += `Transcript:\n${transcriptContent}\n\n`;
-          } else if (videoDescription) {
-            sourceContent += `Description:\n${videoDescription}\n\n`;
-          }
-          
-          // Log what we got for this source
-          const contentLength = sourceContent.length;
-          console.log(`YouTube source "${videoId}": extracted ${contentLength} chars (transcript: ${transcriptContent.length} chars)`);
-          
-          if (contentLength < 100) {
-            console.warn(`WARNING: Only got ${contentLength} chars for video ${videoId}. No transcript available.`);
-          }
-          
-          combinedContent += sourceContent;
-        } else {
-          console.warn(`Invalid YouTube URL format: ${source.content}`);
         }
+      } catch (sourceErr) {
+        const errMsg = sourceErr instanceof Error ? sourceErr.message : 'Unknown error';
+        console.error(`Error processing source:`, errMsg);
+        processingResults.push({ source: sourceId, contentLength: 0, success: false, error: errMsg });
       }
     }
     
-    // Log per-source extraction results
+    // Log processing results summary
+    const successfulSources = processingResults.filter(r => r.success);
+    const failedSources = processingResults.filter(r => !r.success);
+    console.log(`Source processing complete: ${successfulSources.length} successful, ${failedSources.length} failed`);
     console.log(`Total combined content length: ${combinedContent.length} characters`);
     
     // Minimum content validation BEFORE calling Claude
