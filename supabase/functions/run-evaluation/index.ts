@@ -45,6 +45,21 @@ serve(async (req) => {
       );
     }
 
+    // Check zero-retention mode
+    let zeroRetentionMode = false;
+    try {
+      const { data: userSettings } = await supabase
+        .from("user_settings")
+        .select("zero_retention_mode")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      zeroRetentionMode = userSettings?.zero_retention_mode === true;
+      console.log(`[run-evaluation] User ${user.id} zero_retention_mode: ${zeroRetentionMode}`);
+    } catch (settingsError) {
+      console.error("[run-evaluation] Error fetching user settings:", settingsError);
+    }
+
     const body: EvalRequest = await req.json();
     evaluationId = body.evaluation_id;
 
@@ -345,15 +360,24 @@ Respond with ONLY a JSON object in this exact format:
 
     console.log("Evaluation complete, results:", aggregateResults);
 
-    // Update evaluation with results
+    // Update evaluation with results - skip detailed_results in zero-retention mode
+    const updateData: Record<string, unknown> = {
+      status: "completed",
+      results: aggregateResults,
+      completed_at: new Date().toISOString(),
+    };
+    
+    // Only store detailed results (which contain actual prompts/responses) if NOT in zero-retention mode
+    if (!zeroRetentionMode) {
+      updateData.detailed_results = detailedResults;
+      console.log(`[run-evaluation] Storing detailed results for ${detailedResults.length} samples`);
+    } else {
+      console.log(`[run-evaluation] Skipping detailed results storage (zero-retention mode)`);
+    }
+    
     await supabase
       .from("evaluations")
-      .update({
-        status: "completed",
-        results: aggregateResults,
-        detailed_results: detailedResults,
-        completed_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", evaluationId);
 
     return new Response(
