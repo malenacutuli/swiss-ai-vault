@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.start-finetuning]
 verify_jwt = true
+
+[functions.create-credits-checkout]
+verify_jwt = true

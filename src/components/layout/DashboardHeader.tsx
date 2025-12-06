@@ -19,6 +19,7 @@ import { Search, Bell, Sun, Moon, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useUnreadCount, useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow, parseISO } from "date-fns";
+import { CreditsDisplay } from "@/components/CreditsDisplay";
 
 interface DashboardHeaderProps {
   sidebarCollapsed: boolean;
@@ -37,6 +38,7 @@ const routeLabels: Record<string, string> = {
   catalog: "Model Catalog",
   stats: "Usage Statistics",
   traces: "Traces",
+  billing: "Billing",
 };
 
 export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
@@ -113,6 +115,9 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
             <Moon className="h-5 w-5" />
           )}
         </Button>
+
+        {/* Credits Display */}
+        <CreditsDisplay />
 
         {/* Notifications */}
         <DropdownMenu>
