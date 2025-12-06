@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { InsufficientCreditsModal } from "@/components/InsufficientCreditsModal";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -58,6 +59,7 @@ import {
   useProjects,
 } from "@/hooks/useSupabase";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { BASE_MODELS, DEFAULT_HYPERPARAMETERS } from "@/types/database";
 import type { FinetuningStatus, FinetuningMethod, HyperParameters } from "@/types/database";
 
@@ -72,6 +74,9 @@ const Finetuning = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+  const [creditsModalData, setCreditsModalData] = useState<{ currentBalance?: number; requiredAmount?: number }>({});
+  const { toast } = useToast();
 
   // Form state for create modal
   const [formData, setFormData] = useState({
@@ -191,13 +196,43 @@ const Finetuning = () => {
       
       if (error) {
         console.error('Failed to start fine-tuning:', error);
+        
+        // Check for 402 insufficient credits error
+        if (error.message?.includes('402') || (error as any)?.status === 402) {
+          try {
+            const errorData = JSON.parse(error.message || '{}');
+            setCreditsModalData({
+              currentBalance: errorData.current_balance,
+              requiredAmount: errorData.required,
+            });
+          } catch {
+            setCreditsModalData({});
+          }
+          setCreditsModalOpen(true);
+          return;
+        }
+        
+        toast({
+          title: 'Failed to start job',
+          description: error.message || 'An error occurred',
+          variant: 'destructive',
+        });
         return;
       }
       
       console.log('Fine-tuning job started:', data);
+      toast({
+        title: 'Job started',
+        description: `Fine-tuning job has been queued. Credits charged: $${data?.credits_charged?.toFixed(2) || '0.00'}`,
+      });
       refetch();
     } catch (err) {
       console.error('Error starting fine-tuning job:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to start fine-tuning job',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -797,6 +832,14 @@ const Finetuning = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        open={creditsModalOpen}
+        onClose={() => setCreditsModalOpen(false)}
+        currentBalance={creditsModalData.currentBalance}
+        requiredAmount={creditsModalData.requiredAmount}
+      />
     </div>
   );
 };

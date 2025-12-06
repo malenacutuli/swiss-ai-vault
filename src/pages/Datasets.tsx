@@ -50,6 +50,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DatasetCreationWizard } from "@/components/datasets/DatasetCreationWizard";
+import { InsufficientCreditsModal } from "@/components/InsufficientCreditsModal";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -104,6 +105,8 @@ const Datasets = () => {
   const [previewData, setPreviewData] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+  const [creditsModalData, setCreditsModalData] = useState<{ currentBalance?: number; requiredAmount?: number }>({});
 
   // Hooks for data fetching and mutations
   const { datasets, loading, error, refetch } = useDatasets();
@@ -410,6 +413,25 @@ const Datasets = () => {
 
       if (generateError) {
         console.error('Generate synthetic error:', generateError);
+        
+        // Check for 402 insufficient credits error
+        if (generateError.message?.includes('402') || (generateError as any)?.status === 402) {
+          try {
+            const errorData = JSON.parse(generateError.message || '{}');
+            setCreditsModalData({
+              currentBalance: errorData.current_balance,
+              requiredAmount: errorData.required,
+            });
+          } catch {
+            setCreditsModalData({});
+          }
+          setCreditsModalOpen(true);
+          
+          // Clean up the pending dataset
+          await supabase.from('datasets').delete().eq('id', datasetId);
+          return;
+        }
+        
         // Update dataset status to error
         await supabase
           .from('datasets')
@@ -1149,6 +1171,14 @@ const Datasets = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        open={creditsModalOpen}
+        onClose={() => setCreditsModalOpen(false)}
+        currentBalance={creditsModalData.currentBalance}
+        requiredAmount={creditsModalData.requiredAmount}
+      />
     </div>
   );
 };

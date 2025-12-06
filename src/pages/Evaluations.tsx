@@ -51,6 +51,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { InsufficientCreditsModal } from "@/components/InsufficientCreditsModal";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -76,6 +77,7 @@ import {
   useDatasets,
 } from "@/hooks/useSupabase";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { EvaluationStatus } from "@/types/database";
 
 const getScoreColor = (score: number) => {
@@ -100,6 +102,9 @@ const Evaluations = () => {
   const [deleteMetricId, setDeleteMetricId] = useState<string | null>(null);
   const [deleteEvaluationId, setDeleteEvaluationId] = useState<string | null>(null);
   const [expandedEvaluation, setExpandedEvaluation] = useState<string | null>(null);
+  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+  const [creditsModalData, setCreditsModalData] = useState<{ currentBalance?: number; requiredAmount?: number }>({});
+  const { toast } = useToast();
 
   // Form state for create evaluation
   const [evalForm, setEvalForm] = useState({
@@ -271,10 +276,37 @@ const Evaluations = () => {
 
   const handleStartEvaluation = async (evaluationId: string) => {
     setStartingEvalId(evaluationId);
-    const success = await startEvaluation(evaluationId);
-    setStartingEvalId(null);
-    if (success) {
-      refetchEvaluations();
+    try {
+      const success = await startEvaluation(evaluationId);
+      if (success) {
+        toast({
+          title: 'Evaluation started',
+          description: 'Your evaluation is now running.',
+        });
+        refetchEvaluations();
+      }
+    } catch (err: any) {
+      // Check for 402 insufficient credits error
+      if (err?.status === 402 || err?.message?.includes('402')) {
+        try {
+          const errorData = typeof err.body === 'string' ? JSON.parse(err.body) : err.body || {};
+          setCreditsModalData({
+            currentBalance: errorData.current_balance,
+            requiredAmount: errorData.required,
+          });
+        } catch {
+          setCreditsModalData({});
+        }
+        setCreditsModalOpen(true);
+      } else {
+        toast({
+          title: 'Failed to start evaluation',
+          description: err?.message || 'An error occurred',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setStartingEvalId(null);
     }
   };
 
@@ -934,6 +966,14 @@ const Evaluations = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        open={creditsModalOpen}
+        onClose={() => setCreditsModalOpen(false)}
+        currentBalance={creditsModalData.currentBalance}
+        requiredAmount={creditsModalData.requiredAmount}
+      />
     </div>
   );
 };
