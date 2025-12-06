@@ -1006,59 +1006,88 @@ const Playground = () => {
           )}
 
           {/* Input Area */}
-          <div className="p-4 border-t border-border">
-            <div className="flex gap-2">
-              {/* File Upload Button */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPTED_FILE_TYPES.join(",")}
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || isLoading}
-                className="flex-shrink-0"
-                title="Upload document for context"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Paperclip className="h-4 w-4" />
-                )}
-              </Button>
-              
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    handleSend();
-                  }
-                }}
-                placeholder="Type a message... (Cmd+Enter to send)"
-                className="bg-secondary border-border min-h-[48px] max-h-[120px] resize-none"
-                rows={1}
-                disabled={isLoading}
-              />
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="bg-primary hover:bg-primary/90 px-4"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+          <div className="border-t border-border">
+            {/* Document indicator - show above input */}
+            {uploadedDocuments.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-muted/50">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {uploadedDocuments.length} document{uploadedDocuments.length > 1 ? 's' : ''} attached
+                </span>
+                <div className="flex gap-1 flex-wrap flex-1">
+                  {uploadedDocuments.map((doc, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {doc.filename}
+                    </Badge>
+                  ))}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllDocuments}
+                  title="Clear all documents"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+
+            <div className="p-4">
+              <div className="flex gap-2">
+                {/* File Upload Button */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="doc-upload"
+                  accept=".pdf,.docx,.pptx,.txt,.md"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  disabled={isUploading}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isLoading}
+                  className="flex-shrink-0"
+                  title="Upload document for context"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+                
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Type a message... (Cmd+Enter to send)"
+                  className="bg-secondary border-border min-h-[48px] max-h-[120px] resize-none"
+                  rows={1}
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isLoading}
+                  className="bg-primary hover:bg-primary/90 px-4"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Upload .txt, .md, .pdf, .pptx, or .docx files (max 10MB) to add context for your questions.
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">
-              Upload .txt, .md, .pdf, or .docx files (max 10MB) to add context for your questions.
-            </p>
           </div>
         </div>
       </div>
