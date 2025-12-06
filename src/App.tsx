@@ -26,6 +26,7 @@ import Stats from "./pages/Stats";
 import Traces from "./pages/Traces";
 import Admin from "./pages/Admin";
 import AuditLogs from "./pages/AuditLogs";
+import Compliance from "./pages/Compliance";
 import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/dashboard/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
             <Route path="/dashboard/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/dashboard/admin/audit-logs" element={<AdminRoute><AuditLogs /></AdminRoute>} />
+            <Route path="/dashboard/admin/compliance" element={<AdminRoute><Compliance /></AdminRoute>} />
             <Route path="/design-system" element={<DesignSystem />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
