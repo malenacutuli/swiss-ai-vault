@@ -1,7 +1,7 @@
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,15 +117,19 @@ const Stats = () => {
     .reduce((acc, s) => acc + s.total_credits, 0);
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full bg-background">
-        <DashboardSidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-        <SidebarInset className="flex-1">
-          <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-          <main className="flex-1 p-6">
+    <div className="min-h-screen bg-background">
+      <DashboardSidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
+      <div
+        className={cn(
+          "transition-all duration-300",
+          sidebarCollapsed ? "ml-16" : "ml-[280px]"
+        )}
+      >
+        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
+        <main className="flex-1 p-6">
             <div className="max-w-7xl mx-auto space-y-6">
               {/* Page Header */}
               <div className="flex items-center justify-between">
@@ -510,9 +514,8 @@ const Stats = () => {
               </Card>
             </div>
           </main>
-        </SidebarInset>
+        </div>
       </div>
-    </SidebarProvider>
   );
 };
 
