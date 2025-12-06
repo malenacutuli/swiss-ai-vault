@@ -28,6 +28,7 @@ import {
   Activity,
 } from "lucide-react";
 import { SwissFlag } from "@/components/icons/SwissFlag";
+import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -97,7 +98,10 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
           </Link>
         </div>
 
-        {/* Navigation */}
+        {/* Organization Switcher */}
+        <div className={cn("px-3 py-2", collapsed && "px-2")}>
+          <OrganizationSwitcher collapsed={collapsed} />
+        </div>
         <nav className="flex-1 space-y-1 p-3">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || 

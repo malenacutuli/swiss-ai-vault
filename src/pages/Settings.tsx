@@ -60,10 +60,12 @@ import {
   Sparkles,
   Loader2,
   Download,
+  Building2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/hooks/useSupabase";
+import { OrganizationSettings } from "@/components/organization/OrganizationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -333,6 +335,10 @@ const Settings = () => {
           <Tabs defaultValue="profile" className="animate-fade-in animate-delay-100">
             <TabsList className="bg-secondary border border-border">
               <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="organization" className="gap-1.5">
+                <Building2 className="h-3.5 w-3.5" />
+                Organization
+              </TabsTrigger>
               <TabsTrigger value="api-keys">API Keys</TabsTrigger>
               <TabsTrigger value="data-retention">Data & Privacy</TabsTrigger>
               <TabsTrigger value="billing">Billing</TabsTrigger>
@@ -440,6 +446,11 @@ const Settings = () => {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Organization Tab */}
+            <TabsContent value="organization" className="mt-6">
+              <OrganizationSettings />
             </TabsContent>
 
             {/* API Keys Tab */}
