@@ -16,6 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
   Send,
@@ -31,9 +37,14 @@ import {
   Zap,
   Clock,
   Info,
+  Paperclip,
+  FileText,
+  X,
+  Upload,
 } from "lucide-react";
 import { useModels } from "@/hooks/useSupabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Message {
@@ -52,6 +63,12 @@ interface ModelInfo {
   contextLength?: number;
   parameters?: string;
   coldStart?: boolean;
+}
+
+interface UploadedDocument {
+  filename: string;
+  chunks: number;
+  uploadedAt: Date;
 }
 
 const providerModels: ModelInfo[] = [
@@ -78,6 +95,9 @@ const systemPromptTemplates = [
   { id: "custom", name: "Custom...", prompt: "" },
 ];
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_FILE_TYPES = [".txt", ".md", ".pdf", ".docx"];
+
 const Playground = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [configPanelOpen, setConfigPanelOpen] = useState(true);
@@ -92,6 +112,14 @@ const Playground = () => {
   const [loadingMessage, setLoadingMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // RAG state
+  const [conversationId] = useState(() => crypto.randomUUID());
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [documentsPopoverOpen, setDocumentsPopoverOpen] = useState(false);
   
   const { models: userModels } = useModels();
   const { session } = useAuth();
@@ -158,6 +186,207 @@ const Playground = () => {
     return null;
   };
 
+  // Handle file upload for RAG
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const extension = "." + file.name.split(".").pop()?.toLowerCase();
+    if (!ACCEPTED_FILE_TYPES.includes(extension)) {
+      toast.error(`Unsupported file type. Accepted: ${ACCEPTED_FILE_TYPES.join(", ")}`);
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    if (!session?.access_token) {
+      toast.error("Please sign in to upload documents");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(10);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("conversation_id", conversationId);
+
+      setUploadProgress(30);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-document`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      setUploadProgress(80);
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || `Upload failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadedDocuments(prev => [
+          ...prev,
+          {
+            filename: result.filename,
+            chunks: result.chunks_created,
+            uploadedAt: new Date(),
+          },
+        ]);
+        toast.success(`Document added to context (${result.chunks_created} chunks)`);
+      } else {
+        throw new Error(result.error || "Upload failed");
+      }
+
+      setUploadProgress(100);
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to upload document");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  // Search for similar chunks
+  const searchSimilarChunks = async (query: string): Promise<string[]> => {
+    if (uploadedDocuments.length === 0 || !session?.access_token) {
+      return [];
+    }
+
+    try {
+      // Generate embedding for the query using OpenAI
+      const embeddingResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: "embed",
+            text: query,
+          }),
+        }
+      );
+
+      if (!embeddingResponse.ok) {
+        console.error("Failed to generate embedding for query");
+        return [];
+      }
+
+      const embeddingData = await embeddingResponse.json();
+      const embedding = embeddingData.embedding;
+
+      if (!embedding) {
+        // Fallback: use RPC directly if embedding action not supported
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) return [];
+
+        const { data: chunks, error } = await supabase.rpc("search_similar_chunks", {
+          p_user_id: user.user.id,
+          p_embedding: embedding,
+          p_limit: 5,
+          p_conversation_id: conversationId,
+        });
+
+        if (error) {
+          console.error("Search error:", error);
+          return [];
+        }
+
+        return (chunks || []).map((c: { content: string }) => c.content);
+      }
+
+      // Call search function with embedding
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return [];
+
+      const { data: chunks, error } = await supabase.rpc("search_similar_chunks", {
+        p_user_id: user.user.id,
+        p_embedding: embedding,
+        p_limit: 5,
+        p_conversation_id: conversationId,
+      });
+
+      if (error) {
+        console.error("Search error:", error);
+        return [];
+      }
+
+      return (chunks || []).map((c: { content: string }) => c.content);
+    } catch (error) {
+      console.error("Error searching chunks:", error);
+      return [];
+    }
+  };
+
+  // Remove a specific document
+  const removeDocument = async (filename: string) => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { error } = await supabase
+        .from("document_chunks")
+        .delete()
+        .eq("user_id", user.user.id)
+        .eq("filename", filename)
+        .eq("conversation_id", conversationId);
+
+      if (error) throw error;
+
+      setUploadedDocuments(prev => prev.filter(d => d.filename !== filename));
+      toast.success(`Removed ${filename} from context`);
+    } catch (error) {
+      console.error("Error removing document:", error);
+      toast.error("Failed to remove document");
+    }
+  };
+
+  // Clear all documents
+  const clearAllDocuments = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { error } = await supabase
+        .from("document_chunks")
+        .delete()
+        .eq("user_id", user.user.id)
+        .eq("conversation_id", conversationId);
+
+      if (error) throw error;
+
+      setUploadedDocuments([]);
+      setDocumentsPopoverOpen(false);
+      toast.success("Cleared all document context");
+    } catch (error) {
+      console.error("Error clearing documents:", error);
+      toast.error("Failed to clear documents");
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -172,8 +401,27 @@ const Playground = () => {
       content: input.trim(),
     };
 
+    // Build system prompt with RAG context if documents are uploaded
+    let enhancedSystemPrompt = systemPrompt;
+    
+    if (uploadedDocuments.length > 0) {
+      try {
+        const relevantChunks = await searchSimilarChunks(input.trim());
+        if (relevantChunks.length > 0) {
+          const contextSection = relevantChunks
+            .map((chunk, i) => `[${i + 1}] ${chunk}`)
+            .join("\n\n");
+          
+          enhancedSystemPrompt = `${systemPrompt}\n\nContext from uploaded documents:\n\n${contextSection}\n\n---\n\nUse the above context to help answer the user's question when relevant.`;
+        }
+      } catch (error) {
+        console.error("Error fetching RAG context:", error);
+        // Continue without RAG context
+      }
+    }
+
     const allMessages = [
-      ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
+      ...(enhancedSystemPrompt ? [{ role: "system" as const, content: enhancedSystemPrompt }] : []),
       ...messages.map(m => ({ role: m.role, content: m.content })),
       { role: "user" as const, content: input.trim() },
     ];
@@ -557,11 +805,68 @@ const Playground = () => {
 
           {/* Chat Header */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="font-medium text-foreground">
-                {getModelDisplayName()}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">
+                  {getModelDisplayName()}
+                </span>
+              </div>
+              
+              {/* Document Context Indicator */}
+              {uploadedDocuments.length > 0 && (
+                <Popover open={documentsPopoverOpen} onOpenChange={setDocumentsPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-xs gap-1.5 bg-primary/10 border-primary/20 hover:bg-primary/20"
+                    >
+                      <FileText className="h-3 w-3" />
+                      {uploadedDocuments.length} document{uploadedDocuments.length > 1 ? "s" : ""}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-3" align="start">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium">Document Context</h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearAllDocuments}
+                          className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {uploadedDocuments.map((doc) => (
+                          <div
+                            key={doc.filename}
+                            className="flex items-center justify-between p-2 rounded-md bg-secondary/50"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium truncate">{doc.filename}</p>
+                                <p className="text-[10px] text-muted-foreground">{doc.chunks} chunks</p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeDocument(doc.filename)}
+                              className="h-6 w-6 flex-shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -583,7 +888,7 @@ const Playground = () => {
                   Start a conversation
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-sm mb-6">
-                  Select a model and start chatting. Your conversation will appear here.
+                  Select a model and start chatting. Upload documents for context-aware responses.
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {[
@@ -675,9 +980,45 @@ const Playground = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Upload Progress */}
+          {isUploading && (
+            <div className="px-4 py-2 border-t border-border bg-secondary/50">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">Processing document...</p>
+                  <Progress value={uploadProgress} className="h-1" />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Input Area */}
           <div className="p-4 border-t border-border">
             <div className="flex gap-2">
+              {/* File Upload Button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_FILE_TYPES.join(",")}
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || isLoading}
+                className="flex-shrink-0"
+                title="Upload document for context"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Paperclip className="h-4 w-4" />
+                )}
+              </Button>
+              
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -703,6 +1044,9 @@ const Playground = () => {
                 )}
               </Button>
             </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Upload .txt, .md, .pdf, or .docx files (max 10MB) to add context for your questions.
+            </p>
           </div>
         </div>
       </div>
