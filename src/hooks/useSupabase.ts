@@ -1531,7 +1531,7 @@ export function useCreateApiKey() {
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
 
-      const keyPrefix = fullKey.substring(0, 12);
+      const keyPrefix = fullKey.substring(0, 6);
 
       const { data: apiKeyData, error: createError } = await supabase
         .from('api_keys')
