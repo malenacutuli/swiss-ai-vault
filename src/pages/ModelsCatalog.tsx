@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useModels } from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import {
   Search,
   SlidersHorizontal,
@@ -33,7 +35,11 @@ import {
   Cpu,
   Sparkles,
   FileJson,
-  X,
+  Code,
+  Globe,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
 
 // Provider brand colors
@@ -45,65 +51,39 @@ const PROVIDER_COLORS: Record<string, { bg: string; text: string; border: string
   Mistral: { bg: "bg-purple-500/10", text: "text-purple-500", border: "border-purple-500/30" },
   DeepSeek: { bg: "bg-cyan-500/10", text: "text-cyan-500", border: "border-cyan-500/30" },
   Qwen: { bg: "bg-pink-500/10", text: "text-pink-500", border: "border-pink-500/30" },
-  IBM: { bg: "bg-blue-600/10", text: "text-blue-400", border: "border-blue-400/30" },
+  Microsoft: { bg: "bg-blue-600/10", text: "text-blue-400", border: "border-blue-400/30" },
   Cohere: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/30" },
+  BigCode: { bg: "bg-yellow-500/10", text: "text-yellow-500", border: "border-yellow-500/30" },
+  "01.AI": { bg: "bg-violet-500/10", text: "text-violet-500", border: "border-violet-500/30" },
+  "Prem AI": { bg: "bg-teal-500/10", text: "text-teal-500", border: "border-teal-500/30" },
 };
 
-// Base models data (static - these don't change often)
-const BASE_MODELS = [
-  // OpenAI Models
-  { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI", params: "200B", context: 128000, inputPrice: 2.5, outputPrice: 10, finetunable: true, json: true, description: "Most capable GPT-4 model with vision" },
-  { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI", params: "8B", context: 128000, inputPrice: 0.15, outputPrice: 0.6, finetunable: true, json: true, description: "Smaller, faster, and cheaper GPT-4" },
-  { id: "gpt-4-turbo", name: "GPT-4 Turbo", provider: "OpenAI", params: "200B", context: 128000, inputPrice: 10, outputPrice: 30, finetunable: false, json: true, description: "High intelligence model with vision" },
-  { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", provider: "OpenAI", params: "20B", context: 16385, inputPrice: 0.5, outputPrice: 1.5, finetunable: true, json: true, description: "Fast and efficient for simple tasks" },
-  
-  // Anthropic Models
-  { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", provider: "Anthropic", params: "70B", context: 200000, inputPrice: 3, outputPrice: 15, finetunable: false, json: true, description: "Most intelligent Claude model" },
-  { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku", provider: "Anthropic", params: "20B", context: 200000, inputPrice: 0.25, outputPrice: 1.25, finetunable: false, json: true, description: "Fast and efficient Claude model" },
-  { id: "claude-3-opus", name: "Claude 3 Opus", provider: "Anthropic", params: "137B", context: 200000, inputPrice: 15, outputPrice: 75, finetunable: false, json: true, description: "Most powerful Claude model" },
-  
-  // Google Models
-  { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "Google", params: "30B", context: 1048576, inputPrice: 0.1, outputPrice: 0.4, finetunable: false, json: true, description: "Latest multimodal Gemini model" },
-  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google", params: "175B", context: 2097152, inputPrice: 1.25, outputPrice: 5, finetunable: true, json: true, description: "Advanced reasoning with 2M context" },
-  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google", params: "30B", context: 1048576, inputPrice: 0.075, outputPrice: 0.3, finetunable: true, json: true, description: "Fast multimodal model" },
-  
-  // Meta Llama Models
-  { id: "llama-3.2-90b", name: "Llama 3.2 90B", provider: "Meta", params: "90B", context: 131072, inputPrice: 0.9, outputPrice: 0.9, finetunable: true, json: true, description: "Largest vision-capable Llama" },
-  { id: "llama-3.2-11b", name: "Llama 3.2 11B", provider: "Meta", params: "11B", context: 131072, inputPrice: 0.055, outputPrice: 0.055, finetunable: true, json: true, description: "Multimodal Llama with vision" },
-  { id: "llama-3.2-3b", name: "Llama 3.2 3B", provider: "Meta", params: "3B", context: 131072, inputPrice: 0.015, outputPrice: 0.015, finetunable: true, json: true, description: "Lightweight edge model" },
-  { id: "llama-3.2-1b", name: "Llama 3.2 1B", provider: "Meta", params: "1B", context: 131072, inputPrice: 0.01, outputPrice: 0.01, finetunable: true, json: true, description: "Ultra-lightweight edge model" },
-  { id: "llama-3.1-405b", name: "Llama 3.1 405B", provider: "Meta", params: "405B", context: 131072, inputPrice: 3, outputPrice: 3, finetunable: false, json: true, description: "Frontier-class open model" },
-  { id: "llama-3.1-70b", name: "Llama 3.1 70B", provider: "Meta", params: "70B", context: 131072, inputPrice: 0.35, outputPrice: 0.4, finetunable: true, json: true, description: "Best open-source performance" },
-  { id: "llama-3.1-8b", name: "Llama 3.1 8B", provider: "Meta", params: "8B", context: 131072, inputPrice: 0.025, outputPrice: 0.025, finetunable: true, json: true, description: "Efficient and capable" },
-  
-  // Mistral Models
-  { id: "mistral-large", name: "Mistral Large", provider: "Mistral", params: "123B", context: 131072, inputPrice: 2, outputPrice: 6, finetunable: false, json: true, description: "Flagship Mistral model" },
-  { id: "mistral-medium", name: "Mistral Medium", provider: "Mistral", params: "70B", context: 32768, inputPrice: 2.7, outputPrice: 8.1, finetunable: false, json: true, description: "Balanced performance" },
-  { id: "mistral-small", name: "Mistral Small", provider: "Mistral", params: "22B", context: 32768, inputPrice: 0.2, outputPrice: 0.6, finetunable: true, json: true, description: "Cost-effective Mistral" },
-  { id: "mistral-7b", name: "Mistral 7B", provider: "Mistral", params: "7B", context: 32768, inputPrice: 0.06, outputPrice: 0.06, finetunable: true, json: true, description: "Efficient open model" },
-  { id: "mixtral-8x22b", name: "Mixtral 8x22B", provider: "Mistral", params: "141B", context: 65536, inputPrice: 0.65, outputPrice: 0.65, finetunable: true, json: true, description: "MoE architecture" },
-  { id: "mixtral-8x7b", name: "Mixtral 8x7B", provider: "Mistral", params: "47B", context: 32768, inputPrice: 0.24, outputPrice: 0.24, finetunable: true, json: true, description: "Efficient MoE model" },
-  
-  // DeepSeek Models
-  { id: "deepseek-v3", name: "DeepSeek V3", provider: "DeepSeek", params: "671B", context: 65536, inputPrice: 0.27, outputPrice: 1.1, finetunable: false, json: true, description: "Latest DeepSeek model" },
-  { id: "deepseek-r1", name: "DeepSeek R1", provider: "DeepSeek", params: "671B", context: 65536, inputPrice: 0.55, outputPrice: 2.19, finetunable: false, json: true, description: "Reasoning-focused model" },
-  { id: "deepseek-coder", name: "DeepSeek Coder", provider: "DeepSeek", params: "33B", context: 16384, inputPrice: 0.14, outputPrice: 0.28, finetunable: true, json: true, description: "Coding specialist" },
-  
-  // Qwen Models
-  { id: "qwen-2.5-72b", name: "Qwen 2.5 72B", provider: "Qwen", params: "72B", context: 131072, inputPrice: 0.35, outputPrice: 0.4, finetunable: true, json: true, description: "Large multilingual model" },
-  { id: "qwen-2.5-32b", name: "Qwen 2.5 32B", provider: "Qwen", params: "32B", context: 131072, inputPrice: 0.15, outputPrice: 0.2, finetunable: true, json: true, description: "Balanced Qwen model" },
-  { id: "qwen-2.5-14b", name: "Qwen 2.5 14B", provider: "Qwen", params: "14B", context: 131072, inputPrice: 0.07, outputPrice: 0.1, finetunable: true, json: true, description: "Efficient Qwen model" },
-  { id: "qwen-2.5-7b", name: "Qwen 2.5 7B", provider: "Qwen", params: "7B", context: 131072, inputPrice: 0.035, outputPrice: 0.05, finetunable: true, json: true, description: "Lightweight Qwen" },
-  { id: "qwen-2.5-coder-32b", name: "Qwen 2.5 Coder 32B", provider: "Qwen", params: "32B", context: 131072, inputPrice: 0.15, outputPrice: 0.2, finetunable: true, json: true, description: "Code-specialized Qwen" },
-  
-  // IBM Granite Models
-  { id: "granite-3-8b", name: "Granite 3.0 8B", provider: "IBM", params: "8B", context: 128000, inputPrice: 0.05, outputPrice: 0.1, finetunable: true, json: true, description: "Enterprise-ready model" },
-  { id: "granite-3-2b", name: "Granite 3.0 2B", provider: "IBM", params: "2B", context: 128000, inputPrice: 0.02, outputPrice: 0.04, finetunable: true, json: true, description: "Lightweight enterprise model" },
-  
-  // Cohere Models
-  { id: "command-r-plus", name: "Command R+", provider: "Cohere", params: "104B", context: 128000, inputPrice: 2.5, outputPrice: 10, finetunable: false, json: true, description: "Enterprise RAG model" },
-  { id: "command-r", name: "Command R", provider: "Cohere", params: "35B", context: 128000, inputPrice: 0.15, outputPrice: 0.6, finetunable: true, json: true, description: "Efficient RAG model" },
-];
+// License info
+const LICENSE_INFO: Record<string, { label: string; needsApproval: boolean; color: string }> = {
+  "apache-2.0": { label: "Apache 2.0", needsApproval: false, color: "text-green-500" },
+  mit: { label: "MIT", needsApproval: false, color: "text-green-500" },
+  gemma: { label: "Gemma License", needsApproval: false, color: "text-green-500" },
+  llama: { label: "Llama License", needsApproval: true, color: "text-yellow-500" },
+  bigcode: { label: "BigCode", needsApproval: false, color: "text-green-500" },
+  c4ai: { label: "C4AI License", needsApproval: true, color: "text-yellow-500" },
+  proprietary: { label: "Proprietary", needsApproval: false, color: "text-blue-500" },
+  open: { label: "Open", needsApproval: false, color: "text-green-500" },
+};
+
+interface BaseModel {
+  id: string;
+  name: string;
+  provider: string;
+  parameters: string | null;
+  context_length: number | null;
+  is_finetunable: boolean;
+  is_active: boolean;
+  input_price: number;
+  output_price: number;
+  license_type: string;
+  category: string;
+  description: string | null;
+}
 
 type SortOption = "name" | "context" | "params" | "inputPrice" | "outputPrice";
 
@@ -114,18 +94,45 @@ const ModelsCatalog = () => {
   const [finetuneOnly, setFinetuneOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name");
   const [selectedProvider, setSelectedProvider] = useState<string>("all");
-  const [selectedModel, setSelectedModel] = useState<typeof BASE_MODELS[0] | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedLicense, setSelectedLicense] = useState<string>("all");
+  const [selectedModel, setSelectedModel] = useState<BaseModel | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const { models: fineTunedModels, loading: ftLoading } = useModels();
 
+  // Fetch base models from database
+  const { data: baseModels = [], isLoading: baseLoading } = useQuery({
+    queryKey: ["base-models"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("base_models")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      
+      if (error) throw error;
+      return data as BaseModel[];
+    },
+  });
+
   const providers = useMemo(() => {
-    const providerSet = new Set(BASE_MODELS.map(m => m.provider));
+    const providerSet = new Set(baseModels.map(m => m.provider));
     return Array.from(providerSet).sort();
-  }, []);
+  }, [baseModels]);
+
+  const categories = useMemo(() => {
+    const categorySet = new Set(baseModels.map(m => m.category));
+    return Array.from(categorySet).sort();
+  }, [baseModels]);
+
+  const licenses = useMemo(() => {
+    const licenseSet = new Set(baseModels.map(m => m.license_type));
+    return Array.from(licenseSet).sort();
+  }, [baseModels]);
 
   const filteredBaseModels = useMemo(() => {
-    let filtered = BASE_MODELS;
+    let filtered = baseModels;
 
     if (search) {
       const searchLower = search.toLowerCase();
@@ -137,35 +144,44 @@ const ModelsCatalog = () => {
     }
 
     if (finetuneOnly) {
-      filtered = filtered.filter(m => m.finetunable);
+      filtered = filtered.filter(m => m.is_finetunable);
     }
 
     if (selectedProvider !== "all") {
       filtered = filtered.filter(m => m.provider === selectedProvider);
     }
 
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(m => m.category === selectedCategory);
+    }
+
+    if (selectedLicense !== "all") {
+      filtered = filtered.filter(m => m.license_type === selectedLicense);
+    }
+
     // Sort
     filtered = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "context":
-          return b.context - a.context;
+          return (b.context_length || 0) - (a.context_length || 0);
         case "params":
-          return parseFloat(b.params) - parseFloat(a.params);
+          return parseFloat(b.parameters || "0") - parseFloat(a.parameters || "0");
         case "inputPrice":
-          return a.inputPrice - b.inputPrice;
+          return a.input_price - b.input_price;
         case "outputPrice":
-          return a.outputPrice - b.outputPrice;
+          return a.output_price - b.output_price;
         default:
           return a.name.localeCompare(b.name);
       }
     });
 
     return filtered;
-  }, [search, finetuneOnly, selectedProvider, sortBy]);
+  }, [baseModels, search, finetuneOnly, selectedProvider, selectedCategory, selectedLicense, sortBy]);
 
-  const finetuneableCount = BASE_MODELS.filter(m => m.finetunable).length;
+  const finetuneableCount = baseModels.filter(m => m.is_finetunable).length;
 
-  const formatContext = (ctx: number) => {
+  const formatContext = (ctx: number | null) => {
+    if (!ctx) return "-";
     if (ctx >= 1000000) return `${(ctx / 1000000).toFixed(1)}M`;
     if (ctx >= 1000) return `${(ctx / 1000).toFixed(0)}K`;
     return ctx.toString();
@@ -175,10 +191,37 @@ const ModelsCatalog = () => {
     setSearch("");
     setFinetuneOnly(false);
     setSelectedProvider("all");
+    setSelectedCategory("all");
+    setSelectedLicense("all");
     setSortBy("name");
   };
 
-  const hasActiveFilters = search || finetuneOnly || selectedProvider !== "all" || sortBy !== "name";
+  const hasActiveFilters = search || finetuneOnly || selectedProvider !== "all" || selectedCategory !== "all" || selectedLicense !== "all" || sortBy !== "name";
+
+  const getLicenseBadge = (licenseType: string) => {
+    const info = LICENSE_INFO[licenseType] || LICENSE_INFO.open;
+    return (
+      <Badge variant="outline" className={cn("text-xs gap-1", info.color)}>
+        {info.needsApproval ? (
+          <AlertTriangle className="h-3 w-3" />
+        ) : (
+          <CheckCircle className="h-3 w-3" />
+        )}
+        {info.needsApproval ? "Requires License" : "No Approval"}
+      </Badge>
+    );
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "code":
+        return <Code className="h-3 w-3" />;
+      case "multilingual":
+        return <Globe className="h-3 w-3" />;
+      default:
+        return <Sparkles className="h-3 w-3" />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,7 +243,7 @@ const ModelsCatalog = () => {
           <div className="animate-fade-in">
             <h1 className="text-2xl font-semibold text-foreground">Model Catalog</h1>
             <p className="text-muted-foreground mt-1">
-              Explore and compare available models for inference and fine-tuning
+              Explore {baseModels.length} models for inference and fine-tuning
             </p>
           </div>
 
@@ -210,7 +253,7 @@ const ModelsCatalog = () => {
               <TabsList className="bg-secondary border border-border">
                 <TabsTrigger value="base" className="gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Base Models ({BASE_MODELS.length})
+                  Base Models ({baseModels.length})
                 </TabsTrigger>
                 <TabsTrigger value="finetuned" className="gap-2">
                   <Cpu className="h-4 w-4" />
@@ -238,7 +281,7 @@ const ModelsCatalog = () => {
                     onClick={() => setShowFilters(!showFilters)}
                   >
                     <SlidersHorizontal className="h-4 w-4" />
-                    Advanced Filters
+                    Filters
                   </Button>
 
                   <div className="flex items-center gap-2">
@@ -260,7 +303,7 @@ const ModelsCatalog = () => {
                       className="gap-1 text-muted-foreground"
                     >
                       <RotateCcw className="h-3 w-3" />
-                      Reset All
+                      Reset
                     </Button>
                   )}
                 </div>
@@ -269,12 +312,12 @@ const ModelsCatalog = () => {
 
             {/* Advanced Filters Panel */}
             {showFilters && activeTab === "base" && (
-              <div className="flex items-center gap-4 p-4 mt-4 rounded-lg bg-secondary/50 border border-border animate-fade-in">
+              <div className="flex items-center gap-4 p-4 mt-4 rounded-lg bg-secondary/50 border border-border animate-fade-in flex-wrap">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm text-muted-foreground">Provider:</Label>
                   <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                    <SelectTrigger className="w-[150px] bg-background border-border">
-                      <SelectValue placeholder="All providers" />
+                    <SelectTrigger className="w-[140px] bg-background border-border">
+                      <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                       <SelectItem value="all">All Providers</SelectItem>
@@ -286,9 +329,41 @@ const ModelsCatalog = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground">Category:</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-[140px] bg-background border-border">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map(cat => (
+                        <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground">License:</Label>
+                  <Select value={selectedLicense} onValueChange={setSelectedLicense}>
+                    <SelectTrigger className="w-[140px] bg-background border-border">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="all">All Licenses</SelectItem>
+                      {licenses.map(lic => (
+                        <SelectItem key={lic} value={lic}>
+                          {LICENSE_INFO[lic]?.label || lic}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <Label className="text-sm text-muted-foreground">Sort by:</Label>
                   <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                    <SelectTrigger className="w-[150px] bg-background border-border">
+                    <SelectTrigger className="w-[140px] bg-background border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
@@ -305,80 +380,112 @@ const ModelsCatalog = () => {
 
             {/* Base Models Tab */}
             <TabsContent value="base" className="mt-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredBaseModels.map((model, index) => {
-                  const colors = PROVIDER_COLORS[model.provider] || PROVIDER_COLORS.OpenAI;
-                  
-                  return (
-                    <Card
-                      key={model.id}
-                      className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer group animate-fade-in"
-                      style={{ animationDelay: `${index * 30}ms` }}
-                      onClick={() => setSelectedModel(model)}
-                    >
+              {baseLoading ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <Card key={i} className="bg-card border-border">
                       <CardContent className="p-4 space-y-3">
-                        {/* Provider & Name */}
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <div className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
-                              colors.bg, colors.text, colors.border
-                            )}>
-                              {model.provider}
-                            </div>
-                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                              {model.name}
-                            </h3>
-                          </div>
-                          <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-6 w-32" />
+                        <div className="flex gap-2">
+                          <Skeleton className="h-5 w-20" />
+                          <Skeleton className="h-5 w-24" />
                         </div>
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {model.finetunable && (
-                            <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              Finetunable
-                            </Badge>
-                          )}
-                          {model.json && (
-                            <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/30">
-                              <FileJson className="h-3 w-3 mr-1" />
-                              JSON
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Stats */}
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                          <div>
-                            <p className="text-xs text-muted-foreground">CONTEXT</p>
-                            <p className="text-sm font-medium text-foreground">{formatContext(model.context)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">PARAMS</p>
-                            <p className="text-sm font-medium text-foreground">{model.params}</p>
-                          </div>
-                        </div>
-
-                        {/* Pricing */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground">IN:</span>
-                            <span className="text-foreground">${model.inputPrice}/M</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground">OUT:</span>
-                            <span className="text-foreground">${model.outputPrice}/M</span>
-                          </div>
+                        <div className="grid grid-cols-2 gap-2 pt-2">
+                          <Skeleton className="h-8 w-full" />
+                          <Skeleton className="h-8 w-full" />
                         </div>
                       </CardContent>
                     </Card>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {filteredBaseModels.map((model, index) => {
+                    const colors = PROVIDER_COLORS[model.provider] || PROVIDER_COLORS.OpenAI;
+                    
+                    return (
+                      <Card
+                        key={model.id}
+                        className="bg-card border-border hover:border-primary/50 transition-all cursor-pointer group animate-fade-in"
+                        style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
+                        onClick={() => setSelectedModel(model)}
+                      >
+                        <CardContent className="p-4 space-y-3">
+                          {/* Provider & Name */}
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <div className={cn(
+                                "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
+                                colors.bg, colors.text, colors.border
+                              )}>
+                                {model.provider}
+                              </div>
+                              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                {model.name}
+                              </h3>
+                            </div>
+                            <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
 
-              {filteredBaseModels.length === 0 && (
+                          {/* Tags */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {model.is_finetunable && (
+                              <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Finetunable
+                              </Badge>
+                            )}
+                            {model.category === "code" && (
+                              <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-500 border-blue-500/30">
+                                <Code className="h-3 w-3 mr-1" />
+                                Code
+                              </Badge>
+                            )}
+                            {model.category === "multilingual" && (
+                              <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-500 border-violet-500/30">
+                                <Globe className="h-3 w-3 mr-1" />
+                                Multilingual
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* License Badge */}
+                          <div>
+                            {getLicenseBadge(model.license_type)}
+                          </div>
+
+                          {/* Stats */}
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                            <div>
+                              <p className="text-xs text-muted-foreground">CONTEXT</p>
+                              <p className="text-sm font-medium text-foreground">{formatContext(model.context_length)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">PARAMS</p>
+                              <p className="text-sm font-medium text-foreground">{model.parameters || "-"}</p>
+                            </div>
+                          </div>
+
+                          {/* Pricing */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">IN:</span>
+                              <span className="text-foreground">${model.input_price}/M</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground">OUT:</span>
+                              <span className="text-foreground">${model.output_price}/M</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!baseLoading && filteredBaseModels.length === 0 && (
                 <div className="text-center py-12">
                   <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2">No models found</h3>
@@ -474,7 +581,7 @@ const ModelsCatalog = () => {
           {selectedModel && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <div className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
                     PROVIDER_COLORS[selectedModel.provider]?.bg,
@@ -483,14 +590,15 @@ const ModelsCatalog = () => {
                   )}>
                     {selectedModel.provider}
                   </div>
-                  {selectedModel.finetunable && (
+                  {selectedModel.is_finetunable && (
                     <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
                       Finetunable
                     </Badge>
                   )}
+                  {getLicenseBadge(selectedModel.license_type)}
                 </div>
                 <DialogTitle className="text-xl">{selectedModel.name}</DialogTitle>
-                <DialogDescription>{selectedModel.description}</DialogDescription>
+                <DialogDescription>{selectedModel.description || `${selectedModel.provider} ${selectedModel.parameters} parameter model`}</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 pt-4">
@@ -501,15 +609,18 @@ const ModelsCatalog = () => {
                   </div>
                   <div className="p-3 rounded-lg bg-secondary">
                     <p className="text-xs text-muted-foreground mb-1">Parameters</p>
-                    <p className="text-sm font-medium text-foreground">{selectedModel.params}</p>
+                    <p className="text-sm font-medium text-foreground">{selectedModel.parameters || "N/A"}</p>
                   </div>
                   <div className="p-3 rounded-lg bg-secondary">
                     <p className="text-xs text-muted-foreground mb-1">Context Window</p>
-                    <p className="text-sm font-medium text-foreground">{formatContext(selectedModel.context)} tokens</p>
+                    <p className="text-sm font-medium text-foreground">{formatContext(selectedModel.context_length)} tokens</p>
                   </div>
                   <div className="p-3 rounded-lg bg-secondary">
-                    <p className="text-xs text-muted-foreground mb-1">JSON Mode</p>
-                    <p className="text-sm font-medium text-foreground">{selectedModel.json ? "Supported" : "Not supported"}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Category</p>
+                    <p className="text-sm font-medium text-foreground capitalize flex items-center gap-1">
+                      {getCategoryIcon(selectedModel.category)}
+                      {selectedModel.category}
+                    </p>
                   </div>
                 </div>
 
@@ -518,11 +629,11 @@ const ModelsCatalog = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground">Input</p>
-                      <p className="text-lg font-semibold text-foreground">${selectedModel.inputPrice}</p>
+                      <p className="text-lg font-semibold text-foreground">${selectedModel.input_price}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Output</p>
-                      <p className="text-lg font-semibold text-foreground">${selectedModel.outputPrice}</p>
+                      <p className="text-lg font-semibold text-foreground">${selectedModel.output_price}</p>
                     </div>
                   </div>
                 </div>
@@ -532,7 +643,7 @@ const ModelsCatalog = () => {
                     <Sparkles className="h-4 w-4" />
                     Use in Playground
                   </Button>
-                  {selectedModel.finetunable && (
+                  {selectedModel.is_finetunable && (
                     <Button variant="outline" className="flex-1 gap-2">
                       <Cpu className="h-4 w-4" />
                       Fine-tune
