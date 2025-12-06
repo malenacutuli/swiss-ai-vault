@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,8 @@ import {
   Upload,
   Lock,
   Shield,
+  Image as ImageIcon,
+  Eye,
 } from "lucide-react";
 import { useModels } from "@/hooks/useSupabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,6 +80,12 @@ interface UploadedDocument {
   filename: string;
   chunks: number;
   uploadedAt: Date;
+}
+
+interface SelectedImage {
+  file: File;
+  preview: string;
+  base64: string;
 }
 
 const providerModels: ModelInfo[] = [
@@ -130,9 +138,19 @@ const Playground = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [documentsPopoverOpen, setDocumentsPopoverOpen] = useState(false);
   
+  // Vision image state
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  
   const { models: userModels } = useModels();
   const { session } = useAuth();
   const { data: zeroRetentionMode } = useZeroRetentionMode();
+
+  // Check if selected model supports vision
+  const supportsVision = useMemo(() => {
+    const visionModels = ['llava', 'qwen-vl', 'qwen2-vl', 'claude-3-5-sonnet', 'gpt-4o', 'llama3.2-vision'];
+    return visionModels.some(v => selectedModel.toLowerCase().includes(v));
+  }, [selectedModel]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -277,6 +295,49 @@ const Playground = () => {
     }
   };
 
+  // Handle image upload for vision models
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Maximum image size is 10MB");
+      return;
+    }
+
+    // Create preview and base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = (e.target?.result as string).split(',')[1];
+      setSelectedImage({
+        file,
+        preview: URL.createObjectURL(file),
+        base64,
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
+  // Clear selected image
+  const clearSelectedImage = () => {
+    if (selectedImage) {
+      URL.revokeObjectURL(selectedImage.preview);
+      setSelectedImage(null);
+    }
+  };
+
   // Search for similar chunks
   const searchSimilarChunks = async (query: string): Promise<string[]> => {
     if (uploadedDocuments.length === 0 || !session?.access_token) {
@@ -384,17 +445,35 @@ const Playground = () => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !selectedImage) || isLoading) return;
 
     if (!session?.access_token) {
       toast.error("Please sign in to use the playground");
       return;
     }
 
+    // Build user content - handle vision models
+    let userContent: string | Array<{ type: string; text?: string; image_url?: { url: string } }> = input.trim() || "What do you see in this image?";
+    
+    if (selectedImage && supportsVision) {
+      userContent = [
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:${selectedImage.file.type};base64,${selectedImage.base64}`,
+          },
+        },
+        {
+          type: "text",
+          text: input.trim() || "What do you see in this image?",
+        },
+      ];
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: typeof userContent === 'string' ? userContent : input.trim() || "What do you see in this image?",
     };
 
     // Build system prompt with RAG context if documents are uploaded
@@ -419,11 +498,12 @@ const Playground = () => {
     const allMessages = [
       ...(enhancedSystemPrompt ? [{ role: "system" as const, content: enhancedSystemPrompt }] : []),
       ...messages.map(m => ({ role: m.role, content: m.content })),
-      { role: "user" as const, content: input.trim() },
+      { role: "user" as const, content: userContent },
     ];
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    clearSelectedImage();
     setIsLoading(true);
 
     const startTime = Date.now();
@@ -1041,9 +1121,30 @@ const Playground = () => {
               </div>
             )}
 
+            {/* Image preview - show above input when image is selected */}
+            {selectedImage && (
+              <div className="px-4 py-3 bg-muted/30 border-b border-border">
+                <div className="relative inline-block">
+                  <img
+                    src={selectedImage.preview}
+                    alt="Upload preview"
+                    className="max-h-32 rounded-lg border border-border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={clearSelectedImage}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="p-4">
-              <div className="flex gap-2">
-                {/* File Upload Button */}
+              <div className="flex gap-2 items-end">
+                {/* File Upload Button (for documents) */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1067,6 +1168,30 @@ const Playground = () => {
                     <Paperclip className="h-4 w-4" />
                   )}
                 </Button>
+
+                {/* Image Upload Button - only show for vision models */}
+                {supportsVision && (
+                  <>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      id="image-upload"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={isLoading}
+                      className="flex-shrink-0"
+                      title="Upload image for vision"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
                 
                 <Textarea
                   value={input}
@@ -1076,14 +1201,14 @@ const Playground = () => {
                       handleSend();
                     }
                   }}
-                  placeholder="Type a message... (Cmd+Enter to send)"
+                  placeholder={supportsVision ? "Type a message or ask about an image... (Cmd+Enter to send)" : "Type a message... (Cmd+Enter to send)"}
                   className="bg-secondary border-border min-h-[48px] max-h-[120px] resize-none"
                   rows={1}
                   disabled={isLoading}
                 />
                 <Button
                   onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
+                  disabled={(!input.trim() && !selectedImage) || isLoading}
                   className="bg-primary hover:bg-primary/90 px-4"
                 >
                   {isLoading ? (
@@ -1093,9 +1218,18 @@ const Playground = () => {
                   )}
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2">
-                Upload .txt, .md, .pdf, .pptx, or .docx files (max 10MB) to add context for your questions.
-              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <p className="text-[10px] text-muted-foreground">
+                  Upload .txt, .md, .pdf, .pptx, or .docx files (max 10MB) to add context for your questions.
+                </p>
+                {/* Vision capability indicator */}
+                {supportsVision && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 gap-1">
+                    <Eye className="h-3 w-3" />
+                    Vision
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
