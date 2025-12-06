@@ -1078,6 +1078,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string | null
+          data_retention_days: number | null
+          id: string
+          log_retention_days: number | null
+          updated_at: string | null
+          user_id: string
+          zero_retention_mode: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_retention_days?: number | null
+          id?: string
+          log_retention_days?: number | null
+          updated_at?: string | null
+          user_id: string
+          zero_retention_mode?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          data_retention_days?: number | null
+          id?: string
+          log_retention_days?: number | null
+          updated_at?: string | null
+          user_id?: string
+          zero_retention_mode?: boolean | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           avatar_url: string | null
