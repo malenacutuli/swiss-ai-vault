@@ -41,8 +41,12 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    console.log(`Using Supabase URL: ${supabaseUrl?.substring(0, 30)}...`);
+    console.log(`Service role key configured: ${!!supabaseKey}`);
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const payload: WebhookPayload = await req.json();
