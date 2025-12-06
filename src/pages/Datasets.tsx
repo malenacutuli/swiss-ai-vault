@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,7 @@ const sourceIcons: Record<SourceType, typeof Upload> = {
 };
 
 const Datasets = () => {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -708,7 +709,10 @@ const Datasets = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-popover">
-                              <DropdownMenuItem className="cursor-pointer">
+                              <DropdownMenuItem 
+                                className="cursor-pointer"
+                                onClick={() => navigate(`/dashboard/datasets/${dataset.id}`)}
+                              >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View
                               </DropdownMenuItem>
