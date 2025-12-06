@@ -61,6 +61,7 @@ import {
   Loader2,
   Download,
   Building2,
+  Shield,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -455,6 +456,19 @@ const Settings = () => {
 
             {/* API Keys Tab */}
             <TabsContent value="api-keys" className="mt-6 space-y-6">
+              {/* Security Info Banner */}
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                <div className="p-2 rounded-full bg-green-500/20">
+                  <Shield className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Your API keys are securely stored</p>
+                  <p className="text-sm text-muted-foreground">
+                    Keys are hashed with SHA-256 and stored encrypted at rest (AES-256) in Swiss data centers
+                  </p>
+                </div>
+              </div>
+
               <Card className="bg-card border-border">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
