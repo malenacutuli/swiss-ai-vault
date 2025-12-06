@@ -173,6 +173,8 @@ serve(async (req) => {
     }
 
     for (const source of sources) {
+      console.log(`Processing source type: ${source.type}, content: ${source.content.substring(0, 100)}...`);
+      
       if (source.type === "text") {
         combinedContent += source.content + "\n\n";
       } else if (source.type === "url") {
@@ -184,7 +186,9 @@ serve(async (req) => {
         
         // Fetch URL content
         try {
-          const response = await fetch(source.content);
+          const response = await fetch(source.content, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SwissVaultBot/1.0)' }
+          });
           const html = await response.text();
           // Simple HTML to text extraction
           const text = html
@@ -194,12 +198,71 @@ serve(async (req) => {
             .replace(/\s+/g, " ")
             .trim();
           combinedContent += text.substring(0, 10000) + "\n\n";
+          console.log(`Fetched URL content: ${text.substring(0, 200)}...`);
         } catch (e) {
           console.error("Failed to fetch URL:", e);
         }
+      } else if (source.type === "youtube") {
+        // Extract video ID from YouTube URL
+        const videoIdMatch = source.content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (videoIdMatch) {
+          const videoId = videoIdMatch[1];
+          console.log(`Extracting content for YouTube video: ${videoId}`);
+          
+          try {
+            // Fetch video info using oEmbed API (no API key required)
+            const oembedResponse = await fetch(
+              `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+            );
+            
+            if (oembedResponse.ok) {
+              const oembedData = await oembedResponse.json();
+              const title = oembedData.title || '';
+              const author = oembedData.author_name || '';
+              
+              // Add video metadata as context
+              combinedContent += `YouTube Video: "${title}" by ${author}\n\n`;
+              console.log(`YouTube video metadata: ${title} by ${author}`);
+            }
+            
+            // Try to get transcript using a public transcript service
+            try {
+              const transcriptResponse = await fetch(
+                `https://yt.lemnoslife.com/noKey/captions?videoId=${videoId}&lang=en`
+              );
+              
+              if (transcriptResponse.ok) {
+                const transcriptData = await transcriptResponse.json();
+                if (transcriptData?.captions?.length > 0) {
+                  const transcript = transcriptData.captions
+                    .map((c: { text: string }) => c.text)
+                    .join(' ')
+                    .substring(0, 10000);
+                  combinedContent += `Transcript: ${transcript}\n\n`;
+                  console.log(`Got YouTube transcript: ${transcript.substring(0, 200)}...`);
+                }
+              }
+            } catch (transcriptError) {
+              console.log("Could not fetch transcript, using video title only:", transcriptError);
+            }
+          } catch (e) {
+            console.error("Failed to fetch YouTube content:", e);
+            // Fallback: just use the URL as context
+            combinedContent += `YouTube Video URL: ${source.content}\n\n`;
+          }
+        } else {
+          console.warn(`Invalid YouTube URL format: ${source.content}`);
+        }
       }
-      // YouTube would require youtube-transcript-api or similar
     }
+    
+    // Check if we got any content
+    if (!combinedContent.trim()) {
+      console.error("No content could be extracted from sources");
+      throw new Error("Could not extract content from the provided sources. Please check your URLs or provide text content directly.");
+    }
+    
+    console.log(`Total combined content length: ${combinedContent.length} characters`);
 
     // Build prompt for Claude
     const systemPrompt = `You are an expert at creating high-quality training data for AI fine-tuning.

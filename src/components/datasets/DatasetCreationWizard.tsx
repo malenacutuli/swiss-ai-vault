@@ -299,6 +299,30 @@ export const DatasetCreationWizard = ({
         // Handle synthetic generation
         const datasetId = crypto.randomUUID();
 
+        // Auto-detect source type from content
+        const detectSourceType = (content: string): 'text' | 'url' | 'youtube' => {
+          const trimmed = content.trim();
+          if (trimmed.includes('youtube.com/watch') || trimmed.includes('youtu.be/')) {
+            return 'youtube';
+          }
+          if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            return 'url';
+          }
+          return 'text';
+        };
+
+        // Parse sources from content (each line is a source)
+        const parsedSources = sourceContent
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .map(content => ({
+            type: detectSourceType(content),
+            content,
+          }));
+
+        console.log('[DatasetWizard] Parsed sources:', parsedSources);
+
         console.log('[DatasetWizard] Creating synthetic dataset record...');
         const { error: insertError } = await supabase
           .from('datasets')
@@ -333,10 +357,7 @@ export const DatasetCreationWizard = ({
         const { data: result, error: generateError } = await supabase.functions.invoke('generate-synthetic', {
           body: {
             dataset_id: datasetId,
-            sources: [{
-              type: syntheticSource === 'web' ? 'url' : 'text',
-              content: sourceContent,
-            }],
+            sources: parsedSources.length > 0 ? parsedSources : [{ type: 'text', content: sourceContent }],
             config: {
               num_pairs: pairsPerSource,
               question_format: questionFormat,
