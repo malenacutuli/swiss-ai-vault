@@ -62,6 +62,74 @@ serve(async (req) => {
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
     const apiKeyHeader = req.headers.get("apikey") || "";
     
+    // Parse request body first to check for action type
+    const body = await req.json();
+    
+    // Handle embed action (for RAG query embeddings)
+    if (body.action === "embed" && body.text) {
+      // Authenticate user first
+      let embedUserId: string | null = null;
+      
+      if (authHeader.startsWith("Bearer ey")) {
+        const token = authHeader.replace("Bearer ", "").trim();
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (user && !error) {
+          embedUserId = user.id;
+        }
+      }
+      
+      if (!embedUserId) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      const openaiKey = Deno.env.get("OPENAI_API_KEY");
+      if (!openaiKey) {
+        return new Response(
+          JSON.stringify({ error: "OpenAI API key not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      try {
+        const embeddingResponse = await fetch("https://api.openai.com/v1/embeddings", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openaiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "text-embedding-ada-002",
+            input: body.text,
+          }),
+        });
+        
+        const embeddingData = await embeddingResponse.json();
+        
+        if (embeddingData.error) {
+          console.error("[chat-completions] Embedding error:", embeddingData.error);
+          return new Response(
+            JSON.stringify({ error: embeddingData.error.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ embedding: embeddingData.data[0].embedding }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (embedError) {
+        console.error("[chat-completions] Embed request failed:", embedError);
+        return new Response(
+          JSON.stringify({ error: "Failed to generate embedding" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    // Continue with chat completion handling
+    
     let userId: string | null = null;
 
     // Check for custom API key (svk_... or sv_...)
@@ -137,9 +205,8 @@ serve(async (req) => {
       // Continue with default (false) if settings fetch fails
     }
 
-    // Parse request body
-    const body: ChatRequest = await req.json();
-    const { model, messages, temperature = 0.7, max_tokens = 1024, stream = false } = body;
+    // Use the already parsed body for chat completions
+    const { model, messages, temperature = 0.7, max_tokens = 1024, stream = false } = body as ChatRequest;
 
     // Determine which provider to use
     let provider: "openai" | "anthropic" | "vllm" = "openai";
