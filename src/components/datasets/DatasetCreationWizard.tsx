@@ -156,6 +156,7 @@ export const DatasetCreationWizard = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [creationError, setCreationError] = useState<string | null>(null);
+  const [fileUploadProgress, setFileUploadProgress] = useState<string>('');
 
   // Step 1 state
   const [creationMethod, setCreationMethod] = useState<CreationMethod | null>(null);
@@ -353,15 +354,13 @@ export const DatasetCreationWizard = ({
 
         // Handle file uploads for "files" source type
         if (syntheticSource === "files" && syntheticFiles.length > 0) {
-          toast({
-            title: "Uploading files...",
-            description: `Uploading ${syntheticFiles.length} file(s) to storage`,
-          });
-
           // Upload files to Storage first, then pass paths to edge function
           const uploadedFilePaths: string[] = [];
           
-          for (const file of syntheticFiles) {
+          for (let i = 0; i < syntheticFiles.length; i++) {
+            const file = syntheticFiles[i];
+            setFileUploadProgress(`Uploading ${file.name} (${i + 1}/${syntheticFiles.length})...`);
+            
             const filePath = `${user.id}/synthetic-sources/${datasetId}/${Date.now()}-${file.name}`;
             
             console.log(`[DatasetWizard] Uploading file ${file.name} to ${filePath}`);
@@ -386,6 +385,8 @@ export const DatasetCreationWizard = ({
             console.log(`[DatasetWizard] Successfully uploaded ${file.name}`);
             uploadedFilePaths.push(filePath);
           }
+          
+          setFileUploadProgress('Extracting content from documents...');
           
           if (uploadedFilePaths.length === 0) {
             throw new Error('No files were successfully uploaded');
@@ -598,6 +599,7 @@ export const DatasetCreationWizard = ({
       });
     } finally {
       setIsProcessing(false);
+      setFileUploadProgress('');
     }
   };
 
@@ -1196,15 +1198,24 @@ export const DatasetCreationWizard = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
-          <Button
-            variant="outline"
-            onClick={() => currentStep > 1 ? setCurrentStep(currentStep - 1) : handleClose()}
-            disabled={isProcessing}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {currentStep === 1 ? "Cancel" : "Back"}
-          </Button>
+        <div className="flex flex-col gap-3 pt-4 border-t border-border mt-4">
+          {/* File Upload Progress */}
+          {fileUploadProgress && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span>{fileUploadProgress}</span>
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              onClick={() => currentStep > 1 ? setCurrentStep(currentStep - 1) : handleClose()}
+              disabled={isProcessing}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {currentStep === 1 ? "Cancel" : "Back"}
+            </Button>
 
           {currentStep < 3 ? (
             <Button
@@ -1251,6 +1262,7 @@ export const DatasetCreationWizard = ({
               )}
             </Button>
           )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
