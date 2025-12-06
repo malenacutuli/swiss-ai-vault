@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -154,6 +155,7 @@ export const DatasetCreationWizard = ({
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
 
   // Step 1 state
   const [creationMethod, setCreationMethod] = useState<CreationMethod | null>(null);
@@ -517,12 +519,54 @@ export const DatasetCreationWizard = ({
 
       onSuccess();
       handleClose();
-    } catch (err) {
-      const error = err as Error;
-      console.error('[DatasetWizard] Error:', error);
+    } catch (err: any) {
+      console.error('[DatasetWizard] Error:', err);
+      
+      // Try to extract meaningful error message
+      let errorMessage = "Failed to create dataset";
+      
+      if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // If it's a Supabase function error, try to get the body
+      if (err.context?.body) {
+        try {
+          const body = typeof err.context.body === 'string' 
+            ? JSON.parse(err.context.body) 
+            : err.context.body;
+          if (body.error) {
+            errorMessage = body.error;
+          }
+          if (body.message) {
+            errorMessage = body.message;
+          }
+          if (body.details) {
+            errorMessage += `: ${body.details}`;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      
+      // Check for specific error types and provide user-friendly messages
+      if (errorMessage.includes("insufficient_content") || errorMessage.includes("No content extracted")) {
+        errorMessage = "Not enough content extracted from sources. For YouTube videos, ensure they have captions enabled. For URLs, make sure the pages are publicly accessible.";
+      } else if (errorMessage.includes("No transcript") || errorMessage.includes("transcript")) {
+        errorMessage = "Could not get transcript from YouTube video. Please try a video with captions or use a different source.";
+      } else if (errorMessage.includes("Q&A pairs") || errorMessage.includes("generate")) {
+        errorMessage = "Could not generate Q&A pairs from the provided content. The content may be too short or not suitable for Q&A generation.";
+      } else if (errorMessage.includes("Edge Function returned a non-2xx status code")) {
+        errorMessage = "The server encountered an error processing your request. Please check your inputs and try again.";
+      } else if (errorMessage.includes("convert") || errorMessage.includes("format")) {
+        errorMessage = "Could not convert dataset to chat format. Please ensure your dataset has instruction/output, question/answer, or messages columns.";
+      }
+      
+      setCreationError(errorMessage);
+      
       toast({
         title: "Error creating dataset",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -545,6 +589,7 @@ export const DatasetCreationWizard = ({
     setHfSubset("");
     setHfSplit("train");
     setHfMaxRows(1000);
+    setCreationError(null);
     onClose();
   };
 
@@ -1006,6 +1051,31 @@ export const DatasetCreationWizard = ({
           {/* STEP 3 */}
           {currentStep === 3 && (
             <div className="space-y-6 animate-fade-in">
+              {/* Error Alert */}
+              {creationError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Creation Failed</AlertTitle>
+                  <AlertDescription>
+                    <p className="mb-2">{creationError}</p>
+                    <div className="text-sm">
+                      <strong>Suggestions:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        {(creationError.includes("YouTube") || creationError.includes("transcript")) && (
+                          <li>Try using videos with subtitles/captions enabled</li>
+                        )}
+                        {(creationError.includes("content") || creationError.includes("extract")) && (
+                          <li>Provide more text content (at least 500 characters)</li>
+                        )}
+                        {creationError.includes("convert") && (
+                          <li>Ensure your HuggingFace dataset has instruction/output or question/answer columns</li>
+                        )}
+                        <li>Try using the "Text" source option and paste content directly</li>
+                      </ul>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
               {/* Summary */}
               <Card className="bg-secondary/30 border-border">
                 <CardContent className="p-4 space-y-3">
