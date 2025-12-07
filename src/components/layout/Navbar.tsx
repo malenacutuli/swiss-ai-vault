@@ -3,9 +3,12 @@ import { SwissFlag } from "@/components/icons/SwissFlag";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -20,26 +23,27 @@ export const Navbar = () => {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Features
+              {t('nav.features')}
             </a>
             <a href="#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Models
+              {t('nav.models')}
             </a>
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Pricing
+              {t('nav.pricing')}
             </a>
             <Link to="/docs/api" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              API Docs
+              {t('nav.apiDocs')}
             </Link>
           </div>
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher />
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">Sign In</Link>
+              <Link to="/auth">{t('nav.signIn')}</Link>
             </Button>
             <Button variant="swiss" size="sm" asChild>
-              <Link to="/auth">Get Started</Link>
+              <Link to="/auth">{t('nav.getStarted')}</Link>
             </Button>
           </div>
 
@@ -57,23 +61,26 @@ export const Navbar = () => {
           <div className="md:hidden py-4 border-t border-border/50">
             <div className="flex flex-col gap-4">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Features
+                {t('nav.features')}
               </a>
               <a href="#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Models
+                {t('nav.models')}
               </a>
               <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Pricing
+                {t('nav.pricing')}
               </a>
               <Link to="/docs/api" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                API Docs
+                {t('nav.apiDocs')}
               </Link>
+              <div className="pt-2">
+                <LanguageSwitcher />
+              </div>
               <div className="flex gap-3 pt-4 border-t border-border/50">
                 <Button variant="ghost" size="sm" className="flex-1" asChild>
-                  <Link to="/auth">Sign In</Link>
+                  <Link to="/auth">{t('nav.signIn')}</Link>
                 </Button>
                 <Button variant="swiss" size="sm" className="flex-1" asChild>
-                  <Link to="/auth">Get Started</Link>
+                  <Link to="/auth">{t('nav.getStarted')}</Link>
                 </Button>
               </div>
             </div>

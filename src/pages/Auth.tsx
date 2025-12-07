@@ -5,11 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Shield, Lock, Mail, User, ArrowLeft } from 'lucide-react';
 import { SwissFlag } from '@/components/icons/SwissFlag';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 // Google icon component
 const GoogleIcon = () => (
@@ -44,6 +46,7 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  const { t } = useTranslation();
   
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -75,7 +78,7 @@ export default function Auth() {
     
     if (error) {
       toast({
-        title: 'OAuth Error',
+        title: t('auth.oauthError'),
         description: error.message,
         variant: 'destructive',
       });
@@ -95,8 +98,8 @@ export default function Auth() {
     
     if (!loginEmail || !loginPassword) {
       toast({
-        title: 'Error',
-        description: 'Please fill in all fields',
+        title: t('common.error'),
+        description: t('auth.fillAllFields'),
         variant: 'destructive',
       });
       return;
@@ -108,16 +111,16 @@ export default function Auth() {
 
     if (error) {
       toast({
-        title: 'Login failed',
+        title: t('auth.loginFailed'),
         description: error.message === 'Invalid login credentials' 
-          ? 'Invalid email or password. Please try again.'
+          ? t('auth.invalidCredentials')
           : error.message,
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Welcome back!',
-        description: 'You have successfully logged in.',
+        title: t('auth.welcomeBack'),
+        description: t('auth.loginSuccess'),
       });
     }
   };
@@ -127,8 +130,8 @@ export default function Auth() {
     
     if (!signupEmail || !signupPassword || !signupConfirmPassword) {
       toast({
-        title: 'Error',
-        description: 'Please fill in all required fields',
+        title: t('common.error'),
+        description: t('auth.fillRequiredFields'),
         variant: 'destructive',
       });
       return;
@@ -136,8 +139,8 @@ export default function Auth() {
 
     if (signupPassword !== signupConfirmPassword) {
       toast({
-        title: 'Error',
-        description: 'Passwords do not match',
+        title: t('common.error'),
+        description: t('auth.passwordsNoMatch'),
         variant: 'destructive',
       });
       return;
@@ -145,8 +148,8 @@ export default function Auth() {
 
     if (signupPassword.length < 6) {
       toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters',
+        title: t('common.error'),
+        description: t('auth.passwordMinLength'),
         variant: 'destructive',
       });
       return;
@@ -159,23 +162,23 @@ export default function Auth() {
     if (error) {
       if (error.message.includes('already registered')) {
         toast({
-          title: 'Account exists',
-          description: 'An account with this email already exists. Please log in instead.',
+          title: t('auth.accountExists'),
+          description: t('auth.accountExistsDesc'),
           variant: 'destructive',
         });
         setActiveTab('login');
         setLoginEmail(signupEmail);
       } else {
         toast({
-          title: 'Signup failed',
+          title: t('auth.signupFailed'),
           description: error.message,
           variant: 'destructive',
         });
       }
     } else {
       toast({
-        title: 'Account created!',
-        description: 'Welcome to SwissVault.ai. Redirecting to dashboard...',
+        title: t('auth.accountCreated'),
+        description: t('auth.accountCreatedDesc'),
       });
     }
   };
@@ -187,11 +190,14 @@ export default function Auth() {
         <div className="container flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to home</span>
+            <span className="text-sm">{t('auth.backToHome')}</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            <span className="font-semibold">SwissVault.ai</span>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              <span className="font-semibold">SwissVault.ai</span>
+            </div>
           </div>
         </div>
       </header>
@@ -204,9 +210,9 @@ export default function Auth() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 mb-4">
               <SwissFlag className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">Welcome to SwissVault.ai</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('auth.welcomeTitle')}</h1>
             <p className="text-muted-foreground text-sm">
-              The World's Most Private AI Ecosystem
+              {t('auth.welcomeSubtitle')}
             </p>
           </div>
 
@@ -214,8 +220,8 @@ export default function Auth() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <CardHeader className="pb-4">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Log In</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                  <TabsTrigger value="login">{t('auth.logIn')}</TabsTrigger>
+                  <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
                 </TabsList>
               </CardHeader>
 
@@ -234,7 +240,7 @@ export default function Auth() {
                     ) : (
                       <GoogleIcon />
                     )}
-                    <span className="ml-2">Continue with Google</span>
+                    <span className="ml-2">{t('auth.continueWithGoogle')}</span>
                   </Button>
                   <Button
                     type="button"
@@ -248,7 +254,7 @@ export default function Auth() {
                     ) : (
                       <GitHubIcon />
                     )}
-                    <span className="ml-2">Continue with GitHub</span>
+                    <span className="ml-2">{t('auth.continueWithGitHub')}</span>
                   </Button>
                 </div>
 
@@ -258,7 +264,7 @@ export default function Auth() {
                     <span className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">or continue with email</span>
+                    <span className="bg-card px-2 text-muted-foreground">{t('auth.orContinueWithEmail')}</span>
                   </div>
                 </div>
 
@@ -266,13 +272,13 @@ export default function Auth() {
                 <TabsContent value="login" className="mt-0">
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-email">Email</Label>
+                      <Label htmlFor="login-email">{t('auth.email')}</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           id="login-email"
                           type="email"
-                          placeholder="you@example.com"
+                          placeholder={t('auth.emailPlaceholder')}
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
                           className="pl-10"
@@ -282,7 +288,7 @@ export default function Auth() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="login-password">Password</Label>
+                      <Label htmlFor="login-password">{t('auth.password')}</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -308,7 +314,7 @@ export default function Auth() {
                       {isLoading ? (
                         <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        'Log In'
+                        t('auth.logIn')
                       )}
                     </Button>
                   </form>
@@ -318,13 +324,13 @@ export default function Auth() {
                 <TabsContent value="signup" className="mt-0">
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="full-name">Full Name (optional)</Label>
+                      <Label htmlFor="full-name">{t('auth.fullName')}</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           id="full-name"
                           type="text"
-                          placeholder="John Doe"
+                          placeholder={t('auth.fullNamePlaceholder')}
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           className="pl-10"
@@ -334,13 +340,13 @@ export default function Auth() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
+                      <Label htmlFor="signup-email">{t('auth.email')}</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                           id="signup-email"
                           type="email"
-                          placeholder="you@example.com"
+                          placeholder={t('auth.emailPlaceholder')}
                           value={signupEmail}
                           onChange={(e) => setSignupEmail(e.target.value)}
                           className="pl-10"
@@ -350,7 +356,7 @@ export default function Auth() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
+                      <Label htmlFor="signup-password">{t('auth.password')}</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -373,7 +379,7 @@ export default function Auth() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirm Password</Label>
+                      <Label htmlFor="confirm-password">{t('auth.confirmPassword')}</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -392,7 +398,7 @@ export default function Auth() {
                       {isLoading ? (
                         <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        'Create Account'
+                        t('auth.createAccount')
                       )}
                     </Button>
                   </form>
@@ -402,7 +408,7 @@ export default function Auth() {
                 <div className="mt-6 pt-4 border-t border-border/50">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <SwissFlag className="w-4 h-4" />
-                    <span>Your data is stored securely in Switzerland with full GDPR compliance</span>
+                    <span>{t('auth.dataResidency')}</span>
                   </div>
                 </div>
               </CardContent>
@@ -411,10 +417,10 @@ export default function Auth() {
 
           {/* Terms */}
           <p className="text-center text-xs text-muted-foreground mt-4">
-            By continuing, you agree to our{' '}
-            <a href="#" className="text-primary hover:underline">Terms of Service</a>
-            {' '}and{' '}
-            <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+            {t('auth.termsPrefix')}{' '}
+            <a href="#" className="text-primary hover:underline">{t('auth.termsOfService')}</a>
+            {' '}{t('common.and')}{' '}
+            <a href="#" className="text-primary hover:underline">{t('auth.privacyPolicy')}</a>
           </p>
         </div>
       </div>

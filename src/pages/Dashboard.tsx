@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats, useRecentActivity, formatNumber } from "@/hooks/useDashboardStats";
+import { useTranslation } from "react-i18next";
 import {
   FolderKanban,
   Database,
@@ -22,74 +23,75 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const quickActions = [
-  {
-    title: "Create New Project",
-    description: "Start a new AI fine-tuning project",
-    icon: Plus,
-    href: "/dashboard/projects",
-    variant: "primary" as const,
-  },
-  {
-    title: "Upload Dataset",
-    description: "Add training data to your project",
-    icon: Upload,
-    href: "/dashboard/datasets",
-    variant: "secondary" as const,
-  },
-  {
-    title: "View Models",
-    description: "Manage your fine-tuned models",
-    icon: Eye,
-    href: "/dashboard/models",
-    variant: "secondary" as const,
-  },
-  {
-    title: "API Docs",
-    description: "Learn how to integrate",
-    icon: BookOpen,
-    href: "/docs/api",
-    variant: "secondary" as const,
-  },
-];
-
 const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user } = useAuth();
   const { stats, loading: statsLoading } = useDashboardStats();
   const { activities, loading: activityLoading } = useRecentActivity();
+  const { t } = useTranslation();
 
   // Get user's first name for greeting
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || t('common.there');
+
+  const quickActions = [
+    {
+      title: t('dashboard.createProject'),
+      description: t('dashboard.createProjectDesc'),
+      icon: Plus,
+      href: "/dashboard/projects",
+      variant: "primary" as const,
+    },
+    {
+      title: t('dashboard.uploadDataset'),
+      description: t('dashboard.uploadDatasetDesc'),
+      icon: Upload,
+      href: "/dashboard/datasets",
+      variant: "secondary" as const,
+    },
+    {
+      title: t('dashboard.viewModels'),
+      description: t('dashboard.viewModelsDesc'),
+      icon: Eye,
+      href: "/dashboard/models",
+      variant: "secondary" as const,
+    },
+    {
+      title: t('nav.apiDocs'),
+      description: t('dashboard.apiDocsDesc'),
+      icon: BookOpen,
+      href: "/docs/api",
+      variant: "secondary" as const,
+    },
+  ];
 
   // Build stats cards with real data
   const statsCards = [
     {
-      title: "Total Projects",
+      title: t('dashboard.totalProjects'),
       value: formatNumber(stats.totalProjects),
       icon: FolderKanban,
       color: "text-info",
       bgColor: "bg-info/10",
     },
     {
-      title: "Dataset Rows",
+      title: t('dashboard.datasetRows'),
       value: formatNumber(stats.totalDatasetRows),
-      subtitle: "total",
+      subtitle: t('common.total'),
       icon: Database,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
-      title: "Fine-tuned Models",
+      title: t('dashboard.finetunedModels'),
       value: formatNumber(stats.totalModels),
       icon: Cpu,
       color: "text-warning",
       bgColor: "bg-warning/10",
     },
     {
-      title: "API Calls",
+      title: t('dashboard.apiCalls'),
       value: formatNumber(stats.apiCallsThisMonth),
-      subtitle: "this month",
+      subtitle: t('common.thisMonth'),
       icon: Activity,
       color: "text-primary",
       bgColor: "bg-primary/10",
@@ -115,10 +117,10 @@ const Dashboard = () => {
           {/* Welcome message */}
           <div className="animate-fade-in">
             <h1 className="text-2xl font-semibold text-foreground">
-              Welcome back, <span className="text-primary">{firstName}</span>
+              {t('dashboard.welcomeBack')}, <span className="text-primary">{firstName}</span>
             </h1>
             <p className="text-muted-foreground mt-1">
-              Here's what's happening with your AI projects today.
+              {t('dashboard.welcomeMessage')}
             </p>
           </div>
 
@@ -162,9 +164,9 @@ const Dashboard = () => {
             {/* Recent Activity */}
             <Card className="bg-card border-border animate-fade-in animate-delay-300">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-foreground">Recent Activity</CardTitle>
+                <CardTitle className="text-foreground">{t('dashboard.recentActivity')}</CardTitle>
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  View all
+                  {t('common.viewAll')}
                   <ArrowUpRight className="ml-1 h-4 w-4" />
                 </Button>
               </CardHeader>
@@ -185,9 +187,9 @@ const Dashboard = () => {
                   // Empty state
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">No recent activity</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.noActivity')}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Create a project or upload a dataset to get started
+                      {t('dashboard.noActivityDesc')}
                     </p>
                   </div>
                 ) : (
@@ -227,7 +229,7 @@ const Dashboard = () => {
             {/* Quick Actions */}
             <Card className="bg-card border-border animate-fade-in animate-delay-400">
               <CardHeader>
-                <CardTitle className="text-foreground">Quick Actions</CardTitle>
+                <CardTitle className="text-foreground">{t('dashboard.quickActions')}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
                 {quickActions.map((action) => (

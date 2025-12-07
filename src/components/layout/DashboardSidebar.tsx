@@ -33,39 +33,41 @@ import { SwissFlag } from "@/components/icons/SwissFlag";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface DashboardSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
 }
 
-const navItems = [
-  { icon: Home, label: "Dashboard", href: "/dashboard" },
-  { icon: FolderKanban, label: "Projects", href: "/dashboard/projects" },
-  { icon: Database, label: "Datasets", href: "/dashboard/datasets" },
-  { icon: SlidersHorizontal, label: "Fine-tuning", href: "/dashboard/finetuning" },
-  { icon: LayoutTemplate, label: "Templates", href: "/dashboard/templates" },
-  { icon: BarChart3, label: "Evaluations", href: "/dashboard/evaluations" },
-  { icon: Cpu, label: "Your Models", href: "/dashboard/models" },
-  { icon: Library, label: "Model Catalog", href: "/dashboard/catalog" },
-  { icon: Play, label: "Playground", href: "/dashboard/playground" },
-  { icon: Activity, label: "Traces", href: "/dashboard/traces" },
-  { icon: TrendingUp, label: "Usage Stats", href: "/dashboard/stats" },
-  { icon: Shield, label: "Compliance", href: "/dashboard/admin/compliance" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-];
-
 export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { icon: Home, label: t('sidebar.dashboard'), href: "/dashboard" },
+    { icon: FolderKanban, label: t('sidebar.projects'), href: "/dashboard/projects" },
+    { icon: Database, label: t('sidebar.datasets'), href: "/dashboard/datasets" },
+    { icon: SlidersHorizontal, label: t('sidebar.finetuning'), href: "/dashboard/finetuning" },
+    { icon: LayoutTemplate, label: t('sidebar.templates'), href: "/dashboard/templates" },
+    { icon: BarChart3, label: t('sidebar.evaluations'), href: "/dashboard/evaluations" },
+    { icon: Cpu, label: t('sidebar.models'), href: "/dashboard/models" },
+    { icon: Library, label: t('sidebar.catalog'), href: "/dashboard/catalog" },
+    { icon: Play, label: t('sidebar.playground'), href: "/dashboard/playground" },
+    { icon: Activity, label: t('sidebar.traces'), href: "/dashboard/traces" },
+    { icon: TrendingUp, label: t('sidebar.stats'), href: "/dashboard/stats" },
+    { icon: Shield, label: t('sidebar.compliance'), href: "/dashboard/admin/compliance" },
+    { icon: Settings, label: t('sidebar.settings'), href: "/dashboard/settings" },
+  ];
 
   const handleSignOut = async () => {
     await signOut();
     toast({
-      title: "Signed out",
-      description: "You have been signed out successfully.",
+      title: t('auth.signedOut'),
+      description: t('auth.signedOutDescription'),
     });
     navigate("/");
   };
@@ -74,7 +76,7 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
     ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
     : user?.email?.substring(0, 2).toUpperCase() || 'U';
 
-  const userName = user?.user_metadata?.full_name || 'User';
+  const userName = user?.user_metadata?.full_name || t('common.user');
   const userEmail = user?.email || '';
 
   return (
@@ -146,7 +148,7 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
             ) : (
               <>
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Collapse
+                {t('common.collapse')}
               </>
             )}
           </Button>
@@ -184,19 +186,19 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="/dashboard/settings">
                   <User className="mr-2 h-4 w-4" />
-                  Profile
+                  {t('common.profile')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="/dashboard/settings">
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Billing
+                  {t('common.billing')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="/dashboard/settings">
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  {t('sidebar.settings')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -205,7 +207,7 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                {t('auth.logOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
