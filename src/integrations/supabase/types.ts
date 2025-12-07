@@ -259,6 +259,307 @@ export type Database = {
           },
         ]
       }
+      chat_attachments: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          encrypted_preview: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          message_id: string | null
+          storage_path: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          encrypted_preview?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          message_id?: string | null
+          storage_path: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          encrypted_preview?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          message_id?: string | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_attachments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_conversations: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          encryption_key_hash: string
+          id: string
+          is_encrypted: boolean | null
+          is_shared: boolean | null
+          last_message_at: string | null
+          message_count: number | null
+          model_id: string
+          organization_id: string | null
+          share_token: string | null
+          system_prompt: string | null
+          title: string
+          total_tokens: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encryption_key_hash: string
+          id?: string
+          is_encrypted?: boolean | null
+          is_shared?: boolean | null
+          last_message_at?: string | null
+          message_count?: number | null
+          model_id: string
+          organization_id?: string | null
+          share_token?: string | null
+          system_prompt?: string | null
+          title?: string
+          total_tokens?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encryption_key_hash?: string
+          id?: string
+          is_encrypted?: boolean | null
+          is_shared?: boolean | null
+          last_message_at?: string | null
+          message_count?: number | null
+          model_id?: string
+          organization_id?: string | null
+          share_token?: string | null
+          system_prompt?: string | null
+          title?: string
+          total_tokens?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_integration_data: {
+        Row: {
+          data_type: string
+          encrypted_content: string | null
+          external_id: string
+          id: string
+          integration_id: string
+          metadata: Json | null
+          snippet: string | null
+          synced_at: string | null
+          title: string | null
+        }
+        Insert: {
+          data_type: string
+          encrypted_content?: string | null
+          external_id: string
+          id?: string
+          integration_id: string
+          metadata?: Json | null
+          snippet?: string | null
+          synced_at?: string | null
+          title?: string | null
+        }
+        Update: {
+          data_type?: string
+          encrypted_content?: string | null
+          external_id?: string
+          id?: string
+          integration_id?: string
+          metadata?: Json | null
+          snippet?: string | null
+          synced_at?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_integration_data_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "chat_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_integrations: {
+        Row: {
+          created_at: string | null
+          encrypted_access_token: string
+          encrypted_refresh_token: string | null
+          id: string
+          integration_name: string
+          integration_type: string
+          is_active: boolean | null
+          last_synced_at: string | null
+          metadata: Json | null
+          organization_id: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          encrypted_access_token: string
+          encrypted_refresh_token?: string | null
+          id?: string
+          integration_name: string
+          integration_type: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          encrypted_access_token?: string
+          encrypted_refresh_token?: string | null
+          id?: string
+          integration_name?: string
+          integration_type?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          credits_used: number | null
+          encrypted_content: string
+          finish_reason: string | null
+          has_attachments: boolean | null
+          id: string
+          latency_ms: number | null
+          model_used: string | null
+          role: string
+          token_count: number | null
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          credits_used?: number | null
+          encrypted_content: string
+          finish_reason?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          role: string
+          token_count?: number | null
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          credits_used?: number | null
+          encrypted_content?: string
+          finish_reason?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          role?: string
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_shared_conversations: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          id: string
+          permission: string
+          shared_by_user_id: string | null
+          shared_with_user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          permission?: string
+          shared_by_user_id?: string | null
+          shared_with_user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          permission?: string
+          shared_by_user_id?: string | null
+          shared_with_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_shared_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           created_at: string
