@@ -49,14 +49,14 @@ const VaultChat = () => {
   const loadConversations = async () => {
     try {
       const { data, error } = await supabase
-        .from('vault_chat_conversations')
+        .from('vault_chat_conversations' as any)
         .select('*')
         .is('deleted_at', null)
         .order('last_message_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setConversations((data as Conversation[]) || []);
+      setConversations((data as unknown as Conversation[]) || []);
       setLoading(false);
     } catch (error) {
       console.error('[Vault Chat] Error loading conversations:', error);
@@ -105,7 +105,7 @@ const VaultChat = () => {
 
       // Create conversation in database
       const { data, error } = await supabase
-        .from('vault_chat_conversations')
+        .from('vault_chat_conversations' as any)
         .insert({
           user_id: user.id,
           title: 'New Conversation',
@@ -119,17 +119,18 @@ const VaultChat = () => {
       if (error) throw error;
 
       // Update encryption key storage with real conversation ID
+      const convData = data as unknown as Conversation;
       const keyData = await chatEncryption.getKey(tempId);
       if (keyData) {
-        await chatEncryption.storeKey((data as Conversation).id, keyData);
+        await chatEncryption.storeKey(convData.id, keyData);
         await chatEncryption.deleteKey(tempId);
       }
 
       // Select the new conversation
-      setSelectedConversation((data as Conversation).id);
+      setSelectedConversation(convData.id);
       setChatSidebarOpen(false);
 
-      console.log('[Vault Chat] ✅ Created encrypted conversation:', (data as Conversation).id);
+      console.log('[Vault Chat] ✅ Created encrypted conversation:', convData.id);
     } catch (error) {
       console.error('[Vault Chat] ❌ Error creating conversation:', error);
       toast({
