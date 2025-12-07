@@ -84,7 +84,8 @@
     "features": "Features",
     "pricing": "Pricing",
     "signIn": "Sign In",
-    "getStarted": "Get Started"
+    "getStarted": "Get Started",
+    "earlyAccess": "Early Access"
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -430,7 +431,9 @@
       "title": "Fine-tune AI Models with Swiss Precision",
       "subtitle": "Enterprise-grade AI fine-tuning platform with guaranteed Swiss data residency. Train, evaluate, and deploy custom models with complete data sovereignty.",
       "cta": "Start Free Trial",
-      "docs": "View Documentation"
+      "docs": "View Documentation",
+      "earlyAccess": "Sign Up for Early Access",
+      "scheduleDemo": "Schedule Demo"
     },
     "features": {
       "title": "Enterprise-Grade Features",
@@ -446,10 +449,11 @@
     },
     "cta": {
       "title": "Ready to Fine-Tune with",
-      "subtitle": "Start building custom AI models today. Free tier includes 10K API calls and 2 fine-tuning jobs per month.",
+      "subtitle": "Be among the first to experience enterprise-grade AI fine-tuning with Swiss data sovereignty.",
       "button": "Get Started Free",
+      "earlyAccess": "Sign Up for Early Access",
       "demo": "Schedule Demo",
-      "noCard": "No credit card required • Setup in under 5 minutes"
+      "noCard": "Limited spots available • Be first in line"
     },
     "footer": {
       "product": "Product",
