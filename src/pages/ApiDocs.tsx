@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,20 @@ import {
   ChevronRight,
   ExternalLink,
   Play,
-  ArrowLeft
+  ArrowLeft,
+  Download,
+  FileJson,
+  FileCode,
+  Zap
 } from 'lucide-react';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { getOpenApiJson, getOpenApiYaml } from '@/lib/openapi-spec';
+
+const SwaggerUIWrapper = lazy(() => 
+  import('@/components/api-docs/SwaggerUIWrapper').then(m => ({ default: m.SwaggerUIWrapper }))
+);
 
 interface Endpoint {
   id: string;
@@ -968,6 +977,7 @@ export default function ApiDocs() {
   const [activeEndpoint, setActiveEndpoint] = useState('auth-overview');
   const [apiKey, setApiKey] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'reference' | 'explorer'>('reference');
   const { toast } = useToast();
 
   const currentCategory = categories.find(c => c.id === activeCategory);
@@ -985,6 +995,28 @@ export default function ApiDocs() {
     return code
       .replace(/YOUR_API_KEY/g, apiKey)
       .replace(/sv_your_api_key/g, apiKey);
+  };
+
+  const handleDownloadJson = () => {
+    const blob = new Blob([getOpenApiJson()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'swissvault-openapi.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Downloaded OpenAPI JSON' });
+  };
+
+  const handleDownloadYaml = () => {
+    const blob = new Blob([getOpenApiYaml()], { type: 'text/yaml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'swissvault-openapi.yaml';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Downloaded OpenAPI YAML' });
   };
 
   return (
@@ -1005,6 +1037,33 @@ export default function ApiDocs() {
             <span className="text-sm font-medium text-muted-foreground">API Documentation</span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Tab Switcher */}
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab('reference')}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  activeTab === 'reference'
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Reference
+              </button>
+              <button
+                onClick={() => setActiveTab('explorer')}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5",
+                  activeTab === 'explorer'
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                API Explorer
+              </button>
+            </div>
+            <div className="h-6 w-px bg-border" />
             <Link to="/dashboard">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -1018,7 +1077,128 @@ export default function ApiDocs() {
         </div>
       </header>
 
-      <div className="flex">
+      {activeTab === 'explorer' ? (
+        /* Interactive API Explorer */
+        <div className="flex">
+          <aside className="sticky top-16 h-[calc(100vh-4rem)] w-64 border-r border-border bg-muted/30 p-4 space-y-4">
+            {/* API Key Input for Explorer */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Your API Key
+              </label>
+              <Input
+                type="password"
+                placeholder="sv_..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="mt-1.5 text-xs"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Pre-fill auth for "Try it out"
+              </p>
+            </div>
+            
+            <div className="border-t border-border pt-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Download Spec
+              </h3>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start gap-2"
+                  onClick={handleDownloadJson}
+                >
+                  <FileJson className="h-4 w-4" />
+                  OpenAPI JSON
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start gap-2"
+                  onClick={handleDownloadYaml}
+                >
+                  <FileCode className="h-4 w-4" />
+                  OpenAPI YAML
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Import to Tools
+              </h3>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    handleDownloadJson();
+                    toast({ 
+                      title: 'Import to Postman',
+                      description: 'Open Postman → Import → Upload the downloaded JSON file'
+                    });
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Postman Collection
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Generate SDK
+              </h3>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    window.open('https://editor.swagger.io/', '_blank');
+                    toast({
+                      title: 'Generate SDK',
+                      description: 'Paste the OpenAPI spec in Swagger Editor → Generate Client → Python/TypeScript'
+                    });
+                  }}
+                >
+                  <FileCode className="h-4 w-4" />
+                  Python SDK
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    window.open('https://editor.swagger.io/', '_blank');
+                    toast({
+                      title: 'Generate SDK',
+                      description: 'Paste the OpenAPI spec in Swagger Editor → Generate Client → TypeScript'
+                    });
+                  }}
+                >
+                  <FileCode className="h-4 w-4" />
+                  TypeScript SDK
+                </Button>
+              </div>
+            </div>
+          </aside>
+          
+          <main className="flex-1 p-6">
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-96">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            }>
+              <SwaggerUIWrapper apiKey={apiKey} />
+            </Suspense>
+          </main>
+        </div>
+      ) : (
+        /* Reference Documentation */
+        <div className="flex">
         {/* Left Sidebar - Categories */}
         <aside className="sticky top-16 h-[calc(100vh-4rem)] w-64 border-r border-border bg-muted/30 overflow-y-auto">
           <div className="p-4 space-y-1">
@@ -1275,10 +1455,10 @@ export default function ApiDocs() {
 
               {/* Try It Button */}
               <div className="pt-4 border-t border-border">
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => setActiveTab('explorer')}>
                   <Play className="h-4 w-4" />
-                  Try it in Playground
-                  <ExternalLink className="h-3 w-3" />
+                  Try it in API Explorer
+                  <Zap className="h-3 w-3" />
                 </Button>
               </div>
             </div>
@@ -1303,8 +1483,31 @@ export default function ApiDocs() {
               <a href="#" className="block text-muted-foreground hover:text-foreground py-1">Error Codes</a>
             )}
           </nav>
+          
+          <div className="mt-6 pt-4 border-t border-border">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Downloads
+            </h3>
+            <div className="space-y-2">
+              <button 
+                onClick={handleDownloadJson}
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-1"
+              >
+                <FileJson className="h-3.5 w-3.5" />
+                OpenAPI JSON
+              </button>
+              <button 
+                onClick={handleDownloadYaml}
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-1"
+              >
+                <FileCode className="h-3.5 w-3.5" />
+                OpenAPI YAML
+              </button>
+            </div>
+          </div>
         </aside>
       </div>
+      )}
     </div>
   );
 }
