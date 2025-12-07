@@ -53,3 +53,6 @@ verify_jwt = true
 
 [functions.github-oauth]
 verify_jwt = false
+
+[functions.github-sync]
+verify_jwt = true
