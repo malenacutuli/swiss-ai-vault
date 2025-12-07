@@ -16,33 +16,18 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Search, Bell, Sun, Moon, Sparkles, CheckCircle, XCircle, AlertCircle, Info } from "lucide-react";
+import { Search, Bell, Sun, Moon, CheckCircle, XCircle, AlertCircle, Info } from "lucide-react";
 import { useState } from "react";
 import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from "@/hooks/useNotifications";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface DashboardHeaderProps {
   sidebarCollapsed: boolean;
 }
-
-const routeLabels: Record<string, string> = {
-  dashboard: "Dashboard",
-  projects: "Projects",
-  datasets: "Datasets",
-  finetuning: "Fine-tuning",
-  templates: "Templates",
-  evaluations: "Evaluations",
-  models: "Models",
-  playground: "Playground",
-  settings: "Settings",
-  notifications: "Notifications",
-  catalog: "Model Catalog",
-  stats: "Usage Statistics",
-  traces: "Traces",
-  billing: "Billing",
-};
 
 const NotificationIcon = ({ type }: { type: string }) => {
   const config: Record<string, { icon: typeof CheckCircle; className: string }> = {
@@ -58,12 +43,30 @@ const NotificationIcon = ({ type }: { type: string }) => {
 export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { data: unreadCount } = useUnreadCount();
   const { data: notifications } = useNotifications();
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
+
+  const routeLabels: Record<string, string> = {
+    dashboard: t('sidebar.dashboard'),
+    projects: t('sidebar.projects'),
+    datasets: t('sidebar.datasets'),
+    finetuning: t('sidebar.finetuning'),
+    templates: t('sidebar.templates'),
+    evaluations: t('sidebar.evaluations'),
+    models: t('sidebar.models'),
+    playground: t('sidebar.playground'),
+    settings: t('sidebar.settings'),
+    notifications: t('common.notifications'),
+    catalog: t('sidebar.catalog'),
+    stats: t('sidebar.stats'),
+    traces: t('sidebar.traces'),
+    billing: t('common.billing'),
+  };
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => ({
@@ -114,10 +117,13 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search..."
+            placeholder={t('common.search')}
             className="w-64 pl-9 bg-secondary border-border focus:ring-primary"
           />
         </div>
+
+        {/* Language Switcher */}
+        <LanguageSwitcher />
 
         {/* Theme toggle */}
         <Button
@@ -154,7 +160,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 bg-popover">
             <div className="p-3 border-b border-border flex items-center justify-between">
-              <p className="font-semibold text-foreground">Notifications</p>
+              <p className="font-semibold text-foreground">{t('common.notifications')}</p>
               {unreadCount && unreadCount > 0 ? (
                 <button
                   onClick={(e) => {
@@ -163,7 +169,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
                   }}
                   className="text-xs text-primary hover:underline"
                 >
-                  Mark all read
+                  {t('common.markAllRead')}
                 </button>
               ) : null}
             </div>
@@ -171,7 +177,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
               {recentNotifications.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No notifications yet</p>
+                  <p className="text-sm">{t('common.noNotifications')}</p>
                 </div>
               ) : (
                 recentNotifications.map((notification) => (
@@ -213,7 +219,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="justify-center">
               <Link to="/dashboard/notifications" className="w-full text-center text-sm text-primary">
-                View all notifications
+                {t('common.viewAll')}
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -224,7 +230,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
           onClick={() => navigate("/dashboard/billing")}
         >
-          Upgrade to Pro
+          {t('common.upgradeToPro')}
         </Button>
       </div>
     </header>
