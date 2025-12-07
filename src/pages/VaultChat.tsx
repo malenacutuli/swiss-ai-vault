@@ -16,9 +16,11 @@ import {
   Settings,
   Menu,
   X,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 
 interface Message {
   id: string;
@@ -56,6 +58,8 @@ const VaultChat = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [decryptedMessages, setDecryptedMessages] = useState<Map<string, string>>(new Map());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -352,6 +356,49 @@ const VaultChat = () => {
     }
   };
 
+  const handleDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+
+    try {
+      // Soft delete in database
+      const { error } = await supabase
+        .from('vault_chat_conversations' as any)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', conversationToDelete);
+
+      if (error) throw error;
+
+      // Delete encryption key
+      await chatEncryption.deleteKey(conversationToDelete);
+
+      // Remove from local state
+      setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
+
+      // Clear selection if deleted conversation was selected
+      if (selectedConversation === conversationToDelete) {
+        setSelectedConversation(null);
+        setMessages([]);
+        setDecryptedMessages(new Map());
+      }
+
+      toast({
+        title: 'Deleted',
+        description: 'Conversation deleted successfully',
+      });
+
+      console.log('[Vault Chat] ✅ Conversation deleted');
+    } catch (error) {
+      console.error('[Vault Chat] ❌ Delete failed:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete conversation',
+        variant: 'destructive',
+      });
+    } finally {
+      setConversationToDelete(null);
+    }
+  };
+
   const filteredConversations = conversations.filter(conv =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -436,34 +483,53 @@ const VaultChat = () => {
                     {filteredConversations.map(conv => (
                       <div
                         key={conv.id}
-                        onClick={() => {
-                          setSelectedConversation(conv.id);
-                          setChatSidebarOpen(false);
-                        }}
                         className={cn(
                           "p-4 cursor-pointer hover:bg-accent/50",
-                          "transition-colors",
+                          "transition-colors group relative",
                           selectedConversation === conv.id && 
                             "bg-primary/10 border-l-4 border-primary"
                         )}
                       >
-                        <h3 className="font-medium text-sm truncate text-foreground">{conv.title}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {conv.model_id.split('-')[0]}
-                          </span>
-                          {conv.is_encrypted && (
-                            <Lock className="h-3 w-3 text-green-500" />
+                        <div
+                          onClick={() => {
+                            setSelectedConversation(conv.id);
+                            setChatSidebarOpen(false);
+                          }}
+                        >
+                          <h3 className="font-medium text-sm truncate text-foreground pr-8">{conv.title}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              {conv.model_id.split('-')[0]}
+                            </span>
+                            {conv.is_encrypted && (
+                              <Lock className="h-3 w-3 text-green-500" />
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-muted-foreground">
+                              {conv.message_count} messages
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {conv.last_message_at ? 'Recently' : 'New'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Delete button - appears on hover */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConversationToDelete(conv.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                          className={cn(
+                            "absolute top-2 right-2 p-2 rounded",
+                            "bg-destructive/10 hover:bg-destructive/20 text-destructive",
+                            "opacity-0 group-hover:opacity-100 transition-opacity"
                           )}
-                        </div>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-muted-foreground">
-                            {conv.message_count} messages
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {conv.last_message_at ? 'Recently' : 'New'}
-                          </span>
-                        </div>
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -570,6 +636,15 @@ const VaultChat = () => {
           </div>
         </main>
       </div>
+
+      <DeleteConversationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConversation}
+        conversationTitle={
+          conversations.find(c => c.id === conversationToDelete)?.title || 'Conversation'
+        }
+      />
     </div>
   );
 };
