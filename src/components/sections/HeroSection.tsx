@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Zap, Globe } from "lucide-react";
+import { ArrowRight, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
@@ -50,30 +50,6 @@ export const HeroSection = () => {
               </Button>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto animate-slide-up animate-delay-300">
-              <div className="flex flex-col items-center p-4 rounded-xl bg-card/50 border border-border/50 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-primary mb-1">
-                  <Zap className="h-4 w-4" />
-                  <span className="text-2xl font-bold">10x</span>
-                </div>
-                <span className="text-sm text-muted-foreground">Faster Training</span>
-              </div>
-              <div className="flex flex-col items-center p-4 rounded-xl bg-card/50 border border-border/50 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-primary mb-1">
-                  <Shield className="h-4 w-4" />
-                  <span className="text-2xl font-bold">100%</span>
-                </div>
-                <span className="text-sm text-muted-foreground">Swiss Hosted</span>
-              </div>
-              <div className="flex flex-col items-center p-4 rounded-xl bg-card/50 border border-border/50 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-primary mb-1">
-                  <Globe className="h-4 w-4" />
-                  <span className="text-2xl font-bold">7+</span>
-                </div>
-                <span className="text-sm text-muted-foreground">Base Models</span>
-              </div>
-            </div>
           </div>
         </div>
 
