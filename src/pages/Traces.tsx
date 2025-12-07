@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +41,7 @@ import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 const Traces = () => {
+  const { t } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [modelFilter, setModelFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);

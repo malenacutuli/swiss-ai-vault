@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,7 @@ const sourceIcons: Record<SourceType, typeof Upload> = {
 };
 
 const Datasets = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
