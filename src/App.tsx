@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { FirstTimeOrganizationModal } from "@/components/FirstTimeOrganizationModal";
+import { chatEncryption } from "@/lib/encryption";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -39,7 +41,15 @@ import VaultChat from "./pages/VaultChat";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  // Initialize Vault Chat encryption on app start
+  useEffect(() => {
+    chatEncryption.initialize()
+      .then(() => console.log('✅ Vault Chat encryption ready'))
+      .catch((err) => console.error('❌ Vault Chat encryption init failed:', err));
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -83,6 +93,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
