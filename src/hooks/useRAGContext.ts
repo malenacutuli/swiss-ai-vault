@@ -16,8 +16,8 @@ interface DocumentChunk {
   similarity: number;
 }
 
-const SUPPORTED_FILE_TYPES = ['txt', 'md', 'pdf'];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const SUPPORTED_FILE_TYPES = ['txt', 'md', 'pdf', 'docx', 'pptx'];
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 export function useRAGContext() {
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
@@ -36,7 +36,7 @@ export function useRAGContext() {
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('File too large. Maximum size is 10MB.');
+      toast.error('File too large. Maximum size is 500MB.');
       return { success: false, chunkCount: 0 };
     }
 
