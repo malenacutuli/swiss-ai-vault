@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -41,6 +42,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const Models = () => {
+  const { t } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [deleteModelId, setDeleteModelId] = useState<string | null>(null);
   const [deployingModelId, setDeployingModelId] = useState<string | null>(null);
@@ -92,8 +94,8 @@ const Models = () => {
   const copyModelId = (modelId: string) => {
     navigator.clipboard.writeText(modelId);
     toast({
-      title: 'Copied',
-      description: 'Model ID copied to clipboard',
+      title: t('common.copied'),
+      description: t('models.copyModelId'),
     });
   };
 
@@ -120,8 +122,8 @@ const Models = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive mb-4">Error loading models</p>
-          <Button onClick={() => refetch()}>Retry</Button>
+          <p className="text-destructive mb-4">{t('models.failedToLoad')}</p>
+          <Button onClick={() => refetch()}>{t('common.tryAgain')}</Button>
         </div>
       </div>
     );
@@ -146,9 +148,9 @@ const Models = () => {
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Models</h1>
+              <h1 className="text-2xl font-semibold text-foreground">{t('models.title')}</h1>
               <p className="text-muted-foreground mt-1">
-                Manage and deploy your fine-tuned models
+                {t('models.subtitle')}
               </p>
             </div>
           </div>
@@ -180,8 +182,8 @@ const Models = () => {
           ) : models.length === 0 ? (
             <EmptyState
               icon={Cpu}
-              title="No models yet"
-              subtitle="Complete a fine-tuning job to create your first model"
+              title={t('models.noModelsYet')}
+              subtitle={t('models.trainFirst')}
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -217,7 +219,7 @@ const Models = () => {
                         <DropdownMenuContent align="end" className="bg-popover">
                           <DropdownMenuItem onClick={() => copyModelId(model.model_id)} className="cursor-pointer">
                             <Copy className="mr-2 h-4 w-4" />
-                            Copy Model ID
+                            {t('models.copyModelId')}
                           </DropdownMenuItem>
                           {model.finetuning_job_id && (
                             <DropdownMenuItem 
@@ -225,12 +227,12 @@ const Models = () => {
                               className="cursor-pointer"
                             >
                               <ExternalLink className="mr-2 h-4 w-4" />
-                              View Fine-tuning Job
+                              {t('models.viewFinetuningJob')}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem className="cursor-pointer">
                             <Download className="mr-2 h-4 w-4" />
-                            Download Checkpoint
+                            {t('models.downloadCheckpoint')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
@@ -238,7 +240,7 @@ const Models = () => {
                             className="cursor-pointer text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            {t('common.delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -269,11 +271,11 @@ const Models = () => {
                     {/* Stats */}
                     <div className="flex items-center gap-3 text-sm">
                       <span className="text-muted-foreground">
-                        {formatParameterCount(model.parameter_count)} params
+                        {formatParameterCount(model.parameter_count)} {t('models.params')}
                       </span>
                       {model.context_length && (
                         <span className="text-muted-foreground">
-                          {(model.context_length / 1000).toFixed(0)}K context
+                          {(model.context_length / 1000).toFixed(0)}K {t('models.context')}
                         </span>
                       )}
                     </div>
@@ -293,12 +295,12 @@ const Models = () => {
                         ) : model.is_deployed ? (
                           <>
                             <Cloud className="h-4 w-4 text-success" />
-                            <span className="text-sm text-success">Deployed</span>
+                            <span className="text-sm text-success">{t('models.deployed')}</span>
                           </>
                         ) : (
                           <>
                             <CloudOff className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Not deployed</span>
+                            <span className="text-sm text-muted-foreground">{t('models.notDeployed')}</span>
                           </>
                         )}
                       </button>
@@ -312,12 +314,12 @@ const Models = () => {
                         }}
                       >
                         <Play className="h-3 w-3" />
-                        Test
+                        {t('models.test')}
                       </Button>
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      Created {formatDate(model.created_at)}
+                      {t('common.createdAt')} {formatDate(model.created_at)}
                     </p>
                   </CardContent>
                 </Card>
@@ -331,14 +333,13 @@ const Models = () => {
       <AlertDialog open={!!deleteModelId} onOpenChange={() => setDeleteModelId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Model</AlertDialogTitle>
+            <AlertDialogTitle>{t('models.deleteModel')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this model? This action cannot be undone.
-              Any deployments using this model will be affected.
+              {t('models.deleteConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteModel}
               disabled={deleteLoading}
@@ -347,10 +348,10 @@ const Models = () => {
               {deleteLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
+                  {t('common.loading')}
                 </>
               ) : (
-                'Delete'
+                t('common.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

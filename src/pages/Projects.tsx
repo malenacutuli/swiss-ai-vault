@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +49,7 @@ import { useProjects, useCreateProject, useDeleteProject } from "@/hooks/useSupa
 import type { ProjectStatus } from "@/types/database";
 
 const Projects = () => {
+  const { t } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -153,10 +155,10 @@ const Projects = () => {
   const renderError = () => (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-      <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load projects</h3>
-      <p className="text-muted-foreground mb-4">{error?.message || "An unexpected error occurred"}</p>
+      <h3 className="text-lg font-semibold text-foreground mb-2">{t('projects.failedToLoad')}</h3>
+      <p className="text-muted-foreground mb-4">{error?.message || t('errors.unexpectedError')}</p>
       <Button onClick={refetch} variant="outline">
-        Try Again
+        {t('common.tryAgain')}
       </Button>
     </div>
   );
@@ -180,9 +182,9 @@ const Projects = () => {
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Projects</h1>
+              <h1 className="text-2xl font-semibold text-foreground">{t('projects.title')}</h1>
               <p className="text-muted-foreground mt-1">
-                Manage your AI model development workflows
+                {t('projects.subtitle')}
               </p>
             </div>
             <Button
@@ -190,7 +192,7 @@ const Projects = () => {
               className="bg-primary hover:bg-primary/90 gap-2"
             >
               <Plus className="h-4 w-4" />
-              Create Project
+              {t('projects.createProject')}
             </Button>
           </div>
 
@@ -199,7 +201,7 @@ const Projects = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search projects..."
+                placeholder={t('projects.filters.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-secondary border-border"
@@ -207,26 +209,26 @@ const Projects = () => {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-[160px] bg-secondary border-border">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t('common.status')} />
               </SelectTrigger>
               <SelectContent className="bg-popover">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="setup">Setup</SelectItem>
-                <SelectItem value="dataset">Dataset</SelectItem>
-                <SelectItem value="finetuning">Fine-tuning</SelectItem>
-                <SelectItem value="evaluation">Evaluation</SelectItem>
-                <SelectItem value="complete">Complete</SelectItem>
+                <SelectItem value="all">{t('projects.filters.allStatus')}</SelectItem>
+                <SelectItem value="setup">{t('projects.status.setup')}</SelectItem>
+                <SelectItem value="dataset">{t('projects.status.dataset')}</SelectItem>
+                <SelectItem value="finetuning">{t('projects.status.finetuning')}</SelectItem>
+                <SelectItem value="evaluation">{t('projects.status.evaluation')}</SelectItem>
+                <SelectItem value="complete">{t('projects.status.complete')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full sm:w-[160px] bg-secondary border-border">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder={t('projects.filters.sortBy')} />
               </SelectTrigger>
               <SelectContent className="bg-popover">
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
-                <SelectItem value="name-asc">Name A-Z</SelectItem>
-                <SelectItem value="name-desc">Name Z-A</SelectItem>
+                <SelectItem value="newest">{t('projects.filters.newest')}</SelectItem>
+                <SelectItem value="oldest">{t('projects.filters.oldest')}</SelectItem>
+                <SelectItem value="name-asc">{t('projects.filters.nameAsc')}</SelectItem>
+                <SelectItem value="name-desc">{t('projects.filters.nameDesc')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -239,13 +241,13 @@ const Projects = () => {
           ) : filteredProjects.length === 0 ? (
             <EmptyState
               icon={FolderKanban}
-              title={searchQuery || statusFilter !== "all" ? "No matching projects" : "No projects yet"}
+              title={searchQuery || statusFilter !== "all" ? t('projects.noMatchingProjects') : t('projects.noProjectsYet')}
               subtitle={
                 searchQuery || statusFilter !== "all"
-                  ? "Try adjusting your search or filters"
-                  : "Create your first project to start building AI models"
+                  ? t('projects.adjustFilters')
+                  : t('projects.createFirstProject')
               }
-              actionLabel={searchQuery || statusFilter !== "all" ? undefined : "Create Project"}
+              actionLabel={searchQuery || statusFilter !== "all" ? undefined : t('projects.createProject')}
               onAction={searchQuery || statusFilter !== "all" ? undefined : () => setIsWizardOpen(true)}
             />
           ) : (
@@ -269,21 +271,21 @@ const Projects = () => {
                           <StatusBadge status={getStatusFromString(project.status)} />
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-4 min-h-[40px]">
-                          {project.description || "No description"}
+                          {project.description || t('projects.noDescription')}
                         </p>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                           <div className="flex items-center gap-1">
                             <Database className="h-4 w-4" />
-                            <span>0 datasets</span>
+                            <span>0 {t('projects.datasets')}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Cpu className="h-4 w-4" />
-                            <span>0 models</span>
+                            <span>0 {t('projects.models')}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
-                          <span>Created {formatDate(project.created_at)}</span>
+                          <span>{t('projects.created')} {formatDate(project.created_at)}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -305,13 +307,13 @@ const Projects = () => {
                       <DropdownMenuContent align="end" className="bg-popover">
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive cursor-pointer"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.preventDefault();
                             setDeleteProjectId(project.id);
                           }}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Project
+                          {t('projects.deleteProject')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -335,22 +337,21 @@ const Projects = () => {
       <AlertDialog open={!!deleteProjectId} onOpenChange={(open) => !open && setDeleteProjectId(null)}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Delete Project</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">{t('projects.deleteProject')}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this project? This action cannot be undone.
-              All associated datasets, models, and evaluations will be permanently removed.
+              {t('projects.deleteWarning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-secondary border-border text-foreground">
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteProject}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete Project"}
+              {isDeleting ? t('projects.deleting') : t('projects.deleteProject')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
