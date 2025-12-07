@@ -59,7 +59,8 @@
     "profile": "Profile",
     "billing": "Billing",
     "user": "User",
-    "there": "there"
+    "there": "there",
+    "tryAgain": "Try Again"
   },
   "nav": {
     "home": "Home",
@@ -185,8 +186,28 @@
     "projectName": "Project name",
     "projectDescription": "Project description",
     "noProjects": "No projects yet",
+    "noProjectsYet": "No projects yet",
     "createFirstProject": "Create your first project to get started",
     "deleteConfirm": "Are you sure you want to delete this project?",
+    "deleteProject": "Delete Project",
+    "deleteWarning": "This action cannot be undone. All datasets, models, and evaluations associated with this project will be permanently deleted.",
+    "deleting": "Deleting...",
+    "noMatchingProjects": "No matching projects",
+    "adjustFilters": "Try adjusting your search or filters",
+    "noDescription": "No description",
+    "datasets": "datasets",
+    "models": "models",
+    "created": "Created",
+    "failedToLoad": "Failed to load projects",
+    "filters": {
+      "searchPlaceholder": "Search projects...",
+      "sortBy": "Sort by",
+      "allStatus": "All Status",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)"
+    },
     "status": {
       "setup": "Setup",
       "dataset": "Dataset",
@@ -447,7 +468,8 @@
     "networkError": "Network error",
     "serverError": "Server error",
     "validationError": "Validation error",
-    "tryAgain": "Please try again"
+    "tryAgain": "Please try again",
+    "unexpectedError": "An unexpected error occurred"
   },
   "landing": {
     "hero": {
