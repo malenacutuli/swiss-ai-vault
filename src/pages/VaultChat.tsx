@@ -8,6 +8,7 @@ import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
+import { MessageInput } from '@/components/vault-chat/MessageInput';
 import {
   Plus,
   Search,
@@ -223,6 +224,46 @@ const VaultChat = () => {
     }
   };
 
+  const handleSendMessage = async (content: string) => {
+    if (!selectedConversation) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Get encryption key
+      const key = await chatEncryption.getKey(selectedConversation);
+      if (!key) throw new Error('Encryption key not found');
+
+      // Encrypt message
+      const encryptedContent = await chatEncryption.encryptMessage(content, key);
+
+      // Save user message
+      const { error: msgError } = await supabase
+        .from('vault_chat_messages' as any)
+        .insert({
+          conversation_id: selectedConversation,
+          role: 'user',
+          encrypted_content: encryptedContent
+        });
+
+      if (msgError) throw msgError;
+
+      // Reload messages to show the new one
+      await loadMessages(selectedConversation);
+
+      console.log('[Vault Chat] ✅ Sent encrypted message');
+    } catch (error) {
+      console.error('[Vault Chat] ❌ Error sending message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  };
+
   const filteredConversations = conversations.filter(conv =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -399,12 +440,14 @@ const VaultChat = () => {
                     )}
                   </ScrollArea>
 
-                  {/* Message Input Placeholder */}
+                  {/* Message Input */}
                   <div className="border-t border-border p-4 bg-card">
                     <div className="max-w-4xl mx-auto">
-                      <p className="text-muted-foreground text-sm text-center py-4">
-                        Message input coming next
-                      </p>
+                      <MessageInput
+                        onSend={handleSendMessage}
+                        disabled={!selectedConversation || loadingMessages}
+                        placeholder="Send an encrypted message..."
+                      />
                     </div>
                   </div>
                 </div>
