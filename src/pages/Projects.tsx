@@ -264,8 +264,8 @@ const Projects = () => {
                   >
                     <Card className="bg-card border-border h-full transition-all duration-200 hover:shadow-elevated hover:border-border/80 cursor-pointer">
                       <CardContent className="p-5">
-                        <div className="flex items-start justify-between mb-3">
-                          <h3 className="font-semibold text-foreground line-clamp-1 pr-8">
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <h3 className="font-semibold text-foreground truncate flex-1 min-w-0">
                             {project.name}
                           </h3>
                           <StatusBadge status={getStatusFromString(project.status)} />
@@ -274,18 +274,18 @@ const Projects = () => {
                           {project.description || t('projects.noDescription')}
                         </p>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <div className="flex items-center gap-1">
-                            <Database className="h-4 w-4" />
-                            <span>0 {t('projects.datasets')}</span>
+                          <div className="flex items-center gap-1.5">
+                            <Database className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="truncate">0 {t('projects.datasets')}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Cpu className="h-4 w-4" />
-                            <span>0 {t('projects.models')}</span>
+                          <div className="flex items-center gap-1.5">
+                            <Cpu className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="truncate">0 {t('projects.models')}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{t('projects.created')} {formatDate(project.created_at)}</span>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{t('projects.created')} {formatDate(project.created_at)}</span>
                         </div>
                       </CardContent>
                     </Card>
