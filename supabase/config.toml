@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.notion-sync]
 verify_jwt = true
+
+[functions.gmail-oauth]
+verify_jwt = false
