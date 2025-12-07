@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.send-contact-email]
 verify_jwt = false
+
+[functions.slack-oauth]
+verify_jwt = false
