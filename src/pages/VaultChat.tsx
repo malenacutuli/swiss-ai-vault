@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
+import { MessageBubble } from '@/components/vault-chat/MessageBubble';
 import {
   Plus,
   Search,
@@ -16,6 +17,19 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface Message {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant' | 'system';
+  encrypted_content: string;
+  token_count: number | null;
+  model_used: string | null;
+  finish_reason: string | null;
+  credits_used: number | null;
+  latency_ms: number | null;
+  created_at: string;
+}
 
 interface Conversation {
   id: string;
@@ -36,7 +50,73 @@ const VaultChat = () => {
   const [loading, setLoading] = useState(true);
   const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [decryptedMessages, setDecryptedMessages] = useState<Map<string, string>>(new Map());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadMessages = async (conversationId: string) => {
+    setLoadingMessages(true);
+    setMessages([]);
+    setDecryptedMessages(new Map());
+
+    try {
+      const { data, error } = await supabase
+        .from('vault_chat_messages' as any)
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      
+      const messageData = (data as unknown as Message[]) || [];
+      setMessages(messageData);
+
+      // Decrypt messages
+      const key = await chatEncryption.getKey(conversationId);
+      if (!key) {
+        console.error('[Vault Chat] Encryption key not found for conversation');
+        return;
+      }
+
+      const decrypted = new Map<string, string>();
+      for (const message of messageData) {
+        try {
+          const content = await chatEncryption.decryptMessage(
+            message.encrypted_content,
+            key
+          );
+          decrypted.set(message.id, content);
+        } catch (error) {
+          console.error(`[Vault Chat] Decryption failed for message ${message.id}:`, error);
+          decrypted.set(message.id, '[Decryption failed]');
+        }
+      }
+      setDecryptedMessages(decrypted);
+      
+      // Scroll to bottom after messages load
+      setTimeout(scrollToBottom, 100);
+    } catch (error) {
+      console.error('[Vault Chat] Error loading messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  // Load messages when conversation selected
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation);
+    } else {
+      setMessages([]);
+      setDecryptedMessages(new Map());
+    }
+  }, [selectedConversation]);
 
   useEffect(() => {
     loadConversations();
@@ -284,14 +364,48 @@ const VaultChat = () => {
 
               {/* Content */}
               {selectedConversation ? (
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <div className="text-center">
-                    <Lock className="h-12 w-12 text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Conversation: {selectedConversation.slice(0, 8)}...
-                      <br />
-                      <span className="text-xs">(Chat interface coming next)</span>
-                    </p>
+                <div className="flex-1 flex flex-col">
+                  {/* Message List */}
+                  <ScrollArea className="flex-1 p-6">
+                    {loadingMessages ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Lock className="h-5 w-5 animate-pulse" />
+                          <span>Loading encrypted messages...</span>
+                        </div>
+                      </div>
+                    ) : messages.length === 0 ? (
+                      <div className="flex items-center justify-center h-full min-h-[300px]">
+                        <div className="text-center">
+                          <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">Send your first encrypted message</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="max-w-4xl mx-auto">
+                        {messages.map((message) => (
+                          <MessageBubble
+                            key={message.id}
+                            role={message.role}
+                            content={decryptedMessages.get(message.id) || ''}
+                            isDecrypting={!decryptedMessages.has(message.id)}
+                            decryptionError={decryptedMessages.get(message.id) === '[Decryption failed]'}
+                            timestamp={message.created_at}
+                            model={message.model_used || undefined}
+                          />
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    )}
+                  </ScrollArea>
+
+                  {/* Message Input Placeholder */}
+                  <div className="border-t border-border p-4 bg-card">
+                    <div className="max-w-4xl mx-auto">
+                      <p className="text-muted-foreground text-sm text-center py-4">
+                        Message input coming next
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
