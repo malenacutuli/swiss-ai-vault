@@ -33,6 +33,7 @@ import OnPremisesDeployment from "./pages/OnPremisesDeployment";
 import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
+import AcceptInvitation from "./pages/AcceptInvitation";
 
 const queryClient = new QueryClient();
 
@@ -69,7 +70,9 @@ const App = () => (
             <Route path="/dashboard/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/dashboard/admin/audit-logs" element={<AdminRoute><AuditLogs /></AdminRoute>} />
             <Route path="/dashboard/admin/compliance" element={<AdminRoute><Compliance /></AdminRoute>} />
+            <Route path="/accept-invitation" element={<AcceptInvitation />} />
             <Route path="/design-system" element={<DesignSystem />} />
+            <Route path="*" element={<NotFound />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

@@ -941,10 +941,52 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_invitations: {
+        Row: {
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          organization_id: string
+          role: string
+          token: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invited_by?: string | null
+          organization_id: string
+          role?: string
+          token: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id?: string
+          role?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string | null
           id: string
+          joined_at: string | null
           org_id: string
           role: string
           user_id: string
@@ -952,6 +994,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          joined_at?: string | null
           org_id: string
           role?: string
           user_id: string
@@ -959,6 +1002,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          joined_at?: string | null
           org_id?: string
           role?: string
           user_id?: string
@@ -975,7 +1019,9 @@ export type Database = {
       }
       organizations: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
+          created_by: string | null
           id: string
           name: string
           owner_id: string | null
@@ -985,7 +1031,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           name: string
           owner_id?: string | null
@@ -995,7 +1043,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           name?: string
           owner_id?: string | null
@@ -1264,38 +1314,52 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string | null
+          current_organization_id: string | null
           data_retention_days: number | null
           id: string
           log_retention_days: number | null
           notification_browser: boolean | null
           notification_email: boolean | null
+          preferences: Json | null
           updated_at: string | null
           user_id: string
           zero_retention_mode: boolean | null
         }
         Insert: {
           created_at?: string | null
+          current_organization_id?: string | null
           data_retention_days?: number | null
           id?: string
           log_retention_days?: number | null
           notification_browser?: boolean | null
           notification_email?: boolean | null
+          preferences?: Json | null
           updated_at?: string | null
           user_id: string
           zero_retention_mode?: boolean | null
         }
         Update: {
           created_at?: string | null
+          current_organization_id?: string | null
           data_retention_days?: number | null
           id?: string
           log_retention_days?: number | null
           notification_browser?: boolean | null
           notification_email?: boolean | null
+          preferences?: Json | null
           updated_at?: string | null
           user_id?: string
           zero_retention_mode?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_current_organization_id_fkey"
+            columns: ["current_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
@@ -1387,9 +1451,47 @@ export type Database = {
       }
     }
     Functions: {
+      accept_organization_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          created_at: string | null
+          id: string
+          joined_at: string | null
+          org_id: string
+          role: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       clear_conversation_documents: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: number
+      }
+      create_organization_with_owner: {
+        Args: { p_avatar_url?: string; p_name: string; p_slug: string }
+        Returns: {
+          avatar_url: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          owner_id: string | null
+          settings: Json | null
+          slug: string
+          tier: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       deduct_credits: {
         Args: {
@@ -1423,6 +1525,10 @@ export type Database = {
       }
       is_org_member: {
         Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member_with_role: {
+        Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
       }
       search_document_chunks: {

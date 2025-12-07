@@ -8,6 +8,9 @@ export interface Organization {
   name: string;
   slug: string;
   tier: string | null;
+  avatar_url: string | null;
+  owner_id: string | null;
+  created_by: string | null;
   settings: unknown;
   created_at: string | null;
   updated_at: string | null;
@@ -18,6 +21,7 @@ export interface OrganizationMember {
   org_id: string;
   user_id: string;
   role: string;
+  joined_at: string | null;
   created_at: string | null;
   user?: {
     id: string;
@@ -27,9 +31,20 @@ export interface OrganizationMember {
   };
 }
 
+export interface OrganizationInvitation {
+  id: string;
+  organization_id: string;
+  email: string;
+  role: string;
+  token: string;
+  invited_by: string | null;
+  expires_at: string;
+  created_at: string | null;
+}
+
 const CURRENT_ORG_KEY = 'swissvault_current_org';
 
-// Get/set current organization from localStorage
+// Get/set current organization from localStorage and user_settings
 export function useCurrentOrganization() {
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(() => {
     return localStorage.getItem(CURRENT_ORG_KEY);
@@ -38,18 +53,50 @@ export function useCurrentOrganization() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const setCurrentOrganization = useCallback((orgId: string | null) => {
+  const setCurrentOrganization = useCallback(async (orgId: string | null) => {
     if (orgId) {
       localStorage.setItem(CURRENT_ORG_KEY, orgId);
     } else {
       localStorage.removeItem(CURRENT_ORG_KEY);
     }
     setCurrentOrgId(orgId);
-  }, []);
+
+    // Also persist to user_settings if user is logged in
+    if (user) {
+      await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          current_organization_id: orgId,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchCurrentOrg = async () => {
-      if (!currentOrgId || !user) {
+      if (!user) {
+        setCurrentOrg(null);
+        setLoading(false);
+        return;
+      }
+
+      // If no local org, check user_settings
+      if (!currentOrgId) {
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('current_organization_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (settings?.current_organization_id) {
+          localStorage.setItem(CURRENT_ORG_KEY, settings.current_organization_id);
+          setCurrentOrgId(settings.current_organization_id);
+          return; // Will re-run effect with new currentOrgId
+        }
+      }
+
+      if (!currentOrgId) {
         setCurrentOrg(null);
         setLoading(false);
         return;
@@ -159,7 +206,7 @@ export function useOrganizationMembers(orgId: string | null) {
         .from('organization_members')
         .select('*')
         .eq('org_id', orgId)
-        .order('created_at');
+        .order('joined_at', { ascending: true });
 
       if (membersError) throw membersError;
 
@@ -195,12 +242,52 @@ export function useOrganizationMembers(orgId: string | null) {
   return { members, loading, error, refetch: fetchMembers };
 }
 
-// Create organization
+// List organization invitations
+export function useOrganizationInvitations(orgId: string | null) {
+  const [invitations, setInvitations] = useState<OrganizationInvitation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchInvitations = useCallback(async () => {
+    if (!orgId) {
+      setInvitations([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('organization_invitations')
+        .select('*')
+        .eq('organization_id', orgId)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      setInvitations(data || []);
+    } catch (err) {
+      console.error('Error fetching invitations:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch invitations'));
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    fetchInvitations();
+  }, [fetchInvitations]);
+
+  return { invitations, loading, error, refetch: fetchInvitations };
+}
+
+// Create organization using RPC function
 export function useCreateOrganization() {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
-  const createOrganization = async (name: string, slug?: string) => {
+  const createOrganization = async (name: string, slug?: string, avatarUrl?: string) => {
     if (!user) {
       toast.error('You must be logged in');
       return null;
@@ -211,32 +298,18 @@ export function useCreateOrganization() {
       // Generate slug from name if not provided
       const orgSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      // Create organization with owner_id
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
-          name,
-          slug: orgSlug,
-          owner_id: user.id,
-        } as any)
-        .select()
-        .single();
-
-      if (orgError) throw orgError;
-
-      // Add creator as admin member
-      const { error: memberError } = await supabase
-        .from('organization_members')
-        .insert({
-          org_id: org.id,
-          user_id: user.id,
-          role: 'admin',
+      // Use RPC function to create org with owner
+      const { data, error } = await supabase
+        .rpc('create_organization_with_owner', {
+          p_name: name,
+          p_slug: orgSlug,
+          p_avatar_url: avatarUrl || null
         });
 
-      if (memberError) throw memberError;
+      if (error) throw error;
 
       toast.success('Organization created successfully');
-      return org;
+      return data as Organization;
     } catch (err: unknown) {
       console.error('Error creating organization:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create organization';
@@ -254,13 +327,13 @@ export function useCreateOrganization() {
 export function useUpdateOrganization() {
   const [loading, setLoading] = useState(false);
 
-  const updateOrganization = async (orgId: string, updates: { name?: string }) => {
+  const updateOrganization = async (orgId: string, updates: { name?: string; avatar_url?: string }) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('organizations')
         .update({
-          name: updates.name,
+          ...updates,
           updated_at: new Date().toISOString(),
         })
         .eq('id', orgId)
@@ -311,6 +384,120 @@ export function useDeleteOrganization() {
   };
 
   return { deleteOrganization, loading };
+}
+
+// Create invitation
+export function useCreateInvitation() {
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
+  const createInvitation = async (orgId: string, email: string, role: string = 'member') => {
+    if (!user) {
+      toast.error('You must be logged in');
+      return null;
+    }
+
+    setLoading(true);
+    try {
+      // Generate unique token
+      const token = crypto.randomUUID();
+      
+      // Expiration: 7 days from now
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const { data, error } = await supabase
+        .from('organization_invitations')
+        .insert({
+          organization_id: orgId,
+          email: email.toLowerCase().trim(),
+          role,
+          token,
+          invited_by: user.id,
+          expires_at: expiresAt.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success(`Invitation sent to ${email}`);
+      return data as OrganizationInvitation;
+    } catch (err: unknown) {
+      console.error('Error creating invitation:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send invitation';
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { createInvitation, loading };
+}
+
+// Delete/revoke invitation
+export function useDeleteInvitation() {
+  const [loading, setLoading] = useState(false);
+
+  const deleteInvitation = async (invitationId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('organization_invitations')
+        .delete()
+        .eq('id', invitationId);
+
+      if (error) throw error;
+
+      toast.success('Invitation revoked');
+      return true;
+    } catch (err: unknown) {
+      console.error('Error deleting invitation:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to revoke invitation';
+      toast.error(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteInvitation, loading };
+}
+
+// Accept invitation using RPC function
+export function useAcceptInvitation() {
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
+  const acceptInvitation = async (token: string) => {
+    if (!user) {
+      toast.error('You must be logged in');
+      return null;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .rpc('accept_organization_invitation', {
+          p_token: token
+        });
+
+      if (error) throw error;
+
+      toast.success('Successfully joined organization');
+      return data as OrganizationMember;
+    } catch (err: unknown) {
+      console.error('Error accepting invitation:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to accept invitation';
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { acceptInvitation, loading };
 }
 
 // Update member role
@@ -436,5 +623,12 @@ export function useUserOrgRole(orgId: string | null) {
     fetchRole();
   }, [orgId, user]);
 
-  return { role, loading, isAdmin: role === 'admin' };
+  return { 
+    role, 
+    loading, 
+    isOwner: role === 'owner',
+    isAdmin: role === 'admin' || role === 'owner',
+    isMember: role === 'member' || role === 'admin' || role === 'owner',
+    isViewer: role === 'viewer',
+  };
 }

@@ -45,7 +45,7 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
     
     const org = await createOrganization(newOrgName.trim());
     if (org) {
-      setCurrentOrganization(org.id);
+      await setCurrentOrganization(org.id);
       refetch();
       setIsCreateModalOpen(false);
       setNewOrgName("");
