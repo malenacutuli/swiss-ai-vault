@@ -36,6 +36,7 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
   const { organizations, refetch } = useOrganizations();
   const { createOrganization, loading: createLoading } = useCreateOrganization();
   
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
 
@@ -64,7 +65,7 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
@@ -93,14 +94,18 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
             )}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-64 bg-popover">
+        <DropdownMenuContent align="start" className="w-64 bg-popover border border-border shadow-lg z-[100]" sideOffset={8}>
           <DropdownMenuLabel className="text-xs text-muted-foreground">
             Switch Workspace
           </DropdownMenuLabel>
           
           {/* Personal Workspace */}
           <DropdownMenuItem
-            onClick={() => setCurrentOrganization(null)}
+            onSelect={(e) => {
+              e.preventDefault();
+              setCurrentOrganization(null);
+              setIsDropdownOpen(false);
+            }}
             className="cursor-pointer"
           >
             <User className="mr-2 h-4 w-4" />
@@ -117,7 +122,11 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
               {organizations.map((org) => (
                 <DropdownMenuItem
                   key={org.id}
-                  onClick={() => setCurrentOrganization(org.id)}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setCurrentOrganization(org.id);
+                    setIsDropdownOpen(false);
+                  }}
                   className="cursor-pointer"
                 >
                   <Building2 className="mr-2 h-4 w-4" />
@@ -130,7 +139,11 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
           
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={() => setIsCreateModalOpen(true)}
+            onSelect={(e) => {
+              e.preventDefault();
+              setIsDropdownOpen(false);
+              setIsCreateModalOpen(true);
+            }}
             className="cursor-pointer"
           >
             <Plus className="mr-2 h-4 w-4" />
