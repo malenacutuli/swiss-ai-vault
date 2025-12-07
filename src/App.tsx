@@ -35,6 +35,7 @@ import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import VaultChat from "./pages/VaultChat";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/dashboard/models/:id" element={<ProtectedRoute><ModelDetail /></ProtectedRoute>} />
             <Route path="/dashboard/catalog" element={<ProtectedRoute><ModelsCatalog /></ProtectedRoute>} />
             <Route path="/dashboard/playground" element={<ProtectedRoute><Playground /></ProtectedRoute>} />
+            <Route path="/chat" element={<ProtectedRoute><VaultChat /></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/dashboard/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/dashboard/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
