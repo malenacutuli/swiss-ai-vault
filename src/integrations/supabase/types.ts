@@ -560,6 +560,50 @@ export type Database = {
           },
         ]
       }
+      conversation_keys: {
+        Row: {
+          algorithm: string | null
+          conversation_id: string
+          created_at: string | null
+          id: string
+          key_version: number | null
+          rotated_at: string | null
+          user_id: string
+          wrapped_key: string
+          wrapping_nonce: string
+        }
+        Insert: {
+          algorithm?: string | null
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          key_version?: number | null
+          rotated_at?: string | null
+          user_id: string
+          wrapped_key: string
+          wrapping_nonce: string
+        }
+        Update: {
+          algorithm?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          key_version?: number | null
+          rotated_at?: string | null
+          user_id?: string
+          wrapped_key?: string
+          wrapping_nonce?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_keys_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "encrypted_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           created_at: string
@@ -807,6 +851,203 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      encrypted_conversations: {
+        Row: {
+          created_at: string | null
+          encrypted_title: string | null
+          id: string
+          is_encrypted: boolean | null
+          key_hash: string
+          key_version: number | null
+          last_message_at: string | null
+          model_id: string
+          organization_id: string | null
+          title_nonce: string
+          updated_at: string | null
+          user_id: string
+          zero_retention: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          encrypted_title?: string | null
+          id?: string
+          is_encrypted?: boolean | null
+          key_hash: string
+          key_version?: number | null
+          last_message_at?: string | null
+          model_id?: string
+          organization_id?: string | null
+          title_nonce: string
+          updated_at?: string | null
+          user_id: string
+          zero_retention?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          encrypted_title?: string | null
+          id?: string
+          is_encrypted?: boolean | null
+          key_hash?: string
+          key_version?: number | null
+          last_message_at?: string | null
+          model_id?: string
+          organization_id?: string | null
+          title_nonce?: string
+          updated_at?: string | null
+          user_id?: string
+          zero_retention?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encrypted_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encrypted_document_chunks: {
+        Row: {
+          chunk_index: number
+          content_nonce: string
+          created_at: string | null
+          document_id: string
+          embedding_nonce: string | null
+          encrypted_content: string
+          encrypted_embedding: string | null
+          id: string
+        }
+        Insert: {
+          chunk_index: number
+          content_nonce: string
+          created_at?: string | null
+          document_id: string
+          embedding_nonce?: string | null
+          encrypted_content: string
+          encrypted_embedding?: string | null
+          id?: string
+        }
+        Update: {
+          chunk_index?: number
+          content_nonce?: string
+          created_at?: string | null
+          document_id?: string
+          embedding_nonce?: string | null
+          encrypted_content?: string
+          encrypted_embedding?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encrypted_document_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "encrypted_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encrypted_documents: {
+        Row: {
+          chunk_count: number | null
+          conversation_id: string | null
+          created_at: string | null
+          encrypted_filename: string
+          error_message: string | null
+          file_size: number | null
+          file_type: string
+          filename_nonce: string
+          id: string
+          key_version: number | null
+          processed_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          chunk_count?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          encrypted_filename: string
+          error_message?: string | null
+          file_size?: number | null
+          file_type: string
+          filename_nonce: string
+          id?: string
+          key_version?: number | null
+          processed_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          chunk_count?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          encrypted_filename?: string
+          error_message?: string | null
+          file_size?: number | null
+          file_type?: string
+          filename_nonce?: string
+          id?: string
+          key_version?: number | null
+          processed_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encrypted_documents_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "encrypted_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encrypted_messages: {
+        Row: {
+          ciphertext: string
+          conversation_id: string
+          created_at: string | null
+          has_attachments: boolean | null
+          id: string
+          nonce: string
+          role: string
+          sequence_number: number
+          token_count: number | null
+        }
+        Insert: {
+          ciphertext: string
+          conversation_id: string
+          created_at?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          nonce: string
+          role: string
+          sequence_number: number
+          token_count?: number | null
+        }
+        Update: {
+          ciphertext?: string
+          conversation_id?: string
+          created_at?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          nonce?: string
+          role?: string
+          sequence_number?: number
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encrypted_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "encrypted_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evaluations: {
         Row: {
@@ -1591,6 +1832,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_encryption_settings: {
+        Row: {
+          auto_lock_minutes: number | null
+          created_at: string | null
+          kdf_iterations: number | null
+          kdf_memory: number | null
+          kdf_salt: string
+          key_verification_hash: string | null
+          recovery_key_hash: string | null
+          updated_at: string | null
+          user_id: string
+          zero_retention_default: boolean | null
+        }
+        Insert: {
+          auto_lock_minutes?: number | null
+          created_at?: string | null
+          kdf_iterations?: number | null
+          kdf_memory?: number | null
+          kdf_salt: string
+          key_verification_hash?: string | null
+          recovery_key_hash?: string | null
+          updated_at?: string | null
+          user_id: string
+          zero_retention_default?: boolean | null
+        }
+        Update: {
+          auto_lock_minutes?: number | null
+          created_at?: string | null
+          kdf_iterations?: number | null
+          kdf_memory?: number | null
+          kdf_salt?: string
+          key_verification_hash?: string | null
+          recovery_key_hash?: string | null
+          updated_at?: string | null
+          user_id?: string
+          zero_retention_default?: boolean | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1947,6 +2227,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      get_next_sequence_number: {
+        Args: { p_conversation_id: string }
+        Returns: number
       }
       has_role: {
         Args: {
