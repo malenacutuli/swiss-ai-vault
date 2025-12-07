@@ -242,20 +242,6 @@ export default function Auth() {
                     )}
                     <span className="ml-2">{t('auth.continueWithGoogle')}</span>
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleOAuthLogin('github')}
-                    disabled={isOAuthLoading !== null || isLoading}
-                  >
-                    {isOAuthLoading === 'github' ? (
-                      <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                    ) : (
-                      <GitHubIcon />
-                    )}
-                    <span className="ml-2">{t('auth.continueWithGitHub')}</span>
-                  </Button>
                 </div>
 
                 {/* Divider */}
