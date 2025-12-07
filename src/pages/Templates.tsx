@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
 import { Filter, X, LayoutTemplate } from "lucide-react";
 
 const Templates = () => {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [languageFilter, setLanguageFilter] = useState("all");
   const [domainFilter, setDomainFilter] = useState("all");

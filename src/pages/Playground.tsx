@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -131,6 +132,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_FILE_TYPES = [".txt", ".md", ".pdf", ".docx"];
 
 const Playground = () => {
+  const { t } = useTranslation();
   const [playgroundMode, setPlaygroundMode] = useState<"chat" | "code">("chat");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [configPanelOpen, setConfigPanelOpen] = useState(true);
