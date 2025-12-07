@@ -35,12 +35,14 @@ const ACCEPTED_TYPES = {
   'text/markdown': ['.md'],
 };
 
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB for all file types
+
 const MAX_FILE_SIZES: Record<string, number> = {
-  pdf: 500 * 1024 * 1024,
-  docx: 100 * 1024 * 1024,
-  pptx: 500 * 1024 * 1024,
-  txt: 100 * 1024 * 1024,
-  md: 100 * 1024 * 1024,
+  pdf: MAX_FILE_SIZE,
+  docx: MAX_FILE_SIZE,
+  pptx: MAX_FILE_SIZE,
+  txt: MAX_FILE_SIZE,
+  md: MAX_FILE_SIZE,
 };
 
 export function DocumentUpload({
