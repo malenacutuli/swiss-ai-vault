@@ -45,7 +45,20 @@
     "logout": "Log out",
     "login": "Log in",
     "signup": "Sign up",
-    "or": "or"
+    "or": "or",
+    "total": "total",
+    "thisMonth": "this month",
+    "viewAll": "View all",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "upgradeToPro": "Upgrade to Pro",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "profile": "Profile",
+    "billing": "Billing",
+    "user": "User",
+    "there": "there"
   },
   "nav": {
     "home": "Home",
@@ -66,7 +79,24 @@
     "apiDocs": "API Docs",
     "compliance": "Compliance",
     "auditLogs": "Audit Logs",
-    "admin": "Admin"
+    "admin": "Admin",
+    "catalog": "Catalog"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "datasets": "Datasets",
+    "finetuning": "Fine-tuning",
+    "models": "Models",
+    "catalog": "Catalog",
+    "evaluations": "Evaluations",
+    "playground": "Playground",
+    "templates": "Templates",
+    "traces": "Traces",
+    "stats": "Usage Stats",
+    "billing": "Billing",
+    "settings": "Settings",
+    "compliance": "Compliance"
   },
   "auth": {
     "welcomeBack": "Welcome back",
@@ -88,20 +118,35 @@
     "dontHaveAccount": "Don't have an account?",
     "forgotPassword": "Forgot password?",
     "resetPassword": "Reset password",
-    "backToLogin": "Back to login"
+    "backToLogin": "Back to login",
+    "signedOut": "Signed out",
+    "signedOutDescription": "You have been signed out successfully",
+    "logOut": "Log out"
   },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome back",
+    "welcomeBack": "Welcome back",
+    "welcomeMessage": "Here's what's happening with your AI projects today.",
     "overview": "Overview",
     "recentActivity": "Recent Activity",
     "quickActions": "Quick Actions",
     "totalProjects": "Total Projects",
     "totalDatasets": "Total Dataset Rows",
+    "datasetRows": "Dataset Rows",
     "finetuningJobs": "Fine-tuned Models",
+    "finetunedModels": "Fine-tuned Models",
     "apiCalls": "API Calls This Month",
     "noActivity": "No recent activity",
-    "createFirstProject": "Create your first project to get started"
+    "noActivityDesc": "Start a project to see activity here",
+    "createFirstProject": "Create your first project to get started",
+    "createProject": "Create Project",
+    "createProjectDesc": "Start a new AI project",
+    "uploadDataset": "Upload Dataset",
+    "uploadDatasetDesc": "Add training data",
+    "viewModels": "View Models",
+    "viewModelsDesc": "See your fine-tuned models",
+    "apiDocsDesc": "Explore the API"
   },
   "projects": {
     "title": "Projects",
@@ -312,7 +357,7 @@
     "deleteAccount": "Delete account",
     "deleteAccountWarning": "This action cannot be undone",
     "saveChanges": "Save changes",
-    "apiKeys": {
+    "apiKeysSection": {
       "title": "API Keys",
       "create": "Create API Key",
       "name": "Key name",
