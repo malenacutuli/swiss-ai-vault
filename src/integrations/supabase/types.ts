@@ -2006,6 +2006,10 @@ export type Database = {
           similarity: number
         }[]
       }
+      user_owns_vault_conversation: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "owner" | "member" | "viewer"

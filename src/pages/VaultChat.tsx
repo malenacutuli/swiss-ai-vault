@@ -15,7 +15,8 @@ import {
   Lock,
   Settings,
   Menu,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +55,7 @@ const VaultChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [decryptedMessages, setDecryptedMessages] = useState<Map<string, string>>(new Map());
+  const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -224,7 +226,7 @@ const VaultChat = () => {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (messageContent: string) => {
     if (!selectedConversation) return;
 
     try {
@@ -235,32 +237,118 @@ const VaultChat = () => {
       const key = await chatEncryption.getKey(selectedConversation);
       if (!key) throw new Error('Encryption key not found');
 
-      // Encrypt message
-      const encryptedContent = await chatEncryption.encryptMessage(content, key);
+      // Get current conversation
+      const conversation = conversations.find(c => c.id === selectedConversation);
+      if (!conversation) throw new Error('Conversation not found');
 
-      // Save user message
-      const { error: msgError } = await supabase
+      // Encrypt user message
+      const encryptedUserMessage = await chatEncryption.encryptMessage(messageContent, key);
+
+      // Insert user message
+      const { data: userMessage, error: userError } = await supabase
         .from('vault_chat_messages' as any)
         .insert({
           conversation_id: selectedConversation,
           role: 'user',
-          encrypted_content: encryptedContent
-        });
+          encrypted_content: encryptedUserMessage,
+          token_count: Math.ceil(messageContent.length / 4)
+        })
+        .select()
+        .single();
 
-      if (msgError) throw msgError;
+      if (userError) throw userError;
 
-      // Reload messages to show the new one
-      await loadMessages(selectedConversation);
+      // Add to UI immediately with decrypted content
+      const userMsgData = userMessage as unknown as Message;
+      setMessages(prev => [...prev, userMsgData]);
+      setDecryptedMessages(prev => new Map(prev).set(userMsgData.id, messageContent));
+      setTimeout(scrollToBottom, 100);
 
-      console.log('[Vault Chat] ✅ Sent encrypted message');
+      // Generate AI response
+      setIsGenerating(true);
+
+      // Build message history (decrypt previous messages)
+      const messageHistory = [];
+      for (const msg of messages) {
+        const content = decryptedMessages.get(msg.id);
+        if (content && msg.role !== 'system') {
+          messageHistory.push({
+            role: msg.role,
+            content: content
+          });
+        }
+      }
+      messageHistory.push({
+        role: 'user',
+        content: messageContent
+      });
+
+      // Call chat completions
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: conversation.model_id,
+            messages: messageHistory,
+            max_tokens: 2048,
+            temperature: 0.7,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('[Vault Chat] API error:', errorData);
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const assistantContent = data.choices[0].message.content;
+
+      // Encrypt assistant message
+      const encryptedAssistantMessage = await chatEncryption.encryptMessage(assistantContent, key);
+
+      // Insert assistant message
+      const { data: assistantMessage, error: assistantError } = await supabase
+        .from('vault_chat_messages' as any)
+        .insert({
+          conversation_id: selectedConversation,
+          role: 'assistant',
+          encrypted_content: encryptedAssistantMessage,
+          token_count: data.usage?.completion_tokens,
+          model_used: conversation.model_id,
+          finish_reason: data.choices[0].finish_reason,
+          latency_ms: data.latency_ms,
+          credits_used: 0.001
+        })
+        .select()
+        .single();
+
+      if (assistantError) throw assistantError;
+
+      // Add to UI
+      const assistantMsgData = assistantMessage as unknown as Message;
+      setMessages(prev => [...prev, assistantMsgData]);
+      setDecryptedMessages(prev => new Map(prev).set(assistantMsgData.id, assistantContent));
+      setTimeout(scrollToBottom, 100);
+
+      console.log('[Vault Chat] ✅ Message sent and AI responded');
     } catch (error) {
-      console.error('[Vault Chat] ❌ Error sending message:', error);
+      console.error('[Vault Chat] ❌ Send failed:', error);
       toast({
         title: 'Error',
         description: 'Failed to send message. Please try again.',
         variant: 'destructive'
       });
       throw error;
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -440,12 +528,22 @@ const VaultChat = () => {
                     )}
                   </ScrollArea>
 
+                  {/* AI Generating Indicator */}
+                  {isGenerating && (
+                    <div className="px-6 py-2 bg-primary/5 border-t border-primary/20">
+                      <div className="flex items-center gap-2 text-primary max-w-4xl mx-auto">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">AI is responding...</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Message Input */}
                   <div className="border-t border-border p-4 bg-card">
                     <div className="max-w-4xl mx-auto">
                       <MessageInput
                         onSend={handleSendMessage}
-                        disabled={!selectedConversation || loadingMessages}
+                        disabled={!selectedConversation || loadingMessages || isGenerating}
                         placeholder="Send an encrypted message..."
                       />
                     </div>
