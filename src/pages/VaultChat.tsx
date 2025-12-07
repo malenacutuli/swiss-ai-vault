@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,6 +68,7 @@ const VaultChat = () => {
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // RAG Context for document uploads
   const {
@@ -649,6 +651,8 @@ const VaultChat = () => {
                           uploadedDocuments={uploadedDocuments}
                           isUploading={isUploadingDocument}
                           disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
+                          userId={user?.id}
+                          conversationId={selectedConversation}
                         />
                         <div className="flex-1">
                           <MessageInput
