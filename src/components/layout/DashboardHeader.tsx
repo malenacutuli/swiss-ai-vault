@@ -220,8 +220,10 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
         </DropdownMenu>
 
         {/* Upgrade button */}
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-          <Sparkles className="h-4 w-4" />
+        <Button 
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          onClick={() => navigate("/dashboard/billing")}
+        >
           Upgrade to Pro
         </Button>
       </div>
