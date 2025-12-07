@@ -38,6 +38,7 @@ import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import VaultChat from "./pages/VaultChat";
+import VaultChatIntegrations from "./pages/VaultChatIntegrations";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 
@@ -78,6 +79,7 @@ const App = () => {
             <Route path="/dashboard/catalog" element={<ProtectedRoute><ModelsCatalog /></ProtectedRoute>} />
             <Route path="/dashboard/playground" element={<ProtectedRoute><Playground /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><VaultChat /></ProtectedRoute>} />
+            <Route path="/dashboard/vault-chat/integrations" element={<ProtectedRoute><VaultChatIntegrations /></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/dashboard/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/dashboard/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
