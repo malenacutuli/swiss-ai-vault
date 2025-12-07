@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.slack-sync]
 verify_jwt = true
+
+[functions.notion-oauth]
+verify_jwt = false
+
+[functions.notion-sync]
+verify_jwt = true
