@@ -225,7 +225,6 @@ export function useResumableUpload(options: ResumableUploadOptions) {
         endpoint: tusEndpoint,
         retryDelays: [0, 1000, 3000, 5000],
         chunkSize: CHUNK_SIZE,
-        parallelUploads: 3,
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           'x-upsert': 'true',
@@ -375,7 +374,6 @@ export function useResumableUpload(options: ResumableUploadOptions) {
         endpoint: tusEndpoint,
         retryDelays: [0, 1000, 3000, 5000],
         chunkSize: CHUNK_SIZE,
-        parallelUploads: 3,
         uploadUrl: storedUpload.url,
         headers: {
           Authorization: `Bearer ${session.access_token}`,
