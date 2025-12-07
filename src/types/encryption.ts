@@ -50,6 +50,20 @@ export interface DecryptedMessage {
   createdAt: string;
 }
 
+export interface DecryptedConversation {
+  id: string;
+  userId: string;
+  organizationId: string | null;
+  title: string;
+  modelId: string;
+  isEncrypted: boolean;
+  zeroRetention: boolean;
+  keyVersion: number;
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt: string | null;
+}
+
 export interface EncryptedDocument {
   id: string;
   userId: string;
