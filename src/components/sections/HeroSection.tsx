@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Zap, Globe } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export const HeroSection = () => {
+  const { t } = useTranslation();
+  
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Background Effects */}
@@ -15,7 +19,7 @@ export const HeroSection = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-in">
             <Shield className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Swiss Data Residency Guaranteed</span>
+            <span className="text-sm font-medium text-primary">{t('landing.hero.badge')}</span>
           </div>
 
           {/* Headline */}
@@ -26,18 +30,21 @@ export const HeroSection = () => {
 
           {/* Subheadline */}
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-up animate-delay-100">
-            Enterprise-grade LLM fine-tuning platform with guaranteed Swiss data residency. 
-            Train, evaluate, and deploy custom models without your data ever leaving Switzerland.
+            {t('landing.hero.subtitle')}
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-slide-up animate-delay-200">
-            <Button variant="hero" size="xl">
-              Start Free Trial
-              <ArrowRight className="h-5 w-5" />
+            <Button variant="hero" size="xl" asChild>
+              <Link to="/auth">
+                {t('landing.hero.cta')}
+                <ArrowRight className="h-5 w-5" />
+              </Link>
             </Button>
-            <Button variant="glass" size="xl">
-              View Documentation
+            <Button variant="glass" size="xl" asChild>
+              <Link to="/docs/api">
+                {t('landing.hero.docs')}
+              </Link>
             </Button>
           </div>
 

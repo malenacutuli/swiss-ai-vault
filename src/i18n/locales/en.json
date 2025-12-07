@@ -80,7 +80,11 @@
     "compliance": "Compliance",
     "auditLogs": "Audit Logs",
     "admin": "Admin",
-    "catalog": "Catalog"
+    "catalog": "Catalog",
+    "features": "Features",
+    "pricing": "Pricing",
+    "signIn": "Sign In",
+    "getStarted": "Get Started"
   },
   "sidebar": {
     "dashboard": "Dashboard",
