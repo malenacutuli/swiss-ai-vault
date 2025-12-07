@@ -45,10 +45,10 @@ const quickActions = [
     variant: "secondary" as const,
   },
   {
-    title: "API Documentation",
-    description: "Learn how to integrate the API",
+    title: "API Docs",
+    description: "Learn how to integrate",
     icon: BookOpen,
-    href: "/docs",
+    href: "/docs/api",
     variant: "secondary" as const,
   },
 ];
