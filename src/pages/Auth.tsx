@@ -406,7 +406,7 @@ export default function Auth() {
             {t('auth.termsPrefix')}{' '}
             <a href="#" className="text-primary hover:underline">{t('auth.termsOfService')}</a>
             {' '}{t('common.and')}{' '}
-            <a href="#" className="text-primary hover:underline">{t('auth.privacyPolicy')}</a>
+            <a href="/privacy-policy" className="text-primary hover:underline">{t('auth.privacyPolicy')}</a>
           </p>
         </div>
       </div>

@@ -38,6 +38,7 @@ import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import VaultChat from "./pages/VaultChat";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => {
             <Route path="/dashboard/admin/compliance" element={<AdminRoute><Compliance /></AdminRoute>} />
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
             <Route path="/design-system" element={<DesignSystem />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="*" element={<NotFound />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
