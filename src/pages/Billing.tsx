@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -39,6 +40,7 @@ const SERVICE_PRICING = [
 ];
 
 const Billing = () => {
+  const { t } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [purchasing, setPurchasing] = useState<number | null>(null);
   const [searchParams] = useSearchParams();
@@ -117,8 +119,8 @@ const Billing = () => {
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Billing & Credits</h1>
-              <p className="text-muted-foreground mt-1">Manage your credits and view usage</p>
+              <h1 className="text-2xl font-semibold text-foreground">{t('billing.title')}</h1>
+              <p className="text-muted-foreground mt-1">{t('billing.subtitle')}</p>
             </div>
           </div>
 
@@ -128,9 +130,9 @@ const Billing = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Coins className="h-5 w-5 text-primary" />
-                  Credit Balance
+                  {t('billing.creditBalance')}
                 </CardTitle>
-                <CardDescription>Your available credits</CardDescription>
+                <CardDescription>{t('billing.yourCredits')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {creditsLoading ? (
@@ -151,10 +153,10 @@ const Billing = () => {
                       onClick={() => handlePurchase(pkg.amount)}
                     >
                       {purchasing === pkg.amount ? "..." : `+$${pkg.amount}`}
-                      {pkg.popular && (
-                        <Badge className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0">
-                          Popular
-                        </Badge>
+                        {pkg.popular && (
+                          <Badge className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0">
+                            {t('billing.popular')}
+                          </Badge>
                       )}
                     </Button>
                   ))}
@@ -167,16 +169,16 @@ const Billing = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />
-                  Usage This Month
+                  {t('billing.usageThisMonth')}
                 </CardTitle>
-                <CardDescription>Daily credit consumption</CardDescription>
+                <CardDescription>{t('billing.dailyConsumption')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {txLoading ? (
                   <Skeleton className="h-64 w-full" />
                 ) : chartData.length === 0 ? (
                   <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    No usage data yet
+                    {t('billing.noUsageData')}
                   </div>
                 ) : (
                   <div className="h-64">
@@ -211,13 +213,13 @@ const Billing = () => {
 
           {/* Pricing Reference */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-primary" />
-                Service Pricing
-              </CardTitle>
-              <CardDescription>Cost per operation</CardDescription>
-            </CardHeader>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  {t('billing.servicePricing')}
+                </CardTitle>
+                <CardDescription>{t('billing.costPerOperation')}</CardDescription>
+              </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {SERVICE_PRICING.map((item) => (
@@ -238,10 +240,10 @@ const Billing = () => {
 
           {/* Transaction History */}
           <Card>
-            <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
-              <CardDescription>Recent credit usage and purchases</CardDescription>
-            </CardHeader>
+              <CardHeader>
+                <CardTitle>{t('billing.transactionHistory')}</CardTitle>
+                <CardDescription>{t('billing.noTransactions')}</CardDescription>
+              </CardHeader>
             <CardContent>
               {txLoading ? (
                 <div className="space-y-2">
