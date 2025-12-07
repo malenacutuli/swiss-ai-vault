@@ -9,6 +9,8 @@ import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
 import { MessageInput } from '@/components/vault-chat/MessageInput';
+import { E2EEncryptedBadge } from '@/components/vault-chat/E2EEncryptedBadge';
+import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
 import {
   Plus,
   Search,
@@ -58,6 +60,7 @@ const VaultChat = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [decryptedMessages, setDecryptedMessages] = useState<Map<string, string>>(new Map());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEncrypting, setIsEncrypting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -245,8 +248,19 @@ const VaultChat = () => {
       const conversation = conversations.find(c => c.id === selectedConversation);
       if (!conversation) throw new Error('Conversation not found');
 
+      // Start encryption animation (minimum 500ms for perceived security)
+      setIsEncrypting(true);
+      const encryptionStart = Date.now();
+
       // Encrypt user message
       const encryptedUserMessage = await chatEncryption.encryptMessage(messageContent, key);
+
+      // Ensure minimum encryption display time
+      const elapsed = Date.now() - encryptionStart;
+      if (elapsed < 500) {
+        await new Promise(resolve => setTimeout(resolve, 500 - elapsed));
+      }
+      setIsEncrypting(false);
 
       // Insert user message
       const { data: userMessage, error: userError } = await supabase
@@ -345,6 +359,7 @@ const VaultChat = () => {
       console.log('[Vault Chat] ✅ Message sent and AI responded');
     } catch (error) {
       console.error('[Vault Chat] ❌ Send failed:', error);
+      setIsEncrypting(false);
       toast({
         title: 'Error',
         description: 'Failed to send message. Please try again.',
@@ -560,6 +575,13 @@ const VaultChat = () => {
               {/* Content */}
               {selectedConversation ? (
                 <div className="flex-1 flex flex-col">
+                  {/* Chat Header with E2E Badge */}
+                  <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-border bg-card">
+                    <h2 className="font-medium text-foreground truncate">
+                      {conversations.find(c => c.id === selectedConversation)?.title || 'Conversation'}
+                    </h2>
+                    <E2EEncryptedBadge />
+                  </div>
                   {/* Message List */}
                   <ScrollArea className="flex-1 p-6">
                     {loadingMessages ? (
@@ -604,12 +626,15 @@ const VaultChat = () => {
                     </div>
                   )}
 
+                  {/* Encrypting Overlay */}
+                  <EncryptingOverlay visible={isEncrypting} />
+
                   {/* Message Input */}
                   <div className="border-t border-border p-4 bg-card">
                     <div className="max-w-4xl mx-auto">
                       <MessageInput
                         onSend={handleSendMessage}
-                        disabled={!selectedConversation || loadingMessages || isGenerating}
+                        disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
                         placeholder="Send an encrypted message..."
                       />
                     </div>
