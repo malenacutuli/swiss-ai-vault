@@ -7,10 +7,12 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
+import { useRAGContext } from '@/hooks/useRAGContext';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
 import { MessageInput } from '@/components/vault-chat/MessageInput';
 import { E2EEncryptedBadge } from '@/components/vault-chat/E2EEncryptedBadge';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
+import { DocumentUpload } from '@/components/vault-chat/DocumentUpload';
 import {
   Plus,
   Search,
@@ -65,6 +67,15 @@ const VaultChat = () => {
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // RAG Context for document uploads
+  const {
+    uploadedDocuments,
+    isUploading: isUploadingDocument,
+    uploadDocument,
+    clearContext,
+    hasContext,
+  } = useRAGContext();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -632,11 +643,32 @@ const VaultChat = () => {
                   {/* Message Input */}
                   <div className="border-t border-border p-4 bg-card">
                     <div className="max-w-4xl mx-auto">
-                      <MessageInput
-                        onSend={handleSendMessage}
-                        disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
-                        placeholder="Send an encrypted message..."
-                      />
+                      <div className="flex items-end gap-2">
+                        <DocumentUpload
+                          onUpload={uploadDocument}
+                          uploadedDocuments={uploadedDocuments}
+                          isUploading={isUploadingDocument}
+                          disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
+                        />
+                        <div className="flex-1">
+                          <MessageInput
+                            onSend={handleSendMessage}
+                            disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
+                            placeholder="Send an encrypted message..."
+                          />
+                        </div>
+                      </div>
+                      {hasContext && (
+                        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                          <span>{uploadedDocuments.length} document(s) in context</span>
+                          <button 
+                            onClick={clearContext}
+                            className="text-destructive hover:underline"
+                          >
+                            Clear context
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
