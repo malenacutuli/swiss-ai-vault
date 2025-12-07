@@ -39,6 +39,7 @@ import Billing from "./pages/Billing";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import VaultChat from "./pages/VaultChat";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -88,7 +89,7 @@ const App = () => {
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
             <Route path="/design-system" element={<DesignSystem />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
