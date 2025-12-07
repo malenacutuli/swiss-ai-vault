@@ -445,9 +445,11 @@
       "subtitle": "Your data never leaves Switzerland"
     },
     "cta": {
-      "title": "Ready to get started?",
-      "subtitle": "Start fine-tuning your models today",
-      "button": "Get Started Free"
+      "title": "Ready to Fine-Tune with",
+      "subtitle": "Start building custom AI models today. Free tier includes 10K API calls and 2 fine-tuning jobs per month.",
+      "button": "Get Started Free",
+      "demo": "Schedule Demo",
+      "noCard": "No credit card required • Setup in under 5 minutes"
     },
     "footer": {
       "product": "Product",
