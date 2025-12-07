@@ -1700,6 +1700,150 @@ export type Database = {
           },
         ]
       }
+      vault_chat_conversations: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          encryption_key_hash: string
+          id: string
+          is_encrypted: boolean | null
+          is_shared: boolean | null
+          last_message_at: string | null
+          message_count: number | null
+          model_id: string
+          organization_id: string | null
+          system_prompt: string | null
+          title: string
+          total_tokens: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encryption_key_hash: string
+          id?: string
+          is_encrypted?: boolean | null
+          is_shared?: boolean | null
+          last_message_at?: string | null
+          message_count?: number | null
+          model_id?: string
+          organization_id?: string | null
+          system_prompt?: string | null
+          title?: string
+          total_tokens?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          encryption_key_hash?: string
+          id?: string
+          is_encrypted?: boolean | null
+          is_shared?: boolean | null
+          last_message_at?: string | null
+          message_count?: number | null
+          model_id?: string
+          organization_id?: string | null
+          system_prompt?: string | null
+          title?: string
+          total_tokens?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_chat_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_chat_messages: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          credits_used: number | null
+          encrypted_content: string
+          finish_reason: string | null
+          id: string
+          latency_ms: number | null
+          model_used: string | null
+          role: string
+          token_count: number | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          encrypted_content: string
+          finish_reason?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          role: string
+          token_count?: number | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          encrypted_content?: string
+          finish_reason?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          role?: string
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "vault_chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_chat_shared_conversations: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          permission: string
+          shared_by_user_id: string | null
+          shared_with_user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          permission?: string
+          shared_by_user_id?: string | null
+          shared_with_user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          permission?: string
+          shared_by_user_id?: string | null
+          shared_with_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_chat_shared_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "vault_chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       template_summary: {
