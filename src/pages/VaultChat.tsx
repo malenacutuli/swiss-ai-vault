@@ -653,6 +653,7 @@ const VaultChat = () => {
                           disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
                           userId={user?.id}
                           conversationId={selectedConversation}
+                          skipStorage={true}
                         />
                         <div className="flex-1">
                           <MessageInput

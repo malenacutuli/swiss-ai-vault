@@ -43,6 +43,7 @@ interface DocumentUploadProps {
   conversationId?: string;
   userId?: string;
   userTier?: UserTier;
+  skipStorage?: boolean; // Skip TUS upload, send file directly to onUpload callback
 }
 
 type UploadState = 'idle' | 'dragActive' | 'uploading' | 'processing' | 'complete' | 'error';
@@ -64,6 +65,7 @@ export function DocumentUpload({
   conversationId,
   userId,
   userTier = 'free',
+  skipStorage = false,
 }: DocumentUploadProps) {
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
@@ -169,7 +171,38 @@ export function DocumentUpload({
     setUploadProgress(0);
     setIsExpanded(false);
 
-    // For large files, use TUS resumable upload
+    // OPTIMIZED PATH: Skip storage, send directly to processing
+    if (skipStorage) {
+      setUploadState('processing');
+      try {
+        const result = await onUpload(file);
+        if (result.success) {
+          setUploadState('complete');
+          setTimeout(() => {
+            setUploadState('idle');
+            setCurrentFile(null);
+            setUploadProgress(0);
+          }, 1500);
+        } else {
+          setUploadState('error');
+          setErrorMessage('Failed to process document');
+          setTimeout(() => {
+            setUploadState('idle');
+            setErrorMessage(null);
+          }, 3000);
+        }
+      } catch (error) {
+        setUploadState('error');
+        setErrorMessage(error instanceof Error ? error.message : 'Processing failed');
+        setTimeout(() => {
+          setUploadState('idle');
+          setErrorMessage(null);
+        }, 3000);
+      }
+      return;
+    }
+
+    // STORAGE PATH: For large files, use TUS resumable upload
     if (isLargeFile(file)) {
       setUploadState('uploading');
       try {
@@ -218,7 +251,7 @@ export function DocumentUpload({
         }, 3000);
       }
     }
-  }, [onUpload, isLargeFile, resumableUpload, maxFileSize, userTier]);
+  }, [onUpload, isLargeFile, resumableUpload, maxFileSize, userTier, skipStorage]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0 || disabled) return;
@@ -451,16 +484,20 @@ export function DocumentUpload({
           </div>
         )}
 
-        {/* Standard Upload Progress (small files) */}
+        {/* Standard Upload Progress (small files) or Direct Processing */}
         {(uploadState === 'uploading' || uploadState === 'processing') && currentFile && !isUsingTUS && (
           <div className="flex items-center gap-3 p-3 bg-info/10 rounded-lg border border-info/20 mb-2">
             <Loader2 className="h-4 w-4 text-info animate-spin" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{currentFile.name}</p>
               <p className="text-xs text-muted-foreground">
-                {uploadState === 'processing' ? 'Analyzing document...' : 'Uploading...'}
+                {skipStorage 
+                  ? 'Processing document for context...' 
+                  : uploadState === 'processing' 
+                    ? 'Analyzing document...' 
+                    : 'Uploading...'}
               </p>
-              <Progress value={uploadProgress} className="h-1 mt-1" />
+              {!skipStorage && <Progress value={uploadProgress} className="h-1 mt-1" />}
             </div>
           </div>
         )}
