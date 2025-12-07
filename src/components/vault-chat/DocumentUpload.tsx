@@ -1,6 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Paperclip, X, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { 
+  Paperclip, X, FileText, Loader2, CheckCircle, AlertCircle, 
+  Pause, Play, XCircle, RotateCcw, Clock, Zap
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -10,6 +13,20 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { 
+  useResumableUpload, 
+  formatBytes, 
+  formatTime, 
+  FILE_SIZE_LIMITS,
+  type UserTier 
+} from '@/hooks/useResumableUpload';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface UploadedDoc {
   filename: string;
@@ -23,6 +40,9 @@ interface DocumentUploadProps {
   onRemoveDocument?: (filename: string) => void;
   isUploading: boolean;
   disabled?: boolean;
+  conversationId?: string;
+  userId?: string;
+  userTier?: UserTier;
 }
 
 type UploadState = 'idle' | 'dragActive' | 'uploading' | 'processing' | 'complete' | 'error';
@@ -35,47 +55,104 @@ const ACCEPTED_TYPES = {
   'text/markdown': ['.md'],
 };
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB for all file types
-
-const MAX_FILE_SIZES: Record<string, number> = {
-  pdf: MAX_FILE_SIZE,
-  docx: MAX_FILE_SIZE,
-  pptx: MAX_FILE_SIZE,
-  txt: MAX_FILE_SIZE,
-  md: MAX_FILE_SIZE,
-};
-
 export function DocumentUpload({
   onUpload,
   uploadedDocuments,
   onRemoveDocument,
   isUploading,
   disabled,
+  conversationId,
+  userId,
+  userTier = 'free',
 }: DocumentUploadProps) {
   const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const [currentFile, setCurrentFile] = useState<string | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
+  const pendingFileRef = useRef<File | null>(null);
+
+  const maxFileSize = FILE_SIZE_LIMITS[userTier];
+
+  const {
+    upload: resumableUpload,
+    pause,
+    resume,
+    cancel,
+    resumeFromStored,
+    clearIncomplete,
+    status: tusStatus,
+    progress: tusProgress,
+    error: tusError,
+    incompleteUploads,
+    isLargeFile,
+    canPauseResume,
+  } = useResumableUpload({
+    bucket: 'documents',
+    path: userId && conversationId ? `${userId}/${conversationId}` : 'uploads',
+    userTier,
+    onProgress: (prog) => {
+      setUploadProgress(prog.percentage);
+    },
+    onComplete: async (storagePath) => {
+      // After TUS upload completes, process the document
+      if (currentFile) {
+        setUploadState('processing');
+        try {
+          const result = await onUpload(currentFile);
+          if (result.success) {
+            setUploadState('complete');
+            setTimeout(() => {
+              setUploadState('idle');
+              setCurrentFile(null);
+              setUploadProgress(0);
+            }, 1500);
+          } else {
+            setUploadState('error');
+            setErrorMessage('Failed to process document');
+            setTimeout(() => {
+              setUploadState('idle');
+              setErrorMessage(null);
+            }, 3000);
+          }
+        } catch (err) {
+          setUploadState('error');
+          setErrorMessage(err instanceof Error ? err.message : 'Processing failed');
+          setTimeout(() => {
+            setUploadState('idle');
+            setErrorMessage(null);
+          }, 3000);
+        }
+      }
+    },
+    onError: (err) => {
+      setUploadState('error');
+      setErrorMessage(err.message);
+      setTimeout(() => {
+        setUploadState('idle');
+        setErrorMessage(null);
+      }, 5000);
+    },
+  });
 
   const validateFile = (file: File): string | null => {
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (!extension) return 'Invalid file type';
     
-    const maxSize = MAX_FILE_SIZES[extension];
-    if (!maxSize) return `Unsupported file type: .${extension}`;
+    const validExtensions = ['pdf', 'docx', 'pptx', 'txt', 'md'];
+    if (!validExtensions.includes(extension)) {
+      return `Unsupported file type: .${extension}`;
+    }
     
-    if (file.size > maxSize) {
-      return `File too large. Max size for .${extension}: ${Math.round(maxSize / (1024 * 1024))}MB`;
+    if (file.size > maxFileSize) {
+      return `File too large. Max size for ${userTier} tier: ${formatBytes(maxFileSize)}`;
     }
     
     return null;
   };
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0 || disabled) return;
-
-    const file = acceptedFiles[0];
+  const handleUpload = useCallback(async (file: File) => {
     const validationError = validateFile(file);
     
     if (validationError) {
@@ -88,48 +165,117 @@ export function DocumentUpload({
       return;
     }
 
-    setCurrentFile(file.name);
-    setUploadState('uploading');
+    setCurrentFile(file);
     setUploadProgress(0);
     setIsExpanded(false);
 
-    // Simulate upload progress
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + 10, 90));
-    }, 200);
-
-    try {
-      setUploadState('processing');
-      const result = await onUpload(file);
+    // For large files, use TUS resumable upload
+    if (isLargeFile(file)) {
+      setUploadState('uploading');
+      try {
+        await resumableUpload(file);
+      } catch (err) {
+        // Error handled by onError callback
+      }
+    } else {
+      // For small files, use standard upload flow
+      setUploadState('uploading');
       
-      clearInterval(progressInterval);
-      setUploadProgress(100);
+      // Simulate progress for small files
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
 
-      if (result.success) {
-        setUploadState('complete');
-        setTimeout(() => {
-          setUploadState('idle');
-          setCurrentFile(null);
-          setUploadProgress(0);
-        }, 1500);
-      } else {
+      try {
+        setUploadState('processing');
+        const result = await onUpload(file);
+        
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+
+        if (result.success) {
+          setUploadState('complete');
+          setTimeout(() => {
+            setUploadState('idle');
+            setCurrentFile(null);
+            setUploadProgress(0);
+          }, 1500);
+        } else {
+          setUploadState('error');
+          setErrorMessage('Failed to process document');
+          setTimeout(() => {
+            setUploadState('idle');
+            setErrorMessage(null);
+          }, 3000);
+        }
+      } catch (error) {
+        clearInterval(progressInterval);
         setUploadState('error');
-        setErrorMessage('Failed to process document');
+        setErrorMessage(error instanceof Error ? error.message : 'Upload failed');
         setTimeout(() => {
           setUploadState('idle');
           setErrorMessage(null);
         }, 3000);
       }
-    } catch (error) {
-      clearInterval(progressInterval);
-      setUploadState('error');
-      setErrorMessage(error instanceof Error ? error.message : 'Upload failed');
-      setTimeout(() => {
-        setUploadState('idle');
-        setErrorMessage(null);
-      }, 3000);
     }
-  }, [onUpload, disabled]);
+  }, [onUpload, isLargeFile, resumableUpload, maxFileSize, userTier]);
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0 || disabled) return;
+
+    const file = acceptedFiles[0];
+    
+    // Check for incomplete uploads matching this file
+    const matchingIncomplete = incompleteUploads.find(
+      u => u.filename === file.name && u.bytesTotal === file.size
+    );
+
+    if (matchingIncomplete) {
+      pendingFileRef.current = file;
+      setShowIncompleteDialog(true);
+      return;
+    }
+
+    handleUpload(file);
+  }, [handleUpload, disabled, incompleteUploads]);
+
+  const handleResumeIncomplete = async () => {
+    const file = pendingFileRef.current;
+    if (!file) return;
+
+    const matchingIncomplete = incompleteUploads.find(
+      u => u.filename === file.name && u.bytesTotal === file.size
+    );
+
+    if (matchingIncomplete) {
+      setShowIncompleteDialog(false);
+      setCurrentFile(file);
+      setUploadState('uploading');
+      try {
+        await resumeFromStored(matchingIncomplete, file);
+      } catch (err) {
+        // Error handled by callback
+      }
+    }
+    pendingFileRef.current = null;
+  };
+
+  const handleStartFresh = () => {
+    const file = pendingFileRef.current;
+    if (!file) return;
+
+    const matchingIncomplete = incompleteUploads.find(
+      u => u.filename === file.name
+    );
+
+    if (matchingIncomplete) {
+      clearIncomplete(matchingIncomplete.id);
+    }
+
+    setShowIncompleteDialog(false);
+    handleUpload(file);
+    pendingFileRef.current = null;
+  };
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -150,10 +296,12 @@ export function DocumentUpload({
     return `${truncated}...${extension}`;
   };
 
-  const getFileIcon = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase();
+  const getFileIcon = () => {
     return <FileText className="h-3 w-3" />;
   };
+
+  const isUsingTUS = currentFile && isLargeFile(currentFile);
+  const showPauseResume = currentFile && canPauseResume(currentFile);
 
   return (
     <div className="flex flex-col gap-2">
@@ -169,7 +317,7 @@ export function DocumentUpload({
                     "bg-success/10 border border-success/20",
                     "text-xs text-success"
                   )}>
-                    {getFileIcon(doc.filename)}
+                    {getFileIcon()}
                     <span className="max-w-[100px] truncate">{truncateFilename(doc.filename)}</span>
                     {onRemoveDocument && (
                       <button
@@ -216,17 +364,99 @@ export function DocumentUpload({
               {isDragActive ? "Drop file here" : "Drop files here or click to browse"}
             </p>
             <p className="text-xs text-muted-foreground">
-              PDF, DOCX, PPTX, TXT, MD
+              PDF, DOCX, PPTX, TXT, MD • Max {formatBytes(maxFileSize)}
             </p>
           </div>
         )}
 
-        {/* Upload Progress */}
-        {(uploadState === 'uploading' || uploadState === 'processing') && currentFile && (
+        {/* Large File Upload Progress */}
+        {(uploadState === 'uploading' || tusStatus === 'uploading' || tusStatus === 'paused' || tusStatus === 'resuming') && currentFile && isUsingTUS && (
+          <div className="p-4 bg-card rounded-lg border border-border mb-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium truncate max-w-[200px]">
+                  {currentFile.name}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {formatBytes(currentFile.size)}
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {tusStatus === 'paused' ? 'Paused' : 
+                   tusStatus === 'resuming' ? 'Resuming...' :
+                   `Uploading chunk ${tusProgress.currentChunk} of ${tusProgress.totalChunks}`}
+                </span>
+                <span className="font-medium">{tusProgress.percentage}%</span>
+              </div>
+              <Progress value={tusProgress.percentage} className="h-2" />
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                <span>{formatBytes(tusProgress.speed)}/s</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{formatTime(tusProgress.estimatedTimeRemaining)} remaining</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            {showPauseResume && (
+              <div className="flex items-center gap-2">
+                {tusStatus === 'paused' ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resume}
+                    className="flex items-center gap-1"
+                  >
+                    <Play className="h-3 w-3" />
+                    Resume
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={pause}
+                    className="flex items-center gap-1"
+                  >
+                    <Pause className="h-3 w-3" />
+                    Pause
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    cancel();
+                    setUploadState('idle');
+                    setCurrentFile(null);
+                  }}
+                  className="flex items-center gap-1 text-destructive hover:text-destructive"
+                >
+                  <XCircle className="h-3 w-3" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Standard Upload Progress (small files) */}
+        {(uploadState === 'uploading' || uploadState === 'processing') && currentFile && !isUsingTUS && (
           <div className="flex items-center gap-3 p-3 bg-info/10 rounded-lg border border-info/20 mb-2">
             <Loader2 className="h-4 w-4 text-info animate-spin" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{currentFile}</p>
+              <p className="text-sm font-medium truncate">{currentFile.name}</p>
               <p className="text-xs text-muted-foreground">
                 {uploadState === 'processing' ? 'Analyzing document...' : 'Uploading...'}
               </p>
@@ -240,16 +470,41 @@ export function DocumentUpload({
           <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg border border-success/20 mb-2">
             <CheckCircle className="h-4 w-4 text-success" />
             <p className="text-sm font-medium text-success">
-              {currentFile} uploaded successfully
+              {currentFile.name} uploaded successfully
             </p>
           </div>
         )}
 
         {/* Error State */}
-        {uploadState === 'error' && errorMessage && (
+        {(uploadState === 'error' || tusStatus === 'error') && (errorMessage || tusError) && (
           <div className="flex items-center gap-3 p-3 bg-destructive/10 rounded-lg border border-destructive/20 mb-2">
             <AlertCircle className="h-4 w-4 text-destructive" />
-            <p className="text-sm font-medium text-destructive">{errorMessage}</p>
+            <p className="text-sm font-medium text-destructive">
+              {errorMessage || tusError?.message}
+            </p>
+          </div>
+        )}
+
+        {/* Incomplete Uploads Indicator */}
+        {incompleteUploads.length > 0 && uploadState === 'idle' && (
+          <div className="flex items-center gap-3 p-3 bg-warning/10 rounded-lg border border-warning/20 mb-2">
+            <RotateCcw className="h-4 w-4 text-warning" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-warning">
+                {incompleteUploads.length} incomplete upload{incompleteUploads.length > 1 ? 's' : ''}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Drop the same file to resume
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => incompleteUploads.forEach(u => clearIncomplete(u.id))}
+              className="text-xs"
+            >
+              Clear all
+            </Button>
           </div>
         )}
 
@@ -273,7 +528,7 @@ export function DocumentUpload({
                 )}
                 aria-label="Upload document"
               >
-                {isUploading ? (
+                {isUploading || tusStatus === 'uploading' ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Paperclip className="h-4 w-4" />
@@ -282,11 +537,35 @@ export function DocumentUpload({
             </TooltipTrigger>
             <TooltipContent side="top">
               <p>Upload document for context</p>
-              <p className="text-xs text-muted-foreground">PDF, DOCX, PPTX, TXT, MD</p>
+              <p className="text-xs text-muted-foreground">
+                PDF, DOCX, PPTX, TXT, MD • Max {formatBytes(maxFileSize)}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {/* Resume Incomplete Upload Dialog */}
+      <Dialog open={showIncompleteDialog} onOpenChange={setShowIncompleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resume Previous Upload?</DialogTitle>
+            <DialogDescription>
+              We found an incomplete upload for "{pendingFileRef.current?.name}". 
+              Would you like to resume where you left off or start fresh?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 mt-4">
+            <Button onClick={handleResumeIncomplete} className="flex-1">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Resume Upload
+            </Button>
+            <Button variant="outline" onClick={handleStartFresh} className="flex-1">
+              Start Fresh
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
