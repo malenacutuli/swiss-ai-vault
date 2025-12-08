@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.github-sync]
 verify_jwt = true
+
+[functions.search-documents]
+verify_jwt = true

@@ -126,45 +126,89 @@ export function useRAGContext(externalConversationId?: string | null) {
     const targetConversationId = conversationId || externalConversationId;
     
     if (!targetConversationId || !contextEnabled) {
+      console.log('[RAG] Search skipped - no conversation or context disabled');
       return [];
     }
+
+    console.log('[RAG] Searching context for query:', query.substring(0, 100));
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session for context search');
+        console.error('[RAG] No session for context search');
         return [];
       }
 
       const results: DocumentChunk[] = [];
 
-      // 1. Search document chunks using text search
-      const { data: docChunks, error: docError } = await supabase
-        .from('document_chunks')
-        .select('id, content, filename, chunk_index, metadata')
-        .eq('conversation_id', targetConversationId)
-        .textSearch('content', query.split(' ').filter(w => w.length > 2).join(' | '))
-        .limit(limit);
+      // 1. Use semantic vector search via Edge Function
+      console.log('[RAG] Calling search-documents Edge Function...');
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-documents`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query,
+            conversation_id: targetConversationId,
+            limit,
+            match_threshold: 0.5, // Lower threshold for better recall
+          }),
+        }
+      );
 
-      if (!docError && docChunks) {
-        results.push(...docChunks.map(chunk => ({
-          id: chunk.id,
-          content: chunk.content,
-          filename: chunk.filename,
-          chunk_index: chunk.chunk_index,
-          similarity: 0.7, // Default similarity for text search
-          metadata: { 
-            source: 'document', 
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[RAG] Vector search found', data.count, 'chunks');
+        
+        if (data.chunks && data.chunks.length > 0) {
+          results.push(...data.chunks.map((chunk: any) => ({
+            id: chunk.id,
+            content: chunk.content,
             filename: chunk.filename,
-            ...(chunk.metadata as Record<string, any> || {})
-          }
-        })));
+            chunk_index: chunk.chunk_index || 0,
+            similarity: chunk.similarity || 0.7,
+            metadata: { 
+              source: 'document', 
+              filename: chunk.filename,
+            }
+          })));
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[RAG] Vector search failed:', response.status, errorData);
+        
+        // Fallback to text search if vector search fails
+        console.log('[RAG] Falling back to text search...');
+        const { data: docChunks, error: docError } = await supabase
+          .from('document_chunks')
+          .select('id, content, filename, chunk_index, metadata')
+          .eq('conversation_id', targetConversationId)
+          .limit(limit);
+
+        if (!docError && docChunks && docChunks.length > 0) {
+          console.log('[RAG] Text fallback found', docChunks.length, 'chunks');
+          results.push(...docChunks.map(chunk => ({
+            id: chunk.id,
+            content: chunk.content,
+            filename: chunk.filename,
+            chunk_index: chunk.chunk_index,
+            similarity: 0.5,
+            metadata: { 
+              source: 'document', 
+              filename: chunk.filename,
+              ...(chunk.metadata as Record<string, any> || {})
+            }
+          })));
+        }
       }
 
-      // 2. Search integration data if user has active integrations
+      // 2. Also search integration data if user has active integrations
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Get active integrations
         const { data: activeIntegrations } = await supabase
           .from('chat_integrations')
           .select('id, integration_type')
@@ -173,16 +217,13 @@ export function useRAGContext(externalConversationId?: string | null) {
 
         if (activeIntegrations && activeIntegrations.length > 0) {
           const integrationIds = activeIntegrations.map(i => i.id);
-
-          // Search integration data
-          const { data: integrationData, error: intError } = await supabase
+          const { data: integrationData } = await supabase
             .from('chat_integration_data')
-            .select('id, encrypted_content, snippet, title, integration_id, metadata')
+            .select('id, snippet, title, integration_id, metadata')
             .in('integration_id', integrationIds)
             .limit(limit);
 
-          if (!intError && integrationData) {
-            // Filter by query match in snippet or title
+          if (integrationData) {
             const queryLower = query.toLowerCase();
             const matchingData = integrationData.filter(item => 
               (item.snippet?.toLowerCase().includes(queryLower)) ||
@@ -207,10 +248,10 @@ export function useRAGContext(externalConversationId?: string | null) {
         }
       }
 
-      // Sort by similarity and limit
+      console.log('[RAG] Total context results:', results.length);
       return results.slice(0, limit);
     } catch (error) {
-      console.error('Error searching context:', error);
+      console.error('[RAG] Error searching context:', error);
       return [];
     }
   }, [conversationId, externalConversationId, contextEnabled]);
