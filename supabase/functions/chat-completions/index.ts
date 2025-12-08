@@ -77,6 +77,13 @@ const VLLM_MODELS = [
 ];
 
 serve(async (req) => {
+  const requestStartTime = Date.now();
+  
+  // Log all incoming requests
+  console.log('[chat-completions] ====== REQUEST START ======');
+  console.log('[chat-completions] Method:', req.method);
+  console.log('[chat-completions] URL:', req.url);
+  
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -94,6 +101,13 @@ serve(async (req) => {
     
     // Parse request body first to check for action type
     const body = await req.json();
+    
+    console.log('[chat-completions] Request body:', JSON.stringify({
+      model: body.model,
+      messageCount: body.messages?.length,
+      maxTokens: body.max_tokens,
+      temperature: body.temperature
+    }));
     
     // Handle embed action (for RAG query embeddings)
     if (body.action === "embed" && body.text) {
@@ -439,13 +453,34 @@ async function handleAnthropicRequest(
   });
 
   // Debug: Log exact model being sent to Anthropic
+  const ANTHROPIC_API_KEY = anthropicKey;
+  console.log('[chat-completions] Anthropic config:', {
+    hasApiKey: !!ANTHROPIC_API_KEY,
+    apiKeyLength: ANTHROPIC_API_KEY?.length,
+    apiKeyPrefix: ANTHROPIC_API_KEY?.substring(0, 15),
+    apiKeyFormat: ANTHROPIC_API_KEY?.startsWith('sk-ant-') ? 'valid' : 'INVALID'
+  });
+  
   console.log('[chat-completions] Anthropic request debug:', {
     model: model,
     modelLength: model?.length,
     modelTrimmed: model?.trim(),
-    hasApiKey: !!anthropicKey,
-    apiKeyPrefix: anthropicKey?.substring(0, 10)
+    modelJSON: JSON.stringify(model),
+    messageCount: anthropicMessages.length,
+    hasSystemPrompt: !!systemPrompt,
+    systemPromptLength: systemPrompt.length
   });
+
+  const anthropicRequestBody = {
+    model: model.trim(),
+    max_tokens: maxTokens,
+    system: systemPrompt || undefined,
+    messages: anthropicMessages,
+    temperature,
+    stream,
+  };
+  
+  console.log('[chat-completions] Anthropic full request body:', JSON.stringify(anthropicRequestBody, null, 2));
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -454,45 +489,47 @@ async function handleAnthropicRequest(
       "Content-Type": "application/json",
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
-      model: model.trim(),  // Trim whitespace
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: anthropicMessages,
-      temperature,
-      stream,
-    }),
+    body: JSON.stringify(anthropicRequestBody),
   });
 
-  // Log response status for debugging
-  console.log('[chat-completions] Anthropic response status:', response.status);
+  // Get response as text first to log it
+  const responseText = await response.text();
+  
+  console.log('[chat-completions] Anthropic response:', {
+    status: response.status,
+    statusText: response.statusText,
+    bodyLength: responseText.length,
+    bodyPreview: responseText.substring(0, 500)
+  });
 
-  if (stream) {
-    // Transform Anthropic stream to OpenAI format
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        // Convert Anthropic SSE to OpenAI SSE format
-        controller.enqueue(chunk);
-      },
-    });
-    
-    return new Response(response.body?.pipeThrough(transformStream), {
-      headers: {
-        ...responseHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-      },
-    });
+  if (stream && response.ok) {
+    // For streaming, we need to re-create the response since we consumed the body
+    // This won't work for streaming after consuming text, so skip streaming for debug
+    console.log('[chat-completions] WARNING: Streaming response consumed for debug logging');
   }
 
-  const data = await response.json();
+  // Parse response
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (parseError) {
+    console.error('[chat-completions] Failed to parse Anthropic response:', responseText);
+    return new Response(JSON.stringify({ 
+      error: { message: `Failed to parse Anthropic response: ${responseText.substring(0, 200)}` }
+    }), {
+      status: 500,
+      headers: { ...responseHeaders, "Content-Type": "application/json" }
+    });
+  }
+  
   const latencyMs = Date.now() - startTime;
   
   // Check for Anthropic API errors
-  if (data.error) {
-    console.error("[chat-completions] Anthropic API error:", JSON.stringify(data.error));
+  if (!response.ok || data.error) {
+    console.error("[chat-completions] Anthropic API error:", JSON.stringify(data));
+    const errorMessage = data.error?.message || data.message || `Anthropic API error: ${response.status}`;
     return new Response(JSON.stringify({ 
-      error: { message: data.error.message || "Anthropic API error" }
+      error: { message: errorMessage }
     }), {
       status: response.status >= 400 ? response.status : 500,
       headers: { ...responseHeaders, "Content-Type": "application/json" }
