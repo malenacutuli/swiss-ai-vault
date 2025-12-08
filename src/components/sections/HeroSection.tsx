@@ -29,8 +29,8 @@ export const HeroSection = () => {
               </div>
 
               {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 animate-slide-up">
-                Zero-Trust AI for{" "}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 animate-slide-up">
+                Zero-Trace AI for{" "}
                 <span className="text-gradient">Regulated Teams</span>
               </h1>
 
