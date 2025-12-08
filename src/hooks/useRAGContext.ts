@@ -12,13 +12,9 @@ interface DocumentChunk {
   id: string;
   content: string;
   filename: string;
-  chunk_index: number;
-  similarity: number;
-  metadata?: {
-    source?: string;
-    filename?: string;
-    [key: string]: any;
-  };
+  chunkIndex: number;
+  similarity?: number;
+  metadata?: Record<string, any>;
 }
 
 const SUPPORTED_FILE_TYPES = ['txt', 'md', 'pdf', 'docx', 'pptx'];
@@ -195,7 +191,7 @@ export function useRAGContext(externalConversationId?: string | null) {
             id: chunk.id,
             content: chunk.content,
             filename: chunk.filename,
-            chunk_index: chunk.chunk_index,
+            chunkIndex: chunk.chunk_index,
             similarity: 0.5,
             metadata: { 
               source: 'document', 
@@ -236,7 +232,7 @@ export function useRAGContext(externalConversationId?: string | null) {
                 id: item.id,
                 content: item.snippet || item.title || '',
                 filename: item.title || 'Integration Data',
-                chunk_index: 0,
+                chunkIndex: 0,
                 similarity: 0.6,
                 metadata: {
                   source: integration?.integration_type || 'integration',
