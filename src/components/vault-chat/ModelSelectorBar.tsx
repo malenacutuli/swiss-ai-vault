@@ -1,45 +1,27 @@
-import { useState, useRef, useEffect } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { Lock } from 'lucide-react';
-
-// Import model logos
-import openaiLogo from '@/assets/models/openai-logo.png';
-import anthropicLogo from '@/assets/models/anthropic-logo.png';
-import googleLogo from '@/assets/models/google-logo.jpg';
-import mistralLogo from '@/assets/models/mistral-logo.png';
-import metaLogo from '@/assets/models/meta-logo.png';
-import qwenLogo from '@/assets/models/qwen-logo.jpg';
-import deepseekLogo from '@/assets/models/deepseek-logo.png';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { ChevronDown, Brain, Clock } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface Model {
   id: string;
   name: string;
   provider: string;
-  isLocal?: boolean;
+  description?: string;
+  isNew?: boolean;
+  isReasoning?: boolean;
+  coldStart?: boolean;
 }
-
-const AVAILABLE_MODELS: Model[] = [
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
-  { id: 'claude-sonnet-4', name: 'Claude 4 Sonnet', provider: 'Anthropic' },
-  { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
-  { id: 'gemini-pro', name: 'Gemini Pro', provider: 'Google' },
-  { id: 'mistral-7b', name: 'Mistral 7B', provider: 'Mistral', isLocal: true },
-  { id: 'llama3.2-3b', name: 'Llama 3.2 3B', provider: 'Meta', isLocal: true },
-  { id: 'qwen2.5-3b', name: 'Qwen 2.5 3B', provider: 'Qwen', isLocal: true },
-  { id: 'deepseek-v3', name: 'DeepSeek V3', provider: 'DeepSeek' },
-];
-
-const PROVIDER_CONFIG = [
-  { provider: 'OpenAI', logo: openaiLogo, models: ['gpt-4o', 'gpt-4o-mini'] },
-  { provider: 'Anthropic', logo: anthropicLogo, models: ['claude-sonnet-4', 'claude-3-5-haiku'] },
-  { provider: 'Google', logo: googleLogo, models: ['gemini-pro'] },
-  { provider: 'DeepSeek', logo: deepseekLogo, models: ['deepseek-v3'] },
-  { provider: 'Mistral', logo: mistralLogo, models: ['mistral-7b'] },
-  { provider: 'Meta', logo: metaLogo, models: ['llama3.2-3b', 'llama3.2-1b'] },
-  { provider: 'Qwen', logo: qwenLogo, models: ['qwen2.5-3b', 'qwen2.5-7b'] },
-];
 
 interface ModelSelectorBarProps {
   selectedModel: string;
@@ -47,106 +29,138 @@ interface ModelSelectorBarProps {
   className?: string;
 }
 
+// ============================================
+// COMPLETE MODEL LIST - DECEMBER 2025
+// ============================================
+
+const ANTHROPIC_MODELS: Model[] = [
+  { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most intelligent', isNew: true },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Balanced', isNew: true },
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fastest', isNew: true },
+  { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', provider: 'Anthropic', description: 'Previous gen' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', description: 'Legacy' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic', description: 'Legacy fast' },
+];
+
+const OPENAI_MODELS: Model[] = [
+  { id: 'o1', name: 'o1', provider: 'OpenAI', description: 'Advanced reasoning', isNew: true, isReasoning: true },
+  { id: 'o1-mini', name: 'o1 Mini', provider: 'OpenAI', description: 'Fast reasoning', isReasoning: true },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Multimodal flagship' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', description: 'Cost-effective' },
+];
+
+const GOOGLE_MODELS: Model[] = [
+  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Latest', isNew: true },
+  { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', provider: 'Google', description: 'Reasoning', isNew: true, isReasoning: true },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', description: '1M context' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google', description: 'Fast' },
+];
+
+const OPEN_SOURCE_MODELS: Model[] = [
+  { id: 'Qwen/Qwen2.5-3B-Instruct', name: 'Qwen 2.5 3B', provider: 'Open Source', description: 'Fast & capable', coldStart: true },
+  { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen 2.5 7B', provider: 'Open Source', description: 'Balanced', coldStart: true },
+  { id: 'Qwen/Qwen2.5-Coder-7B-Instruct', name: 'Qwen 2.5 Coder', provider: 'Open Source', description: 'Code specialist', coldStart: true },
+  { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B', provider: 'Open Source', description: 'Compact', coldStart: true },
+  { id: 'meta-llama/Llama-3.1-8B-Instruct', name: 'Llama 3.1 8B', provider: 'Open Source', description: 'Versatile', coldStart: true },
+  { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B', provider: 'Open Source', description: 'Efficient', coldStart: true },
+  { id: 'google/gemma-2-2b-it', name: 'Gemma 2 2B', provider: 'Open Source', description: 'Lightweight', coldStart: true },
+  { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B', provider: 'Open Source', description: 'Powerful', coldStart: true },
+  { id: 'microsoft/Phi-3.5-mini-instruct', name: 'Phi 3.5 Mini', provider: 'Open Source', description: 'Small but mighty', coldStart: true },
+  { id: 'codellama/CodeLlama-7b-Instruct-hf', name: 'Code Llama 7B', provider: 'Open Source', description: 'Code generation', coldStart: true },
+  { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', provider: 'Open Source', description: 'Code expert', coldStart: true },
+];
+
+const MODEL_GROUPS = [
+  { name: 'Anthropic', icon: '🟣', models: ANTHROPIC_MODELS },
+  { name: 'OpenAI', icon: '🟢', models: OPENAI_MODELS },
+  { name: 'Google', icon: '🔵', models: GOOGLE_MODELS },
+  { name: 'Open Source', icon: '🟠', models: OPEN_SOURCE_MODELS },
+];
+
 export function ModelSelectorBar({ selectedModel, onModelChange, className }: ModelSelectorBarProps) {
-  const [showModelPicker, setShowModelPicker] = useState(false);
-  const [activeProvider, setActiveProvider] = useState<string | null>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Close picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setShowModelPicker(false);
-        setActiveProvider(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // Fetch user's fine-tuned models
+  const { data: fineTunedModels = [] } = useQuery({
+    queryKey: ['user-finetuned-models'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data } = await supabase.from('models').select('model_id, name, base_model').eq('user_id', user.id);
+      return (data || []).map(m => ({
+        id: m.model_id,
+        name: m.name || `Fine-tuned ${m.base_model?.split('/').pop()}`,
+        provider: 'Fine-tuned',
+        coldStart: true,
+      }));
+    },
+  });
 
-  const handleProviderClick = (provider: typeof PROVIDER_CONFIG[0]) => {
-    const providerModels = AVAILABLE_MODELS.filter(m => provider.models.includes(m.id));
-    
-    if (providerModels.length === 1) {
-      onModelChange(providerModels[0].id);
-      setShowModelPicker(false);
-      setActiveProvider(null);
-    } else {
-      setActiveProvider(provider.provider);
-      setShowModelPicker(true);
+  const allModelGroups = useMemo(() => {
+    const groups = [...MODEL_GROUPS];
+    if (fineTunedModels.length > 0) {
+      groups.unshift({ name: 'Your Models', icon: '⭐', models: fineTunedModels });
     }
-  };
+    return groups;
+  }, [fineTunedModels]);
+
+  const selectedModelInfo = useMemo(() => {
+    for (const group of allModelGroups) {
+      const found = group.models.find(m => m.id === selectedModel);
+      if (found) return found;
+    }
+    return { id: selectedModel, name: selectedModel.split('/').pop() || selectedModel, provider: 'Unknown' };
+  }, [selectedModel, allModelGroups]);
 
   return (
-    <TooltipProvider>
-      <div className={cn("relative inline-flex", className)} ref={pickerRef}>
-        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-full border border-border/50">
-          {PROVIDER_CONFIG.map((provider) => {
-            const isSelected = provider.models.includes(selectedModel);
-            const providerModels = AVAILABLE_MODELS.filter(m => provider.models.includes(m.id));
-
-            return (
-              <Tooltip key={provider.provider}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => handleProviderClick(provider)}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                      "hover:bg-background hover:shadow-sm",
-                      isSelected && "bg-background shadow-sm ring-2 ring-primary/30"
-                    )}
-                  >
-                    <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-background">
-                      <img 
-                        src={provider.logo} 
-                        alt={provider.provider}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-center">
-                  <p className="font-medium">{provider.provider}</p>
-                  {providerModels.length > 1 && (
-                    <p className="text-xs text-muted-foreground">Click to select model</p>
-                  )}
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-
-        {/* Model picker dropdown */}
-        {showModelPicker && activeProvider && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-popover border border-border rounded-lg shadow-lg p-1.5 z-50 min-w-[180px]">
-            {AVAILABLE_MODELS
-              .filter(m => PROVIDER_CONFIG.find(p => p.provider === activeProvider)?.models.includes(m.id))
-              .map(model => (
-                <button
+    <div className={`flex items-center gap-2 p-2 border-b border-border/50 ${className || ''}`}>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="gap-2 font-medium">
+            <span className="truncate max-w-[200px]">{selectedModelInfo.name}</span>
+            {selectedModelInfo.isNew && <Badge className="bg-green-500/20 text-green-400 text-xs">NEW</Badge>}
+            {selectedModelInfo.isReasoning && <Brain className="h-3 w-3 text-purple-400" />}
+            {selectedModelInfo.coldStart && <Clock className="h-3 w-3 text-yellow-400" />}
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        
+        <DropdownMenuContent align="start" className="w-80 max-h-[500px] overflow-y-auto">
+          {allModelGroups.map((group, idx) => (
+            <React.Fragment key={group.name}>
+              {idx > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuLabel className="flex items-center gap-2">
+                <span>{group.icon}</span>
+                <span>{group.name}</span>
+                <span className="text-xs text-muted-foreground">({group.models.length})</span>
+              </DropdownMenuLabel>
+              
+              {group.models.map(model => (
+                <DropdownMenuItem
                   key={model.id}
-                  onClick={() => {
-                    onModelChange(model.id);
-                    setShowModelPicker(false);
-                    setActiveProvider(null);
-                  }}
-                  className={cn(
-                    "w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-colors",
-                    selectedModel === model.id && "bg-muted"
-                  )}
+                  onClick={() => { onModelChange(model.id); setIsOpen(false); }}
+                  className="flex items-center justify-between cursor-pointer"
                 >
-                  <div className="font-medium text-sm">{model.name}</div>
-                  {model.isLocal && (
-                    <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5">
-                      <Lock className="h-3 w-3" />
-                      On-premises
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{model.name}</span>
+                      {model.isNew && <Badge className="bg-green-500/20 text-green-400 text-xs px-1">NEW</Badge>}
+                      {model.isReasoning && <Brain className="h-3 w-3 text-purple-400" />}
                     </div>
-                  )}
-                </button>
-              ))
-            }
-          </div>
-        )}
-      </div>
-    </TooltipProvider>
+                    {model.description && <span className="text-xs text-muted-foreground">{model.description}</span>}
+                  </div>
+                  {model.coldStart && <span className="text-xs text-yellow-500 flex items-center gap-1"><Clock className="h-3 w-3" /></span>}
+                  {selectedModel === model.id && <span className="text-primary">✓</span>}
+                </DropdownMenuItem>
+              ))}
+            </React.Fragment>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      {selectedModelInfo.coldStart && <span className="text-xs text-yellow-500">First request may take 30-60s</span>}
+    </div>
   );
 }
+
+export default ModelSelectorBar;
