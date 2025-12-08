@@ -1030,7 +1030,7 @@ export default function ApiDocs() {
                 <SwissFlag className="h-5 w-5" />
               </div>
               <span className="text-lg font-semibold text-foreground">
-                SwissVault<span className="text-primary">.ai</span>
+                SwissVault<span className="text-brand-accent">.ai</span>
               </span>
             </Link>
             <div className="h-6 w-px bg-border" />

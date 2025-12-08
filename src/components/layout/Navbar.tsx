@@ -22,7 +22,7 @@ export const Navbar = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <SwissFlag className="h-6 w-6" />
-              <span className="text-xl font-bold">SwissVault<span className="text-primary">.ai</span></span>
+              <span className="text-xl font-bold">SwissVault<span className="text-brand-accent">.ai</span></span>
             </Link>
 
             {/* Desktop Nav */}
