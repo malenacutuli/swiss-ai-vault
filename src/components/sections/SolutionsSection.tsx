@@ -70,10 +70,12 @@ export const SolutionsSection = () => {
         </div>
 
         <div className="text-center">
-          <Button variant="outline" className="gap-2">
-            Explore all solutions
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          <a href="/#solutions">
+            <Button variant="outline" className="gap-2">
+              Explore all solutions
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </a>
         </div>
       </div>
     </section>
