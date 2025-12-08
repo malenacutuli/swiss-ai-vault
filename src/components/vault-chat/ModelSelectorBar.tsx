@@ -10,6 +10,7 @@ import googleLogo from '@/assets/models/google-logo.jpg';
 import mistralLogo from '@/assets/models/mistral-logo.png';
 import metaLogo from '@/assets/models/meta-logo.png';
 import qwenLogo from '@/assets/models/qwen-logo.jpg';
+import deepseekLogo from '@/assets/models/deepseek-logo.png';
 
 interface Model {
   id: string;
@@ -26,16 +27,18 @@ const AVAILABLE_MODELS: Model[] = [
   { id: 'gemini-pro', name: 'Gemini Pro', provider: 'Google' },
   { id: 'mistral-7b', name: 'Mistral 7B', provider: 'Mistral', isLocal: true },
   { id: 'llama3.2-3b', name: 'Llama 3.2 3B', provider: 'Meta', isLocal: true },
-  { id: 'qwen2.5-3b', name: 'Qwen 2.5 3B', provider: 'Local', isLocal: true },
+  { id: 'qwen2.5-3b', name: 'Qwen 2.5 3B', provider: 'Qwen', isLocal: true },
+  { id: 'deepseek-v3', name: 'DeepSeek V3', provider: 'DeepSeek' },
 ];
 
 const PROVIDER_CONFIG = [
   { provider: 'OpenAI', logo: openaiLogo, models: ['gpt-4o', 'gpt-4o-mini'] },
   { provider: 'Anthropic', logo: anthropicLogo, models: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'] },
   { provider: 'Google', logo: googleLogo, models: ['gemini-pro'] },
+  { provider: 'DeepSeek', logo: deepseekLogo, models: ['deepseek-v3'] },
   { provider: 'Mistral', logo: mistralLogo, models: ['mistral-7b'] },
   { provider: 'Meta', logo: metaLogo, models: ['llama3.2-3b', 'llama3.2-1b'] },
-  { provider: 'Local', logo: qwenLogo, models: ['qwen2.5-3b', 'qwen2.5-7b'] },
+  { provider: 'Qwen', logo: qwenLogo, models: ['qwen2.5-3b', 'qwen2.5-7b'] },
 ];
 
 interface ModelSelectorBarProps {
