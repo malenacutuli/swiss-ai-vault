@@ -100,7 +100,7 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
             </div>
             {!collapsed && (
               <span className="text-lg font-semibold text-sidebar-foreground">
-                SwissVault<span className="text-primary">.ai</span>
+                SwissVault<span className="text-brand-accent">.ai</span>
               </span>
             )}
           </Link>

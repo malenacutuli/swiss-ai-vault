@@ -56,6 +56,9 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
 
+    /* Brand accent - always Swiss red */
+    --brand-accent: 0 84% 60%;
+
     --sidebar-background: 222 47% 6%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 0 84% 60%;
@@ -92,6 +95,7 @@
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 7 32% 38%;
+    --brand-accent: 0 84% 60%;
   }
 }
 

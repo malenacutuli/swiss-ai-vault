@@ -38,7 +38,7 @@ export const Footer = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <SwissFlag className="h-6 w-6" />
-              <span className="text-lg font-bold">SwissVault<span className="text-primary">.ai</span></span>
+              <span className="text-lg font-bold">SwissVault<span className="text-brand-accent">.ai</span></span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               Zero-trust AI for regulated teams. Swiss data residency, E2E encryption, full auditability.
