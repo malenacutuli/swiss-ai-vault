@@ -538,6 +538,47 @@ const VaultChat = () => {
     return true; // Key exists
   };
 
+  /**
+   * Handle selecting a conversation with key recovery check
+   */
+  const handleSelectConversation = async (conversationId: string) => {
+    setSelectedConversation(conversationId);
+    setChatSidebarOpen(false);
+
+    try {
+      // Try to get key from IndexedDB first
+      let key = await chatEncryption.getKey(conversationId);
+      
+      if (!key) {
+        // Try to restore from database
+        console.log('[Vault Chat] Key not in IndexedDB, trying database...');
+        key = await chatEncryption.restoreKey(conversationId);
+        
+        if (!key) {
+          // Key doesn't exist anywhere - orphaned conversation
+          console.error('[Vault Chat] No key found for conversation:', conversationId);
+          
+          const canRecover = await recoverOrDeleteOrphanedConversation(conversationId);
+          if (!canRecover) {
+            setSelectedConversation(null);
+            return;
+          }
+        }
+      }
+
+      // Load messages
+      await loadMessages(conversationId);
+      
+    } catch (error) {
+      console.error('[Vault Chat] Error selecting conversation:', error);
+      toast({
+        title: 'Error loading conversation',
+        description: (error as Error).message,
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleSendMessage = async (messageContent: string, context?: ChatContext) => {
     if (!selectedConversation) return;
     
@@ -858,10 +899,7 @@ const VaultChat = () => {
                         )}
                       >
                         <div
-                          onClick={() => {
-                            setSelectedConversation(conv.id);
-                            setChatSidebarOpen(false);
-                          }}
+                          onClick={() => handleSelectConversation(conv.id)}
                         >
                           <h3 className="font-medium text-sm truncate text-foreground pr-8">
                             {getDisplayTitle(conv)}
