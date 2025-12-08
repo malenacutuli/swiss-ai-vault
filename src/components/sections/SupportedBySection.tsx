@@ -9,18 +9,18 @@ export const SupportedBySection = () => {
           AI Innovative Company Supported by
         </p>
         <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-          <div className="bg-white/90 dark:bg-white rounded-2xl px-8 py-6 shadow-sm">
+          <div className="bg-white rounded-lg p-2 shadow-sm">
             <img
               src={bscLogo}
               alt="BSC AI Factory"
-              className="h-16 md:h-20 w-auto object-contain"
+              className="h-14 md:h-16 w-auto object-contain"
             />
           </div>
-          <div className="bg-white/90 dark:bg-white rounded-2xl px-8 py-6 shadow-sm">
+          <div className="bg-white rounded-lg p-2 shadow-sm">
             <img
               src={nvidiaLogo}
               alt="NVIDIA Inception Program"
-              className="h-14 md:h-16 w-auto object-contain"
+              className="h-12 md:h-14 w-auto object-contain"
             />
           </div>
         </div>
