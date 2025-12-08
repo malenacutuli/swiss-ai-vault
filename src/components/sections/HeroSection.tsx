@@ -36,8 +36,9 @@ export const HeroSection = () => {
 
               {/* Subheadline */}
               <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-slide-up animate-delay-100">
-                Train and deploy AI assistants on your sensitive data with Swiss data residency, 
-                end-to-end encryption, and full auditability — without sending your secrets to US clouds.
+                <span className="font-semibold text-foreground">No leaks. No logs. No compromise.</span>{" "}
+                SwissVault lets you build AI on your data without touching U.S. clouds — with sovereign hosting and zero-trace encryption. 
+                Train and deploy AI on your most sensitive data with full end-to-end encryption, Swiss data residency, and audit-grade transparency.
               </p>
 
               {/* CTA Buttons */}
