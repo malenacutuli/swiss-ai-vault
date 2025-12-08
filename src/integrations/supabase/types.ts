@@ -856,6 +856,7 @@ export type Database = {
         Row: {
           created_at: string | null
           encrypted_title: string | null
+          expires_at: string | null
           id: string
           is_encrypted: boolean | null
           key_hash: string
@@ -863,6 +864,7 @@ export type Database = {
           last_message_at: string | null
           model_id: string
           organization_id: string | null
+          retention_mode: string | null
           title_nonce: string
           updated_at: string | null
           user_id: string
@@ -871,6 +873,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           encrypted_title?: string | null
+          expires_at?: string | null
           id?: string
           is_encrypted?: boolean | null
           key_hash: string
@@ -878,6 +881,7 @@ export type Database = {
           last_message_at?: string | null
           model_id?: string
           organization_id?: string | null
+          retention_mode?: string | null
           title_nonce: string
           updated_at?: string | null
           user_id: string
@@ -886,6 +890,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           encrypted_title?: string | null
+          expires_at?: string | null
           id?: string
           is_encrypted?: boolean | null
           key_hash?: string
@@ -893,6 +898,7 @@ export type Database = {
           last_message_at?: string | null
           model_id?: string
           organization_id?: string | null
+          retention_mode?: string | null
           title_nonce?: string
           updated_at?: string | null
           user_id?: string
@@ -1010,6 +1016,7 @@ export type Database = {
           ciphertext: string
           conversation_id: string
           created_at: string | null
+          expires_at: string | null
           has_attachments: boolean | null
           id: string
           nonce: string
@@ -1021,6 +1028,7 @@ export type Database = {
           ciphertext: string
           conversation_id: string
           created_at?: string | null
+          expires_at?: string | null
           has_attachments?: boolean | null
           id?: string
           nonce: string
@@ -1032,6 +1040,7 @@ export type Database = {
           ciphertext?: string
           conversation_id?: string
           created_at?: string | null
+          expires_at?: string | null
           has_attachments?: boolean | null
           id?: string
           nonce?: string
@@ -2193,6 +2202,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cleanup_expired_messages: { Args: never; Returns: number }
       clear_conversation_documents: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: number

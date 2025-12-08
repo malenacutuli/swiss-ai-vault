@@ -3,6 +3,8 @@
  * Type definitions for ZeroTrace E2E encryption system.
  */
 
+export type RetentionMode = 'zerotrace' | '1day' | '1week' | '90days' | 'forever';
+
 export interface EncryptedConversation {
   id: string;
   userId: string;
@@ -14,6 +16,8 @@ export interface EncryptedConversation {
   modelId: string;
   isEncrypted: boolean;
   zeroRetention: boolean;
+  retentionMode: RetentionMode;
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   lastMessageAt: string | null;
@@ -58,6 +62,7 @@ export interface DecryptedConversation {
   modelId: string;
   isEncrypted: boolean;
   zeroRetention: boolean;
+  retentionMode: RetentionMode;
   keyVersion: number;
   createdAt: string;
   updatedAt: string;

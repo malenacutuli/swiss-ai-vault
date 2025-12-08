@@ -5,7 +5,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { EncryptedConversation, EncryptedMessage, ConversationKey } from '@/types/encryption';
+import type { EncryptedConversation, EncryptedMessage, ConversationKey, RetentionMode } from '@/types/encryption';
 
 /**
  * Create a new encrypted conversation
@@ -16,9 +16,12 @@ export async function createEncryptedConversation(params: {
   keyHash: string;
   modelId?: string;
   zeroRetention?: boolean;
+  retentionMode?: RetentionMode;
 }): Promise<EncryptedConversation> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+  
+  const retentionMode = params.retentionMode || 'forever';
   
   const { data, error } = await supabase
     .from('encrypted_conversations')
@@ -28,7 +31,8 @@ export async function createEncryptedConversation(params: {
       title_nonce: params.titleNonce,
       key_hash: params.keyHash,
       model_id: params.modelId || 'claude-3-5-sonnet-20241022',
-      zero_retention: params.zeroRetention || false,
+      zero_retention: retentionMode === 'zerotrace' || params.zeroRetention || false,
+      retention_mode: retentionMode,
       is_encrypted: true
     })
     .select()
@@ -304,6 +308,8 @@ function mapConversation(data: any): EncryptedConversation {
     modelId: data.model_id,
     isEncrypted: data.is_encrypted,
     zeroRetention: data.zero_retention,
+    retentionMode: data.retention_mode || 'forever',
+    expiresAt: data.expires_at,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
     lastMessageAt: data.last_message_at
