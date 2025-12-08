@@ -490,6 +490,54 @@ const VaultChat = () => {
     }
   };
 
+  /**
+   * Check if a conversation has a valid encryption key.
+   * If not, offer to delete the orphaned conversation.
+   */
+  const recoverOrDeleteOrphanedConversation = async (conversationId: string): Promise<boolean> => {
+    // First check IndexedDB
+    let key = await chatEncryption.getKey(conversationId);
+    if (key) return true;
+
+    // Try to restore from database
+    key = await chatEncryption.restoreKey(conversationId);
+    if (key) return true;
+
+    // Check if key exists in database at all
+    const { data: keyData } = await supabase
+      .from('conversation_keys')
+      .select('wrapped_key')
+      .eq('conversation_id', conversationId)
+      .single();
+
+    if (!keyData) {
+      // No key in database - conversation is unrecoverable
+      const confirmed = window.confirm(
+        'This conversation\'s encryption key is lost and cannot be recovered. ' +
+        'The messages are permanently encrypted and unreadable. ' +
+        'Would you like to delete this conversation?'
+      );
+
+      if (confirmed) {
+        await supabase
+          .from('encrypted_conversations')
+          .delete()
+          .eq('id', conversationId);
+        
+        toast({
+          title: 'Conversation deleted',
+          description: 'The orphaned conversation has been removed',
+        });
+
+        setSelectedConversation(null);
+        await loadConversations();
+      }
+      return false;
+    }
+
+    return true; // Key exists
+  };
+
   const handleSendMessage = async (messageContent: string, context?: ChatContext) => {
     if (!selectedConversation) return;
     
