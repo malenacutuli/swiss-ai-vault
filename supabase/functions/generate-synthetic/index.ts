@@ -168,7 +168,7 @@ async function extractTextWithClaude(
   mimeType: string,
   filename: string
 ): Promise<string> {
-  console.log(`Using Claude to extract text from ${filename} (${mimeType})`);
+  console.log(`Using Claude Haiku to extract text from ${filename} (${mimeType})`);
   
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -178,7 +178,7 @@ async function extractTextWithClaude(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-3-5-haiku-20241022",  // Fast model for extraction (10x faster than Sonnet)
       max_tokens: 8192,
       messages: [{
         role: "user",
@@ -588,37 +588,69 @@ Return as a JSON array: [{"messages": [{"role": "system", "content": "..."}, {"r
             processingResults.push({ source: source.filename || source.path, contentLength: 0, success: false, error: errMsg });
           }
         } else if (source.type === "files" && source.filePaths) {
-          // Handle multiple files source - process each file with Claude
-          console.log(`Processing ${source.filePaths.length} files from filePaths array`);
+          // Handle multiple files source - process in PARALLEL with batching
+          console.log(`[generate-synthetic] Processing ${source.filePaths.length} files in parallel`);
           
-          for (const filePath of source.filePaths) {
+          const BATCH_SIZE = 3; // Process 3 files concurrently to avoid rate limits
+          const startTime = Date.now();
+          
+          // Helper function to process a single file
+          async function processFileParallel(filePath: string): Promise<{ success: boolean; content: string; fileName: string; error?: string }> {
             const fileName = filePath.split('/').pop() || 'file';
+            console.log(`[generate-synthetic] Starting extraction for: ${fileName}`);
+            
             try {
-              const fileData = await downloadFileFromStorage(supabase, filePath, fileName);
+              const fileData = await downloadFileFromStorage(supabase!, filePath, fileName);
               let fileContent: string;
               
               if (fileData.isText && fileData.textContent) {
                 fileContent = fileData.textContent;
               } else {
                 fileContent = await extractTextWithClaude(
-                  anthropicKey,
+                  anthropicKey!,
                   fileData.base64,
                   fileData.mimeType,
                   fileName
                 );
               }
               
-              if (fileContent.length > 0) {
-                combinedContent += `\n\n--- Source: ${fileName} ---\n${fileContent}\n\n`;
-                processingResults.push({ source: fileName, contentLength: fileContent.length, success: true });
-                console.log(`File processed: ${fileContent.length} chars from ${fileName}`);
-              }
-            } catch (fileErr) {
-              const errMsg = fileErr instanceof Error ? fileErr.message : 'Unknown error';
-              console.error(`Failed to process file ${fileName}:`, errMsg);
-              processingResults.push({ source: fileName, contentLength: 0, success: false, error: errMsg });
+              console.log(`[generate-synthetic] Extracted ${fileContent.length} chars from ${fileName}`);
+              return { success: true, content: fileContent, fileName };
+            } catch (err) {
+              const errMsg = err instanceof Error ? err.message : 'Unknown error';
+              console.error(`[generate-synthetic] Error processing ${fileName}:`, errMsg);
+              return { success: false, content: '', fileName, error: errMsg };
             }
           }
+          
+          // Process files in parallel batches
+          for (let i = 0; i < source.filePaths.length; i += BATCH_SIZE) {
+            const batch = source.filePaths.slice(i, i + BATCH_SIZE);
+            console.log(`[generate-synthetic] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} files`);
+            
+            // Check if we're running low on time (leave 20s for Q&A generation)
+            const elapsed = Date.now() - startTime;
+            if (elapsed > 40000) {
+              console.warn(`[generate-synthetic] Approaching timeout (${elapsed}ms elapsed), stopping file processing`);
+              break;
+            }
+            
+            // Process batch in parallel
+            const results = await Promise.allSettled(batch.map(processFileParallel));
+            
+            for (const result of results) {
+              if (result.status === 'fulfilled' && result.value.success) {
+                combinedContent += `\n\n--- Source: ${result.value.fileName} ---\n${result.value.content}\n\n`;
+                processingResults.push({ source: result.value.fileName, contentLength: result.value.content.length, success: true });
+              } else if (result.status === 'fulfilled' && !result.value.success) {
+                processingResults.push({ source: result.value.fileName, contentLength: 0, success: false, error: result.value.error });
+              } else if (result.status === 'rejected') {
+                console.error(`[generate-synthetic] Batch item failed:`, result.reason);
+              }
+            }
+          }
+          
+          console.log(`[generate-synthetic] Extracted content from files in ${Date.now() - startTime}ms`);
         } else if (source.type === "url" && source.content) {
           // Validate URL to prevent SSRF
           if (!isAllowedUrl(source.content)) {
