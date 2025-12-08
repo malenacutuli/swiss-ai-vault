@@ -8,17 +8,21 @@ const testimonials = [
   },
 ];
 
-const logos = [
-  { name: "Swiss Bank", placeholder: true },
-  { name: "European Insurer", placeholder: true },
-  { name: "RegTech Vendor", placeholder: true },
-  { name: "Wealth Manager", placeholder: true },
-  { name: "Private Bank", placeholder: true },
+const carouselItems = [
+  "Swiss Banks",
+  "Healthcare Professionals",
+  "HNWI",
+  "Crypto Managers",
+  "Blockchain",
+  "Insurance Companies",
+  "RegTech Vendor",
+  "Wealth Managers",
+  "Private Bank",
 ];
 
 export const SocialProofSection = () => {
   return (
-    <section className="py-20 relative">
+    <section className="py-20 relative overflow-hidden">
       <div className="absolute inset-0 gradient-swiss opacity-20" />
       
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,16 +32,19 @@ export const SocialProofSection = () => {
           </h2>
         </div>
 
-        {/* Logo row */}
-        <div className="flex flex-wrap justify-center gap-8 mb-16 opacity-60">
-          {logos.map((logo) => (
-            <div
-              key={logo.name}
-              className="px-6 py-3 rounded-lg bg-muted/30 border border-border/30 text-sm font-medium text-muted-foreground"
-            >
-              {logo.name}
-            </div>
-          ))}
+        {/* Infinite scrolling carousel */}
+        <div className="relative mb-16">
+          <div className="flex animate-scroll">
+            {/* Double the items for seamless loop */}
+            {[...carouselItems, ...carouselItems].map((item, idx) => (
+              <div
+                key={`${item}-${idx}`}
+                className="flex-shrink-0 px-8 py-3 mx-4 rounded-lg bg-muted/30 border border-border/30 text-sm font-medium text-muted-foreground whitespace-nowrap"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Testimonial */}
