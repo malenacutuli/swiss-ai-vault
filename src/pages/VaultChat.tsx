@@ -426,21 +426,19 @@ const VaultChat = () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!currentUser) throw new Error('Not authenticated');
 
-      // Generate temporary ID for encryption key
-      const tempId = crypto.randomUUID();
+      // 1. Generate encryption key and hash FIRST (don't store in DB yet)
+      const key = await chatEncryption.generateKey();
+      const keyHash = await chatEncryption.hashKey(key);
       
-      // Initialize encryption and get key hash
-      const { keyHash } = await chatEncryption.initializeConversation(tempId);
-
-      // Create a simple nonce for the title (we'll encrypt titles properly later)
+      // 2. Create nonce for title encryption
       const titleNonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(12))));
 
-      // Create conversation in encrypted_conversations table (CORRECT TABLE)
-      const { data, error } = await supabase
+      // 3. Create conversation in database FIRST (so FK constraint is satisfied)
+      const { data: convData, error: convError } = await supabase
         .from('encrypted_conversations')
         .insert({
           user_id: currentUser.id,
-          encrypted_title: null, // Will be set when user sends first message
+          encrypted_title: null,
           title_nonce: titleNonce,
           model_id: selectedModel,
           key_hash: keyHash,
@@ -451,34 +449,40 @@ const VaultChat = () => {
         .select()
         .single();
 
-      if (error) throw error;
-
-      const convData = data as Conversation;
-
-      // Update encryption key storage with real conversation ID
-      const keyData = await chatEncryption.getKey(tempId);
-      if (keyData) {
-        await chatEncryption.storeKey(convData.id, keyData);
-        await chatEncryption.deleteKey(tempId);
-        
-        // Update database key record with real conversation ID
-        await supabase
-          .from('conversation_keys')
-          .update({ conversation_id: convData.id })
-          .eq('conversation_id', tempId)
-          .eq('user_id', currentUser.id);
+      if (convError) {
+        console.error('[Vault Chat] Failed to create conversation:', convError);
+        throw new Error(`Failed to create conversation: ${convError.message}`);
       }
 
-      // Select the new conversation
-      setSelectedConversation(convData.id);
+      const conversation = convData as Conversation;
+      console.log('[Vault Chat] Created conversation:', conversation.id);
+
+      // 4. NOW store key with the REAL conversation ID
+      // Store in IndexedDB first
+      await chatEncryption.storeKey(conversation.id, key);
+      
+      // 5. Store in database (this will now succeed because conversation exists)
+      await chatEncryption.storeKeyInDatabase(conversation.id, key, keyHash);
+      
+      console.log('[Vault Chat] ✅ Encryption key stored successfully');
+
+      // 6. Update UI state
+      setSelectedConversation(conversation.id);
       setChatSidebarOpen(false);
 
-      console.log('[Vault Chat] ✅ Created encrypted conversation:', convData.id);
-    } catch (error) {
-      console.error('[Vault Chat] ❌ Error creating conversation:', error);
+      // 7. Refresh conversations list
+      await loadConversations();
+
       toast({
-        title: 'Error',
-        description: 'Failed to create conversation. Please try again.',
+        title: 'New conversation created',
+        description: 'Your encrypted conversation is ready',
+      });
+
+    } catch (error) {
+      console.error('[Vault Chat] Error creating conversation:', error);
+      toast({
+        title: 'Failed to create conversation',
+        description: (error as Error).message,
         variant: 'destructive'
       });
     } finally {
