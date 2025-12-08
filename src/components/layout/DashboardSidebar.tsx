@@ -95,7 +95,7 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
           collapsed ? "justify-center" : "justify-between"
         )}>
           <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-accent">
               <SwissFlag className="h-5 w-5" />
             </div>
             {!collapsed && (
