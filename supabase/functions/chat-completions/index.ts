@@ -76,6 +76,33 @@ const VLLM_MODELS = [
   "mistral-7b", "gemma2-2b", "llama3.2-1b", "llama3.2-3b"
 ];
 
+// Prefixes that indicate open-source models -> route to vLLM
+const VLLM_PREFIXES = ['qwen', 'llama', 'mistral', 'gemma', 'phi', 'deepseek', 'codellama', 'yi', 'command'];
+
+function getProvider(model: string): 'openai' | 'anthropic' | 'vllm' {
+  // Fine-tuned models always go to vLLM
+  if (model.startsWith('sv-')) return 'vllm';
+  
+  // Commercial APIs
+  if (model.startsWith('gpt-') || model.includes('gpt')) return 'openai';
+  if (model.startsWith('claude-') || model.includes('claude')) return 'anthropic';
+  
+  // Explicit vLLM models
+  if (VLLM_MODELS.includes(model)) return 'vllm';
+  
+  // HuggingFace-style model IDs (org/model)
+  if (model.includes('/')) return 'vllm';
+  
+  // Open source model prefixes -> vLLM
+  const modelLower = model.toLowerCase();
+  if (VLLM_PREFIXES.some(prefix => modelLower.includes(prefix))) {
+    return 'vllm';
+  }
+  
+  // Default to OpenAI
+  return 'openai';
+}
+
 serve(async (req) => {
   const requestStartTime = Date.now();
   
@@ -259,25 +286,17 @@ serve(async (req) => {
     }
 
     // Determine which provider to use
-    let provider: "openai" | "anthropic" | "vllm" = "openai";
-    let actualModel = model;
+    const provider = getProvider(model);
+    let actualModel = BASE_MODELS[model] || model;
+    let adapterPath: string | null = null;
 
-    if (model.startsWith("claude") || model.includes("claude")) {
-      provider = "anthropic";
-      actualModel = BASE_MODELS[model] || model;
-    } else if (model.startsWith("gpt") || model.includes("gpt")) {
-      provider = "openai";
-      actualModel = BASE_MODELS[model] || model;
-    } else if (VLLM_MODELS.includes(model)) {
-      // Route open-source models to vLLM
-      provider = "vllm";
-      actualModel = BASE_MODELS[model] || model;
-      console.log(`[chat-completions] Routing ${model} to vLLM as ${actualModel}`);
-    } else if (model.startsWith("sv-")) {
-      // Custom fine-tuned model - route to vLLM
+    console.log('[chat-completions] Routing to provider:', provider, 'model:', actualModel);
+
+    // For fine-tuned models, look up the adapter path
+    if (model.startsWith("sv-")) {
       const { data: customModel } = await supabase
         .from("models")
-        .select("*")
+        .select("base_model, s3_checkpoint_path, model_path, model_id")
         .eq("model_id", model)
         .eq("user_id", userId)
         .single();
@@ -289,20 +308,16 @@ serve(async (req) => {
         );
       }
       
-      // Route fine-tuned models to vLLM with checkpoint path
-      provider = "vllm";
-      actualModel = customModel.s3_checkpoint_path || customModel.model_id;
-      console.log(`[chat-completions] Routing fine-tuned ${model} to vLLM`);
-    } else {
-      // Unknown model - try vLLM first if it looks like a HuggingFace model
-      if (model.includes("/")) {
-        provider = "vllm";
-        actualModel = model;
-      } else {
-        // Fallback to OpenAI
-        actualModel = BASE_MODELS[model] || model;
-        provider = "openai";
-      }
+      // Use base model with adapter path for fine-tuned models
+      actualModel = customModel.base_model || "Qwen/Qwen2.5-3B-Instruct";
+      adapterPath = customModel.s3_checkpoint_path || customModel.model_path;
+      
+      console.log('[chat-completions] Fine-tuned model lookup:', {
+        modelId: model,
+        baseModel: actualModel,
+        adapterPath,
+        isFinetuned: true
+      });
     }
 
     // Track usage (always track API requests, even in zero-retention mode)
@@ -323,7 +338,7 @@ serve(async (req) => {
     if (provider === "anthropic") {
       return await handleAnthropicRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
     } else if (provider === "vllm") {
-      return await handleVLLMRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
+      return await handleVLLMRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders, adapterPath);
     } else {
       return await handleOpenAIRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
     }
@@ -619,38 +634,50 @@ async function handleVLLMRequest(
   supabase: any,
   zeroRetentionMode: boolean,
   originalRequest: ChatRequest,
-  responseHeaders: Record<string, string>
+  responseHeaders: Record<string, string>,
+  adapterPath: string | null = null
 ) {
   const vllmEndpoint = Deno.env.get("VLLM_ENDPOINT");
   
   if (!vllmEndpoint) {
-    console.error("[chat-completions] VLLM_ENDPOINT not configured");
-    return new Response(
-      JSON.stringify({ error: { message: "vLLM endpoint not configured. Please contact support." } }),
-      { status: 500, headers: { ...responseHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("[chat-completions] VLLM_ENDPOINT not configured, falling back to GPT-4o-mini");
+    // Fallback to OpenAI if vLLM not configured
+    return await handleOpenAIRequest(messages, "gpt-4o-mini", temperature, maxTokens, stream, userId, supabase, zeroRetentionMode, originalRequest, responseHeaders);
   }
 
   const startTime = Date.now();
-  console.log(`[chat-completions] Calling vLLM at ${vllmEndpoint} with model ${model}`);
+  console.log('[chat-completions] vLLM request:', {
+    endpoint: vllmEndpoint,
+    model: model,
+    hasAdapter: !!adapterPath,
+    adapterPath: adapterPath,
+    messageCount: messages.length
+  });
 
   try {
     // Create AbortController for timeout (90s to handle cold starts)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
 
+    const requestBody: Record<string, unknown> = {
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream,
+    };
+
+    // Add adapter path for fine-tuned models
+    if (adapterPath) {
+      requestBody.adapter_path = adapterPath;
+    }
+
     const response = await fetch(vllmEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        stream,
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
