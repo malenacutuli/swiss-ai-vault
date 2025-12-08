@@ -629,10 +629,26 @@ const VaultChat = () => {
       }
       setIsEncrypting(false);
 
-      // Get next sequence number
-      const nextSequence = messages.length + 1;
+      // Get next sequence number from DATABASE (not client state) to avoid race conditions
+      const { data: userSeqNum, error: seqError } = await supabase.rpc('get_next_sequence_number', {
+        p_conversation_id: selectedConversation
+      });
 
-      // Insert user message into encrypted_messages table (CORRECT TABLE)
+      if (seqError) {
+        console.error('[Vault Chat] Failed to get sequence number:', seqError);
+        toast({
+          title: "Error",
+          description: "Failed to prepare message. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        setIsEncrypting(false);
+        return;
+      }
+
+      const nextSequence = userSeqNum || 1;
+
+      // Insert user message into encrypted_messages table
       const { data: userMessage, error: userError } = await supabase
         .from('encrypted_messages')
         .insert({
@@ -704,6 +720,11 @@ const VaultChat = () => {
       // Encrypt assistant message
       const encryptedAssistantMessage = await chatEncryption.encryptMessage(assistantContent, key);
 
+      // Get next sequence number for assistant message from DATABASE
+      const { data: assistantSeqNum } = await supabase.rpc('get_next_sequence_number', {
+        p_conversation_id: selectedConversation
+      });
+
       // Insert assistant message
       const { data: assistantMessage, error: assistantError } = await supabase
         .from('encrypted_messages')
@@ -712,7 +733,7 @@ const VaultChat = () => {
           role: 'assistant',
           ciphertext: encryptedAssistantMessage,
           nonce: '',
-          sequence_number: nextSequence + 1,
+          sequence_number: assistantSeqNum || (nextSequence + 1),
           token_count: data.usage?.completion_tokens,
           has_attachments: false
         })
