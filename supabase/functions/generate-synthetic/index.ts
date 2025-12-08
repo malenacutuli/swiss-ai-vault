@@ -823,12 +823,18 @@ Return as JSON array: [{"question": "...", "answer": "..."}, ...]`;
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
+
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text();
+      console.error(`Claude API error: ${claudeResponse.status} - ${errorText}`);
+      throw new Error(`Claude API failed: ${claudeResponse.status}`);
+    }
 
     const claudeData = await claudeResponse.json();
     const responseText = claudeData.content?.[0]?.text || "[]";
