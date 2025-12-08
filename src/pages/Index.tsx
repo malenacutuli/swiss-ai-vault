@@ -9,6 +9,7 @@ import { ModelsSection } from "@/components/sections/ModelsSection";
 import { PricingSection } from "@/components/sections/PricingSection";
 import { SocialProofSection } from "@/components/sections/SocialProofSection";
 import { DeveloperSection } from "@/components/sections/DeveloperSection";
+import { SupportedBySection } from "@/components/sections/SupportedBySection";
 
 const Index = () => {
   return (
@@ -24,6 +25,7 @@ const Index = () => {
         <PricingSection />
         <SocialProofSection />
         <DeveloperSection />
+        <SupportedBySection />
       </main>
       <Footer />
     </div>
