@@ -63,6 +63,46 @@ interface DecryptedMessage extends Message {
   content: string;
   decrypted: boolean;
 }
+// Helper function to insert message with retry on sequence collision
+async function insertMessageWithRetry(
+  conversationId: string,
+  role: 'user' | 'assistant',
+  ciphertext: string,
+  tokenCount?: number,
+  maxRetries: number = 3
+): Promise<{ data: any; error: any }> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // Get fresh sequence number from database
+    const { data: seqNum } = await supabase.rpc('get_next_sequence_number', {
+      p_conversation_id: conversationId
+    });
+    
+    const { data, error } = await supabase
+      .from('encrypted_messages')
+      .insert({
+        conversation_id: conversationId,
+        role: role,
+        ciphertext: ciphertext,
+        nonce: '', // Nonce is embedded in ciphertext for our format
+        sequence_number: seqNum || 1,
+        token_count: tokenCount,
+        has_attachments: false
+      })
+      .select()
+      .single();
+    
+    // If success or error is not a duplicate key violation, return
+    if (!error || error.code !== '23505') {
+      return { data, error };
+    }
+    
+    // If duplicate key, wait briefly and retry
+    console.warn(`[Vault Chat] Sequence collision on attempt ${attempt + 1}, retrying...`);
+    await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+  }
+  
+  return { data: null, error: { message: 'Failed after max retries due to sequence collisions' } };
+}
 
 const VaultChat = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
