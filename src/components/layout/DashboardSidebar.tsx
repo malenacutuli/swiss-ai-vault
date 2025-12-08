@@ -94,14 +94,14 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
           "flex h-16 items-center border-b border-sidebar-border px-4",
           collapsed ? "justify-center" : "justify-between"
         )}>
-          <Link to="/dashboard" className="flex items-center gap-2">
+          <a href="/" className="flex items-center gap-2">
             <SwissFlag className="h-8 w-8 rounded-lg" />
             {!collapsed && (
               <span className="text-lg font-semibold text-sidebar-foreground">
                 SwissVault<span className="text-brand-accent">.ai</span>
               </span>
             )}
-          </Link>
+          </a>
         </div>
 
         {/* Organization Switcher */}
