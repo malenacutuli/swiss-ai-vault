@@ -3,6 +3,8 @@
  * Web Crypto API with AES-256-GCM
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface EncryptionKey {
   conversationId: string;
   key: CryptoKey;
@@ -98,7 +100,6 @@ export class ChatEncryption {
     }
   }
 
-
   async getKey(conversationId: string): Promise<CryptoKey | null> {
     if (!this.db) await this.initialize();
     return new Promise((resolve, reject) => {
@@ -179,11 +180,112 @@ export class ChatEncryption {
     try {
       const key = await this.generateKey();
       const keyHash = await this.hashKey(key);
+      
+      // Store in IndexedDB for fast access
       await this.storeKey(conversationId, key);
+      
+      // Also store in database for persistence across devices/sessions
+      await this.storeKeyInDatabase(conversationId, key, keyHash);
+      
       console.log(`[Vault Chat] 🔐 Initialized ${conversationId.slice(0, 8)}...`);
       return { keyHash };
     } catch (error) {
       throw new ChatEncryptionError(`Init failed: ${error}`, 'ENCRYPTION_FAILED');
+    }
+  }
+
+  /**
+   * Store wrapped key in database for persistence
+   * Note: Currently stores key directly - production should use master key wrapping
+   */
+  private async storeKeyInDatabase(conversationId: string, key: CryptoKey, keyHash: string): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('[Vault Chat] No user for DB key storage');
+        return;
+      }
+
+      // Export key to raw bytes and encode as base64
+      const exportedKey = await crypto.subtle.exportKey('raw', key);
+      const keyBase64 = this.arrayBufferToBase64(new Uint8Array(exportedKey));
+
+      // Store in conversation_keys table
+      // Using 'direct' as wrapping_nonce indicates unwrapped storage
+      // TODO: Implement proper key wrapping with user's master key
+      const { error } = await supabase
+        .from('conversation_keys')
+        .upsert({
+          conversation_id: conversationId,
+          user_id: user.id,
+          wrapped_key: keyBase64,
+          wrapping_nonce: 'direct',
+          key_version: 1,
+          algorithm: 'AES-256-GCM'
+        }, {
+          onConflict: 'conversation_id,user_id'
+        });
+
+      if (error) {
+        console.error('[Vault Chat] Failed to store key in database:', error);
+      } else {
+        console.log('[Vault Chat] 💾 Key stored in database for persistence');
+      }
+    } catch (error) {
+      console.error('[Vault Chat] Database key storage error:', error);
+    }
+  }
+
+  /**
+   * Restore key from database if not in IndexedDB
+   * This enables cross-device/session access to conversations
+   */
+  async restoreKey(conversationId: string): Promise<CryptoKey | null> {
+    try {
+      // First check IndexedDB (fastest)
+      const cachedKey = await this.getKey(conversationId);
+      if (cachedKey) {
+        console.log('[Vault Chat] 🔑 Key found in IndexedDB cache');
+        return cachedKey;
+      }
+
+      // Try database
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('[Vault Chat] No user for key restoration');
+        return null;
+      }
+
+      const { data: keyData, error } = await supabase
+        .from('conversation_keys')
+        .select('wrapped_key, wrapping_nonce, algorithm')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !keyData) {
+        console.log('[Vault Chat] No key found in database for conversation');
+        return null;
+      }
+
+      // Import the key from base64
+      const keyBytes = this.base64ToArrayBuffer(keyData.wrapped_key);
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyBytes.buffer as ArrayBuffer,
+        { name: this.ALGORITHM, length: this.KEY_SIZE },
+        true,
+        ['encrypt', 'decrypt']
+      );
+
+      // Cache in IndexedDB for future fast access
+      await this.storeKey(conversationId, key);
+      console.log('[Vault Chat] 🔑 Key restored from database and cached');
+
+      return key;
+    } catch (error) {
+      console.error('[Vault Chat] Key restoration failed:', error);
+      return null;
     }
   }
 
