@@ -113,21 +113,47 @@ const VaultChat = () => {
 
   // Integration handlers
   const handleToggleIntegration = useCallback(async (type: string) => {
+    if (!user) return;
+
+    // Find current state
+    const integration = integrations.find(i => i.type === type);
+    if (!integration || !integration.isConnected) return;
+
+    const newActiveState = !integration.isActive;
+
+    // Update local state immediately (optimistic)
     setIntegrations(prev => prev.map(int => 
-      int.type === type ? { ...int, isActive: !int.isActive } : int
+      int.type === type ? { ...int, isActive: newActiveState } : int
     ));
-    
-    if (user) {
-      const integration = integrations.find(i => i.type === type);
-      if (integration?.isConnected) {
-        await supabase
-          .from('chat_integrations')
-          .update({ is_active: !integration.isActive })
-          .eq('user_id', user.id)
-          .eq('integration_type', type);
-      }
+
+    try {
+      // Persist to database
+      const { error } = await supabase
+        .from('chat_integrations')
+        .update({ is_active: newActiveState })
+        .eq('user_id', user.id)
+        .eq('integration_type', type);
+
+      if (error) throw error;
+
+      toast({
+        title: newActiveState ? 'Integration enabled' : 'Integration disabled',
+        description: `${type} ${newActiveState ? 'will be' : 'will not be'} included in chat context`,
+      });
+
+    } catch (err) {
+      // Revert on error
+      setIntegrations(prev => prev.map(int => 
+        int.type === type ? { ...int, isActive: !newActiveState } : int
+      ));
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to update integration',
+        variant: 'destructive'
+      });
     }
-  }, [integrations, user]);
+  }, [user, integrations, toast]);
 
   const [connectingIntegration, setConnectingIntegration] = useState<string | null>(null);
 
