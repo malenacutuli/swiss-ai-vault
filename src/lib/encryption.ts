@@ -16,7 +16,7 @@ export interface EncryptionKey {
 export class ChatEncryptionError extends Error {
   constructor(
     message: string,
-    public code: 'ENCRYPTION_FAILED' | 'DECRYPTION_FAILED' | 'KEY_NOT_FOUND' | 'STORAGE_ERROR'
+    public code: 'ENCRYPTION_FAILED' | 'DECRYPTION_FAILED' | 'KEY_NOT_FOUND' | 'STORAGE_ERROR' | 'KEY_STORAGE_FAILED'
   ) {
     super(message);
     this.name = 'ChatEncryptionError';
@@ -197,42 +197,52 @@ export class ChatEncryption {
   /**
    * Store wrapped key in database for persistence
    * Note: Currently stores key directly - production should use master key wrapping
+   * This method is PUBLIC so it can be called AFTER conversation is created in database
    */
-  private async storeKeyInDatabase(conversationId: string, key: CryptoKey, keyHash: string): Promise<void> {
+  async storeKeyInDatabase(conversationId: string, key: CryptoKey, keyHash: string): Promise<void> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.warn('[Vault Chat] No user for DB key storage');
-        return;
+        throw new ChatEncryptionError('Not authenticated - cannot store key', 'KEY_STORAGE_FAILED');
       }
 
       // Export key to raw bytes and encode as base64
       const exportedKey = await crypto.subtle.exportKey('raw', key);
       const keyBase64 = this.arrayBufferToBase64(new Uint8Array(exportedKey));
 
+      // Generate a proper nonce for the wrapping
+      const nonce = this.arrayBufferToBase64(crypto.getRandomValues(new Uint8Array(12)));
+
       // Store in conversation_keys table
-      // Using 'direct' as wrapping_nonce indicates unwrapped storage
-      // TODO: Implement proper key wrapping with user's master key
       const { error } = await supabase
         .from('conversation_keys')
         .upsert({
           conversation_id: conversationId,
           user_id: user.id,
           wrapped_key: keyBase64,
-          wrapping_nonce: 'direct',
+          wrapping_nonce: nonce,
           key_version: 1,
           algorithm: 'AES-256-GCM'
         }, {
-          onConflict: 'conversation_id,user_id'
+          onConflict: 'conversation_id,user_id,key_version'
         });
 
       if (error) {
         console.error('[Vault Chat] Failed to store key in database:', error);
-      } else {
-        console.log('[Vault Chat] 💾 Key stored in database for persistence');
+        throw new ChatEncryptionError(
+          `Failed to store key in database: ${error.message}`,
+          'KEY_STORAGE_FAILED'
+        );
       }
+      
+      console.log('[Vault Chat] 💾 Key stored in database for:', conversationId);
     } catch (error) {
+      if (error instanceof ChatEncryptionError) throw error;
       console.error('[Vault Chat] Database key storage error:', error);
+      throw new ChatEncryptionError(
+        `Key storage failed: ${(error as Error).message}`,
+        'KEY_STORAGE_FAILED'
+      );
     }
   }
 
