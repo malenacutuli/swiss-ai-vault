@@ -83,20 +83,20 @@ export function ConnectedSourcesBar({
                   }
                 }}
                 className={cn(
-                  "w-9 h-9 rounded-full flex items-center justify-center transition-all overflow-hidden",
+                  "w-8 h-8 rounded-full flex items-center justify-center transition-all overflow-hidden border-2 p-1",
                   integration.comingSoon
-                    ? "opacity-30 grayscale cursor-not-allowed"
+                    ? "opacity-30 grayscale cursor-not-allowed border-transparent"
                     : integration.isConnected 
                       ? integration.isActive
-                        ? "bg-background shadow-sm ring-2 ring-primary/30"
-                        : "bg-background/60 hover:bg-background"
-                      : "opacity-40 hover:opacity-70 grayscale hover:grayscale-0"
+                        ? "bg-background shadow-sm ring-2 ring-primary/30 border-primary/20"
+                        : "bg-background/80 hover:bg-background border-border/50"
+                      : "opacity-50 hover:opacity-80 grayscale hover:grayscale-0 border-transparent bg-muted/30"
                 )}
               >
                 <img 
                   src={integration.icon}
                   alt={integration.name}
-                  className="w-5 h-5 object-contain"
+                  className="w-full h-full object-cover rounded-full"
                 />
               </button>
             </TooltipTrigger>

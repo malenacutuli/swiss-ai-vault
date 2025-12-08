@@ -82,11 +82,16 @@ export function RetentionModeDropdown({ value, onChange, disabled }: RetentionMo
           disabled={disabled}
           className={cn(
             "gap-2 h-9 px-3",
-            value === 'zerotrace' && "border-green-300 bg-green-50 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/30"
+            value === 'zerotrace' && "border-green-500/50 bg-green-50 hover:bg-green-100 text-green-700 dark:border-green-500/40 dark:bg-green-950/50 dark:text-green-300 dark:hover:bg-green-900/50"
           )}
         >
           <Icon className={cn("h-4 w-4", selectedOption.color)} />
-          <span className="hidden sm:inline">{selectedOption.label}</span>
+          <span className={cn(
+            "hidden sm:inline font-medium",
+            value === 'zerotrace' && "text-green-700 dark:text-green-300"
+          )}>
+            {selectedOption.label}
+          </span>
           <span className="sm:hidden">Mode</span>
         </Button>
       </DropdownMenuTrigger>
