@@ -1,818 +1,236 @@
-// OpenAI-compatible chat completions endpoint
-// POST /v1/chat/completions
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface Message {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-
-interface ChatRequest {
-  model: string;
-  messages: Message[];
-  temperature?: number;
-  max_tokens?: number;
-  stream?: boolean;
-  top_p?: number;
-  stop?: string | string[];
-  rag_context?: string; // Optional RAG context to prepend to system message
-}
-
-// Inject RAG context into messages by prepending to system message
-function injectRagContext(messages: Message[], ragContext?: string): Message[] {
-  if (!ragContext) return messages;
+// Model routing configuration
+const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> = {
+  // Anthropic Claude 4.x (Latest December 2025)
+  'claude-opus-4-5-20251101': { provider: 'anthropic' },
+  'claude-sonnet-4-5-20250929': { provider: 'anthropic' },
+  'claude-haiku-4-5-20251001': { provider: 'anthropic' },
+  'claude-sonnet-4-20250514': { provider: 'anthropic' },
+  'claude-3-5-sonnet-20241022': { provider: 'anthropic' },
+  'claude-3-5-haiku-20241022': { provider: 'anthropic' },
+  'claude-3-opus-20240229': { provider: 'anthropic' },
   
-  const hasSystemMessage = messages.some(m => m.role === "system");
+  // OpenAI (Including Reasoning Models)
+  'o1': { provider: 'openai', isReasoning: true },
+  'o1-mini': { provider: 'openai', isReasoning: true },
+  'o1-pro': { provider: 'openai', isReasoning: true },
+  'gpt-4o': { provider: 'openai' },
+  'gpt-4o-mini': { provider: 'openai' },
+  'gpt-4-turbo': { provider: 'openai' },
   
-  if (hasSystemMessage) {
-    // Prepend context to existing system message
-    return messages.map(m => {
-      if (m.role === "system") {
-        return { ...m, content: `${ragContext}\n\n${m.content}` };
-      }
-      return m;
-    });
-  } else {
-    // Create new system message with context and default instruction
-    return [
-      { role: "system" as const, content: `${ragContext}\n\nYou are a helpful assistant.` },
-      ...messages
-    ];
-  }
-}
-
-// Base models we support
-const BASE_MODELS: Record<string, string> = {
-  "llama3.2-1b": "meta-llama/Llama-3.2-1B-Instruct",
-  "llama3.2-3b": "meta-llama/Llama-3.2-3B-Instruct",
-  "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
-  "qwen2.5-0.5b": "Qwen/Qwen2.5-0.5B-Instruct",
-  "qwen2.5-1.5b": "Qwen/Qwen2.5-1.5B-Instruct",
-  "qwen2.5-3b": "Qwen/Qwen2.5-3B-Instruct",
-  "qwen2.5-7b": "Qwen/Qwen2.5-7B-Instruct",
-  "gemma2-2b": "google/gemma-2-2b-it",
-  "gpt-4o-mini": "gpt-4o-mini",
-  "gpt-4o": "gpt-4o",
-  // Current Anthropic models (as of 2025)
-  "claude-sonnet-4": "claude-sonnet-4-20250514",
-  "claude-sonnet-4-20250514": "claude-sonnet-4-20250514",
-  "claude-3-5-haiku": "claude-3-5-haiku-20241022",
-  "claude-3-5-haiku-20241022": "claude-3-5-haiku-20241022",
-  // Legacy aliases - redirect to current models
-  "claude-3-5-sonnet": "claude-sonnet-4-20250514",
-  "claude-3-5-sonnet-20241022": "claude-sonnet-4-20250514",
+  // Google Gemini 2.0 (Latest)
+  'gemini-2.0-flash-exp': { provider: 'google' },
+  'gemini-2.0-flash-thinking-exp': { provider: 'google' },
+  'gemini-1.5-pro': { provider: 'google' },
+  'gemini-1.5-flash': { provider: 'google' },
 };
 
-// Models that should route to vLLM
+// Open source models -> route to vLLM
 const VLLM_MODELS = [
-  "qwen2.5-0.5b", "qwen2.5-1.5b", "qwen2.5-3b", "qwen2.5-7b",
-  "mistral-7b", "gemma2-2b", "llama3.2-1b", "llama3.2-3b"
+  'Qwen/Qwen2.5-0.5B-Instruct', 'Qwen/Qwen2.5-1.5B-Instruct',
+  'Qwen/Qwen2.5-3B-Instruct', 'Qwen/Qwen2.5-7B-Instruct',
+  'Qwen/Qwen2.5-Coder-7B-Instruct',
+  'meta-llama/Llama-3.2-1B-Instruct', 'meta-llama/Llama-3.2-3B-Instruct',
+  'meta-llama/Llama-3.1-8B-Instruct',
+  'mistralai/Mistral-7B-Instruct-v0.3',
+  'google/gemma-2-2b-it', 'google/gemma-2-9b-it',
+  'microsoft/Phi-3.5-mini-instruct',
+  'codellama/CodeLlama-7b-Instruct-hf',
+  'deepseek-ai/deepseek-coder-7b-instruct-v1.5',
+  // Short names
+  'qwen2.5-0.5b', 'qwen2.5-1.5b', 'qwen2.5-3b', 'qwen2.5-7b', 'qwen2.5-coder-7b',
+  'llama3.2-1b', 'llama3.2-3b', 'llama3.1-8b',
+  'mistral-7b', 'gemma2-2b', 'gemma2-9b', 'phi3.5-mini',
+  'codellama-7b', 'deepseek-coder-7b',
 ];
 
-// Prefixes that indicate open-source models -> route to vLLM
-const VLLM_PREFIXES = ['qwen', 'llama', 'mistral', 'gemma', 'phi', 'deepseek', 'codellama', 'yi', 'command'];
-
-function getProvider(model: string): 'openai' | 'anthropic' | 'vllm' {
-  // Fine-tuned models always go to vLLM
+function getProvider(model: string): 'openai' | 'anthropic' | 'google' | 'vllm' {
+  if (MODEL_CONFIG[model]) return MODEL_CONFIG[model].provider as any;
   if (model.startsWith('sv-')) return 'vllm';
-  
-  // Commercial APIs
-  if (model.startsWith('gpt-') || model.includes('gpt')) return 'openai';
-  if (model.startsWith('claude-') || model.includes('claude')) return 'anthropic';
-  
-  // Explicit vLLM models
+  if (model.startsWith('gpt-') || model.startsWith('o1')) return 'openai';
+  if (model.startsWith('claude-')) return 'anthropic';
+  if (model.startsWith('gemini-')) return 'google';
   if (VLLM_MODELS.includes(model)) return 'vllm';
-  
-  // HuggingFace-style model IDs (org/model)
-  if (model.includes('/')) return 'vllm';
-  
-  // Open source model prefixes -> vLLM
-  const modelLower = model.toLowerCase();
-  if (VLLM_PREFIXES.some(prefix => modelLower.includes(prefix))) {
-    return 'vllm';
-  }
-  
-  // Default to OpenAI
+  const vllmPrefixes = ['qwen', 'llama', 'mistral', 'gemma', 'phi', 'deepseek', 'codellama'];
+  if (vllmPrefixes.some(p => model.toLowerCase().includes(p))) return 'vllm';
   return 'openai';
 }
 
-serve(async (req) => {
-  const requestStartTime = Date.now();
-  
-  // Log all incoming requests
-  console.log('[chat-completions] ====== REQUEST START ======');
-  console.log('[chat-completions] Method:', req.method);
-  console.log('[chat-completions] URL:', req.url);
-  
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+async function callAnthropic(messages: any[], model: string, options: any) {
+  const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not configured');
 
-  try {
-    // Initialize Supabase client with service role
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  let systemPrompt = '';
+  const anthropicMessages = messages.filter(m => {
+    if (m.role === 'system') { systemPrompt = m.content; return false; }
+    return true;
+  }).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
 
-    // Get authorization header
-    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
-    const apiKeyHeader = req.headers.get("apikey") || "";
-    
-    // Parse request body first to check for action type
-    const body = await req.json();
-    
-    console.log('[chat-completions] Request body:', JSON.stringify({
-      model: body.model,
-      messageCount: body.messages?.length,
-      maxTokens: body.max_tokens,
-      temperature: body.temperature
-    }));
-    
-    // Handle embed action (for RAG query embeddings)
-    if (body.action === "embed" && body.text) {
-      // Authenticate user first
-      let embedUserId: string | null = null;
-      
-      if (authHeader.startsWith("Bearer ey")) {
-        const token = authHeader.replace("Bearer ", "").trim();
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (user && !error) {
-          embedUserId = user.id;
-        }
-      }
-      
-      if (!embedUserId) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      const openaiKey = Deno.env.get("OPENAI_API_KEY");
-      if (!openaiKey) {
-        return new Response(
-          JSON.stringify({ error: "OpenAI API key not configured" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      try {
-        const embeddingResponse = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openaiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "text-embedding-ada-002",
-            input: body.text,
-          }),
-        });
-        
-        const embeddingData = await embeddingResponse.json();
-        
-        if (embeddingData.error) {
-          console.error("[chat-completions] Embedding error:", embeddingData.error);
-          return new Response(
-            JSON.stringify({ error: embeddingData.error.message }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({ embedding: embeddingData.data[0].embedding }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } catch (embedError) {
-        console.error("[chat-completions] Embed request failed:", embedError);
-        return new Response(
-          JSON.stringify({ error: "Failed to generate embedding" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-    // Continue with chat completion handling
-    
-    let userId: string | null = null;
+  const requestBody: any = {
+    model: model.trim(),
+    max_tokens: options.maxTokens || 4096,
+    messages: anthropicMessages,
+  };
+  if (systemPrompt) requestBody.system = systemPrompt;
+  if (options.temperature !== undefined) requestBody.temperature = options.temperature;
 
-    // Check for custom API key (svk_... or sv_...)
-    if (authHeader.includes("svk_") || authHeader.includes("sv_") || apiKeyHeader.startsWith("svk_") || apiKeyHeader.startsWith("sv_")) {
-      const apiKey = authHeader.includes("svk_") || authHeader.includes("sv_")
-        ? authHeader.replace("Bearer ", "").trim()
-        : apiKeyHeader;
-      
-      console.log(`[chat-completions] API key auth attempt: ${apiKey.substring(0, 6)}...`);
-      
-      // Hash the key and look it up
-      const encoder = new TextEncoder();
-      const data = encoder.encode(apiKey);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const keyHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-      
-      const { data: keyRecord, error: keyError } = await supabase
-        .from("api_keys")
-        .select("user_id")
-        .eq("key_hash", keyHash)
-        .single();
-      
-      if (keyRecord) {
-        userId = keyRecord.user_id;
-        console.log(`[chat-completions] API key validated for user: ${userId}`);
-        
-        // Update last_used_at
-        await supabase
-          .from("api_keys")
-          .update({ last_used_at: new Date().toISOString() })
-          .eq("key_hash", keyHash);
-      } else {
-        console.log(`[chat-completions] API key lookup failed: ${keyError?.message}`);
-      }
-    }
-    
-    // If no API key match, try JWT auth
-    if (!userId && authHeader.startsWith("Bearer ey")) {
-      try {
-        const token = authHeader.replace("Bearer ", "").trim();
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (user && !error) {
-          userId = user.id;
-          console.log(`[chat-completions] JWT validated for user: ${userId}`);
-        }
-      } catch (jwtError) {
-        console.log(`[chat-completions] JWT validation failed: ${jwtError}`);
-      }
-    }
+  console.log('[Anthropic] Request:', { model: requestBody.model, messageCount: anthropicMessages.length });
 
-    // Require authentication
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: { message: "Unauthorized. Provide a valid API key (svk_...) or JWT token." } }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check user's zero-retention mode setting
-    let zeroRetentionMode = false;
-    try {
-      const { data: userSettings } = await supabase
-        .from("user_settings")
-        .select("zero_retention_mode")
-        .eq("user_id", userId)
-        .maybeSingle();
-      
-      zeroRetentionMode = userSettings?.zero_retention_mode ?? false;
-      console.log(`[chat-completions] User ${userId} zero_retention_mode: ${zeroRetentionMode}`);
-    } catch (settingsError) {
-      console.error("[chat-completions] Error fetching user settings:", settingsError);
-      // Continue with default (false) if settings fetch fails
-    }
-
-    // Use the already parsed body for chat completions
-    const { model, messages: rawMessages, temperature = 0.7, max_tokens = 1024, stream = false, rag_context } = body as ChatRequest;
-    
-    // Inject RAG context if provided
-    const messages = injectRagContext(rawMessages, rag_context);
-    if (rag_context) {
-      console.log(`[chat-completions] RAG context injected (${rag_context.length} chars)`);
-    }
-
-    // Determine which provider to use
-    const provider = getProvider(model);
-    let actualModel = BASE_MODELS[model] || model;
-    let adapterPath: string | null = null;
-
-    console.log('[chat-completions] Routing to provider:', provider, 'model:', actualModel);
-
-    // For fine-tuned models, look up the adapter path
-    if (model.startsWith("sv-")) {
-      const { data: customModel } = await supabase
-        .from("models")
-        .select("base_model, s3_checkpoint_path, model_path, model_id")
-        .eq("model_id", model)
-        .eq("user_id", userId)
-        .single();
-      
-      if (!customModel) {
-        return new Response(
-          JSON.stringify({ error: { message: `Model ${model} not found` } }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      // Use base model with adapter path for fine-tuned models
-      actualModel = customModel.base_model || "Qwen/Qwen2.5-3B-Instruct";
-      adapterPath = customModel.s3_checkpoint_path || customModel.model_path;
-      
-      console.log('[chat-completions] Fine-tuned model lookup:', {
-        modelId: model,
-        baseModel: actualModel,
-        adapterPath,
-        isFinetuned: true
-      });
-    }
-
-    // Track usage (always track API requests, even in zero-retention mode)
-    const today = new Date().toISOString().split("T")[0];
-    await supabase.rpc("increment_usage", {
-      p_user_id: userId,
-      p_date: today,
-      p_metric: "api_requests",
-      p_value: 1,
-    });
-
-    // Call the appropriate provider with zero-retention context
-    const responseHeaders: Record<string, string> = { ...corsHeaders };
-    if (zeroRetentionMode) {
-      responseHeaders["X-Zero-Retention"] = "true";
-    }
-
-    if (provider === "anthropic") {
-      return await handleAnthropicRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
-    } else if (provider === "vllm") {
-      return await handleVLLMRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders, adapterPath);
-    } else {
-      return await handleOpenAIRequest(messages, actualModel, temperature, max_tokens, stream, userId, supabase, zeroRetentionMode, body, responseHeaders);
-    }
-
-  } catch (error) {
-    console.error("Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: { message: errorMessage } }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-});
-
-async function handleOpenAIRequest(
-  messages: Message[],
-  model: string,
-  temperature: number,
-  maxTokens: number,
-  stream: boolean,
-  userId: string,
-  supabase: any,
-  zeroRetentionMode: boolean,
-  originalRequest: ChatRequest,
-  responseHeaders: Record<string, string>
-) {
-  const openaiKey = Deno.env.get("OPENAI_API_KEY");
-  const startTime = Date.now();
-  
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
     headers: {
-      "Authorization": `Bearer ${openaiKey}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      stream,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
-  if (stream) {
-    // Return streaming response
-    return new Response(response.body, {
-      headers: {
-        ...responseHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      },
-    });
+  const responseText = await response.text();
+  console.log('[Anthropic] Response status:', response.status);
+
+  if (!response.ok) {
+    let errorMessage = `Anthropic API error: ${response.status}`;
+    try { const err = JSON.parse(responseText); errorMessage = err.error?.message || errorMessage; } catch {}
+    throw new Error(errorMessage);
+  }
+
+  const data = JSON.parse(responseText);
+  return {
+    id: data.id,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: data.model,
+    choices: [{ index: 0, message: { role: 'assistant', content: data.content[0]?.text || '' }, finish_reason: 'stop' }],
+    usage: { prompt_tokens: data.usage?.input_tokens || 0, completion_tokens: data.usage?.output_tokens || 0, total_tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0) },
+  };
+}
+
+async function callOpenAI(messages: any[], model: string, options: any) {
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
+
+  const isReasoning = MODEL_CONFIG[model]?.isReasoning || model.startsWith('o1');
+  const requestBody: any = { model, messages };
+
+  if (isReasoning) {
+    requestBody.max_completion_tokens = options.maxTokens || 4096;
+  } else {
+    requestBody.max_tokens = options.maxTokens || 4096;
+    if (options.temperature !== undefined) requestBody.temperature = options.temperature;
+  }
+
+  console.log('[OpenAI] Request:', { model, isReasoning });
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+  }
+  return await response.json();
+}
+
+async function callGoogle(messages: any[], model: string, options: any) {
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY') || Deno.env.get('GOOGLE_API_KEY');
+  if (!GOOGLE_API_KEY) throw new Error('GOOGLE_GEMINI_API_KEY not configured');
+
+  const contents = messages.filter(m => m.role !== 'system').map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+
+  const systemInstruction = messages.find(m => m.role === 'system');
+  const requestBody: any = {
+    contents,
+    generationConfig: { maxOutputTokens: options.maxTokens || 4096, temperature: options.temperature || 0.7 },
+  };
+  if (systemInstruction) requestBody.systemInstruction = { parts: [{ text: systemInstruction.content }] };
+
+  console.log('[Google] Request:', { model });
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Google API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  const latencyMs = Date.now() - startTime;
-  
-  // Track token usage
-  if (data.usage) {
-    const today = new Date().toISOString().split("T")[0];
-    await supabase.rpc("increment_usage", {
-      p_user_id: userId,
-      p_date: today,
-      p_metric: "tokens_input",
-      p_value: data.usage.prompt_tokens,
-    });
-    await supabase.rpc("increment_usage", {
-      p_user_id: userId,
-      p_date: today,
-      p_metric: "tokens_output",
-      p_value: data.usage.completion_tokens,
-    });
-  }
-
-  // Log trace only if NOT in zero-retention mode
-  if (!zeroRetentionMode) {
-    try {
-      await supabase.from("traces").insert({
-        user_id: userId,
-        model_id: model,
-        request: originalRequest,
-        response: data,
-        latency_ms: latencyMs,
-        prompt_tokens: data.usage?.prompt_tokens || null,
-        completion_tokens: data.usage?.completion_tokens || null,
-        total_tokens: data.usage?.total_tokens || null,
-        status_code: response.status,
-      });
-      console.log(`[chat-completions] Trace logged for user ${userId}`);
-    } catch (traceError) {
-      console.error("[chat-completions] Error logging trace:", traceError);
-    }
-  } else {
-    console.log(`[chat-completions] Skipping trace logging (zero-retention mode)`);
-  }
-
-  return new Response(JSON.stringify(data), {
-    headers: { ...responseHeaders, "Content-Type": "application/json" },
-  });
-}
-
-async function handleAnthropicRequest(
-  messages: Message[],
-  model: string,
-  temperature: number,
-  maxTokens: number,
-  stream: boolean,
-  userId: string,
-  supabase: any,
-  zeroRetentionMode: boolean,
-  originalRequest: ChatRequest,
-  responseHeaders: Record<string, string>
-) {
-  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-  const startTime = Date.now();
-  
-  // Convert OpenAI format to Anthropic format
-  let systemPrompt = "";
-  const anthropicMessages = messages.filter(m => {
-    if (m.role === "system") {
-      systemPrompt = m.content;
-      return false;
-    }
-    return true;
-  });
-
-  // Debug: Log exact model being sent to Anthropic
-  const ANTHROPIC_API_KEY = anthropicKey;
-  console.log('[chat-completions] Anthropic config:', {
-    hasApiKey: !!ANTHROPIC_API_KEY,
-    apiKeyLength: ANTHROPIC_API_KEY?.length,
-    apiKeyPrefix: ANTHROPIC_API_KEY?.substring(0, 15),
-    apiKeyFormat: ANTHROPIC_API_KEY?.startsWith('sk-ant-') ? 'valid' : 'INVALID'
-  });
-  
-  console.log('[chat-completions] Anthropic request debug:', {
-    model: model,
-    modelLength: model?.length,
-    modelTrimmed: model?.trim(),
-    modelJSON: JSON.stringify(model),
-    messageCount: anthropicMessages.length,
-    hasSystemPrompt: !!systemPrompt,
-    systemPromptLength: systemPrompt.length
-  });
-
-  const anthropicRequestBody = {
-    model: model.trim(),
-    max_tokens: maxTokens,
-    system: systemPrompt || undefined,
-    messages: anthropicMessages,
-    temperature,
-    stream,
-  };
-  
-  console.log('[chat-completions] Anthropic full request body:', JSON.stringify(anthropicRequestBody, null, 2));
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": anthropicKey!,
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(anthropicRequestBody),
-  });
-
-  // Get response as text first to log it
-  const responseText = await response.text();
-  
-  console.log('[chat-completions] Anthropic response:', {
-    status: response.status,
-    statusText: response.statusText,
-    bodyLength: responseText.length,
-    bodyPreview: responseText.substring(0, 500)
-  });
-
-  if (stream && response.ok) {
-    // For streaming, we need to re-create the response since we consumed the body
-    // This won't work for streaming after consuming text, so skip streaming for debug
-    console.log('[chat-completions] WARNING: Streaming response consumed for debug logging');
-  }
-
-  // Parse response
-  let data;
-  try {
-    data = JSON.parse(responseText);
-  } catch (parseError) {
-    console.error('[chat-completions] Failed to parse Anthropic response:', responseText);
-    return new Response(JSON.stringify({ 
-      error: { message: `Failed to parse Anthropic response: ${responseText.substring(0, 200)}` }
-    }), {
-      status: 500,
-      headers: { ...responseHeaders, "Content-Type": "application/json" }
-    });
-  }
-  
-  const latencyMs = Date.now() - startTime;
-  
-  // Check for Anthropic API errors
-  if (!response.ok || data.error) {
-    console.error("[chat-completions] Anthropic API error:", JSON.stringify(data));
-    const errorMessage = data.error?.message || data.message || `Anthropic API error: ${response.status}`;
-    return new Response(JSON.stringify({ 
-      error: { message: errorMessage }
-    }), {
-      status: response.status >= 400 ? response.status : 500,
-      headers: { ...responseHeaders, "Content-Type": "application/json" }
-    });
-  }
-
-  if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
-    console.error("[chat-completions] Unexpected Anthropic response:", JSON.stringify(data));
-    return new Response(JSON.stringify({ 
-      error: { message: "Invalid response from Anthropic API" }
-    }), {
-      status: 500,
-      headers: { ...responseHeaders, "Content-Type": "application/json" }
-    });
-  }
-  
-  // Convert Anthropic response to OpenAI format
-  const openaiResponse = {
-    id: `chatcmpl-${crypto.randomUUID()}`,
-    object: "chat.completion",
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return {
+    id: `gemini-${Date.now()}`,
+    object: 'chat.completion',
     created: Math.floor(Date.now() / 1000),
     model,
-    choices: [{
-      index: 0,
-      message: {
-        role: "assistant",
-        content: data.content[0]?.text || "",
-      },
-      finish_reason: data.stop_reason === "end_turn" ? "stop" : data.stop_reason,
-    }],
-    usage: {
-      prompt_tokens: data.usage?.input_tokens || 0,
-      completion_tokens: data.usage?.output_tokens || 0,
-      total_tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
-    },
+    choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+    usage: { prompt_tokens: data.usageMetadata?.promptTokenCount || 0, completion_tokens: data.usageMetadata?.candidatesTokenCount || 0, total_tokens: data.usageMetadata?.totalTokenCount || 0 },
   };
-
-  // Track usage
-  const today = new Date().toISOString().split("T")[0];
-  await supabase.rpc("increment_usage", {
-    p_user_id: userId,
-    p_date: today,
-    p_metric: "tokens_input",
-    p_value: openaiResponse.usage.prompt_tokens,
-  });
-  await supabase.rpc("increment_usage", {
-    p_user_id: userId,
-    p_date: today,
-    p_metric: "tokens_output",
-    p_value: openaiResponse.usage.completion_tokens,
-  });
-
-  // Log trace only if NOT in zero-retention mode
-  if (!zeroRetentionMode) {
-    try {
-      await supabase.from("traces").insert({
-        user_id: userId,
-        model_id: model,
-        request: originalRequest,
-        response: openaiResponse,
-        latency_ms: latencyMs,
-        prompt_tokens: openaiResponse.usage.prompt_tokens,
-        completion_tokens: openaiResponse.usage.completion_tokens,
-        total_tokens: openaiResponse.usage.total_tokens,
-        status_code: response.status,
-      });
-      console.log(`[chat-completions] Trace logged for user ${userId}`);
-    } catch (traceError) {
-      console.error("[chat-completions] Error logging trace:", traceError);
-    }
-  } else {
-    console.log(`[chat-completions] Skipping trace logging (zero-retention mode)`);
-  }
-
-  return new Response(JSON.stringify(openaiResponse), {
-    headers: { ...responseHeaders, "Content-Type": "application/json" },
-  });
 }
 
-async function handleVLLMRequest(
-  messages: Message[],
-  model: string,
-  temperature: number,
-  maxTokens: number,
-  stream: boolean,
-  userId: string,
-  supabase: any,
-  zeroRetentionMode: boolean,
-  originalRequest: ChatRequest,
-  responseHeaders: Record<string, string>,
-  adapterPath: string | null = null
-) {
-  const vllmEndpoint = Deno.env.get("VLLM_ENDPOINT");
-  
-  if (!vllmEndpoint) {
-    console.error("[chat-completions] VLLM_ENDPOINT not configured, falling back to GPT-4o-mini");
-    // Fallback to OpenAI if vLLM not configured
-    return await handleOpenAIRequest(messages, "gpt-4o-mini", temperature, maxTokens, stream, userId, supabase, zeroRetentionMode, originalRequest, responseHeaders);
+async function callVLLM(messages: any[], model: string, options: any) {
+  const VLLM_ENDPOINT = Deno.env.get('VLLM_ENDPOINT');
+  if (!VLLM_ENDPOINT) {
+    console.warn('[vLLM] VLLM_ENDPOINT not configured, falling back to GPT-4o-mini');
+    return await callOpenAI(messages, 'gpt-4o-mini', options);
   }
 
-  const startTime = Date.now();
-  console.log('[chat-completions] vLLM request:', {
-    endpoint: vllmEndpoint,
-    model: model,
-    hasAdapter: !!adapterPath,
-    adapterPath: adapterPath,
-    messageCount: messages.length
-  });
+  console.log('[vLLM] Request:', { endpoint: VLLM_ENDPOINT, model });
 
   try {
-    // Create AbortController for timeout (90s to handle cold starts)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
-
-    const requestBody: Record<string, unknown> = {
-      model,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      stream,
-    };
-
-    // Add adapter path for fine-tuned models
-    if (adapterPath) {
-      requestBody.adapter_path = adapterPath;
-    }
-
-    const response = await fetch(vllmEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal,
+    const response = await fetch(VLLM_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages, max_tokens: options.maxTokens || 1024, temperature: options.temperature || 0.7 }),
     });
 
-    clearTimeout(timeoutId);
-    const latencyMs = Date.now() - startTime;
-    console.log(`[chat-completions] vLLM response in ${latencyMs}ms`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[chat-completions] vLLM error: ${response.status} - ${errorText}`);
-      
-      // Provide helpful error messages
-      let userMessage = "Model inference failed";
-      if (response.status === 503) {
-        userMessage = "Model is starting up (cold start). Please try again in 30-60 seconds.";
-      } else if (response.status === 404) {
-        userMessage = `Model '${model}' not found on inference server. It may not be deployed yet.`;
-      } else if (response.status === 500) {
-        userMessage = "Inference server error. The model may have run out of memory.";
-      }
-      
-      return new Response(
-        JSON.stringify({ error: { message: userMessage, status: response.status, details: errorText } }),
-        { status: response.status, headers: { ...responseHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (stream) {
-      // Return streaming response
-      return new Response(response.body, {
-        headers: {
-          ...responseHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-        },
-      });
-    }
-
-    const data = await response.json();
-    console.log(`[chat-completions] vLLM response received, latency: ${latencyMs}ms`);
-    
-    // Track token usage and deduct credits
-    if (data.usage) {
-      const totalTokens = (data.usage.prompt_tokens || 0) + (data.usage.completion_tokens || 0);
-      const creditCost = (totalTokens / 1000) * 0.001; // $0.001 per 1K tokens
-      
-      const today = new Date().toISOString().split("T")[0];
-      
-      // Track usage metrics
-      await supabase.rpc("increment_usage", {
-        p_user_id: userId,
-        p_date: today,
-        p_metric: "tokens_input",
-        p_value: data.usage.prompt_tokens || 0,
-      });
-      await supabase.rpc("increment_usage", {
-        p_user_id: userId,
-        p_date: today,
-        p_metric: "tokens_output",
-        p_value: data.usage.completion_tokens || 0,
-      });
-      
-      // Deduct credits (don't fail request if this fails)
-      if (creditCost > 0) {
-        try {
-          const { data: deductResult, error: deductError } = await supabase.rpc("deduct_credits", {
-            p_user_id: userId,
-            p_amount: creditCost,
-            p_service_type: "inference",
-            p_description: `Inference: ${model} (${totalTokens} tokens)`,
-            p_metadata: { model, tokens: totalTokens, latency_ms: latencyMs },
-          });
-          
-          if (deductError) {
-            console.error("[chat-completions] Credit deduction failed:", deductError);
-          } else if (deductResult && !deductResult.success) {
-            console.warn("[chat-completions] Insufficient credits:", deductResult);
-            // Note: We still return the response but log the warning
-          } else {
-            console.log(`[chat-completions] Deducted ${creditCost.toFixed(6)} credits for ${totalTokens} tokens`);
-          }
-        } catch (creditErr) {
-          console.error("[chat-completions] Credit deduction error:", creditErr);
-          // Don't fail the request
-        }
-      }
-    }
-
-    // Log trace only if NOT in zero-retention mode
-    if (!zeroRetentionMode) {
-      try {
-        await supabase.from("traces").insert({
-          user_id: userId,
-          model_id: model,
-          request: originalRequest,
-          response: data,
-          latency_ms: latencyMs,
-          prompt_tokens: data.usage?.prompt_tokens || null,
-          completion_tokens: data.usage?.completion_tokens || null,
-          total_tokens: data.usage?.total_tokens || null,
-          status_code: response.status,
-        });
-        console.log(`[chat-completions] Trace logged for user ${userId}`);
-      } catch (traceError) {
-        console.error("[chat-completions] Error logging trace:", traceError);
-      }
-    } else {
-      console.log(`[chat-completions] Skipping trace logging (zero-retention mode)`);
-    }
-
-    return new Response(JSON.stringify(data), {
-      headers: { ...responseHeaders, "Content-Type": "application/json" },
-    });
+    if (!response.ok) throw new Error(`vLLM error: ${response.status}`);
+    return await response.json();
   } catch (error) {
-    const latencyMs = Date.now() - startTime;
-    
-    // Handle timeout specifically
-    if (error instanceof Error && error.name === "AbortError") {
-      console.error(`[chat-completions] vLLM request timed out after ${latencyMs}ms`);
-      return new Response(
-        JSON.stringify({ 
-          error: { 
-            message: "Request timed out. The model may be experiencing a cold start or high load. Please try again.",
-            timeout: true 
-          } 
-        }),
-        { status: 504, headers: { ...responseHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    console.error(`[chat-completions] vLLM error after ${latencyMs}ms:`, error);
-    return new Response(
-      JSON.stringify({ error: { message: error instanceof Error ? error.message : "Unknown vLLM error" } }),
-      { status: 500, headers: { ...responseHeaders, "Content-Type": "application/json" } }
-    );
+    console.error('[vLLM] Failed, falling back:', error);
+    return await callOpenAI(messages, 'gpt-4o-mini', options);
   }
 }
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { model, messages, max_tokens, temperature } = await req.json();
+    if (!model || !messages) {
+      return new Response(JSON.stringify({ error: 'Missing model or messages' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    console.log('[chat-completions] Model:', model, 'Provider:', getProvider(model));
+
+    const options = { maxTokens: max_tokens, temperature };
+    let result;
+
+    switch (getProvider(model)) {
+      case 'anthropic': result = await callAnthropic(messages, model, options); break;
+      case 'google': result = await callGoogle(messages, model, options); break;
+      case 'vllm': result = await callVLLM(messages, model, options); break;
+      default: result = await callOpenAI(messages, model, options); break;
+    }
+
+    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } catch (error: unknown) {
+    console.error('[chat-completions] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal error';
+    return new Response(JSON.stringify({ error: { message: errorMessage } }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+});
