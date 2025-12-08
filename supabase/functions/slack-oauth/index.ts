@@ -13,7 +13,8 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.e
 
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/slack-oauth/callback`;
 const SLACK_SCOPES = 'channels:read,channels:history,users:read,team:read';
-const FRONTEND_URL = 'https://d6ec0fb6-7421-4eea-a7d4-a0683f6f1c47.lovableproject.com';
+// Use environment variable for frontend URL, fallback to Lovable preview domain
+const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://d6ec0fb6-7421-4eea-a7d4-a0683f6f1c47.lovableproject.com';
 
 // Simple encryption for storing credentials (in production, use proper key management)
 async function encryptCredentials(data: string): Promise<string> {

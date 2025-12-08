@@ -131,23 +131,30 @@ const VaultChat = () => {
 
   const [connectingIntegration, setConnectingIntegration] = useState<string | null>(null);
 
-  // Fetch integrations
+  // Fetch integrations from database and map to UI state
   const fetchIntegrations = useCallback(async () => {
     if (!user) return;
-    
-    const { data: dbIntegrations } = await supabase
+
+    const { data, error } = await supabase
       .from('chat_integrations')
-      .select('integration_type, is_active')
+      .select('*')
       .eq('user_id', user.id);
-    
-    if (dbIntegrations) {
-      setIntegrations(prev => prev.map(int => {
-        const dbInt = dbIntegrations.find(d => d.integration_type === int.type);
-        return dbInt 
-          ? { ...int, isConnected: true, isActive: dbInt.is_active }
-          : int;
-      }));
+
+    if (error) {
+      console.error('Error fetching integrations:', error);
+      return;
     }
+
+    // Map database records to UI state
+    setIntegrations(prev => prev.map(int => {
+      const dbRecord = data?.find(d => d.integration_type === int.type);
+      return {
+        ...int,
+        isConnected: !!dbRecord,
+        isActive: dbRecord?.is_active ?? false,
+        lastSynced: dbRecord?.last_synced_at
+      };
+    }));
   }, [user]);
 
   const handleConnectIntegration = useCallback(async (type: string) => {
