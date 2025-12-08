@@ -1,26 +1,13 @@
-# Welcome to your Lovable project
+Welcome to SwissVault.ai
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/d6ec0fb6-7421-4eea-a7d4-a0683f6f1c47
+**URL**: https://swissvault.ai
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/d6ec0fb6-7421-4eea-a7d4-a0683f6f1c47) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
@@ -35,7 +22,6 @@ npm i
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
-
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
@@ -52,22 +38,10 @@ npm run dev
 
 ## What technologies are used for this project?
 
-This project is built with:
+Frontend: React/TypeScript with real-time subscriptions
+Backend: PostgreSQL with Row-Level Security (40+ tables)
+Edge Functions: 19 serverless functions deployed
+GPU Workers: Modal.com A10G instances for fine-tuning and inference
+Storage: AWS S3 Swiss region (eu-central-2) for datasets and model checkpoints
+Inference: vLLM server with 14 open-source models and LoRA adapter support
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/d6ec0fb6-7421-4eea-a7d4-a0683f6f1c47) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
