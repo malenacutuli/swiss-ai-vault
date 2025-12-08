@@ -202,9 +202,7 @@ const VaultChat = () => {
       }
 
       // For Slack, use direct redirect with token in state (already handled by edge function)
-      // For others, get auth URL first then redirect
       if (type === 'slack') {
-        // Slack uses redirect flow - call the authorize endpoint via fetch first to get redirect
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/slack-oauth/authorize`,
           {
@@ -215,13 +213,11 @@ const VaultChat = () => {
           }
         );
         
-        // Slack returns a redirect, so we follow it
         if (response.redirected) {
           window.location.href = response.url;
           return;
         }
         
-        // If not redirected, try to get the URL from JSON response
         const data = await response.json();
         if (data.url) {
           window.location.href = data.url;
@@ -230,16 +226,21 @@ const VaultChat = () => {
         throw new Error('Failed to get Slack auth URL');
       }
 
-      // For other providers (Notion, Gmail, GitHub) - they return JSON with URL
+      // For other providers (Notion, Gmail, GitHub) - use body action pattern
       const { data, error } = await supabase.functions.invoke(`${type}-oauth`, {
-        body: {},
-        headers: { 'x-action': 'authorize' }
+        body: { action: 'authorize' }
       });
 
-      if (error) throw error;
-      if (!data?.url) throw new Error('No auth URL returned');
+      if (error) {
+        console.error(`OAuth error for ${type}:`, error);
+        throw new Error(error.message || 'Failed to start OAuth');
+      }
+      
+      if (!data?.url) {
+        throw new Error('No authorization URL returned');
+      }
 
-      // Open auth URL in popup or redirect
+      console.log(`[VaultChat] Redirecting to ${type} OAuth:`, data.url);
       window.location.href = data.url;
 
     } catch (err) {
@@ -249,7 +250,6 @@ const VaultChat = () => {
         description: (err as Error).message || `Could not connect to ${type}`,
         variant: 'destructive'
       });
-    } finally {
       setConnectingIntegration(null);
     }
   }, [user, toast]);
