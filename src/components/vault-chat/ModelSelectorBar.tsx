@@ -22,8 +22,8 @@ interface Model {
 const AVAILABLE_MODELS: Model[] = [
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
-  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
+  { id: 'claude-sonnet-4', name: 'Claude 4 Sonnet', provider: 'Anthropic' },
+  { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
   { id: 'gemini-pro', name: 'Gemini Pro', provider: 'Google' },
   { id: 'mistral-7b', name: 'Mistral 7B', provider: 'Mistral', isLocal: true },
   { id: 'llama3.2-3b', name: 'Llama 3.2 3B', provider: 'Meta', isLocal: true },
@@ -33,7 +33,7 @@ const AVAILABLE_MODELS: Model[] = [
 
 const PROVIDER_CONFIG = [
   { provider: 'OpenAI', logo: openaiLogo, models: ['gpt-4o', 'gpt-4o-mini'] },
-  { provider: 'Anthropic', logo: anthropicLogo, models: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'] },
+  { provider: 'Anthropic', logo: anthropicLogo, models: ['claude-sonnet-4', 'claude-3-5-haiku'] },
   { provider: 'Google', logo: googleLogo, models: ['gemini-pro'] },
   { provider: 'DeepSeek', logo: deepseekLogo, models: ['deepseek-v3'] },
   { provider: 'Mistral', logo: mistralLogo, models: ['mistral-7b'] },
