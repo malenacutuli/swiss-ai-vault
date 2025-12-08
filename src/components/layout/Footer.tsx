@@ -8,24 +8,20 @@ const footerLinks = {
     { label: "Pricing", href: "/#pricing" },
     { label: "Documentation", href: "/docs/api" },
     { label: "API Reference", href: "/docs/api" },
-    { label: "SDK", href: "/docs/api" },
   ],
   Company: [
-    { label: "About", href: "#" },
-    { label: "Careers", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Contact", href: "#" },
+    { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy-policy" },
     { label: "Terms of Service", href: "/terms-of-service" },
-    { label: "DPA", href: "#" },
+    { label: "DPA", href: "/dpa" },
     { label: "Security", href: "/#security" },
   ],
   Support: [
-    { label: "Help Center", href: "#" },
-    { label: "Status", href: "#" },
-    { label: "Community / Discord", href: "#" },
+    { label: "Status", href: "/status" },
+    { label: "Email Support", href: "mailto:hola@axessible.ai" },
   ],
 };
 
