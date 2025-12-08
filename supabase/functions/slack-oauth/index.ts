@@ -52,15 +52,17 @@ serve(async (req) => {
   try {
     // Route: /slack-oauth/authorize - Start OAuth flow
     if (path.endsWith('/authorize') || path === '/slack-oauth') {
-      // Get user ID from JWT
+      // Get user ID from JWT - accept from header OR query param
       const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        console.error('[slack-oauth] No authorization header');
+      const queryToken = url.searchParams.get('token');
+      const token = authHeader?.replace('Bearer ', '') || queryToken;
+      
+      if (!token) {
+        console.error('[slack-oauth] No authorization token');
         return Response.redirect(`${FRONTEND_URL}/chat?error=unauthorized`, 302);
       }
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-      const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
       if (authError || !user) {

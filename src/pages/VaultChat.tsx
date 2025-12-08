@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -107,28 +108,8 @@ const VaultChat = () => {
     setContextEnabled,
   } = useRAGContext(selectedConversation);
 
-  // Load integrations from database
-  useEffect(() => {
-    const loadIntegrations = async () => {
-      if (!user) return;
-      
-      const { data: dbIntegrations } = await supabase
-        .from('chat_integrations')
-        .select('integration_type, is_active')
-        .eq('user_id', user.id);
-      
-      if (dbIntegrations) {
-        setIntegrations(prev => prev.map(int => {
-          const dbInt = dbIntegrations.find(d => d.integration_type === int.type);
-          return dbInt 
-            ? { ...int, isConnected: true, isActive: dbInt.is_active }
-            : int;
-        }));
-      }
-    };
-    
-    loadIntegrations();
-  }, [user]);
+  // searchParams for OAuth callback handling
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Integration handlers
   const handleToggleIntegration = useCallback(async (type: string) => {
@@ -148,9 +129,124 @@ const VaultChat = () => {
     }
   }, [integrations, user]);
 
-  const handleConnectIntegration = useCallback((type: string) => {
-    window.location.href = `/dashboard/integrations?connect=${type}`;
-  }, []);
+  const [connectingIntegration, setConnectingIntegration] = useState<string | null>(null);
+
+  // Fetch integrations
+  const fetchIntegrations = useCallback(async () => {
+    if (!user) return;
+    
+    const { data: dbIntegrations } = await supabase
+      .from('chat_integrations')
+      .select('integration_type, is_active')
+      .eq('user_id', user.id);
+    
+    if (dbIntegrations) {
+      setIntegrations(prev => prev.map(int => {
+        const dbInt = dbIntegrations.find(d => d.integration_type === int.type);
+        return dbInt 
+          ? { ...int, isConnected: true, isActive: dbInt.is_active }
+          : int;
+      }));
+    }
+  }, [user]);
+
+  const handleConnectIntegration = useCallback(async (type: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to connect integrations',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setConnectingIntegration(type);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No active session');
+      }
+
+      // For Slack, use direct redirect with token in state (already handled by edge function)
+      // For others, get auth URL first then redirect
+      if (type === 'slack') {
+        // Slack uses redirect flow - call the authorize endpoint via fetch first to get redirect
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/slack-oauth/authorize`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+          }
+        );
+        
+        // Slack returns a redirect, so we follow it
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        
+        // If not redirected, try to get the URL from JSON response
+        const data = await response.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error('Failed to get Slack auth URL');
+      }
+
+      // For other providers (Notion, Gmail, GitHub) - they return JSON with URL
+      const { data, error } = await supabase.functions.invoke(`${type}-oauth`, {
+        body: {},
+        headers: { 'x-action': 'authorize' }
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('No auth URL returned');
+
+      // Open auth URL in popup or redirect
+      window.location.href = data.url;
+
+    } catch (err) {
+      console.error(`Failed to connect ${type}:`, err);
+      toast({
+        title: 'Connection failed',
+        description: (err as Error).message || `Could not connect to ${type}`,
+        variant: 'destructive'
+      });
+    } finally {
+      setConnectingIntegration(null);
+    }
+  }, [user, toast]);
+
+  // Handle OAuth callback success/error from URL params
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const error = searchParams.get('error');
+    
+    if (success) {
+      toast({
+        title: 'Integration Connected!',
+        description: `${success.charAt(0).toUpperCase() + success.slice(1)} has been connected successfully.`,
+      });
+      setSearchParams({});
+      fetchIntegrations();
+    } else if (error) {
+      toast({
+        title: 'Connection Failed',
+        description: `Failed to connect: ${error.replace(/_/g, ' ')}`,
+        variant: 'destructive',
+      });
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, toast, fetchIntegrations]);
+
+  // Load integrations from database on mount
+  useEffect(() => {
+    fetchIntegrations();
+  }, [fetchIntegrations]);
 
   const handleFileUpload = useCallback((files: FileList) => {
     Array.from(files).forEach(file => {

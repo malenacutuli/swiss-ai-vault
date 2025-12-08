@@ -35,8 +35,12 @@ serve(async (req) => {
   try {
     // Route: /github-oauth/authorize - Start OAuth flow
     if (path.endsWith('/authorize')) {
+      // Accept token from header OR query param
       const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
+      const queryToken = url.searchParams.get('token');
+      const token = authHeader?.replace('Bearer ', '') || queryToken;
+      
+      if (!token) {
         return new Response(JSON.stringify({ error: 'Authorization required' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -45,7 +49,6 @@ serve(async (req) => {
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       
-      const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       
       if (authError || !user) {
@@ -84,12 +87,12 @@ serve(async (req) => {
 
       if (error) {
         console.error('GitHub OAuth error:', error);
-        return Response.redirect(`${url.origin}/dashboard/settings?error=github_auth_failed`);
+        return Response.redirect(`${url.origin}/chat?error=github_auth_failed`);
       }
 
       if (!code || !state) {
         console.error('Missing code or state');
-        return Response.redirect(`${url.origin}/dashboard/settings?error=invalid_callback`);
+        return Response.redirect(`${url.origin}/chat?error=invalid_callback`);
       }
 
       // Verify state
@@ -98,7 +101,7 @@ serve(async (req) => {
         stateData = JSON.parse(atob(state));
       } catch {
         console.error('Invalid state token');
-        return Response.redirect(`${url.origin}/dashboard/settings?error=invalid_state`);
+        return Response.redirect(`${url.origin}/chat?error=invalid_state`);
       }
 
       const { user_id, timestamp } = stateData;
@@ -106,7 +109,7 @@ serve(async (req) => {
       // Check state expiry (15 minutes)
       if (Date.now() - timestamp > 15 * 60 * 1000) {
         console.error('State token expired');
-        return Response.redirect(`${url.origin}/dashboard/settings?error=state_expired`);
+        return Response.redirect(`${url.origin}/chat?error=state_expired`);
       }
 
       // Exchange code for access token
@@ -127,14 +130,14 @@ serve(async (req) => {
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
         console.error('Token exchange failed:', errorText);
-        return Response.redirect(`${url.origin}/dashboard/settings?error=token_exchange_failed`);
+        return Response.redirect(`${url.origin}/chat?error=token_exchange_failed`);
       }
 
       const tokenData = await tokenResponse.json();
 
       if (tokenData.error) {
         console.error('GitHub token error:', tokenData.error);
-        return Response.redirect(`${url.origin}/dashboard/settings?error=token_error`);
+        return Response.redirect(`${url.origin}/chat?error=token_error`);
       }
 
       const { access_token, scope } = tokenData;
@@ -152,7 +155,7 @@ serve(async (req) => {
 
       if (!userResponse.ok) {
         console.error('Failed to get user info');
-        return Response.redirect(`${url.origin}/dashboard/settings?error=userinfo_failed`);
+        return Response.redirect(`${url.origin}/chat?error=userinfo_failed`);
       }
 
       const userInfo = await userResponse.json();
@@ -198,7 +201,7 @@ serve(async (req) => {
 
         if (updateError) {
           console.error('Failed to update integration:', updateError);
-          return Response.redirect(`${url.origin}/dashboard/settings?error=db_error`);
+          return Response.redirect(`${url.origin}/chat?error=db_error`);
         }
       } else {
         const { error: insertError } = await supabase
@@ -207,13 +210,13 @@ serve(async (req) => {
 
         if (insertError) {
           console.error('Failed to insert integration:', insertError);
-          return Response.redirect(`${url.origin}/dashboard/settings?error=db_error`);
+          return Response.redirect(`${url.origin}/chat?error=db_error`);
         }
       }
 
       console.log(`GitHub integration saved for user ${user_id}`);
 
-      return Response.redirect(`${url.origin}/dashboard/settings?github=connected`);
+      return Response.redirect(`${url.origin}/chat?success=github`);
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), {
