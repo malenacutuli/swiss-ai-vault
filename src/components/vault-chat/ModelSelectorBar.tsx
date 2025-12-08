@@ -3,6 +3,14 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { cn } from '@/lib/utils';
 import { Lock } from 'lucide-react';
 
+// Import model logos
+import openaiLogo from '@/assets/models/openai-logo.png';
+import anthropicLogo from '@/assets/models/anthropic-logo.png';
+import googleLogo from '@/assets/models/google-logo.png';
+import mistralLogo from '@/assets/models/mistral-logo.png';
+import metaLogo from '@/assets/models/meta-logo.png';
+import qwenLogo from '@/assets/models/qwen-logo.jpg';
+
 interface Model {
   id: string;
   name: string;
@@ -22,12 +30,12 @@ const AVAILABLE_MODELS: Model[] = [
 ];
 
 const PROVIDER_CONFIG = [
-  { provider: 'OpenAI', fallback: '🤖', models: ['gpt-4o', 'gpt-4o-mini'] },
-  { provider: 'Anthropic', fallback: '🔮', models: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'] },
-  { provider: 'Google', fallback: '✨', models: ['gemini-pro'] },
-  { provider: 'Mistral', fallback: '🌀', models: ['mistral-7b'] },
-  { provider: 'Meta', fallback: '🦙', models: ['llama3.2-3b', 'llama3.2-1b'] },
-  { provider: 'Local', fallback: '⚡', models: ['qwen2.5-3b', 'qwen2.5-7b'] },
+  { provider: 'OpenAI', logo: openaiLogo, models: ['gpt-4o', 'gpt-4o-mini'] },
+  { provider: 'Anthropic', logo: anthropicLogo, models: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'] },
+  { provider: 'Google', logo: googleLogo, models: ['gemini-pro'] },
+  { provider: 'Mistral', logo: mistralLogo, models: ['mistral-7b'] },
+  { provider: 'Meta', logo: metaLogo, models: ['llama3.2-3b', 'llama3.2-1b'] },
+  { provider: 'Local', logo: qwenLogo, models: ['qwen2.5-3b', 'qwen2.5-7b'] },
 ];
 
 interface ModelSelectorBarProps {
@@ -80,12 +88,16 @@ export function ModelSelectorBar({ selectedModel, onModelChange, className }: Mo
                   <button
                     onClick={() => handleProviderClick(provider)}
                     className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center transition-all text-lg",
+                      "w-9 h-9 rounded-full flex items-center justify-center transition-all overflow-hidden",
                       "hover:bg-background hover:shadow-sm",
                       isSelected && "bg-background shadow-sm ring-2 ring-primary/30"
                     )}
                   >
-                    {provider.fallback}
+                    <img 
+                      src={provider.logo} 
+                      alt={provider.provider}
+                      className="w-6 h-6 object-contain"
+                    />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-center">
