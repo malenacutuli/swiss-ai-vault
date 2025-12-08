@@ -17,6 +17,12 @@ interface DocumentChunk {
   metadata?: Record<string, any>;
 }
 
+// Verify Supabase URL is available for Edge Function calls
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  console.warn('[RAG] VITE_SUPABASE_URL not configured - RAG search will not work');
+}
+
 const SUPPORTED_FILE_TYPES = ['txt', 'md', 'pdf', 'docx', 'pptx'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
