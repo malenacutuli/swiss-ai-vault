@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -14,19 +14,44 @@ interface DocumentChunk {
   filename: string;
   chunk_index: number;
   similarity: number;
+  metadata?: {
+    source?: string;
+    filename?: string;
+    [key: string]: any;
+  };
 }
 
 const SUPPORTED_FILE_TYPES = ['txt', 'md', 'pdf', 'docx', 'pptx'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
-export function useRAGContext() {
+export function useRAGContext(externalConversationId?: string | null) {
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(externalConversationId || null);
+  const [contextEnabled, setContextEnabled] = useState(true);
+
+  // Sync with external conversation ID
+  useEffect(() => {
+    if (externalConversationId !== undefined) {
+      setConversationId(externalConversationId);
+      // Clear documents when conversation changes
+      if (externalConversationId !== conversationId) {
+        setUploadedDocuments([]);
+      }
+    }
+  }, [externalConversationId]);
 
   const hasContext = useMemo(() => uploadedDocuments.length > 0, [uploadedDocuments]);
 
   const uploadDocument = useCallback(async (file: File): Promise<{ success: boolean; chunkCount: number }> => {
+    // Use external conversation ID if provided
+    const targetConversationId = conversationId || externalConversationId;
+    
+    if (!targetConversationId) {
+      toast.error('Please select or create a conversation first');
+      return { success: false, chunkCount: 0 };
+    }
+
     // Validate file type
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (!extension || !SUPPORTED_FILE_TYPES.includes(extension)) {
@@ -44,13 +69,6 @@ export function useRAGContext() {
     const loadingToast = toast.loading(`Processing ${file.name}...`);
 
     try {
-      // Generate conversation ID on first upload
-      let currentConversationId = conversationId;
-      if (!currentConversationId) {
-        currentConversationId = crypto.randomUUID();
-        setConversationId(currentConversationId);
-      }
-
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -62,7 +80,7 @@ export function useRAGContext() {
       // Create form data
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('conversation_id', currentConversationId);
+      formData.append('conversation_id', targetConversationId);
 
       // Call embed-document Edge Function
       const response = await fetch(
@@ -102,10 +120,12 @@ export function useRAGContext() {
     } finally {
       setIsUploading(false);
     }
-  }, [conversationId]);
+  }, [conversationId, externalConversationId]);
 
   const searchContext = useCallback(async (query: string, limit: number = 5): Promise<DocumentChunk[]> => {
-    if (!conversationId) {
+    const targetConversationId = conversationId || externalConversationId;
+    
+    if (!targetConversationId || !contextEnabled) {
       return [];
     }
 
@@ -116,56 +136,89 @@ export function useRAGContext() {
         return [];
       }
 
-      // Generate embedding for the query using OpenAI via our endpoint
-      const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY || ''}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'text-embedding-ada-002',
-          input: query,
-        }),
-      });
+      const results: DocumentChunk[] = [];
 
-      if (!embeddingResponse.ok) {
-        // Fallback: try using a simple keyword search if embedding fails
-        console.warn('Embedding generation failed, using fallback search');
-        const { data, error } = await supabase
-          .from('document_chunks')
-          .select('id, content, filename, chunk_index')
-          .eq('conversation_id', conversationId)
-          .textSearch('content', query.split(' ').join(' & '))
-          .limit(limit);
+      // 1. Search document chunks using text search
+      const { data: docChunks, error: docError } = await supabase
+        .from('document_chunks')
+        .select('id, content, filename, chunk_index, metadata')
+        .eq('conversation_id', targetConversationId)
+        .textSearch('content', query.split(' ').filter(w => w.length > 2).join(' | '))
+        .limit(limit);
 
-        if (error) throw error;
-        return (data || []).map(chunk => ({ ...chunk, similarity: 0.5 }));
+      if (!docError && docChunks) {
+        results.push(...docChunks.map(chunk => ({
+          id: chunk.id,
+          content: chunk.content,
+          filename: chunk.filename,
+          chunk_index: chunk.chunk_index,
+          similarity: 0.7, // Default similarity for text search
+          metadata: { 
+            source: 'document', 
+            filename: chunk.filename,
+            ...(chunk.metadata as Record<string, any> || {})
+          }
+        })));
       }
 
-      const embeddingData = await embeddingResponse.json();
-      const queryEmbedding = embeddingData.data[0].embedding;
+      // 2. Search integration data if user has active integrations
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Get active integrations
+        const { data: activeIntegrations } = await supabase
+          .from('chat_integrations')
+          .select('id, integration_type')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
 
-      // Call search function
-      const { data, error } = await supabase.rpc('search_document_chunks', {
-        p_user_id: session.user.id,
-        p_embedding: JSON.stringify(queryEmbedding),
-        p_match_count: limit,
-        p_conversation_id: conversationId,
-        p_match_threshold: 0.7,
-      });
+        if (activeIntegrations && activeIntegrations.length > 0) {
+          const integrationIds = activeIntegrations.map(i => i.id);
 
-      if (error) throw error;
+          // Search integration data
+          const { data: integrationData, error: intError } = await supabase
+            .from('chat_integration_data')
+            .select('id, encrypted_content, snippet, title, integration_id, metadata')
+            .in('integration_id', integrationIds)
+            .limit(limit);
 
-      return data || [];
+          if (!intError && integrationData) {
+            // Filter by query match in snippet or title
+            const queryLower = query.toLowerCase();
+            const matchingData = integrationData.filter(item => 
+              (item.snippet?.toLowerCase().includes(queryLower)) ||
+              (item.title?.toLowerCase().includes(queryLower))
+            );
+
+            results.push(...matchingData.map(item => {
+              const integration = activeIntegrations.find(i => i.id === item.integration_id);
+              return {
+                id: item.id,
+                content: item.snippet || item.title || '',
+                filename: item.title || 'Integration Data',
+                chunk_index: 0,
+                similarity: 0.6,
+                metadata: {
+                  source: integration?.integration_type || 'integration',
+                  ...(item.metadata as Record<string, any> || {})
+                }
+              };
+            }));
+          }
+        }
+      }
+
+      // Sort by similarity and limit
+      return results.slice(0, limit);
     } catch (error) {
       console.error('Error searching context:', error);
       return [];
     }
-  }, [conversationId]);
+  }, [conversationId, externalConversationId, contextEnabled]);
 
   const clearContext = useCallback(async (): Promise<void> => {
-    if (!conversationId) {
+    const targetConversationId = conversationId || externalConversationId;
+    
+    if (!targetConversationId) {
       setUploadedDocuments([]);
       return;
     }
@@ -181,7 +234,7 @@ export function useRAGContext() {
       // Delete all chunks for this conversation
       const { error } = await supabase.rpc('clear_conversation_documents', {
         p_user_id: session.user.id,
-        p_conversation_id: conversationId,
+        p_conversation_id: targetConversationId,
       });
 
       if (error) {
@@ -189,28 +242,29 @@ export function useRAGContext() {
         await supabase
           .from('document_chunks')
           .delete()
-          .eq('conversation_id', conversationId);
+          .eq('conversation_id', targetConversationId);
       }
 
       setUploadedDocuments([]);
-      setConversationId(null);
       toast.success('Context cleared');
     } catch (error) {
       console.error('Error clearing context:', error);
       toast.error('Failed to clear context');
     }
-  }, [conversationId]);
+  }, [conversationId, externalConversationId]);
 
   const getContextPrompt = useCallback((chunks: DocumentChunk[]): string => {
     if (chunks.length === 0) {
       return '';
     }
 
-    const contextParts = chunks.map(chunk => 
-      `[Document: ${chunk.filename}]\n${chunk.content}`
-    );
+    const contextParts = chunks.map((chunk, i) => {
+      const source = chunk.metadata?.source || 'document';
+      const filename = chunk.metadata?.filename || chunk.filename;
+      return `[${i + 1}. ${source.toUpperCase()}: ${filename}]\n${chunk.content}`;
+    });
 
-    return `Context from uploaded documents:\n\n${contextParts.join('\n\n')}\n\n---\nUse the above context to answer the user's question.`;
+    return `You have access to the following documents and context:\n\n${contextParts.join('\n\n---\n\n')}\n\n---\nUse this information to answer the user's question. Cite sources using [1], [2], etc. when relevant.`;
   }, []);
 
   return {
@@ -222,5 +276,7 @@ export function useRAGContext() {
     getContextPrompt,
     hasContext,
     conversationId,
+    contextEnabled,
+    setContextEnabled,
   };
 }

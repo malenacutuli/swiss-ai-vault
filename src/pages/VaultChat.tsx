@@ -49,6 +49,7 @@ interface Conversation {
   is_encrypted: boolean;
   is_shared: boolean;
   created_at: string;
+  retention_mode?: string;
 }
 
 const VaultChat = () => {
@@ -83,21 +84,61 @@ const VaultChat = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // RAG Context for document uploads
+  // RAG Context - pass selectedConversation to connect document uploads
   const {
     uploadedDocuments,
     isUploading: isUploadingDocument,
     uploadDocument,
+    searchContext,
+    getContextPrompt,
     clearContext,
     hasContext,
-  } = useRAGContext();
+    contextEnabled,
+    setContextEnabled,
+  } = useRAGContext(selectedConversation);
+
+  // Load integrations from database
+  useEffect(() => {
+    const loadIntegrations = async () => {
+      if (!user) return;
+      
+      const { data: dbIntegrations } = await supabase
+        .from('chat_integrations')
+        .select('integration_type, is_active')
+        .eq('user_id', user.id);
+      
+      if (dbIntegrations) {
+        setIntegrations(prev => prev.map(int => {
+          const dbInt = dbIntegrations.find(d => d.integration_type === int.type);
+          return dbInt 
+            ? { ...int, isConnected: true, isActive: dbInt.is_active }
+            : int;
+        }));
+      }
+    };
+    
+    loadIntegrations();
+  }, [user]);
 
   // Integration handlers
-  const handleToggleIntegration = useCallback((type: string) => {
+  const handleToggleIntegration = useCallback(async (type: string) => {
+    // Update local state immediately
     setIntegrations(prev => prev.map(int => 
       int.type === type ? { ...int, isActive: !int.isActive } : int
     ));
-  }, []);
+    
+    // Persist to database
+    if (user) {
+      const integration = integrations.find(i => i.type === type);
+      if (integration?.isConnected) {
+        await supabase
+          .from('chat_integrations')
+          .update({ is_active: !integration.isActive })
+          .eq('user_id', user.id)
+          .eq('integration_type', type);
+      }
+    }
+  }, [integrations, user]);
 
   const handleConnectIntegration = useCallback((type: string) => {
     // Navigate to integrations page for OAuth
@@ -131,10 +172,21 @@ const VaultChat = () => {
       const messageData = (data as unknown as Message[]) || [];
       setMessages(messageData);
 
-      // Decrypt messages
-      const key = await chatEncryption.getKey(conversationId);
+      // Try to get key from IndexedDB first, then restore from database
+      let key = await chatEncryption.getKey(conversationId);
+      
       if (!key) {
-        console.error('[Vault Chat] Encryption key not found for conversation');
+        console.log('[Vault Chat] Key not in IndexedDB, trying database...');
+        key = await chatEncryption.restoreKey(conversationId);
+      }
+      
+      if (!key) {
+        console.error('[Vault Chat] Encryption key not found anywhere');
+        toast({
+          title: 'Encryption Error',
+          description: 'Could not find encryption key for this conversation',
+          variant: 'destructive'
+        });
         return;
       }
 
@@ -237,15 +289,16 @@ const VaultChat = () => {
       // Initialize encryption and get key hash
       const { keyHash } = await chatEncryption.initializeConversation(tempId);
 
-      // Create conversation in database
+      // Create conversation in database with current selectedModel
       const { data, error } = await supabase
         .from('vault_chat_conversations' as any)
         .insert({
           user_id: user.id,
           title: 'New Conversation',
-          model_id: 'gpt-4o-mini',
+          model_id: selectedModel, // Use current state, not hardcoded
           encryption_key_hash: keyHash,
-          is_encrypted: true
+          is_encrypted: true,
+          retention_mode: 'forever' // Default retention
         })
         .select()
         .single();
@@ -258,6 +311,16 @@ const VaultChat = () => {
       if (keyData) {
         await chatEncryption.storeKey(convData.id, keyData);
         await chatEncryption.deleteKey(tempId);
+        
+        // Also update database with real conversation ID
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          await supabase
+            .from('conversation_keys')
+            .update({ conversation_id: convData.id })
+            .eq('conversation_id', tempId)
+            .eq('user_id', currentUser.id);
+        }
       }
 
       // Select the new conversation
@@ -280,7 +343,11 @@ const VaultChat = () => {
   const handleSendMessage = async (messageContent: string, context?: ChatContext) => {
     if (!selectedConversation) return;
     
-    // Update selected model if context provides one
+    // Use model and retention from context DIRECTLY to avoid stale state bug
+    const modelToUse = context?.model || selectedModel;
+    const retentionToUse = context?.retentionMode || 'forever';
+    
+    // Update state for UI display (but don't rely on it for API call)
     if (context?.model) {
       setSelectedModel(context.model);
     }
@@ -289,8 +356,11 @@ const VaultChat = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get encryption key
-      const key = await chatEncryption.getKey(selectedConversation);
+      // Get encryption key (try restore if not in IndexedDB)
+      let key = await chatEncryption.getKey(selectedConversation);
+      if (!key) {
+        key = await chatEncryption.restoreKey(selectedConversation);
+      }
       if (!key) throw new Error('Encryption key not found');
 
       // Get current conversation
@@ -301,7 +371,20 @@ const VaultChat = () => {
       setIsEncrypting(true);
       const encryptionStart = Date.now();
 
-      // Encrypt user message
+      // STEP 1: Get RAG context BEFORE sending (if documents exist or integrations active)
+      let ragContext: string | undefined;
+      
+      if ((hasContext || integrations.some(i => i.isActive)) && contextEnabled) {
+        console.log('[Vault Chat] 🔍 Searching for relevant context...');
+        const relevantChunks = await searchContext(messageContent, 5);
+        
+        if (relevantChunks.length > 0) {
+          ragContext = getContextPrompt(relevantChunks);
+          console.log(`[Vault Chat] 📚 Found ${relevantChunks.length} relevant chunks`);
+        }
+      }
+
+      // STEP 2: Encrypt user message
       const encryptedUserMessage = await chatEncryption.encryptMessage(messageContent, key);
 
       // Ensure minimum encryption display time
@@ -350,7 +433,7 @@ const VaultChat = () => {
         content: messageContent
       });
 
-      // Call chat completions
+      // STEP 3: Call chat completions with RAG context and correct model
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
@@ -361,10 +444,12 @@ const VaultChat = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: selectedModel,
+            model: modelToUse, // Use DIRECTLY from context, not state
             messages: messageHistory,
             max_tokens: 2048,
             temperature: 0.7,
+            rag_context: ragContext, // Pass RAG context
+            zero_retention: retentionToUse === 'zerotrace', // Pass retention mode
           }),
         }
       );
@@ -381,7 +466,7 @@ const VaultChat = () => {
       // Encrypt assistant message
       const encryptedAssistantMessage = await chatEncryption.encryptMessage(assistantContent, key);
 
-      // Insert assistant message
+      // Insert assistant message with correct model
       const { data: assistantMessage, error: assistantError } = await supabase
         .from('vault_chat_messages' as any)
         .insert({
@@ -389,7 +474,7 @@ const VaultChat = () => {
           role: 'assistant',
           encrypted_content: encryptedAssistantMessage,
           token_count: data.usage?.completion_tokens,
-          model_used: conversation.model_id,
+          model_used: modelToUse, // Use the model that was actually used
           finish_reason: data.choices[0].finish_reason,
           latency_ms: data.latency_ms,
           credits_used: 0.001
