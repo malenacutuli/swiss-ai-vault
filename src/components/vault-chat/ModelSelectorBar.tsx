@@ -6,7 +6,7 @@ import { Lock } from 'lucide-react';
 // Import model logos
 import openaiLogo from '@/assets/models/openai-logo.png';
 import anthropicLogo from '@/assets/models/anthropic-logo.png';
-import googleLogo from '@/assets/models/google-logo.png';
+import googleLogo from '@/assets/models/google-logo.jpg';
 import mistralLogo from '@/assets/models/mistral-logo.png';
 import metaLogo from '@/assets/models/meta-logo.png';
 import qwenLogo from '@/assets/models/qwen-logo.jpg';
@@ -77,7 +77,7 @@ export function ModelSelectorBar({ selectedModel, onModelChange, className }: Mo
   return (
     <TooltipProvider>
       <div className={cn("relative inline-flex", className)} ref={pickerRef}>
-        <div className="flex items-center gap-1 p-1.5 bg-muted/50 rounded-full border border-border/50">
+        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-full border border-border/50">
           {PROVIDER_CONFIG.map((provider) => {
             const isSelected = provider.models.includes(selectedModel);
             const providerModels = AVAILABLE_MODELS.filter(m => provider.models.includes(m.id));
@@ -88,16 +88,18 @@ export function ModelSelectorBar({ selectedModel, onModelChange, className }: Mo
                   <button
                     onClick={() => handleProviderClick(provider)}
                     className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center transition-all overflow-hidden",
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                       "hover:bg-background hover:shadow-sm",
                       isSelected && "bg-background shadow-sm ring-2 ring-primary/30"
                     )}
                   >
-                    <img 
-                      src={provider.logo} 
-                      alt={provider.provider}
-                      className="w-6 h-6 object-contain"
-                    />
+                    <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-background">
+                      <img 
+                        src={provider.logo} 
+                        alt={provider.provider}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-center">
