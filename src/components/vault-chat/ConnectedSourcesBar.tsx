@@ -9,9 +9,7 @@ import slackLogo from '@/assets/integrations/slack-logo.png';
 import gmailLogo from '@/assets/integrations/gmail-logo.png';
 import asanaLogo from '@/assets/integrations/asana-logo.png';
 import azureLogo from '@/assets/integrations/azure-logo.jpg';
-import awsLogo from '@/assets/integrations/aws-logo.png';
 import googledocsLogo from '@/assets/integrations/googledocs-logo.png';
-import huggingfaceLogo from '@/assets/integrations/huggingface-logo.png';
 
 interface IntegrationDef {
   id: string;
@@ -20,17 +18,20 @@ interface IntegrationDef {
   icon: string;
 }
 
-const INTEGRATIONS: IntegrationDef[] = [
-  { id: 'github', name: 'GitHub', type: 'github', icon: githubLogo },
-  { id: 'notion', name: 'Notion', type: 'notion', icon: notionLogo },
-  { id: 'figma', name: 'Figma', type: 'figma', icon: figmaLogo },
-  { id: 'slack', name: 'Slack', type: 'slack', icon: slackLogo },
-  { id: 'gmail', name: 'Gmail', type: 'gmail', icon: gmailLogo },
-  { id: 'asana', name: 'Asana', type: 'asana', icon: asanaLogo },
-  { id: 'azure', name: 'Azure DevOps', type: 'azure', icon: azureLogo },
-  { id: 'aws', name: 'AWS', type: 'aws', icon: awsLogo },
-  { id: 'googledocs', name: 'Google Docs', type: 'googledocs', icon: googledocsLogo },
-  { id: 'huggingface', name: 'Hugging Face', type: 'huggingface', icon: huggingfaceLogo },
+interface IntegrationMeta {
+  available: boolean;
+  comingSoon?: boolean;
+}
+
+const INTEGRATIONS: (IntegrationDef & IntegrationMeta)[] = [
+  { id: 'slack', name: 'Slack', type: 'slack', icon: slackLogo, available: true },
+  { id: 'notion', name: 'Notion', type: 'notion', icon: notionLogo, available: true },
+  { id: 'gmail', name: 'Gmail', type: 'gmail', icon: gmailLogo, available: true },
+  { id: 'github', name: 'GitHub', type: 'github', icon: githubLogo, available: true },
+  { id: 'google_docs', name: 'Google Docs', type: 'google_docs', icon: googledocsLogo, available: false, comingSoon: true },
+  { id: 'asana', name: 'Asana', type: 'asana', icon: asanaLogo, available: false, comingSoon: true },
+  { id: 'figma', name: 'Figma', type: 'figma', icon: figmaLogo, available: false, comingSoon: true },
+  { id: 'azure_devops', name: 'Azure DevOps', type: 'azure_devops', icon: azureLogo, available: false, comingSoon: true },
 ];
 
 interface ConnectedSourcesBarProps {
@@ -71,6 +72,10 @@ export function ConnectedSourcesBar({
             <TooltipTrigger asChild>
               <button
                 onClick={() => {
+                  if (integration.comingSoon) {
+                    // Do nothing for coming soon integrations - tooltip shows info
+                    return;
+                  }
                   if (integration.isConnected) {
                     onToggle(integration.type);
                   } else {
@@ -79,11 +84,13 @@ export function ConnectedSourcesBar({
                 }}
                 className={cn(
                   "w-9 h-9 rounded-full flex items-center justify-center transition-all overflow-hidden",
-                  integration.isConnected 
-                    ? integration.isActive
-                      ? "bg-background shadow-sm ring-2 ring-primary/30"
-                      : "bg-background/60 hover:bg-background"
-                    : "opacity-40 hover:opacity-70 grayscale hover:grayscale-0"
+                  integration.comingSoon
+                    ? "opacity-30 grayscale cursor-not-allowed"
+                    : integration.isConnected 
+                      ? integration.isActive
+                        ? "bg-background shadow-sm ring-2 ring-primary/30"
+                        : "bg-background/60 hover:bg-background"
+                      : "opacity-40 hover:opacity-70 grayscale hover:grayscale-0"
                 )}
               >
                 <img 
@@ -97,11 +104,13 @@ export function ConnectedSourcesBar({
               <div className="text-center">
                 <p className="font-medium">{integration.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {integration.isConnected 
-                    ? integration.isActive 
-                      ? 'Active in context (click to disable)'
-                      : 'Connected (click to enable)'
-                    : 'Click to connect'
+                  {integration.comingSoon 
+                    ? 'Coming soon'
+                    : integration.isConnected 
+                      ? integration.isActive 
+                        ? 'Active in context (click to disable)'
+                        : 'Connected (click to enable)'
+                      : 'Click to connect'
                   }
                 </p>
               </div>

@@ -86,10 +86,10 @@ const VaultChat = () => {
     { type: 'notion', isConnected: false, isActive: false },
     { type: 'gmail', isConnected: false, isActive: false },
     { type: 'github', isConnected: false, isActive: false },
-    { type: 'docs', isConnected: false, isActive: false },
+    { type: 'google_docs', isConnected: false, isActive: false },
     { type: 'asana', isConnected: false, isActive: false },
     { type: 'figma', isConnected: false, isActive: false },
-    { type: 'azure', isConnected: false, isActive: false },
+    { type: 'azure_devops', isConnected: false, isActive: false },
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -201,29 +201,24 @@ const VaultChat = () => {
         throw new Error('No active session');
       }
 
-      // For Slack, use direct redirect with token in state (already handled by edge function)
+      // Check if integration is available
+      const integrationDef = await import('@/hooks/useIntegrations').then(m => 
+        m.INTEGRATION_DEFINITIONS.find(d => d.type === type)
+      );
+      
+      if (integrationDef?.comingSoon) {
+        toast({
+          title: 'Coming Soon',
+          description: `${integrationDef.name} integration is coming soon!`,
+        });
+        setConnectingIntegration(null);
+        return;
+      }
+
+      // For Slack, use direct window redirect (avoids fetch cross-origin issues)
       if (type === 'slack') {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/slack-oauth/authorize`,
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-          }
-        );
-        
-        if (response.redirected) {
-          window.location.href = response.url;
-          return;
-        }
-        
-        const data = await response.json();
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
-        throw new Error('Failed to get Slack auth URL');
+        window.location.href = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/slack-oauth/authorize?token=${session.access_token}`;
+        return;
       }
 
       // For other providers (Notion, Gmail, GitHub) - use body action pattern
