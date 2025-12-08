@@ -27,15 +27,15 @@ export const Navbar = () => {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.features')}
-              </a>
-              <a href="#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              </Link>
+              <Link to="/#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.models')}
-              </a>
-              <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              </Link>
+              <Link to="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.pricing')}
-              </a>
+              </Link>
               <Link to="/docs/api" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.apiDocs')}
               </Link>
@@ -66,15 +66,15 @@ export const Navbar = () => {
           {isOpen && (
             <div className="md:hidden py-4 border-t border-border/50">
               <div className="flex flex-col gap-4">
-                <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   {t('nav.features')}
-                </a>
-                <a href="#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                </Link>
+                <Link to="/#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   {t('nav.models')}
-                </a>
-                <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                </Link>
+                <Link to="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   {t('nav.pricing')}
-                </a>
+                </Link>
                 <Link to="/docs/api" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   {t('nav.apiDocs')}
                 </Link>
