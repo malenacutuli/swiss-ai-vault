@@ -60,8 +60,14 @@ const BASE_MODELS: Record<string, string> = {
   "gemma2-2b": "google/gemma-2-2b-it",
   "gpt-4o-mini": "gpt-4o-mini",
   "gpt-4o": "gpt-4o",
-  "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
+  // Current Anthropic models (as of 2025)
+  "claude-sonnet-4": "claude-sonnet-4-20250514",
+  "claude-sonnet-4-20250514": "claude-sonnet-4-20250514",
   "claude-3-5-haiku": "claude-3-5-haiku-20241022",
+  "claude-3-5-haiku-20241022": "claude-3-5-haiku-20241022",
+  // Legacy aliases - redirect to current models
+  "claude-3-5-sonnet": "claude-sonnet-4-20250514",
+  "claude-3-5-sonnet-20241022": "claude-sonnet-4-20250514",
 };
 
 // Models that should route to vLLM
@@ -432,6 +438,15 @@ async function handleAnthropicRequest(
     return true;
   });
 
+  // Debug: Log exact model being sent to Anthropic
+  console.log('[chat-completions] Anthropic request debug:', {
+    model: model,
+    modelLength: model?.length,
+    modelTrimmed: model?.trim(),
+    hasApiKey: !!anthropicKey,
+    apiKeyPrefix: anthropicKey?.substring(0, 10)
+  });
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -440,7 +455,7 @@ async function handleAnthropicRequest(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model,
+      model: model.trim(),  // Trim whitespace
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: anthropicMessages,
@@ -448,6 +463,9 @@ async function handleAnthropicRequest(
       stream,
     }),
   });
+
+  // Log response status for debugging
+  console.log('[chat-completions] Anthropic response status:', response.status);
 
   if (stream) {
     // Transform Anthropic stream to OpenAI format
