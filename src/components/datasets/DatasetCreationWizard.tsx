@@ -146,6 +146,33 @@ const JSON_SCHEMA = `{
   ]
 }`;
 
+// Helper to ensure correct MIME type is sent (some browsers report incorrect types)
+const getMimeType = (file: File): string => {
+  const ext = file.name.toLowerCase().split('.').pop();
+  const mimeMap: Record<string, string> = {
+    // Documents
+    'pdf': 'application/pdf',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'doc': 'application/msword',
+    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'ppt': 'application/vnd.ms-powerpoint',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'xls': 'application/vnd.ms-excel',
+    // Text
+    'txt': 'text/plain',
+    'md': 'text/markdown',
+    'markdown': 'text/markdown',
+    'html': 'text/html',
+    'htm': 'text/html',
+    'xml': 'text/xml',
+    // Data
+    'csv': 'text/csv',
+    'json': 'application/json',
+    'jsonl': 'application/jsonl',
+  };
+  return mimeMap[ext || ''] || file.type || 'application/octet-stream';
+};
+
 export const DatasetCreationWizard = ({
   isOpen,
   onClose,
@@ -368,7 +395,7 @@ export const DatasetCreationWizard = ({
             const { error: uploadError } = await supabase.storage
               .from('datasets')
               .upload(filePath, file, {
-                contentType: file.type || 'application/octet-stream',
+                contentType: getMimeType(file),
                 upsert: true
               });
             
