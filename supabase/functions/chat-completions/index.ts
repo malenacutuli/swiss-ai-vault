@@ -5,16 +5,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Model routing configuration
+// Model aliasing for deprecated models
+const MODEL_ALIASES: Record<string, string> = {
+  'claude-3-5-sonnet-20241022': 'claude-sonnet-4-20250514',
+  'claude-3-5-sonnet': 'claude-sonnet-4-20250514',
+  'claude-3-opus-20240229': 'claude-sonnet-4-20250514',
+  'claude-opus-4-5-20251101': 'claude-sonnet-4-20250514',
+  'claude-sonnet-4-5-20250929': 'claude-sonnet-4-20250514',
+  'claude-haiku-4-5-20251001': 'claude-3-5-haiku-20241022',
+};
+
+function normalizeModelName(model: string): string {
+  return MODEL_ALIASES[model] || model;
+}
+
+// Model routing configuration - only currently valid models
 const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> = {
-  // Anthropic Claude 4.x (Latest December 2025)
-  'claude-opus-4-5-20251101': { provider: 'anthropic' },
-  'claude-sonnet-4-5-20250929': { provider: 'anthropic' },
-  'claude-haiku-4-5-20251001': { provider: 'anthropic' },
+  // Anthropic (Valid models only)
   'claude-sonnet-4-20250514': { provider: 'anthropic' },
-  'claude-3-5-sonnet-20241022': { provider: 'anthropic' },
   'claude-3-5-haiku-20241022': { provider: 'anthropic' },
-  'claude-3-opus-20240229': { provider: 'anthropic' },
   
   // OpenAI (Including Reasoning Models)
   'o1': { provider: 'openai', isReasoning: true },
@@ -210,9 +219,15 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { model, messages, max_tokens, temperature } = await req.json();
-    if (!model || !messages) {
+    const { model: rawModel, messages, max_tokens, temperature } = await req.json();
+    if (!rawModel || !messages) {
       return new Response(JSON.stringify({ error: 'Missing model or messages' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Normalize model name (handle deprecated aliases)
+    const model = normalizeModelName(rawModel);
+    if (model !== rawModel) {
+      console.log('[chat-completions] Aliased model:', rawModel, '->', model);
     }
 
     console.log('[chat-completions] Model:', model, 'Provider:', getProvider(model));
