@@ -42,6 +42,7 @@ import VaultChatIntegrations from "./pages/VaultChatIntegrations";
 import SecureChat from "./pages/SecureChat";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,7 @@ const App = () => {
             <Route path="/dashboard/admin/audit-logs" element={<AdminRoute><AuditLogs /></AdminRoute>} />
             <Route path="/dashboard/admin/compliance" element={<AdminRoute><Compliance /></AdminRoute>} />
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/design-system" element={<DesignSystem />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
