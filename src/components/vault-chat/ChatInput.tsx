@@ -7,11 +7,17 @@ import { ConnectedSourcesBar } from './ConnectedSourcesBar';
 import { FileAttachment, type AttachedFile } from './FileAttachment';
 import { cn } from '@/lib/utils';
 
-interface ChatContext {
+export interface ChatContext {
   model: string;
   retentionMode: RetentionMode;
   mentions: Array<{ id: string; type: string; name: string }>;
   files: Array<{ id: string; name: string }>;
+}
+
+interface UploadedDocument {
+  filename: string;
+  chunkCount: number;
+  uploadedAt: Date;
 }
 
 interface ChatInputProps {
@@ -20,7 +26,7 @@ interface ChatInputProps {
   isEncrypting?: boolean;
   isSending?: boolean;
   integrations: Array<{ type: string; isConnected: boolean; isActive: boolean }>;
-  documents: Array<{ id: string; name: string }>;
+  documents: UploadedDocument[];
   onFileUpload: (files: FileList) => void;
   onToggleIntegration: (type: string) => void;
   onConnectIntegration: (type: string) => void;
@@ -212,5 +218,3 @@ export function ChatInput({
     </div>
   );
 }
-
-export type { ChatContext };
