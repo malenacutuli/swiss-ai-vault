@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,10 @@ import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { useRAGContext } from '@/hooks/useRAGContext';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
-import { MessageInput } from '@/components/vault-chat/MessageInput';
 import { E2EEncryptedBadge } from '@/components/vault-chat/E2EEncryptedBadge';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
-import { DocumentUpload } from '@/components/vault-chat/DocumentUpload';
 import { ChatSettingsModal } from '@/components/vault-chat/ChatSettingsModal';
-import { ModelSelectorBar } from '@/components/vault-chat/ModelSelectorBar';
+import { ChatInput, ChatContext } from '@/components/vault-chat/ChatInput';
 import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 import {
   Plus,
@@ -69,8 +67,18 @@ const VaultChat = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
   const [zeroRetention, setZeroRetention] = useState(false);
+  const [integrations, setIntegrations] = useState([
+    { type: 'slack', isConnected: false, isActive: false },
+    { type: 'notion', isConnected: false, isActive: false },
+    { type: 'gmail', isConnected: false, isActive: false },
+    { type: 'github', isConnected: false, isActive: false },
+    { type: 'docs', isConnected: false, isActive: false },
+    { type: 'asana', isConnected: false, isActive: false },
+    { type: 'figma', isConnected: false, isActive: false },
+    { type: 'azure', isConnected: false, isActive: false },
+  ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -83,6 +91,24 @@ const VaultChat = () => {
     clearContext,
     hasContext,
   } = useRAGContext();
+
+  // Integration handlers
+  const handleToggleIntegration = useCallback((type: string) => {
+    setIntegrations(prev => prev.map(int => 
+      int.type === type ? { ...int, isActive: !int.isActive } : int
+    ));
+  }, []);
+
+  const handleConnectIntegration = useCallback((type: string) => {
+    // Navigate to integrations page for OAuth
+    window.location.href = `/dashboard/integrations?connect=${type}`;
+  }, []);
+
+  const handleFileUpload = useCallback((files: FileList) => {
+    Array.from(files).forEach(file => {
+      uploadDocument(file);
+    });
+  }, [uploadDocument]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -251,8 +277,13 @@ const VaultChat = () => {
     }
   };
 
-  const handleSendMessage = async (messageContent: string) => {
+  const handleSendMessage = async (messageContent: string, context?: ChatContext) => {
     if (!selectedConversation) return;
+    
+    // Update selected model if context provides one
+    if (context?.model) {
+      setSelectedModel(context.model);
+    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -598,18 +629,12 @@ const VaultChat = () => {
               {/* Content */}
               {selectedConversation ? (
                 <div className="flex-1 flex flex-col">
-                  {/* Chat Header with Model Selector and E2E Badge */}
+                  {/* Chat Header with E2E Badge */}
                   <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-border bg-card">
                     <h2 className="font-medium text-foreground truncate">
                       {conversations.find(c => c.id === selectedConversation)?.title || 'Conversation'}
                     </h2>
-                    <div className="flex items-center gap-4">
-                      <ModelSelectorBar 
-                        selectedModel={selectedModel} 
-                        onModelChange={setSelectedModel} 
-                      />
-                      <E2EEncryptedBadge />
-                    </div>
+                    <E2EEncryptedBadge />
                   </div>
                   {/* Message List */}
                   <ScrollArea className="flex-1 p-6">
@@ -661,24 +686,17 @@ const VaultChat = () => {
                   {/* Message Input */}
                   <div className="border-t border-border p-4 bg-card">
                     <div className="max-w-4xl mx-auto">
-                      <div className="flex items-end gap-2">
-                        <DocumentUpload
-                          onUpload={uploadDocument}
-                          uploadedDocuments={uploadedDocuments}
-                          isUploading={isUploadingDocument}
-                          disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
-                          userId={user?.id}
-                          conversationId={selectedConversation}
-                          skipStorage={true}
-                        />
-                        <div className="flex-1">
-                          <MessageInput
-                            onSend={handleSendMessage}
-                            disabled={!selectedConversation || loadingMessages || isGenerating || isEncrypting}
-                            placeholder="Send an encrypted message..."
-                          />
-                        </div>
-                      </div>
+                      <ChatInput
+                        onSend={handleSendMessage}
+                        disabled={!selectedConversation || loadingMessages}
+                        isEncrypting={isEncrypting}
+                        isSending={isGenerating}
+                        integrations={integrations}
+                        documents={uploadedDocuments}
+                        onFileUpload={handleFileUpload}
+                        onToggleIntegration={handleToggleIntegration}
+                        onConnectIntegration={handleConnectIntegration}
+                      />
                       {hasContext && (
                         <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
                           <span>{uploadedDocuments.length} document(s) in context</span>
