@@ -4,6 +4,7 @@ import { SwissFlag } from "@/components/icons/SwissFlag";
 const footerLinks = {
   Product: [
     { label: "Features", href: "/#features" },
+    { label: "Solutions", href: "/#solutions" },
     { label: "Pricing", href: "/#pricing" },
     { label: "Documentation", href: "/docs/api" },
     { label: "API Reference", href: "/docs/api" },
@@ -11,21 +12,20 @@ const footerLinks = {
   ],
   Company: [
     { label: "About", href: "#" },
-    { label: "Blog", href: "#" },
     { label: "Careers", href: "#" },
+    { label: "Blog", href: "#" },
     { label: "Contact", href: "#" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy-policy" },
     { label: "Terms of Service", href: "/terms-of-service" },
     { label: "DPA", href: "#" },
-    { label: "Security", href: "#" },
+    { label: "Security", href: "/#security" },
   ],
   Support: [
     { label: "Help Center", href: "#" },
     { label: "Status", href: "#" },
-    { label: "Discord", href: "#" },
-    { label: "GitHub", href: "#" },
+    { label: "Community / Discord", href: "#" },
   ],
 };
 
@@ -41,7 +41,7 @@ export const Footer = () => {
               <span className="text-lg font-bold">SwissVault<span className="text-primary">.ai</span></span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Enterprise AI fine-tuning with Swiss data residency.
+              Zero-trust AI for regulated teams. Swiss data residency, E2E encryption, full auditability.
             </p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
