@@ -451,7 +451,7 @@ Return as a JSON array: [{"messages": [{"role": "system", "content": "..."}, {"r
     // Regular source-based generation (existing logic)
     const syntheticBody = body as SyntheticRequest;
     const { sources, config } = syntheticBody;
-    const numPairs = config.num_pairs || 10;
+    let numPairs = config.num_pairs || 10;
     
     // Calculate credit cost
     const creditCost = numPairs * COST_PER_PAIR;
@@ -498,7 +498,7 @@ Return as a JSON array: [{"messages": [{"role": "system", "content": "..."}, {"r
 
     // Extract content from sources
     let combinedContent = "";
-    
+    const processingStartTime = Date.now(); // Track processing time for timeout safeguard
     // URL validation to prevent SSRF attacks
     function isAllowedUrl(url: string): boolean {
       try {
@@ -823,7 +823,22 @@ Return as a JSON array: [{"messages": [{"role": "system", "content": "..."}, {"r
       );
     }
     
-    // Content validation is now done above after source processing
+    // Check remaining time before Q&A generation
+    const totalElapsed = Date.now() - processingStartTime;
+    if (totalElapsed > 50000 || processingResults.length > 5) {
+      console.warn(`[generate-synthetic] Low time remaining (${totalElapsed}ms) or large batch (${processingResults.length} sources), reducing Q&A pairs`);
+      // Reduce numPairs if running low on time or processing many sources
+      numPairs = Math.min(numPairs, 10);
+    }
+
+    // Truncate combined content if too long (Claude has context limits)
+    const MAX_COMBINED_LENGTH = 100000; // ~25K tokens
+    if (combinedContent.length > MAX_COMBINED_LENGTH) {
+      console.warn(`[generate-synthetic] Combined content too long (${combinedContent.length} chars), truncating to ${MAX_COMBINED_LENGTH}`);
+      combinedContent = combinedContent.substring(0, MAX_COMBINED_LENGTH);
+    }
+
+    console.log(`[generate-synthetic] Starting Q&A generation with ${combinedContent.length} chars, ${numPairs} pairs requested`);
 
     // Build prompt for Claude
     const systemPrompt = `You are an expert at creating high-quality training data for AI fine-tuning.
