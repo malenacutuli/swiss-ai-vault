@@ -219,7 +219,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { model: rawModel, messages, max_tokens, temperature } = await req.json();
+    const { model: rawModel, messages, max_tokens, temperature, rag_context, zero_retention } = await req.json();
     if (!rawModel || !messages) {
       return new Response(JSON.stringify({ error: 'Missing model or messages' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -230,19 +230,43 @@ serve(async (req) => {
       console.log('[chat-completions] Aliased model:', rawModel, '->', model);
     }
 
-    console.log('[chat-completions] Model:', model, 'Provider:', getProvider(model));
+    console.log('[chat-completions] Model:', model, 'Provider:', getProvider(model), 'RAG context:', rag_context ? 'yes' : 'no');
+
+    // Inject RAG context as system message if provided
+    let processedMessages = [...messages];
+    if (rag_context) {
+      // Check if there's already a system message
+      const hasSystemMessage = processedMessages.some(m => m.role === 'system');
+      if (hasSystemMessage) {
+        // Prepend RAG context to existing system message
+        processedMessages = processedMessages.map(m => 
+          m.role === 'system' 
+            ? { ...m, content: `${rag_context}\n\n---\n\n${m.content}` }
+            : m
+        );
+      } else {
+        // Add RAG context as new system message at the beginning
+        processedMessages.unshift({ role: 'system', content: rag_context });
+      }
+      console.log('[chat-completions] Injected RAG context into messages');
+    }
 
     const options = { maxTokens: max_tokens, temperature };
     let result;
 
     switch (getProvider(model)) {
-      case 'anthropic': result = await callAnthropic(messages, model, options); break;
-      case 'google': result = await callGoogle(messages, model, options); break;
-      case 'vllm': result = await callVLLM(messages, model, options); break;
-      default: result = await callOpenAI(messages, model, options); break;
+      case 'anthropic': result = await callAnthropic(processedMessages, model, options); break;
+      case 'google': result = await callGoogle(processedMessages, model, options); break;
+      case 'vllm': result = await callVLLM(processedMessages, model, options); break;
+      default: result = await callOpenAI(processedMessages, model, options); break;
     }
 
-    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+    if (zero_retention) {
+      responseHeaders['X-Zero-Retention'] = 'true';
+    }
+
+    return new Response(JSON.stringify(result), { headers: responseHeaders });
   } catch (error: unknown) {
     console.error('[chat-completions] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal error';
