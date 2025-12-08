@@ -1,12 +1,14 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/sections/HeroSection";
-import { FeaturesSection } from "@/components/sections/FeaturesSection";
+import { WhySwissVaultSection } from "@/components/sections/WhySwissVaultSection";
+import { SolutionsSection } from "@/components/sections/SolutionsSection";
+import { HowItWorksSection } from "@/components/sections/HowItWorksSection";
+import { SecuritySection } from "@/components/sections/SecuritySection";
 import { ModelsSection } from "@/components/sections/ModelsSection";
-import { CodeSection } from "@/components/sections/CodeSection";
 import { PricingSection } from "@/components/sections/PricingSection";
-import { TrustSection } from "@/components/sections/TrustSection";
-import { CTASection } from "@/components/sections/CTASection";
+import { SocialProofSection } from "@/components/sections/SocialProofSection";
+import { DeveloperSection } from "@/components/sections/DeveloperSection";
 
 const Index = () => {
   return (
@@ -14,12 +16,14 @@ const Index = () => {
       <Navbar />
       <main>
         <HeroSection />
-        <FeaturesSection />
+        <WhySwissVaultSection />
+        <SolutionsSection />
+        <HowItWorksSection />
+        <SecuritySection />
         <ModelsSection />
-        <CodeSection />
-        <TrustSection />
         <PricingSection />
-        <CTASection />
+        <SocialProofSection />
+        <DeveloperSection />
       </main>
       <Footer />
     </div>
