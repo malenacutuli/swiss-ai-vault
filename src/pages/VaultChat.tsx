@@ -14,6 +14,7 @@ import { MessageInput } from '@/components/vault-chat/MessageInput';
 import { E2EEncryptedBadge } from '@/components/vault-chat/E2EEncryptedBadge';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
 import { DocumentUpload } from '@/components/vault-chat/DocumentUpload';
+import { ChatSettingsModal } from '@/components/vault-chat/ChatSettingsModal';
 import {
   Plus,
   Search,
@@ -66,6 +67,9 @@ const VaultChat = () => {
   const [isEncrypting, setIsEncrypting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [zeroRetention, setZeroRetention] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -325,7 +329,7 @@ const VaultChat = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: conversation.model_id,
+            model: selectedModel,
             messages: messageHistory,
             max_tokens: 2048,
             temperature: 0.7,
@@ -566,7 +570,12 @@ const VaultChat = () => {
 
               {/* Footer */}
               <div className="p-4 border-t border-border">
-                <Button variant="ghost" className="w-full justify-start" size="sm">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start" 
+                  size="sm"
+                  onClick={() => setShowSettings(true)}
+                >
                   <Settings className="h-4 w-4 mr-2" />
                   Chat Settings
                 </Button>
@@ -706,6 +715,16 @@ const VaultChat = () => {
         conversationTitle={
           conversations.find(c => c.id === conversationToDelete)?.title || 'Conversation'
         }
+      />
+
+      <ChatSettingsModal
+        open={showSettings}
+        onOpenChange={setShowSettings}
+        conversationId={selectedConversation}
+        currentModel={selectedModel}
+        onModelChange={setSelectedModel}
+        zeroRetention={zeroRetention}
+        onZeroRetentionChange={setZeroRetention}
       />
     </div>
   );
