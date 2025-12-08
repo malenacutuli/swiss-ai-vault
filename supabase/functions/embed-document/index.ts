@@ -1,6 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Convert Uint8Array to base64 without stack overflow
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000; // 32KB chunks to avoid call stack limits
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  
+  return btoa(binary);
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -43,7 +56,7 @@ async function extractText(file: File, anthropicKey: string): Promise<string> {
 
 // Use Claude's document capability for PDF/DOCX/PPTX extraction
 async function extractWithClaude(bytes: Uint8Array, filename: string, anthropicKey: string): Promise<string> {
-  const base64 = btoa(String.fromCharCode(...bytes));
+  const base64 = uint8ArrayToBase64(bytes);
   
   let mediaType = "application/pdf";
   if (filename.endsWith('.docx')) {
