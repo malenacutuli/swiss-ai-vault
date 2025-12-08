@@ -1026,9 +1026,7 @@ export default function ApiDocs() {
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-accent">
-                <SwissFlag className="h-5 w-5" />
-              </div>
+              <SwissFlag className="h-8 w-8 rounded-lg" />
               <span className="text-lg font-semibold text-foreground">
                 SwissVault<span className="text-brand-accent">.ai</span>
               </span>
