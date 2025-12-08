@@ -42,6 +42,10 @@ import VaultChatIntegrations from "./pages/VaultChatIntegrations";
 import SecureChat from "./pages/SecureChat";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import DPA from "./pages/DPA";
+import Status from "./pages/Status";
 import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
@@ -97,6 +101,10 @@ const App = () => {
             <Route path="/design-system" element={<DesignSystem />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/dpa" element={<DPA />} />
+            <Route path="/status" element={<Status />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
