@@ -669,39 +669,13 @@ const VaultChat = () => {
       }
       setIsEncrypting(false);
 
-      // Get next sequence number from DATABASE (not client state) to avoid race conditions
-      const { data: userSeqNum, error: seqError } = await supabase.rpc('get_next_sequence_number', {
-        p_conversation_id: selectedConversation
-      });
-
-      if (seqError) {
-        console.error('[Vault Chat] Failed to get sequence number:', seqError);
-        toast({
-          title: "Error",
-          description: "Failed to prepare message. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        setIsEncrypting(false);
-        return;
-      }
-
-      const nextSequence = userSeqNum || 1;
-
-      // Insert user message into encrypted_messages table
-      const { data: userMessage, error: userError } = await supabase
-        .from('encrypted_messages')
-        .insert({
-          conversation_id: selectedConversation,
-          role: 'user',
-          ciphertext: encryptedUserMessage,
-          nonce: '', // Nonce is embedded in ciphertext for our format
-          sequence_number: nextSequence,
-          token_count: Math.ceil(messageContent.length / 4),
-          has_attachments: false
-        })
-        .select()
-        .single();
+      // Insert user message with retry logic for sequence collisions
+      const { data: userMessage, error: userError } = await insertMessageWithRetry(
+        selectedConversation,
+        'user',
+        encryptedUserMessage,
+        Math.ceil(messageContent.length / 4)
+      );
 
       if (userError) throw userError;
 
@@ -760,25 +734,13 @@ const VaultChat = () => {
       // Encrypt assistant message
       const encryptedAssistantMessage = await chatEncryption.encryptMessage(assistantContent, key);
 
-      // Get next sequence number for assistant message from DATABASE
-      const { data: assistantSeqNum } = await supabase.rpc('get_next_sequence_number', {
-        p_conversation_id: selectedConversation
-      });
-
-      // Insert assistant message
-      const { data: assistantMessage, error: assistantError } = await supabase
-        .from('encrypted_messages')
-        .insert({
-          conversation_id: selectedConversation,
-          role: 'assistant',
-          ciphertext: encryptedAssistantMessage,
-          nonce: '',
-          sequence_number: assistantSeqNum || (nextSequence + 1),
-          token_count: data.usage?.completion_tokens,
-          has_attachments: false
-        })
-        .select()
-        .single();
+      // Insert assistant message with retry logic for sequence collisions
+      const { data: assistantMessage, error: assistantError } = await insertMessageWithRetry(
+        selectedConversation,
+        'assistant',
+        encryptedAssistantMessage,
+        data.usage?.completion_tokens
+      );
 
       if (assistantError) throw assistantError;
 
