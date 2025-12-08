@@ -15,6 +15,8 @@ import { E2EEncryptedBadge } from '@/components/vault-chat/E2EEncryptedBadge';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
 import { DocumentUpload } from '@/components/vault-chat/DocumentUpload';
 import { ChatSettingsModal } from '@/components/vault-chat/ChatSettingsModal';
+import { ModelSelectorBar } from '@/components/vault-chat/ModelSelectorBar';
+import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 import {
   Plus,
   Search,
@@ -26,7 +28,6 @@ import {
   Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 
 interface Message {
   id: string;
@@ -597,12 +598,18 @@ const VaultChat = () => {
               {/* Content */}
               {selectedConversation ? (
                 <div className="flex-1 flex flex-col">
-                  {/* Chat Header with E2E Badge */}
+                  {/* Chat Header with Model Selector and E2E Badge */}
                   <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-border bg-card">
                     <h2 className="font-medium text-foreground truncate">
                       {conversations.find(c => c.id === selectedConversation)?.title || 'Conversation'}
                     </h2>
-                    <E2EEncryptedBadge />
+                    <div className="flex items-center gap-4">
+                      <ModelSelectorBar 
+                        selectedModel={selectedModel} 
+                        onModelChange={setSelectedModel} 
+                      />
+                      <E2EEncryptedBadge />
+                    </div>
                   </div>
                   {/* Message List */}
                   <ScrollArea className="flex-1 p-6">
