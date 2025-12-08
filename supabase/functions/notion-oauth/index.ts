@@ -4,20 +4,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 const NOTION_CLIENT_ID = Deno.env.get('NOTION_CLIENT_ID')!;
 const NOTION_CLIENT_SECRET = Deno.env.get('NOTION_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('EXTERNAL_SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')!;
+const FRONTEND_URL = "https://swissvault.lovable.app";
 
 const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/notion-oauth/callback`;
 const NOTION_AUTH_URL = 'https://api.notion.com/v1/oauth/authorize';
 const NOTION_TOKEN_URL = 'https://api.notion.com/v1/oauth/token';
 
-// Simple encryption for storing tokens (in production, use proper encryption)
 function encryptToken(token: string): string {
-  // Base64 encode for simple obfuscation - in production use proper AES encryption
   return btoa(token);
 }
 
@@ -25,17 +25,77 @@ serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log(`Notion OAuth request: ${path}`);
+  console.log(`[notion-oauth] ${req.method} ${path}`);
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    // Route: /notion-oauth/authorize - Start OAuth flow
+    // ============================================
+    // HANDLE POST REQUESTS (from supabase.functions.invoke)
+    // ============================================
+    if (req.method === 'POST') {
+      const body = await req.json().catch(() => ({}));
+      const action = body.action;
+
+      console.log(`[notion-oauth] POST action: ${action}`);
+
+      // ACTION: authorize - Return OAuth URL
+      if (action === 'authorize') {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return new Response(
+            JSON.stringify({ error: 'Authorization required' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+        if (userError || !user) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid token' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Generate state for CSRF protection
+        const state = btoa(JSON.stringify({
+          user_id: user.id,
+          timestamp: Date.now(),
+          nonce: crypto.randomUUID()
+        }));
+
+        // Build Notion OAuth URL
+        const authUrl = new URL(NOTION_AUTH_URL);
+        authUrl.searchParams.set('client_id', NOTION_CLIENT_ID);
+        authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('owner', 'user');
+        authUrl.searchParams.set('state', state);
+
+        console.log(`[notion-oauth] Generated auth URL for user ${user.id}`);
+
+        return new Response(
+          JSON.stringify({ url: authUrl.toString() }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ error: 'Invalid action' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ============================================
+    // HANDLE GET /authorize (legacy path-based routing)
+    // ============================================
     if (path.endsWith('/authorize')) {
-      // Accept token from header OR query param
       const authHeader = req.headers.get('Authorization');
       const queryToken = url.searchParams.get('token');
       const token = authHeader?.replace('Bearer ', '') || queryToken;
@@ -46,10 +106,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       
-      // Verify JWT and get user
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       
       if (authError || !user) {
@@ -59,14 +116,12 @@ serve(async (req) => {
         });
       }
 
-      // Generate state token with user ID
       const state = btoa(JSON.stringify({
         user_id: user.id,
         timestamp: Date.now(),
         nonce: crypto.randomUUID()
       }));
 
-      // Build Notion OAuth URL
       const authUrl = new URL(NOTION_AUTH_URL);
       authUrl.searchParams.set('client_id', NOTION_CLIENT_ID);
       authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
@@ -74,44 +129,46 @@ serve(async (req) => {
       authUrl.searchParams.set('owner', 'user');
       authUrl.searchParams.set('state', state);
 
-      console.log(`Generated OAuth URL for user ${user.id}`);
+      console.log(`[notion-oauth] Generated auth URL for user ${user.id}`);
 
       return new Response(JSON.stringify({ url: authUrl.toString() }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Route: /notion-oauth/callback - Handle OAuth callback
+    // ============================================
+    // HANDLE GET /callback - OAuth callback from Notion
+    // ============================================
     if (path.endsWith('/callback')) {
       const code = url.searchParams.get('code');
       const state = url.searchParams.get('state');
       const error = url.searchParams.get('error');
 
       if (error) {
-        console.error('Notion OAuth error:', error);
-        return Response.redirect(`${url.origin}/chat?error=notion_auth_failed`);
+        console.error('[notion-oauth] Error from Notion:', error);
+        return Response.redirect(`${FRONTEND_URL}/chat?error=notion_auth_failed`, 302);
       }
 
       if (!code || !state) {
-        console.error('Missing code or state');
-        return Response.redirect(`${url.origin}/chat?error=invalid_callback`);
+        console.error('[notion-oauth] Missing code or state');
+        return Response.redirect(`${FRONTEND_URL}/chat?error=invalid_callback`, 302);
       }
 
-      // Verify state and extract user ID
+      // Verify state
       let stateData;
       try {
         stateData = JSON.parse(atob(state));
       } catch {
-        console.error('Invalid state token');
-        return Response.redirect(`${url.origin}/chat?error=invalid_state`);
+        console.error('[notion-oauth] Invalid state token');
+        return Response.redirect(`${FRONTEND_URL}/chat?error=invalid_state`, 302);
       }
 
       const { user_id, timestamp } = stateData;
       
       // Check state expiry (15 minutes)
       if (Date.now() - timestamp > 15 * 60 * 1000) {
-        console.error('State token expired');
-        return Response.redirect(`${url.origin}/chat?error=state_expired`);
+        console.error('[notion-oauth] State token expired');
+        return Response.redirect(`${FRONTEND_URL}/chat?error=state_expired`, 302);
       }
 
       // Exchange code for access token
@@ -132,89 +189,73 @@ serve(async (req) => {
 
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
-        console.error('Token exchange failed:', errorText);
-        return Response.redirect(`${url.origin}/chat?error=token_exchange_failed`);
+        console.error('[notion-oauth] Token exchange failed:', errorText);
+        return Response.redirect(`${FRONTEND_URL}/chat?error=token_exchange_failed`, 302);
       }
 
       const tokenData = await tokenResponse.json();
-      console.log('Token exchange successful:', {
+      console.log('[notion-oauth] Token exchange successful:', {
         workspace_id: tokenData.workspace_id,
         workspace_name: tokenData.workspace_name,
         bot_id: tokenData.bot_id,
       });
 
-      const {
-        access_token,
-        workspace_id,
-        workspace_name,
-        bot_id,
-      } = tokenData;
+      const { access_token, workspace_id, workspace_name, bot_id } = tokenData;
 
       // Store integration in database
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-      // Check if integration already exists for this user and workspace
       const { data: existing } = await supabase
         .from('chat_integrations')
         .select('id')
         .eq('user_id', user_id)
         .eq('integration_type', 'notion')
-        .single();
+        .maybeSingle();
 
       const integrationData = {
         user_id,
         integration_type: 'notion',
         integration_name: workspace_name || 'Notion Workspace',
         encrypted_access_token: encryptToken(access_token),
-        metadata: {
-          workspace_id,
-          workspace_name,
-          bot_id,
-        },
+        metadata: { workspace_id, workspace_name, bot_id },
         is_active: true,
         updated_at: new Date().toISOString(),
       };
 
       if (existing) {
-        // Update existing integration
         const { error: updateError } = await supabase
           .from('chat_integrations')
           .update(integrationData)
           .eq('id', existing.id);
 
         if (updateError) {
-          console.error('Failed to update integration:', updateError);
-          return Response.redirect(`${url.origin}/chat?error=db_error`);
+          console.error('[notion-oauth] Failed to update integration:', updateError);
+          return Response.redirect(`${FRONTEND_URL}/chat?error=db_error`, 302);
         }
       } else {
-        // Create new integration
         const { error: insertError } = await supabase
           .from('chat_integrations')
           .insert(integrationData);
 
         if (insertError) {
-          console.error('Failed to insert integration:', insertError);
-          return Response.redirect(`${url.origin}/chat?error=db_error`);
+          console.error('[notion-oauth] Failed to insert integration:', insertError);
+          return Response.redirect(`${FRONTEND_URL}/chat?error=db_error`, 302);
         }
       }
 
-      console.log(`Notion integration saved for user ${user_id}`);
-
-      // Redirect to success page
-      return Response.redirect(`${url.origin}/chat?success=notion`);
+      console.log(`[notion-oauth] Integration saved for user ${user_id}`);
+      return Response.redirect(`${FRONTEND_URL}/chat?success=notion`, 302);
     }
 
-    return new Response(JSON.stringify({ error: 'Not found' }), {
-      status: 404,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'Not found', path }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error: unknown) {
-    console.error('Notion OAuth error:', error);
+    console.error('[notion-oauth] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
