@@ -401,9 +401,12 @@ export const DatasetCreationWizard = ({
             
             if (uploadError) {
               console.error(`[DatasetWizard] Upload error for ${file.name}:`, uploadError);
+              const isMimeError = uploadError.message?.toLowerCase().includes('mime type');
               toast({
                 title: "Upload Failed",
-                description: `Failed to upload ${file.name}: ${uploadError.message}`,
+                description: isMimeError 
+                  ? `File type not supported for "${file.name}". Please contact support if this persists.`
+                  : `Failed to upload ${file.name}: ${uploadError.message}`,
                 variant: "destructive"
               });
               continue;
