@@ -2,22 +2,26 @@ import { useState } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
 import { LabsSidebar } from "@/components/layout/LabsSidebar";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 const routeLabels: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/dashboard/projects": "Projects",
-  "/dashboard/datasets": "Datasets",
-  "/dashboard/finetuning": "Fine-tuning",
-  "/dashboard/templates": "Templates",
-  "/dashboard/evaluations": "Evaluations",
-  "/dashboard/models": "Models",
-  "/dashboard/catalog": "Catalog",
-  "/dashboard/playground": "Playground",
-  "/dashboard/traces": "Traces",
-  "/dashboard/stats": "Usage Stats",
-  "/dashboard/settings": "Settings",
-  "/dashboard/admin/compliance": "Compliance",
+  "/labs": "Vault Labs",
+  "/labs/projects": "Projects",
+  "/labs/datasets": "Datasets",
+  "/labs/finetuning": "Fine-tuning",
+  "/labs/templates": "Templates",
+  "/labs/evaluations": "Evaluations",
+  "/labs/models": "Models",
+  "/labs/catalog": "Catalog",
+  "/labs/playground": "Playground",
+  "/labs/traces": "Traces",
+  "/labs/stats": "Usage Stats",
+  "/labs/settings": "Settings",
+  "/labs/billing": "Billing",
+  "/labs/notifications": "Notifications",
+  "/labs/admin": "Admin",
+  "/labs/admin/compliance": "Compliance",
+  "/labs/admin/audit-logs": "Audit Logs",
 };
 
 function Breadcrumbs() {
@@ -34,21 +38,17 @@ function Breadcrumbs() {
     breadcrumbs.push({ label, path: currentPath });
   }
 
-  // Only show breadcrumbs if we're deeper than dashboard root
-  if (breadcrumbs.length <= 1) return null;
+  // Always show "Vault Labs" as first item
+  if (breadcrumbs.length === 0 || breadcrumbs[0].path !== '/labs') {
+    breadcrumbs.unshift({ label: 'Vault Labs', path: '/labs' });
+  }
 
   return (
     <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-      <Link 
-        to="/dashboard" 
-        className="hover:text-foreground transition-colors flex items-center gap-1"
-      >
-        <Home className="h-4 w-4" />
-      </Link>
-      {breadcrumbs.slice(1).map((crumb, index) => (
+      {breadcrumbs.map((crumb, index) => (
         <div key={crumb.path} className="flex items-center gap-1">
-          <ChevronRight className="h-4 w-4" />
-          {index === breadcrumbs.length - 2 ? (
+          {index > 0 && <ChevronRight className="h-4 w-4" />}
+          {index === breadcrumbs.length - 1 ? (
             <span className="text-foreground font-medium">{crumb.label}</span>
           ) : (
             <Link 
@@ -67,7 +67,7 @@ function Breadcrumbs() {
 export function LabsLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const showBreadcrumbs = location.pathname !== "/dashboard";
+  const showBreadcrumbs = location.pathname !== "/labs";
 
   return (
     <div className="flex min-h-screen bg-background">

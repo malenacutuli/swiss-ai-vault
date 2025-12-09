@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { MessageSquare, Shield, Settings, Beaker, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
+import { SwissFlag } from "@/components/icons/SwissFlag";
 
 interface SimpleSidebarProps {
   collapsed: boolean;
@@ -43,6 +44,21 @@ export function SimpleSidebar({ collapsed, onToggle }: SimpleSidebarProps) {
         collapsed ? "w-16" : "w-64"
       )}
     >
+      {/* Logo */}
+      <div className={cn(
+        "flex h-16 items-center border-b border-sidebar-border px-4 flex-shrink-0",
+        collapsed ? "justify-center" : "justify-between"
+      )}>
+        <Link to="/chat" className="flex items-center gap-2">
+          <SwissFlag className="h-8 w-8 rounded-lg" />
+          {!collapsed && (
+            <span className="text-lg font-semibold text-sidebar-foreground">
+              SwissVault<span className="text-brand-accent">.ai</span>
+            </span>
+          )}
+        </Link>
+      </div>
+
       {/* Organization Switcher */}
       <div className={cn(
         "border-b border-sidebar-border",
@@ -54,19 +70,19 @@ export function SimpleSidebar({ collapsed, onToggle }: SimpleSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 p-2 space-y-1">
         <SidebarLink 
-          to="/vault-chat" 
+          to="/chat" 
           icon={MessageSquare} 
           label="Vault Chat" 
           collapsed={collapsed} 
         />
         <SidebarLink 
-          to="/compliance" 
+          to="/labs/admin/compliance" 
           icon={Shield} 
           label="Compliance" 
           collapsed={collapsed} 
         />
         <SidebarLink 
-          to="/dashboard/settings" 
+          to="/labs/settings" 
           icon={Settings} 
           label="Settings" 
           collapsed={collapsed} 
@@ -79,7 +95,7 @@ export function SimpleSidebar({ collapsed, onToggle }: SimpleSidebarProps) {
         collapsed ? "p-2" : "p-4"
       )}>
         <Link
-          to="/dashboard"
+          to="/labs"
           className={cn(
             "flex items-center gap-2 text-sm text-muted-foreground hover:text-sidebar-foreground transition-colors",
             collapsed && "justify-center"

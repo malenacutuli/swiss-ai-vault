@@ -28,7 +28,6 @@ import {
   Activity,
   Shield,
   LayoutTemplate,
-  Sparkles,
   ArrowLeft,
 } from "lucide-react";
 import { SwissFlag } from "@/components/icons/SwissFlag";
@@ -89,7 +88,7 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
 
   const isActive = (href: string) => {
     return location.pathname === href || 
-      (href !== "/dashboard" && location.pathname.startsWith(href));
+      (href !== "/labs" && location.pathname.startsWith(href));
   };
 
   const handleSignOut = async () => {
@@ -120,14 +119,14 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
         "flex h-16 items-center border-b border-sidebar-border px-4 flex-shrink-0",
         collapsed ? "justify-center" : "justify-between"
       )}>
-        <a href="/" className="flex items-center gap-2">
+        <Link to="/labs" className="flex items-center gap-2">
           <SwissFlag className="h-8 w-8 rounded-lg" />
           {!collapsed && (
             <span className="text-lg font-semibold text-sidebar-foreground">
               SwissVault<span className="text-brand-accent">.ai</span>
             </span>
           )}
-        </a>
+        </Link>
       </div>
 
       {/* Organization Switcher */}
@@ -140,43 +139,43 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
         {/* Primary */}
         <SectionHeader label="Primary" collapsed={collapsed} />
         <SidebarLink 
-          to="/vault-chat" 
+          to="/chat" 
           icon={MessageSquare} 
           label="Vault Chat" 
           collapsed={collapsed}
-          isActive={isActive("/vault-chat") || isActive("/chat")}
+          isActive={isActive("/chat")}
         />
 
         {/* Data & Training */}
         <SectionHeader label="Data & Training" collapsed={collapsed} />
         <div className="space-y-1">
           <SidebarLink 
-            to="/dashboard/projects" 
+            to="/labs/projects" 
             icon={FolderKanban} 
             label={t('sidebar.projects')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/projects")}
+            isActive={isActive("/labs/projects")}
           />
           <SidebarLink 
-            to="/dashboard/datasets" 
+            to="/labs/datasets" 
             icon={Database} 
             label={t('sidebar.datasets')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/datasets")}
+            isActive={isActive("/labs/datasets")}
           />
           <SidebarLink 
-            to="/dashboard/finetuning" 
+            to="/labs/finetuning" 
             icon={SlidersHorizontal} 
             label={t('sidebar.finetuning')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/finetuning")}
+            isActive={isActive("/labs/finetuning")}
           />
           <SidebarLink 
-            to="/dashboard/templates" 
+            to="/labs/templates" 
             icon={LayoutTemplate} 
             label={t('sidebar.templates')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/templates")}
+            isActive={isActive("/labs/templates")}
           />
         </div>
 
@@ -184,25 +183,25 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
         <SectionHeader label="Inference" collapsed={collapsed} />
         <div className="space-y-1">
           <SidebarLink 
-            to="/dashboard/models" 
+            to="/labs/models" 
             icon={Cpu} 
             label={t('sidebar.models')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/models")}
+            isActive={isActive("/labs/models")}
           />
           <SidebarLink 
-            to="/dashboard/catalog" 
+            to="/labs/catalog" 
             icon={Library} 
             label={t('sidebar.catalog')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/catalog")}
+            isActive={isActive("/labs/catalog")}
           />
           <SidebarLink 
-            to="/dashboard/playground" 
+            to="/labs/playground" 
             icon={Play} 
             label={t('sidebar.playground')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/playground")}
+            isActive={isActive("/labs/playground")}
           />
         </div>
 
@@ -210,25 +209,25 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
         <SectionHeader label="Monitoring" collapsed={collapsed} />
         <div className="space-y-1">
           <SidebarLink 
-            to="/dashboard/evaluations" 
+            to="/labs/evaluations" 
             icon={BarChart3} 
             label={t('sidebar.evaluations')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/evaluations")}
+            isActive={isActive("/labs/evaluations")}
           />
           <SidebarLink 
-            to="/dashboard/traces" 
+            to="/labs/traces" 
             icon={Activity} 
             label={t('sidebar.traces')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/traces")}
+            isActive={isActive("/labs/traces")}
           />
           <SidebarLink 
-            to="/dashboard/stats" 
+            to="/labs/stats" 
             icon={TrendingUp} 
             label={t('sidebar.stats')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/stats")}
+            isActive={isActive("/labs/stats")}
           />
         </div>
 
@@ -236,18 +235,18 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
         <SectionHeader label="Settings" collapsed={collapsed} />
         <div className="space-y-1">
           <SidebarLink 
-            to="/dashboard/admin/compliance" 
+            to="/labs/admin/compliance" 
             icon={Shield} 
             label={t('sidebar.compliance')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/admin/compliance")}
+            isActive={isActive("/labs/admin/compliance")}
           />
           <SidebarLink 
-            to="/dashboard/settings" 
+            to="/labs/settings" 
             icon={Settings} 
             label={t('sidebar.settings')} 
             collapsed={collapsed}
-            isActive={isActive("/dashboard/settings")}
+            isActive={isActive("/labs/settings")}
           />
         </div>
       </nav>
@@ -258,7 +257,7 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
         collapsed && "px-2"
       )}>
         <Link
-          to="/vault-chat"
+          to="/chat"
           className={cn(
             "flex items-center gap-2 text-sm text-muted-foreground hover:text-sidebar-foreground transition-colors",
             collapsed && "justify-center"
@@ -321,19 +320,19 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-popover">
             <DropdownMenuItem asChild className="cursor-pointer">
-              <Link to="/dashboard/settings">
+              <Link to="/labs/settings">
                 <User className="mr-2 h-4 w-4" />
                 {t('common.profile')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer">
-              <Link to="/dashboard/settings">
+              <Link to="/labs/billing">
                 <CreditCard className="mr-2 h-4 w-4" />
                 {t('common.billing')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer">
-              <Link to="/dashboard/settings">
+              <Link to="/labs/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 {t('sidebar.settings')}
               </Link>

@@ -180,7 +180,7 @@ export function OrganizationSwitcher({ collapsed }: OrganizationSwitcherProps) {
             onSelect={(e) => {
               e.preventDefault();
               setIsDropdownOpen(false);
-              navigate('/dashboard/settings');
+              navigate('/labs/settings');
             }}
             className="cursor-pointer"
           >
