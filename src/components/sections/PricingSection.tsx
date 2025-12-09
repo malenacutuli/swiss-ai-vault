@@ -5,6 +5,7 @@ import { EarlyAccessModal } from "@/components/EarlyAccessModal";
 import { DemoRequestModal } from "@/components/DemoRequestModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const plans = [
   {
@@ -61,8 +62,8 @@ const plans = [
 export const PricingSection = () => {
   const [earlyAccessOpen, setEarlyAccessOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
-
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleCTA = async (planName: string) => {
     if (planName === "Enterprise") {
@@ -72,7 +73,8 @@ export const PricingSection = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          toast.error("Please sign in to subscribe to Pro plan");
+          // Redirect to auth with return URL for checkout
+          navigate('/auth?redirect=checkout-pro');
           setIsLoading(false);
           return;
         }
