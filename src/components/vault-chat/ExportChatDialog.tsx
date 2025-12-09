@@ -16,6 +16,7 @@ interface ExportChatDialogProps {
     ciphertext: string;
     nonce: string;
   };
+  onExportComplete?: () => void;
 }
 
 export function ExportChatDialog({
@@ -25,6 +26,7 @@ export function ExportChatDialog({
   conversationTitle,
   messageCount,
   wrappedKey,
+  onExportComplete,
 }: ExportChatDialogProps) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -55,6 +57,7 @@ export function ExportChatDialog({
       URL.revokeObjectURL(url);
       
       toast.success('Chat exported successfully');
+      onExportComplete?.();
       onOpenChange(false);
     } catch (error) {
       console.error('[ExportChatDialog] Export failed:', error);

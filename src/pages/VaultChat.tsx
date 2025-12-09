@@ -19,7 +19,9 @@ import { ChatSettingsModal } from '@/components/vault-chat/ChatSettingsModal';
 import { ChatInput, ChatContext } from '@/components/vault-chat/ChatInput';
 import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 import { ImportChatDialog } from '@/components/vault-chat/ImportChatDialog';
+import { ExportChatDialog } from '@/components/vault-chat/ExportChatDialog';
 import { localChatStorage } from '@/lib/storage/local-chat-storage';
+import { useExportReminder } from '@/hooks/useExportReminder';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -127,6 +129,8 @@ const VaultChat = () => {
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [conversationToExport, setConversationToExport] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
   const [zeroRetention, setZeroRetention] = useState(false);
   const [integrations, setIntegrations] = useState([
@@ -167,6 +171,17 @@ const VaultChat = () => {
     contextEnabled,
     setContextEnabled,
   } = useRAGContext(selectedConversation);
+
+  // Export reminder for ZeroTrace chats
+  const { recordExport } = useExportReminder({
+    isZeroTrace,
+    conversationId: selectedConversation,
+    messageCount: messages.length,
+    onExportRequest: (convId) => {
+      setConversationToExport(convId);
+      setExportDialogOpen(true);
+    },
+  });
 
   // searchParams for OAuth callback handling
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1253,6 +1268,25 @@ const VaultChat = () => {
             }));
             setConversations(mappedConvs);
             setSelectedConversation(conversationId);
+          }}
+        />
+      )}
+
+      {isZeroTrace && conversationToExport && (
+        <ExportChatDialog
+          open={exportDialogOpen}
+          onOpenChange={(open) => {
+            setExportDialogOpen(open);
+            if (!open) setConversationToExport(null);
+          }}
+          conversationId={conversationToExport}
+          conversationTitle={conversations.find(c => c.id === conversationToExport)?.encrypted_title || 'ZeroTrace Chat'}
+          messageCount={messages.length}
+          wrappedKey={{ ciphertext: '', nonce: '' }} // Key wrapping handled inside dialog
+          onExportComplete={() => {
+            recordExport();
+            setExportDialogOpen(false);
+            setConversationToExport(null);
           }}
         />
       )}
