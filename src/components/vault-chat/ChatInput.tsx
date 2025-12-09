@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Plus, Send, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ModelSelectorBar } from './ModelSelectorBar';
+import { ModelProviderBar } from './ModelProviderBar';
 import { RetentionModeDropdown, type RetentionMode } from './RetentionModeDropdown';
 import { ConnectedSourcesBar } from './ConnectedSourcesBar';
 import { FileAttachment, type AttachedFile } from './FileAttachment';
@@ -113,11 +113,11 @@ export function ChatInput({
   
   return (
     <div className="space-y-4">
-      {/* Model Selector Bar */}
+      {/* Model Provider Bar */}
       <div className="flex justify-center">
-        <ModelSelectorBar
+        <ModelProviderBar
           selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
+          onSelectModel={setSelectedModel}
         />
       </div>
       
