@@ -3,6 +3,8 @@ import { Check, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { EarlyAccessModal } from "@/components/EarlyAccessModal";
 import { DemoRequestModal } from "@/components/DemoRequestModal";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const plans = [
   {
@@ -24,7 +26,7 @@ const plans = [
     name: "Pro",
     price: "$49",
     period: "/month",
-    description: "For teams building internal assistants and prototypes.",
+    description: "For teams building assistants and professionals looking for zero-trace AI needs.",
     badge: "Most popular for product teams",
     features: [
       "100K API calls / month",
@@ -60,9 +62,31 @@ export const PricingSection = () => {
   const [earlyAccessOpen, setEarlyAccessOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
 
-  const handleCTA = (planName: string) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCTA = async (planName: string) => {
     if (planName === "Enterprise") {
       setDemoOpen(true);
+    } else if (planName === "Pro") {
+      setIsLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast.error("Please sign in to subscribe to Pro plan");
+          setIsLoading(false);
+          return;
+        }
+        const { data, error } = await supabase.functions.invoke('create-pro-checkout');
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error) {
+        console.error("Checkout error:", error);
+        toast.error("Failed to start checkout. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       setEarlyAccessOpen(true);
     }
@@ -123,8 +147,9 @@ export const PricingSection = () => {
                   variant={plan.variant} 
                   className="w-full"
                   onClick={() => handleCTA(plan.name)}
+                  disabled={plan.name === "Pro" && isLoading}
                 >
-                  {plan.cta}
+                  {plan.name === "Pro" && isLoading ? "Loading..." : plan.cta}
                 </Button>
               </div>
             ))}
