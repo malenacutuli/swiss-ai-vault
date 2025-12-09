@@ -19,6 +19,7 @@ import { ChatSettingsModal } from '@/components/vault-chat/ChatSettingsModal';
 import { ChatInput, ChatContext } from '@/components/vault-chat/ChatInput';
 import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 import { ImportChatDialog } from '@/components/vault-chat/ImportChatDialog';
+import { localChatStorage } from '@/lib/storage/local-chat-storage';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -437,6 +438,21 @@ const VaultChat = () => {
       unsubscribe();
     };
   }, []);
+
+  // Cleanup expired ZeroTrace conversations on load
+  useEffect(() => {
+    if (isZeroTrace && !storageModeLoading) {
+      localChatStorage.cleanupExpiredContent().then(result => {
+        if (result.conversationsDeleted > 0) {
+          console.log(`[ZeroTrace] Cleaned up ${result.conversationsDeleted} expired conversations (${result.messagesDeleted} messages)`);
+          // Refresh conversation list after cleanup
+          loadConversations();
+        }
+      }).catch(err => {
+        console.error('[ZeroTrace] Cleanup error:', err);
+      });
+    }
+  }, [isZeroTrace, storageModeLoading]);
 
   const loadConversations = async () => {
     try {
