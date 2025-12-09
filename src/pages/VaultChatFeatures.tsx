@@ -85,11 +85,6 @@ const VaultChatFeatures = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Content */}
             <div>
-              <Badge variant="outline" className="mb-6 border-primary/30 text-primary bg-primary/5">
-                <Lock className="w-3 h-3 mr-1" />
-                Zero-Trust AI Infrastructure
-              </Badge>
-              
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
                 Vault Chat
               </h1>
@@ -104,7 +99,7 @@ const VaultChatFeatures = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button asChild size="lg" className="text-base px-8">
+                <Button asChild size="lg" className="text-base px-8 bg-gray-800/90 hover:bg-gray-900 text-white">
                   <Link to="/auth">
                     Request Early Access
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -120,20 +115,17 @@ const VaultChatFeatures = () => {
 
             {/* Right: Video */}
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl blur-3xl opacity-50" />
-              <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
-                <video 
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline
-                  className="w-full h-auto"
-                >
-                  <source src="/videos/vault-chat-demo.mov" type="video/quicktime" />
-                  <source src="/videos/vault-chat-demo.mov" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
+              <video 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                className="w-full h-auto rounded-lg"
+              >
+                <source src="/videos/vault-chat-demo.mov" type="video/quicktime" />
+                <source src="/videos/vault-chat-demo.mov" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
             </div>
           </div>
         </div>

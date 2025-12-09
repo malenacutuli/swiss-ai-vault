@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { SwissFlag } from "@/components/icons/SwissFlag";
-import { Menu, X, ArrowRight, ChevronDown, MessageSquareLock, Sparkles } from "lucide-react";
+import { Menu, X, ArrowRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -38,16 +38,14 @@ export const Navbar = () => {
                   {t('nav.features')}
                   <ChevronDown className="h-3.5 w-3.5" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuContent align="start" className="w-44">
                   <DropdownMenuItem asChild>
-                    <Link to="/features/vault-chat" className="flex items-center gap-2">
-                      <MessageSquareLock className="h-4 w-4" />
+                    <Link to="/features/vault-chat">
                       Vault Chat
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/features/vault-labs" className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" />
+                    <Link to="/features/vault-labs">
                       Vault Labs
                     </Link>
                   </DropdownMenuItem>
