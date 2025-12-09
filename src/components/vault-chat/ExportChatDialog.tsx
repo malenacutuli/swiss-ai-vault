@@ -6,16 +6,24 @@ import { Download, AlertTriangle, FileJson, Lock } from 'lucide-react';
 import { localChatStorage, type ExportedChat } from '@/lib/storage/local-chat-storage';
 import { toast } from 'sonner';
 
+interface ExportMessage {
+  role: string;
+  content: string;
+  created_at?: string;
+}
+
 interface ExportChatDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   conversationId: string;
   conversationTitle: string;
   messageCount: number;
-  wrappedKey: {
+  wrappedKey?: {
     ciphertext: string;
     nonce: string;
   };
+  messages?: ExportMessage[];
+  isZeroTrace?: boolean;
   onExportComplete?: () => void;
 }
 
@@ -26,6 +34,8 @@ export function ExportChatDialog({
   conversationTitle,
   messageCount,
   wrappedKey,
+  messages,
+  isZeroTrace = false,
   onExportComplete,
 }: ExportChatDialogProps) {
   const [isExporting, setIsExporting] = useState(false);
@@ -34,8 +44,31 @@ export function ExportChatDialog({
     setIsExporting(true);
     
     try {
-      // Export conversation with wrapped key
-      const exportedData = await localChatStorage.exportConversation(conversationId, wrappedKey);
+      let exportedData;
+      
+      if (isZeroTrace && wrappedKey) {
+        // ZeroTrace mode: Export from IndexedDB with wrapped key
+        exportedData = await localChatStorage.exportConversation(conversationId, wrappedKey);
+      } else if (messages) {
+        // Cloud mode: Export provided messages directly
+        exportedData = {
+          version: '1.0',
+          exported_at: new Date().toISOString(),
+          storage_mode: 'cloud',
+          conversation: {
+            id: conversationId,
+            title: conversationTitle,
+            message_count: messageCount,
+          },
+          messages: messages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            created_at: msg.created_at || new Date().toISOString(),
+          })),
+        };
+      } else {
+        throw new Error('No data available for export');
+      }
       
       // Create blob and trigger download
       const blob = new Blob([JSON.stringify(exportedData, null, 2)], { 
@@ -49,7 +82,8 @@ export function ExportChatDialog({
       // Generate filename with date
       const date = new Date().toISOString().split('T')[0];
       const safeName = conversationTitle.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
-      a.download = `zerotrace_${safeName}_${date}.json`;
+      const prefix = isZeroTrace ? 'zerotrace' : 'vaultchat';
+      a.download = `${prefix}_${safeName}_${date}.json`;
       
       document.body.appendChild(a);
       a.click();

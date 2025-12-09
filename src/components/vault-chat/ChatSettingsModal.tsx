@@ -194,7 +194,7 @@ export function ChatSettingsModal({
             </div>
 
             <div className="pt-4 space-y-3">
-              {isZeroTrace && onExportConversation && (
+              {onExportConversation && (
                 <Button
                   variant="outline"
                   className="w-full justify-start"
