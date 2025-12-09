@@ -26,7 +26,8 @@ import {
   Settings,
   Loader2,
   Shield,
-  ArrowLeft
+  ArrowLeft,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationListView } from '@/components/vault-chat/ConversationListView';
@@ -1094,6 +1095,20 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                     });
                   }}
                 />
+                {isZeroTrace && selectedConversation && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setConversationToExport(selectedConversation);
+                      setExportDialogOpen(true);
+                    }}
+                    className="h-8 w-8"
+                    title="Export conversation"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1212,6 +1227,13 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         onModelChange={setSelectedModel}
         zeroRetention={zeroRetention}
         onZeroRetentionChange={setZeroRetention}
+        isZeroTrace={isZeroTrace}
+        onExportConversation={() => {
+          if (selectedConversation) {
+            setConversationToExport(selectedConversation);
+            setExportDialogOpen(true);
+          }
+        }}
       />
 
       {isZeroTrace && (

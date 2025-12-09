@@ -53,6 +53,8 @@ interface ChatSettingsModalProps {
   onZeroRetentionChange: (enabled: boolean) => void;
   systemPrompt?: string;
   onSystemPromptChange?: (prompt: string) => void;
+  isZeroTrace?: boolean;
+  onExportConversation?: () => void;
 }
 
 export function ChatSettingsModal({
@@ -64,6 +66,8 @@ export function ChatSettingsModal({
   onZeroRetentionChange,
   systemPrompt = '',
   onSystemPromptChange,
+  isZeroTrace,
+  onExportConversation,
 }: ChatSettingsModalProps) {
   const { toast } = useToast();
   const [autoLockMinutes, setAutoLockMinutes] = useState('15');
@@ -190,6 +194,19 @@ export function ChatSettingsModal({
             </div>
 
             <div className="pt-4 space-y-3">
+              {isZeroTrace && onExportConversation && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onExportConversation();
+                    onOpenChange(false);
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export This Conversation
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="w-full justify-start"
