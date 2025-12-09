@@ -155,6 +155,7 @@ const VaultChat = () => {
     deleteConversation: deleteStorageConversation,
     getNextSequenceNumber,
     createConversation: createStorageConversation,
+    updateConversationTitle,
   } = useStorageMode();
   
   // RAG Context - pass selectedConversation to connect document uploads
@@ -359,12 +360,138 @@ const VaultChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Get display title (decrypt if needed, or use placeholder)
+  // Cache for decrypted titles
+  const [decryptedTitles, setDecryptedTitles] = useState<Record<string, string>>({});
+
+  // Decrypt titles when conversations load
+  useEffect(() => {
+    const decryptTitles = async () => {
+      const titles: Record<string, string> = {};
+      
+      for (const conv of conversations) {
+        if (conv.encrypted_title) {
+          try {
+            let key = await chatEncryption.getKey(conv.id);
+            if (!key) {
+              key = await chatEncryption.restoreKey(conv.id);
+            }
+            if (key) {
+              const decrypted = await chatEncryption.decryptMessage(conv.encrypted_title, key);
+              titles[conv.id] = decrypted;
+            } else {
+              titles[conv.id] = 'Encrypted Conversation';
+            }
+          } catch (err) {
+            console.error(`[Vault Chat] Failed to decrypt title for ${conv.id}:`, err);
+            titles[conv.id] = 'Encrypted Conversation';
+          }
+        } else {
+          titles[conv.id] = 'New Conversation';
+        }
+      }
+      
+      setDecryptedTitles(titles);
+    };
+    
+    if (conversations.length > 0) {
+      decryptTitles();
+    }
+  }, [conversations]);
+
+  // Get display title from cache
   const getDisplayTitle = (conv: Conversation): string => {
-    // For now, just return a readable title based on creation
-    // TODO: Implement title decryption
-    return conv.encrypted_title ? 'Encrypted Conversation' : 'New Conversation';
+    return decryptedTitles[conv.id] || (conv.encrypted_title ? 'Loading...' : 'New Conversation');
   };
+
+  // Generate AI title for a conversation
+  const generateConversationTitle = async (
+    conversationId: string,
+    userMessage: string,
+    assistantResponse: string
+  ): Promise<void> => {
+    try {
+      console.log('[Vault Chat] Generating title for conversation...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      
+      // Call AI to generate a short title
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-haiku-20241022', // Fast and cheap for title generation
+            messages: [{
+              role: 'user',
+              content: `Generate a 3-6 word title summarizing this conversation. Reply with ONLY the title, no quotes, no explanation.
+
+User: "${userMessage.substring(0, 200)}"
+Assistant: "${assistantResponse.substring(0, 200)}"`
+            }],
+            max_tokens: 30,
+            zero_retention: true // Don't log this meta-call
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('[Vault Chat] Title generation API error');
+        return;
+      }
+      
+      const data = await response.json();
+      let title = data.choices?.[0]?.message?.content?.trim() || '';
+      
+      // Clean up title (remove quotes if present)
+      title = title.replace(/^["']|["']$/g, '').trim();
+      
+      // Fallback if AI response is empty or too long
+      if (!title || title.length > 60) {
+        title = userMessage.substring(0, 50).split(' ').slice(0, -1).join(' ') + '...';
+      }
+      
+      console.log('[Vault Chat] Generated title:', title);
+      
+      // Encrypt the title
+      let key = await chatEncryption.getKey(conversationId);
+      if (!key) {
+        key = await chatEncryption.restoreKey(conversationId);
+      }
+      if (!key) {
+        console.error('[Vault Chat] No key found for title encryption');
+        return;
+      }
+      
+      const encryptedTitle = await chatEncryption.encryptMessage(title, key);
+      const titleNonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(12))));
+      
+      // Update the conversation with the new title
+      await updateConversationTitle(conversationId, encryptedTitle, titleNonce);
+      
+      // Update local cache
+      setDecryptedTitles(prev => ({ ...prev, [conversationId]: title }));
+      
+      // Also update the conversations list to reflect the change
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, encrypted_title: encryptedTitle, title_nonce: titleNonce }
+          : conv
+      ));
+      
+      console.log('[Vault Chat] ✅ Title saved');
+    } catch (err) {
+      console.error('[Vault Chat] Title generation failed:', err);
+      // Non-critical, don't throw
+    }
+  };
+
+  // Track if this is the first message in a conversation
+  const isFirstExchange = useRef<boolean>(true);
 
   const loadMessages = async (conversationId: string) => {
     setLoadingMessages(true);
@@ -422,6 +549,10 @@ const VaultChat = () => {
       );
       
       setMessages(decrypted);
+      
+      // Set isFirstExchange based on whether conversation already has messages
+      isFirstExchange.current = decrypted.length === 0;
+      
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('[Vault Chat] Error loading messages:', error);
@@ -441,6 +572,7 @@ const VaultChat = () => {
       loadMessages(selectedConversation);
     } else {
       setMessages([]);
+      isFirstExchange.current = true;
     }
   }, [selectedConversation]);
 
@@ -572,6 +704,7 @@ const VaultChat = () => {
       // 6. Update UI state
       setSelectedConversation(conversation.id);
       setChatSidebarOpen(false);
+      isFirstExchange.current = true; // New conversation, first exchange pending
 
       // 7. Refresh conversations list
       await loadConversations();
@@ -845,6 +978,18 @@ const VaultChat = () => {
           .from('encrypted_conversations')
           .update({ last_message_at: new Date().toISOString() })
           .eq('id', selectedConversation);
+      }
+
+      // Generate title after first exchange (when there were 0 messages before)
+      // Only generate if conversation doesn't already have a title
+      const wasFirstExchange = isFirstExchange.current;
+      const convHasTitle = currentConversation?.encrypted_title;
+      if (wasFirstExchange && !convHasTitle) {
+        isFirstExchange.current = false;
+        // Generate title in background (don't block UI)
+        generateConversationTitle(selectedConversation, messageContent, assistantContent);
+      } else {
+        isFirstExchange.current = false;
       }
 
       setTimeout(scrollToBottom, 100);
