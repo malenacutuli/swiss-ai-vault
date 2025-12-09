@@ -110,6 +110,7 @@ async function insertMessageWithRetry(
 const VaultChat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [messages, setMessages] = useState<DecryptedMessage[]>([]);
