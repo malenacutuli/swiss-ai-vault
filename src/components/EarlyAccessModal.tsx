@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 
 interface EarlyAccessModalProps {
   open: boolean;
@@ -19,16 +18,14 @@ interface EarlyAccessModalProps {
 }
 
 export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) => {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim() || !email.trim()) {
-      toast.error("Please fill in all required fields");
+    if (!email.trim()) {
+      toast.error("Please enter your email address");
       return;
     }
 
@@ -36,23 +33,19 @@ export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) 
     try {
       const { error } = await supabase.functions.invoke("send-contact-email", {
         body: {
-          type: "early_access",
-          name: name.trim(),
+          type: "waitlist",
           email: email.trim(),
-          company: company.trim() || undefined,
         },
       });
 
       if (error) throw error;
 
-      toast.success("Thank you! We'll be in touch soon.");
-      setName("");
+      toast.success("You're on the list! We'll be in touch soon.");
       setEmail("");
-      setCompany("");
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Error submitting early access request:", error);
-      toast.error("Failed to submit request. Please try again.");
+      console.error("Error subscribing to waitlist:", error);
+      toast.error("Failed to subscribe. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -62,46 +55,31 @@ export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Sign Up for Early Access</DialogTitle>
+          <DialogTitle>Join the Waitlist</DialogTitle>
           <DialogDescription>
-            Be among the first to experience SwissVault.ai. We'll notify you when your access is ready.
+            Be among the first to experience SwissVault.ai. Enter your email and we'll notify you when your access is ready.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
-            <Input
-              id="name"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-9"
+                required
+              />
+            </div>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="company">Company (optional)</Label>
-            <Input
-              id="company"
-              placeholder="Your company"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Request Early Access
-          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            We respect your privacy. Unsubscribe anytime.
+          </p>
         </form>
       </DialogContent>
     </Dialog>
