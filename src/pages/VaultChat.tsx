@@ -1159,44 +1159,27 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                     {searchQuery ? 'No conversations found' : 'No conversations yet'}
                   </div>
                 ) : (
-                  <div className="divide-y divide-border">
+                  <div>
                     {filteredConversations.map(conv => (
                       <div
                         key={conv.id}
+                        onClick={() => handleSelectConversation(conv.id)}
                         className={cn(
-                          "p-4 cursor-pointer hover:bg-accent/50",
+                          "px-3 py-3 cursor-pointer hover:bg-accent/50 border-b border-border/50",
                           "transition-colors group relative",
-                          selectedConversation === conv.id && 
-                            "bg-primary/10 border-l-4 border-primary"
+                          selectedConversation === conv.id && "bg-accent"
                         )}
                       >
-                        <div
-                          onClick={() => handleSelectConversation(conv.id)}
-                        >
-                          <h3 className="font-medium text-sm truncate text-foreground pr-8">
-                            {getDisplayTitle(conv)}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              {conv.model_id.split('-')[0]}
-                            </span>
-                            {conv.is_encrypted && (
-                              <Lock className="h-3 w-3 text-green-500" />
-                            )}
-                            {conv.zero_retention && (
-                              <span className="text-xs text-amber-500">Zero Retention</span>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-muted-foreground">
-                              {conv.retention_mode}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {conv.last_message_at 
-                                ? formatRelativeTime(conv.last_message_at) 
-                                : 'New'}
-                            </span>
-                          </div>
+                        {/* Title */}
+                        <div className="font-medium text-sm truncate pr-8">
+                          {getDisplayTitle(conv)}
+                        </div>
+                        
+                        {/* Subtitle: timestamp */}
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {conv.last_message_at 
+                            ? formatRelativeTime(conv.last_message_at)
+                            : 'New conversation'}
                         </div>
                         
                         {/* Delete button */}
@@ -1207,12 +1190,12 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                             setDeleteDialogOpen(true);
                           }}
                           className={cn(
-                            "absolute top-2 right-2 p-2 rounded",
-                            "bg-destructive/10 hover:bg-destructive/20 text-destructive",
+                            "absolute top-2 right-2 p-1.5 rounded",
+                            "hover:bg-destructive/20 text-muted-foreground hover:text-destructive",
                             "opacity-0 group-hover:opacity-100 transition-opacity"
                           )}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     ))}
