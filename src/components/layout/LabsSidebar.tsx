@@ -136,15 +136,16 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pb-3">
-        {/* Primary */}
-        <SectionHeader label="Primary" collapsed={collapsed} />
-        <SidebarLink 
-          to="/chat" 
-          icon={MessageSquare} 
-          label="Vault Chat" 
-          collapsed={collapsed}
-          isActive={isActive("/chat")}
-        />
+        {/* Vault Chat - standalone at top */}
+        <div className="mb-2">
+          <SidebarLink 
+            to="/chat" 
+            icon={MessageSquare} 
+            label="Vault Chat" 
+            collapsed={collapsed}
+            isActive={isActive("/chat")}
+          />
+        </div>
 
         {/* Data & Training */}
         <SectionHeader label="Data & Training" collapsed={collapsed} />

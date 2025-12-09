@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { FirstTimeOrganizationModal } from "@/components/FirstTimeOrganizationModal";
+import { LegacyRedirect } from "@/components/LegacyRedirect";
 import { chatEncryption } from "@/lib/encryption";
 
 // Layouts
@@ -99,10 +100,11 @@ const App = () => {
                 <Route path=":conversationId" element={<VaultChat />} />
               </Route>
               
-              {/* Legacy chat routes - redirect to new paths */}
-              <Route path="/vault-chat" element={<Navigate to="/chat" replace />} />
-              <Route path="/secure-chat" element={<Navigate to="/chat" replace />} />
-              <Route path="/secure-chat/:conversationId" element={<Navigate to="/chat" replace />} />
+              {/* Legacy chat routes - redirect to new paths with toast */}
+              <Route path="/vault-chat" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
+              <Route path="/vault-chat/:conversationId" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
+              <Route path="/secure-chat" element={<LegacyRedirect to="/chat" message="Secure Chat has moved to /chat" />} />
+              <Route path="/secure-chat/:conversationId" element={<LegacyRedirect to="/chat" message="Secure Chat has moved to /chat" />} />
 
               {/* Vault Labs routes (full mode) */}
               <Route path="/labs" element={<ProtectedRoute><LabsLayout /></ProtectedRoute>}>
@@ -135,8 +137,9 @@ const App = () => {
                 <Route path="compliance" element={<Compliance />} />
               </Route>
 
-              {/* Legacy dashboard routes - redirect to labs */}
-              <Route path="/dashboard/*" element={<Navigate to="/labs" replace />} />
+              {/* Legacy dashboard routes - redirect to labs with toast */}
+              <Route path="/dashboard" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
+              <Route path="/dashboard/*" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
