@@ -172,6 +172,15 @@ const VaultLabsFeatures = () => {
                     playsInline
                     className="w-full h-auto bg-white"
                   />
+                ) : section.id === "evaluations" ? (
+                  <video
+                    src="/videos/zerodataretention.mov"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-auto bg-white"
+                  />
                 ) : (
                   <>
                     <div className={`absolute inset-0 bg-gradient-to-r ${section.gradient} opacity-10 rounded-3xl blur-3xl`} />
