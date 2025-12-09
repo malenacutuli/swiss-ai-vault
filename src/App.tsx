@@ -94,18 +94,18 @@ const App = () => {
               <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
 
               {/* Vault Chat routes (simple mode) */}
-              <Route path="/vault-chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>
+              <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>
                 <Route index element={<VaultChat />} />
                 <Route path=":conversationId" element={<VaultChat />} />
               </Route>
               
               {/* Legacy chat routes - redirect to new paths */}
-              <Route path="/chat" element={<Navigate to="/vault-chat" replace />} />
-              <Route path="/secure-chat" element={<Navigate to="/vault-chat" replace />} />
-              <Route path="/secure-chat/:conversationId" element={<Navigate to="/vault-chat" replace />} />
+              <Route path="/vault-chat" element={<Navigate to="/chat" replace />} />
+              <Route path="/secure-chat" element={<Navigate to="/chat" replace />} />
+              <Route path="/secure-chat/:conversationId" element={<Navigate to="/chat" replace />} />
 
               {/* Vault Labs routes (full mode) */}
-              <Route path="/dashboard" element={<ProtectedRoute><LabsLayout /></ProtectedRoute>}>
+              <Route path="/labs" element={<ProtectedRoute><LabsLayout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
                 <Route path="projects" element={<Projects />} />
                 <Route path="projects/:id" element={<ProjectDetail />} />
@@ -120,7 +120,7 @@ const App = () => {
                 <Route path="models/:id" element={<ModelDetail />} />
                 <Route path="catalog" element={<ModelsCatalog />} />
                 <Route path="playground" element={<Playground />} />
-                <Route path="vault-chat/integrations" element={<VaultChatIntegrations />} />
+                <Route path="integrations" element={<VaultChatIntegrations />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="stats" element={<Stats />} />
@@ -129,11 +129,14 @@ const App = () => {
               </Route>
 
               {/* Admin routes */}
-              <Route path="/dashboard/admin" element={<AdminRoute><LabsLayout /></AdminRoute>}>
+              <Route path="/labs/admin" element={<AdminRoute><LabsLayout /></AdminRoute>}>
                 <Route index element={<Admin />} />
                 <Route path="audit-logs" element={<AuditLogs />} />
                 <Route path="compliance" element={<Compliance />} />
               </Route>
+
+              {/* Legacy dashboard routes - redirect to labs */}
+              <Route path="/dashboard/*" element={<Navigate to="/labs" replace />} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
