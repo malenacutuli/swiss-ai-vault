@@ -35,7 +35,7 @@ const plans = [
       "Advanced evaluation suite",
       "Webhook integrations, team workspaces",
     ],
-    cta: "Start Free Trial",
+    cta: "Get Started",
     variant: "swiss" as const,
     popular: true,
   },
