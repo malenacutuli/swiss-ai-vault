@@ -27,19 +27,19 @@ const footerLinks = {
 
 export const Footer = () => {
   return (
-    <footer className="border-t border-border/50 bg-card/30">
+    <footer className="border-t border-border/50 bg-[hsl(222,47%,11%)]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <SwissFlag className="h-6 w-6" />
-              <span className="text-lg font-bold">SwissVault<span className="text-brand-accent">.ai</span></span>
+              <span className="text-lg font-bold text-white">SwissVault<span className="text-brand-accent">.ai</span></span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-gray-300 mb-4">
               Zero-trust AI for regulated teams. Swiss data residency, E2E encryption, full auditability.
             </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-gray-300">
               <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
               All systems operational
             </div>
@@ -48,21 +48,21 @@ export const Footer = () => {
           {/* Links */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="font-medium mb-4">{category}</h4>
+              <h4 className="font-medium mb-4 text-white">{category}</h4>
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
                     {link.href.startsWith('/') ? (
                       <Link
                         to={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-sm text-gray-300 hover:text-white transition-colors"
                       >
                         {link.label}
                       </Link>
                     ) : (
                       <a
                         href={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-sm text-gray-300 hover:text-white transition-colors"
                       >
                         {link.label}
                       </a>
@@ -75,11 +75,11 @@ export const Footer = () => {
         </div>
 
         {/* Bottom */}
-        <div className="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-12 pt-8 border-t border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-gray-300">
             © {new Date().getFullYear()} Axessible Labs AG. All rights reserved.
           </p>
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <p className="text-sm text-gray-300 flex items-center gap-2">
             <SwissFlag className="h-4 w-4" />
             Made in Switzerland
           </p>
