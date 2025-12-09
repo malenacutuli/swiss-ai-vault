@@ -99,7 +99,7 @@ const VaultChatFeatures = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button asChild size="lg" className="text-base px-8 bg-gray-800/90 hover:bg-gray-900 text-white">
+                <Button asChild size="lg" className="text-base px-8 bg-gray-700/80 hover:bg-gray-800/90 text-white border-0 shadow-none">
                   <Link to="/auth">
                     Request Early Access
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -120,7 +120,7 @@ const VaultChatFeatures = () => {
                 loop 
                 muted 
                 playsInline
-                className="w-full h-auto rounded-lg"
+                className="w-full h-auto"
               >
                 <source src="/videos/vault-chat-demo.mov" type="video/quicktime" />
                 <source src="/videos/vault-chat-demo.mov" type="video/mp4" />
