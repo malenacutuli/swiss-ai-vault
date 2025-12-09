@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { chatEncryption } from '@/lib/encryption';
@@ -23,18 +22,14 @@ import { useExportReminder } from '@/hooks/useExportReminder';
 import { toast } from 'sonner';
 import {
   Plus,
-  Search,
   Lock,
   Settings,
-  Menu,
-  X,
   Loader2,
-  Trash2,
   Shield,
-  Upload
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatRelativeTime } from '@/lib/format-time';
+import { ConversationListView } from '@/components/vault-chat/ConversationListView';
 
 // Matches encrypted_conversations table schema
 interface Conversation {
@@ -113,12 +108,9 @@ async function insertMessageWithRetry(
 }
 
 const VaultChat = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [messages, setMessages] = useState<DecryptedMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -132,7 +124,6 @@ const VaultChat = () => {
   const [conversationToExport, setConversationToExport] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
   const [zeroRetention, setZeroRetention] = useState(false);
-  const [, setTimestampRefresh] = useState(0); // Forces re-render to update timestamps
   const [integrations, setIntegrations] = useState([
     { type: 'slack', isConnected: false, isActive: false },
     { type: 'notion', isConnected: false, isActive: false },
@@ -183,14 +174,6 @@ const VaultChat = () => {
       setExportDialogOpen(true);
     },
   });
-
-  // Refresh timestamps every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimestampRefresh(prev => prev + 1);
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
 
   // searchParams for OAuth callback handling
   const [searchParams, setSearchParams] = useSearchParams();
@@ -713,7 +696,6 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
 
       // 6. Update UI state
       setSelectedConversation(conversation.id);
-      setChatSidebarOpen(false);
       isFirstExchange.current = true; // New conversation, first exchange pending
 
       // 7. Refresh conversations list
@@ -789,7 +771,6 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
    */
   const handleSelectConversation = async (conversationId: string) => {
     setSelectedConversation(conversationId);
-    setChatSidebarOpen(false);
 
     try {
       // Try to get key from IndexedDB first
@@ -1071,317 +1052,145 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
     }
   };
 
-  const filteredConversations = conversations.filter(conv => {
-    const title = getDisplayTitle(conv);
-    return title.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
   const currentConversation = conversations.find(c => c.id === selectedConversation);
 
   return (
     <div className="h-screen bg-background">
-      <main className="h-full">
-          <div className="flex h-full">
-            {/* Mobile Overlay */}
-            {chatSidebarOpen && (
-              <div
-                className="fixed inset-0 bg-black/50 z-40 md:hidden"
-                onClick={() => setChatSidebarOpen(false)}
-              />
-            )}
-
-            {/* Chat Sidebar */}
-            <div
-              className={cn(
-                "w-80 border-r border-border",
-                "bg-card flex flex-col",
-                "fixed md:relative z-50 h-full",
-                "transition-transform duration-200",
-                chatSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-              )}
-            >
-              {/* Header */}
-              <div className="p-4 border-b border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <h1 className="text-xl font-bold flex items-center gap-2 text-foreground">
-                    <Lock className="h-5 w-5 text-primary" />
-                    Vault Chat
-                  </h1>
-                  <button
-                    onClick={() => setChatSidebarOpen(false)}
-                    className="md:hidden p-2 hover:bg-accent rounded"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={createNewConversation} 
-                    className="flex-1" 
-                    size="lg"
-                    disabled={creating}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {creating ? 'Creating...' : 'New Chat'}
-                  </Button>
-                  {isZeroTrace && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={() => setImportDialogOpen(true)}
-                      title="Import Chat"
-                    >
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Search */}
-              <div className="p-3 border-b border-border">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search conversations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              {/* Conversation Count */}
-              <div className="px-4 py-2 text-sm text-muted-foreground border-b border-border/50">
-                {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
-                {searchQuery && ` matching "${searchQuery}"`}
-              </div>
-
-              {/* Conversation List */}
-              <ScrollArea className="flex-1">
-                {loading ? (
-                  <div className="p-4 text-center text-muted-foreground">Loading...</div>
-                ) : filteredConversations.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground">
-                    {searchQuery ? 'No conversations found' : 'No conversations yet'}
-                  </div>
-                ) : (
-                  <div>
-                    {filteredConversations.map(conv => (
-                      <div
-                        key={conv.id}
-                        onClick={() => handleSelectConversation(conv.id)}
-                        className={cn(
-                          "px-3 py-3 cursor-pointer hover:bg-accent/50 border-b border-border/50",
-                          "transition-colors group relative",
-                          selectedConversation === conv.id && "bg-accent"
-                        )}
-                      >
-                        {/* Title */}
-                        <div className="font-medium text-sm truncate pr-8">
-                          {getDisplayTitle(conv)}
-                        </div>
-                        
-                        {/* Subtitle: timestamp */}
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {conv.last_message_at 
-                            ? formatRelativeTime(conv.last_message_at)
-                            : 'New conversation'}
-                        </div>
-                        
-                        {/* Delete button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setConversationToDelete(conv.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className={cn(
-                            "absolute top-2 right-2 p-1.5 rounded",
-                            "hover:bg-destructive/20 text-muted-foreground hover:text-destructive",
-                            "opacity-0 group-hover:opacity-100 transition-opacity"
-                          )}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-border">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start" 
-                  size="sm"
-                  onClick={() => setShowSettings(true)}
+      <main className="h-full flex flex-col">
+        {selectedConversation ? (
+          // CHAT VIEW
+          <div className="flex-1 flex flex-col">
+            {/* Chat Header with Back Button */}
+            <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-border bg-card">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedConversation(null)}
+                  className="h-8 w-8"
                 >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Chat Settings
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h2 className="font-medium text-foreground truncate">
+                  {currentConversation ? getDisplayTitle(currentConversation) : 'Conversation'}
+                </h2>
+                {isZeroTrace && (
+                  <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30 hidden sm:flex">
+                    <Shield className="w-3 h-3 mr-1" />
+                    ZeroTrace
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <EncryptionStatus
+                  conversationId={selectedConversation}
+                  isEncrypted={currentConversation?.is_encrypted ?? true}
+                  keyHash={currentConversation?.key_hash}
+                  onExportKey={() => {
+                    toast({
+                      title: 'Export Key',
+                      description: 'Key export functionality coming soon',
+                    });
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSettings(true)}
+                  className="h-8 w-8"
+                >
+                  <Settings className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-
-            {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col">
-              {/* Mobile Header */}
-              <div className="md:hidden border-b border-border p-4 bg-card">
-                <button
-                  onClick={() => setChatSidebarOpen(true)}
-                  className="p-2 hover:bg-accent rounded"
-                >
-                  <Menu className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Content */}
-              {selectedConversation ? (
-                <div className="flex-1 flex flex-col">
-                  {/* Chat Header with Encryption Status */}
-                  <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-border bg-card">
-                    <div className="flex items-center gap-3">
-                      <h2 className="font-medium text-foreground truncate">
-                        {currentConversation ? getDisplayTitle(currentConversation) : 'Conversation'}
-                      </h2>
-                      {isZeroTrace && (
-                        <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30">
-                          <Shield className="w-3 h-3 mr-1" />
-                          ZeroTrace
-                        </Badge>
-                      )}
-                    </div>
-                    <EncryptionStatus
-                      conversationId={selectedConversation}
-                      isEncrypted={currentConversation?.is_encrypted ?? true}
-                      keyHash={currentConversation?.key_hash}
-                      onExportKey={() => {
-                        toast({
-                          title: 'Export Key',
-                          description: 'Key export functionality coming soon',
-                        });
-                      }}
-                    />
+            
+            {/* Message List */}
+            <ScrollArea className="flex-1 p-6">
+              {loadingMessages ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Lock className="h-5 w-5 animate-pulse" />
+                    <span>Decrypting messages...</span>
                   </div>
-                  
-                  {/* Message List */}
-                  <ScrollArea className="flex-1 p-6">
-                    {loadingMessages ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Lock className="h-5 w-5 animate-pulse" />
-                          <span>Decrypting messages...</span>
-                        </div>
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="flex items-center justify-center h-full min-h-[300px]">
-                        <div className="text-center">
-                          <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">Send your first encrypted message</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="max-w-4xl mx-auto">
-                        {messages.map((message) => (
-                          <MessageBubble
-                            key={message.id}
-                            role={message.role as 'user' | 'assistant' | 'system'}
-                            content={message.content}
-                            isDecrypting={!message.decrypted}
-                            decryptionError={message.content === '[Decryption failed]'}
-                            timestamp={message.created_at}
-                          />
-                        ))}
-                        <div ref={messagesEndRef} />
-                      </div>
-                    )}
-                  </ScrollArea>
-
-                  {/* AI Generating Indicator */}
-                  {isGenerating && (
-                    <div className="px-6 py-2 bg-primary/5 border-t border-primary/20">
-                      <div className="flex items-center gap-2 text-primary max-w-4xl mx-auto">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">AI is responding...</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Encrypting Overlay */}
-                  <EncryptingOverlay visible={isEncrypting} />
-
-                  {/* Message Input */}
-                  <div className="border-t border-border p-4 bg-card">
-                    <div className="max-w-4xl mx-auto">
-                      <ChatInput
-                        onSend={handleSendMessage}
-                        disabled={!selectedConversation || loadingMessages}
-                        isEncrypting={isEncrypting}
-                        isSending={isGenerating}
-                        integrations={integrations}
-                        documents={uploadedDocuments}
-                        onFileUpload={handleFileUpload}
-                        onToggleIntegration={handleToggleIntegration}
-                        onConnectIntegration={handleConnectIntegration}
-                      />
-                      {hasContext && (
-                        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                          <span>{uploadedDocuments.length} document(s) in context</span>
-                          <button 
-                            onClick={clearContext}
-                            className="text-destructive hover:underline"
-                          >
-                            Clear context
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full min-h-[300px]">
+                  <div className="text-center">
+                    <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Send your first encrypted message</p>
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8">
-                  {/* Logo/Icon */}
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                    <Lock className="w-8 h-8 text-primary" />
-                  </div>
-                  
-                  {/* Title */}
-                  <h2 className="text-2xl font-semibold mb-2">
-                    Vault Chat
-                  </h2>
-                  
-                  {/* Description */}
-                  <p className="text-muted-foreground text-center max-w-md mb-6">
-                    End-to-end encrypted conversations that never leave your device unencrypted.
-                    Swiss-hosted with zero-knowledge architecture.
-                  </p>
-                  
-                  {/* Primary CTA */}
-                  <Button size="lg" onClick={createNewConversation} disabled={creating}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {creating ? 'Creating...' : 'New Conversation'}
-                  </Button>
-                  
-                  {/* Security badges */}
-                  <div className="flex items-center gap-4 mt-8 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Shield className="w-3 h-3" />
-                      AES-256 Encrypted
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Lock className="w-3 h-3" />
-                      Swiss Hosted
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Shield className="w-3 h-3" />
-                      Zero Knowledge
-                    </div>
-                  </div>
+                <div className="max-w-4xl mx-auto">
+                  {messages.map((message) => (
+                    <MessageBubble
+                      key={message.id}
+                      role={message.role as 'user' | 'assistant' | 'system'}
+                      content={message.content}
+                      isDecrypting={!message.decrypted}
+                      decryptionError={message.content === '[Decryption failed]'}
+                      timestamp={message.created_at}
+                    />
+                  ))}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
+            </ScrollArea>
+
+            {/* AI Generating Indicator */}
+            {isGenerating && (
+              <div className="px-6 py-2 bg-primary/5 border-t border-primary/20">
+                <div className="flex items-center gap-2 text-primary max-w-4xl mx-auto">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">AI is responding...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Encrypting Overlay */}
+            <EncryptingOverlay visible={isEncrypting} />
+
+            {/* Message Input */}
+            <div className="border-t border-border p-4 bg-card">
+              <div className="max-w-4xl mx-auto">
+                <ChatInput
+                  onSend={handleSendMessage}
+                  disabled={!selectedConversation || loadingMessages}
+                  isEncrypting={isEncrypting}
+                  isSending={isGenerating}
+                  integrations={integrations}
+                  documents={uploadedDocuments}
+                  onFileUpload={handleFileUpload}
+                  onToggleIntegration={handleToggleIntegration}
+                  onConnectIntegration={handleConnectIntegration}
+                />
+                {hasContext && (
+                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                    <span>{uploadedDocuments.length} document(s) in context</span>
+                    <button 
+                      onClick={clearContext}
+                      className="text-destructive hover:underline"
+                    >
+                      Clear context
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </main>
+        ) : (
+          // LIST VIEW (Full Width)
+          <ConversationListView
+            conversations={conversations}
+            onSelect={handleSelectConversation}
+            onNewChat={createNewConversation}
+            onImport={() => setImportDialogOpen(true)}
+            isCreating={creating}
+            isZeroTrace={isZeroTrace}
+            getDisplayTitle={getDisplayTitle}
+          />
+        )}
+      </main>
 
       <DeleteConversationDialog
         open={deleteDialogOpen}
