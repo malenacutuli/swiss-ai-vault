@@ -34,6 +34,7 @@ import {
   Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/format-time';
 
 // Matches encrypted_conversations table schema
 interface Conversation {
@@ -131,6 +132,7 @@ const VaultChat = () => {
   const [conversationToExport, setConversationToExport] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
   const [zeroRetention, setZeroRetention] = useState(false);
+  const [, setTimestampRefresh] = useState(0); // Forces re-render to update timestamps
   const [integrations, setIntegrations] = useState([
     { type: 'slack', isConnected: false, isActive: false },
     { type: 'notion', isConnected: false, isActive: false },
@@ -181,6 +183,14 @@ const VaultChat = () => {
       setExportDialogOpen(true);
     },
   });
+
+  // Refresh timestamps every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimestampRefresh(prev => prev + 1);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // searchParams for OAuth callback handling
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1182,7 +1192,9 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                               {conv.retention_mode}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {conv.last_message_at ? 'Recently' : 'New'}
+                              {conv.last_message_at 
+                                ? formatRelativeTime(conv.last_message_at) 
+                                : 'New'}
                             </span>
                           </div>
                         </div>
