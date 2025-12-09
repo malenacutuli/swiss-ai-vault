@@ -1,7 +1,4 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +21,6 @@ import {
 } from "lucide-react";
 
 const Dashboard = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user } = useAuth();
   const { stats, loading: statsLoading } = useDashboardStats();
   const { activities, loading: activityLoading } = useRecentActivity();
@@ -100,20 +96,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      
-      <div
-        className={cn(
-          "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-[280px]"
-        )}
-      >
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-        
-        <main className="p-6 space-y-6">
+      <main className="p-6 space-y-6">
           {/* Welcome message */}
           <div className="animate-fade-in">
             <h1 className="text-2xl font-semibold text-foreground">
@@ -273,8 +256,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
-        </main>
-      </div>
+      </main>
     </div>
   );
 };

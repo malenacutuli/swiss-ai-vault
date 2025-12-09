@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { useRAGContext } from '@/hooks/useRAGContext';
@@ -926,15 +924,8 @@ const VaultChat = () => {
   const currentConversation = conversations.find(c => c.id === selectedConversation);
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar 
-        collapsed={sidebarCollapsed} 
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
-      />
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-[280px]'}`}>
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-        
-        <main className="h-[calc(100vh-4rem)]">
+    <div className="h-screen bg-background">
+      <main className="h-full">
           <div className="flex h-full">
             {/* Mobile Overlay */}
             {chatSidebarOpen && (
@@ -949,7 +940,7 @@ const VaultChat = () => {
               className={cn(
                 "w-80 border-r border-border",
                 "bg-card flex flex-col",
-                "fixed md:relative z-50 h-[calc(100vh-4rem)]",
+                "fixed md:relative z-50 h-full",
                 "transition-transform duration-200",
                 chatSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
               )}
@@ -1221,7 +1212,6 @@ const VaultChat = () => {
             </div>
           </div>
         </main>
-      </div>
 
       <DeleteConversationDialog
         open={deleteDialogOpen}

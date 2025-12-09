@@ -3,12 +3,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { FirstTimeOrganizationModal } from "@/components/FirstTimeOrganizationModal";
 import { chatEncryption } from "@/lib/encryption";
+
+// Layouts
+import { ChatLayout } from "@/layouts/ChatLayout";
+import { LabsLayout } from "@/layouts/LabsLayout";
+
+// Pages
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -62,61 +68,80 @@ const App = () => {
   }, []);
 
   return (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <FirstTimeOrganizationModal />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/docs/api" element={<ApiDocs />} />
-            <Route path="/docs/on-premises" element={<OnPremisesDeployment />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/dashboard/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-            <Route path="/dashboard/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/datasets" element={<ProtectedRoute><Datasets /></ProtectedRoute>} />
-            <Route path="/dashboard/datasets/:id" element={<ProtectedRoute><DatasetDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/finetuning" element={<ProtectedRoute><Finetuning /></ProtectedRoute>} />
-            <Route path="/dashboard/finetuning/:id" element={<ProtectedRoute><FinetuningJobDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
-            <Route path="/dashboard/evaluations" element={<ProtectedRoute><Evaluations /></ProtectedRoute>} />
-            <Route path="/dashboard/evaluations/:id" element={<ProtectedRoute><EvaluationDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/models" element={<ProtectedRoute><Models /></ProtectedRoute>} />
-            <Route path="/dashboard/models/:id" element={<ProtectedRoute><ModelDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/catalog" element={<ProtectedRoute><ModelsCatalog /></ProtectedRoute>} />
-            <Route path="/dashboard/playground" element={<ProtectedRoute><Playground /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute><VaultChat /></ProtectedRoute>} />
-            <Route path="/secure-chat" element={<ProtectedRoute><SecureChat /></ProtectedRoute>} />
-            <Route path="/secure-chat/:conversationId" element={<ProtectedRoute><SecureChat /></ProtectedRoute>} />
-            <Route path="/dashboard/vault-chat/integrations" element={<ProtectedRoute><VaultChatIntegrations /></ProtectedRoute>} />
-            <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/dashboard/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            <Route path="/dashboard/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
-            <Route path="/dashboard/traces" element={<ProtectedRoute><Traces /></ProtectedRoute>} />
-            <Route path="/dashboard/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
-            <Route path="/dashboard/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-            <Route path="/dashboard/admin/audit-logs" element={<AdminRoute><AuditLogs /></AdminRoute>} />
-            <Route path="/dashboard/admin/compliance" element={<AdminRoute><Compliance /></AdminRoute>} />
-            <Route path="/accept-invitation" element={<AcceptInvitation />} />
-            <Route path="/oauth/callback" element={<OAuthCallback />} />
-            <Route path="/design-system" element={<DesignSystem />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/dpa" element={<DPA />} />
-            <Route path="/status" element={<Status />} />
-            <Route path="/features/vault-chat" element={<VaultChatFeatures />} />
-            <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <FirstTimeOrganizationModal />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/docs/api" element={<ApiDocs />} />
+              <Route path="/docs/on-premises" element={<OnPremisesDeployment />} />
+              <Route path="/accept-invitation" element={<AcceptInvitation />} />
+              <Route path="/oauth/callback" element={<OAuthCallback />} />
+              <Route path="/design-system" element={<DesignSystem />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/dpa" element={<DPA />} />
+              <Route path="/status" element={<Status />} />
+              <Route path="/features/vault-chat" element={<VaultChatFeatures />} />
+              <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
+
+              {/* Vault Chat routes (simple mode) */}
+              <Route path="/vault-chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>
+                <Route index element={<VaultChat />} />
+                <Route path=":conversationId" element={<VaultChat />} />
+              </Route>
+              
+              {/* Legacy chat routes - redirect to new paths */}
+              <Route path="/chat" element={<Navigate to="/vault-chat" replace />} />
+              <Route path="/secure-chat" element={<Navigate to="/vault-chat" replace />} />
+              <Route path="/secure-chat/:conversationId" element={<Navigate to="/vault-chat" replace />} />
+
+              {/* Vault Labs routes (full mode) */}
+              <Route path="/dashboard" element={<ProtectedRoute><LabsLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="projects/:id" element={<ProjectDetail />} />
+                <Route path="datasets" element={<Datasets />} />
+                <Route path="datasets/:id" element={<DatasetDetail />} />
+                <Route path="finetuning" element={<Finetuning />} />
+                <Route path="finetuning/:id" element={<FinetuningJobDetail />} />
+                <Route path="templates" element={<Templates />} />
+                <Route path="evaluations" element={<Evaluations />} />
+                <Route path="evaluations/:id" element={<EvaluationDetail />} />
+                <Route path="models" element={<Models />} />
+                <Route path="models/:id" element={<ModelDetail />} />
+                <Route path="catalog" element={<ModelsCatalog />} />
+                <Route path="playground" element={<Playground />} />
+                <Route path="vault-chat/integrations" element={<VaultChatIntegrations />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="stats" element={<Stats />} />
+                <Route path="traces" element={<Traces />} />
+                <Route path="billing" element={<Billing />} />
+              </Route>
+
+              {/* Admin routes */}
+              <Route path="/dashboard/admin" element={<AdminRoute><LabsLayout /></AdminRoute>}>
+                <Route index element={<Admin />} />
+                <Route path="audit-logs" element={<AuditLogs />} />
+                <Route path="compliance" element={<Compliance />} />
+              </Route>
+
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 
