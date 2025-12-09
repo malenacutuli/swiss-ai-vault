@@ -53,6 +53,7 @@ export const DashboardHeader = ({ sidebarCollapsed }: DashboardHeaderProps) => {
 
   const routeLabels: Record<string, string> = {
     dashboard: t('sidebar.dashboard'),
+    chat: 'Vault Chat',
     projects: t('sidebar.projects'),
     datasets: t('sidebar.datasets'),
     finetuning: t('sidebar.finetuning'),
