@@ -5,11 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { useRAGContext } from '@/hooks/useRAGContext';
+import { useStorageMode } from '@/hooks/useStorageMode';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
 import { EncryptionStatus } from '@/components/vault/EncryptionStatus';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
@@ -24,7 +26,8 @@ import {
   Menu,
   X,
   Loader2,
-  Trash2
+  Trash2,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -134,6 +137,18 @@ const VaultChat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // Storage mode hook - routes to server or local based on zero_retention_mode
+  const {
+    isZeroTrace,
+    isLoading: storageModeLoading,
+    saveMessage,
+    loadMessages: loadStorageMessages,
+    loadConversations: loadStorageConversations,
+    deleteConversation: deleteStorageConversation,
+    getNextSequenceNumber,
+    createConversation: createStorageConversation,
+  } = useStorageMode();
   
   // RAG Context - pass selectedConversation to connect document uploads
   const {
@@ -356,22 +371,26 @@ const VaultChat = () => {
         return;
       }
 
-      // Load from encrypted_messages table (CORRECT TABLE)
-      const { data, error } = await supabase
-        .from('encrypted_messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('sequence_number', { ascending: true });
-
-      if (error) throw error;
+      // Use storage mode hook to load messages (routes to server or local)
+      const storageMessages = await loadStorageMessages(conversationId);
       
-      const messageData = (data || []) as Message[];
+      const messageData: Message[] = storageMessages.map(msg => ({
+        id: msg.id,
+        conversation_id: msg.conversation_id,
+        ciphertext: msg.ciphertext,
+        nonce: msg.nonce,
+        role: msg.role,
+        sequence_number: msg.sequence_number,
+        token_count: null,
+        has_attachments: false,
+        created_at: msg.created_at || new Date().toISOString(),
+        expires_at: null
+      }));
 
       // Decrypt messages
       const decrypted: DecryptedMessage[] = await Promise.all(
         messageData.map(async (msg) => {
           try {
-            // Reconstruct the encrypted format: nonce + ciphertext
             const content = await chatEncryption.decryptMessage(
               msg.ciphertext,
               key
@@ -417,15 +436,26 @@ const VaultChat = () => {
 
   const loadConversations = async () => {
     try {
-      // Load from encrypted_conversations table (CORRECT TABLE)
-      const { data, error } = await supabase
-        .from('encrypted_conversations')
-        .select('*')
-        .order('last_message_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
+      // Use storage mode hook to load conversations (routes to server or local)
+      const storageConvs = await loadStorageConversations();
+      
+      // Map to Conversation type
+      const convs: Conversation[] = storageConvs.map(conv => ({
+        id: conv.id,
+        user_id: user?.id || '',
+        encrypted_title: conv.encrypted_title,
+        title_nonce: conv.title_nonce,
+        model_id: conv.model_id,
+        key_hash: '',
+        is_encrypted: true,
+        zero_retention: conv.is_zero_trace,
+        retention_mode: conv.is_zero_trace ? 'zerotrace' : 'forever',
+        last_message_at: conv.last_message_at,
+        created_at: conv.created_at || new Date().toISOString(),
+        updated_at: conv.updated_at || new Date().toISOString()
+      }));
 
-      if (error) throw error;
-      setConversations((data || []) as Conversation[]);
+      setConversations(convs);
       setLoading(false);
     } catch (error) {
       console.error('[Vault Chat] Error loading conversations:', error);
@@ -669,19 +699,31 @@ const VaultChat = () => {
       }
       setIsEncrypting(false);
 
-      // Insert user message with retry logic for sequence collisions
-      const { data: userMessage, error: userError } = await insertMessageWithRetry(
-        selectedConversation,
-        'user',
-        encryptedUserMessage,
-        Math.ceil(messageContent.length / 4)
-      );
-
-      if (userError) throw userError;
+      // Get next sequence number and save user message via storage mode
+      const userSeqNum = await getNextSequenceNumber(selectedConversation);
+      const userMsgId = crypto.randomUUID();
+      
+      await saveMessage({
+        id: userMsgId,
+        conversation_id: selectedConversation,
+        role: 'user',
+        encrypted_content: encryptedUserMessage,
+        nonce: '', // Nonce is embedded in ciphertext for our format
+        sequence_number: userSeqNum
+      });
 
       // Add to UI immediately
       const userMsgData: DecryptedMessage = {
-        ...(userMessage as Message),
+        id: userMsgId,
+        conversation_id: selectedConversation,
+        ciphertext: encryptedUserMessage,
+        nonce: '',
+        role: 'user',
+        sequence_number: userSeqNum,
+        token_count: Math.ceil(messageContent.length / 4),
+        has_attachments: false,
+        created_at: new Date().toISOString(),
+        expires_at: null,
         content: messageContent,
         decrypted: true
       };
@@ -734,29 +776,43 @@ const VaultChat = () => {
       // Encrypt assistant message
       const encryptedAssistantMessage = await chatEncryption.encryptMessage(assistantContent, key);
 
-      // Insert assistant message with retry logic for sequence collisions
-      const { data: assistantMessage, error: assistantError } = await insertMessageWithRetry(
-        selectedConversation,
-        'assistant',
-        encryptedAssistantMessage,
-        data.usage?.completion_tokens
-      );
-
-      if (assistantError) throw assistantError;
+      // Get next sequence number and save assistant message via storage mode
+      const assistantSeqNum = await getNextSequenceNumber(selectedConversation);
+      const assistantMsgId = crypto.randomUUID();
+      
+      await saveMessage({
+        id: assistantMsgId,
+        conversation_id: selectedConversation,
+        role: 'assistant',
+        encrypted_content: encryptedAssistantMessage,
+        nonce: '', // Nonce is embedded in ciphertext for our format
+        sequence_number: assistantSeqNum
+      });
 
       // Add to UI
       const assistantMsgData: DecryptedMessage = {
-        ...(assistantMessage as Message),
+        id: assistantMsgId,
+        conversation_id: selectedConversation,
+        ciphertext: encryptedAssistantMessage,
+        nonce: '',
+        role: 'assistant',
+        sequence_number: assistantSeqNum,
+        token_count: data.usage?.completion_tokens || null,
+        has_attachments: false,
+        created_at: new Date().toISOString(),
+        expires_at: null,
         content: assistantContent,
         decrypted: true
       };
       setMessages(prev => [...prev, assistantMsgData]);
 
-      // Update conversation's last_message_at
-      await supabase
-        .from('encrypted_conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', selectedConversation);
+      // Update conversation's last_message_at (only for server mode)
+      if (!isZeroTrace) {
+        await supabase
+          .from('encrypted_conversations')
+          .update({ last_message_at: new Date().toISOString() })
+          .eq('id', selectedConversation);
+      }
 
       setTimeout(scrollToBottom, 100);
 
@@ -1000,9 +1056,17 @@ const VaultChat = () => {
                 <div className="flex-1 flex flex-col">
                   {/* Chat Header with Encryption Status */}
                   <div className="hidden md:flex items-center justify-between px-6 py-3 border-b border-border bg-card">
-                    <h2 className="font-medium text-foreground truncate">
-                      {currentConversation ? getDisplayTitle(currentConversation) : 'Conversation'}
-                    </h2>
+                    <div className="flex items-center gap-3">
+                      <h2 className="font-medium text-foreground truncate">
+                        {currentConversation ? getDisplayTitle(currentConversation) : 'Conversation'}
+                      </h2>
+                      {isZeroTrace && (
+                        <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30">
+                          <Shield className="w-3 h-3 mr-1" />
+                          ZeroTrace
+                        </Badge>
+                      )}
+                    </div>
                     <EncryptionStatus
                       conversationId={selectedConversation}
                       isEncrypted={currentConversation?.is_encrypted ?? true}
