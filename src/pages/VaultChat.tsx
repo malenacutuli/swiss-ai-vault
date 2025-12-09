@@ -18,6 +18,8 @@ import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
 import { ChatSettingsModal } from '@/components/vault-chat/ChatSettingsModal';
 import { ChatInput, ChatContext } from '@/components/vault-chat/ChatInput';
 import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
+import { ImportChatDialog } from '@/components/vault-chat/ImportChatDialog';
+import { toast } from 'sonner';
 import {
   Plus,
   Search,
@@ -27,7 +29,8 @@ import {
   X,
   Loader2,
   Trash2,
-  Shield
+  Shield,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -122,6 +125,7 @@ const VaultChat = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
   const [zeroRetention, setZeroRetention] = useState(false);
   const [integrations, setIntegrations] = useState([
@@ -933,15 +937,27 @@ const VaultChat = () => {
                     <X className="h-5 w-5" />
                   </button>
                 </div>
-                <Button 
-                  onClick={createNewConversation} 
-                  className="w-full" 
-                  size="lg"
-                  disabled={creating}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {creating ? 'Creating...' : 'New Chat'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={createNewConversation} 
+                    className="flex-1" 
+                    size="lg"
+                    disabled={creating}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {creating ? 'Creating...' : 'New Chat'}
+                  </Button>
+                  {isZeroTrace && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => setImportDialogOpen(true)}
+                      title="Import Chat"
+                    >
+                      <Upload className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Search */}
@@ -1196,6 +1212,34 @@ const VaultChat = () => {
         zeroRetention={zeroRetention}
         onZeroRetentionChange={setZeroRetention}
       />
+
+      {isZeroTrace && (
+        <ImportChatDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onImportSuccess={async (conversationId) => {
+            // Refresh conversations and select the imported one
+            const convs = await loadStorageConversations();
+            const mappedConvs: Conversation[] = convs.map(c => ({
+              id: c.id,
+              user_id: user?.id || '',
+              encrypted_title: c.encrypted_title,
+              title_nonce: c.title_nonce,
+              model_id: c.model_id,
+              key_hash: '',
+              is_encrypted: true,
+              zero_retention: true,
+              retention_mode: 'local',
+              last_message_at: c.updated_at,
+              created_at: c.created_at,
+              updated_at: c.updated_at,
+              is_zero_trace: true,
+            }));
+            setConversations(mappedConvs);
+            setSelectedConversation(conversationId);
+          }}
+        />
+      )}
     </div>
   );
 };
