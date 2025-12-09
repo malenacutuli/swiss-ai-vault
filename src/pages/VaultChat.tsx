@@ -1339,19 +1339,43 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <div className="text-center max-w-2xl">
-                    <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                      <Lock className="h-8 w-8 text-primary" />
+                <div className="flex-1 flex flex-col items-center justify-center p-8">
+                  {/* Logo/Icon */}
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                    <Lock className="w-8 h-8 text-primary" />
+                  </div>
+                  
+                  {/* Title */}
+                  <h2 className="text-2xl font-semibold mb-2">
+                    Vault Chat
+                  </h2>
+                  
+                  {/* Description */}
+                  <p className="text-muted-foreground text-center max-w-md mb-6">
+                    End-to-end encrypted conversations that never leave your device unencrypted.
+                    Swiss-hosted with zero-knowledge architecture.
+                  </p>
+                  
+                  {/* Primary CTA */}
+                  <Button size="lg" onClick={createNewConversation} disabled={creating}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    {creating ? 'Creating...' : 'New Conversation'}
+                  </Button>
+                  
+                  {/* Security badges */}
+                  <div className="flex items-center gap-4 mt-8 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      AES-256 Encrypted
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-foreground">Start a Secure Conversation</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Your conversations are end-to-end encrypted and never leave your device unencrypted.
-                    </p>
-                    <Button onClick={createNewConversation} size="lg" disabled={creating}>
-                      <Plus className="h-5 w-5 mr-2" />
-                      {creating ? 'Creating...' : 'New Encrypted Chat'}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      Swiss Hosted
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      Zero Knowledge
+                    </div>
                   </div>
                 </div>
               )}
