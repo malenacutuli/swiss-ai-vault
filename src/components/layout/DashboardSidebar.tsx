@@ -50,13 +50,13 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
 
   const navItems = [
     { icon: Home, label: t('sidebar.dashboard'), href: "/dashboard" },
+    { icon: Lock, label: "Vault Chat", href: "/chat" },
     { icon: FolderKanban, label: t('sidebar.projects'), href: "/dashboard/projects" },
     { icon: Database, label: t('sidebar.datasets'), href: "/dashboard/datasets" },
     { icon: SlidersHorizontal, label: t('sidebar.finetuning'), href: "/dashboard/finetuning" },
     { icon: LayoutTemplate, label: t('sidebar.templates'), href: "/dashboard/templates" },
     { icon: BarChart3, label: t('sidebar.evaluations'), href: "/dashboard/evaluations" },
     { icon: Cpu, label: t('sidebar.models'), href: "/dashboard/models" },
-    { icon: Lock, label: "Vault Chat", href: "/chat" },
     { icon: Library, label: t('sidebar.catalog'), href: "/dashboard/catalog" },
     { icon: Play, label: t('sidebar.playground'), href: "/dashboard/playground" },
     { icon: Activity, label: t('sidebar.traces'), href: "/dashboard/traces" },
