@@ -14,6 +14,7 @@ import { EncryptionStatus } from '@/components/vault/EncryptionStatus';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
 import { ChatSettingsModal } from '@/components/vault-chat/ChatSettingsModal';
 import { ChatInput, ChatContext } from '@/components/vault-chat/ChatInput';
+import { RetentionMode } from '@/components/vault-chat/RetentionModeDropdown';
 import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 import { ImportChatDialog } from '@/components/vault-chat/ImportChatDialog';
 import { ExportChatDialog } from '@/components/vault-chat/ExportChatDialog';
@@ -151,7 +152,63 @@ const VaultChat = () => {
     getNextSequenceNumber,
     createConversation: createStorageConversation,
     updateConversationTitle,
+    refreshMode,
   } = useStorageMode();
+  
+  // Sync retention mode with storage mode
+  const [currentRetentionMode, setCurrentRetentionMode] = useState<'zerotrace' | '1day' | '1week' | '90days' | 'forever'>(
+    isZeroTrace ? 'zerotrace' : 'forever'
+  );
+  
+  // Update retention mode state when storage mode changes
+  useEffect(() => {
+    setCurrentRetentionMode(isZeroTrace ? 'zerotrace' : 'forever');
+  }, [isZeroTrace]);
+  
+  // Handle retention mode change from dropdown
+  const handleRetentionModeChange = async (mode: 'zerotrace' | '1day' | '1week' | '90days' | 'forever') => {
+    if (!user) return;
+    
+    const shouldBeZeroTrace = mode === 'zerotrace';
+    
+    // Only update database if the storage mode needs to change
+    if (shouldBeZeroTrace !== isZeroTrace) {
+      try {
+        // Update user_settings.zero_retention_mode
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            zero_retention_mode: shouldBeZeroTrace,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id'
+          });
+        
+        if (error) throw error;
+        
+        // Refresh the storage mode to pick up the change
+        await refreshMode();
+        
+        toast({
+          title: shouldBeZeroTrace ? 'ZeroTrace Mode Activated' : 'Cloud Storage Mode Activated',
+          description: shouldBeZeroTrace 
+            ? 'Messages will be stored locally and never sent to our servers'
+            : 'Messages will be stored encrypted in the cloud',
+        });
+      } catch (error) {
+        console.error('Failed to update storage mode:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to update storage mode',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
+    setCurrentRetentionMode(mode);
+  };
   
   // RAG Context - pass selectedConversation to connect document uploads
   const {
@@ -1179,6 +1236,8 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                   onFileUpload={handleFileUpload}
                   onToggleIntegration={handleToggleIntegration}
                   onConnectIntegration={handleConnectIntegration}
+                  retentionMode={currentRetentionMode}
+                  onRetentionModeChange={handleRetentionModeChange}
                 />
                 {hasContext && (
                   <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
