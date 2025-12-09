@@ -82,37 +82,58 @@ const VaultChatFeatures = () => {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center">
-            <Badge variant="outline" className="mb-6 border-primary/30 text-primary bg-primary/5">
-              <Lock className="w-3 h-3 mr-1" />
-              Zero-Trust AI Infrastructure
-            </Badge>
-            
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
-              Vault Chat
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-600 mb-4 max-w-3xl mx-auto font-medium">
-              Deploy AI behind <span className="text-primary">your</span> firewall — not theirs.
-            </p>
-            
-            <p className="text-lg text-gray-500 max-w-4xl mx-auto mb-10 leading-relaxed">
-              Adaptive assistants for mission-critical sectors, running with full end-to-end encryption, 
-              Swiss data residency, and zero cloud leakage.
-            </p>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Content */}
+            <div>
+              <Badge variant="outline" className="mb-6 border-primary/30 text-primary bg-primary/5">
+                <Lock className="w-3 h-3 mr-1" />
+                Zero-Trust AI Infrastructure
+              </Badge>
+              
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+                Vault Chat
+              </h1>
+              
+              <p className="text-xl md:text-2xl text-gray-600 mb-4 font-medium">
+                Deploy AI behind <span className="text-primary">your</span> firewall — not theirs.
+              </p>
+              
+              <p className="text-lg text-gray-500 mb-8 leading-relaxed">
+                Adaptive assistants for mission-critical sectors, running with full end-to-end encryption, 
+                Swiss data residency, and zero cloud leakage.
+              </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="text-base px-8">
-                <Link to="/auth">
-                  Start Free Trial
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-base px-8 border-gray-300 text-gray-700 hover:bg-gray-50">
-                <Link to="/contact">
-                  Request Demo
-                </Link>
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button asChild size="lg" className="text-base px-8">
+                  <Link to="/auth">
+                    Request Early Access
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="text-base px-8 border-gray-300 text-gray-700 hover:bg-gray-50">
+                  <Link to="/contact">
+                    Request Demo
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Right: Video */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl blur-3xl opacity-50" />
+              <div className="relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-auto"
+                >
+                  <source src="/videos/vault-chat-demo.mov" type="video/quicktime" />
+                  <source src="/videos/vault-chat-demo.mov" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             </div>
           </div>
         </div>
