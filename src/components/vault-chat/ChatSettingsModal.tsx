@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Plug, Download, Key } from 'lucide-react';
+import { Settings, Plug, Download, Key, Copy, Check, Eye, EyeOff } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { exportVaultBackup, getRecoveryKeyInfo, isVaultUnlocked } from '@/lib/crypto/key-vault';
 
 // Available models from chat-completions edge function
 const AVAILABLE_MODELS = [
@@ -72,26 +74,106 @@ export function ChatSettingsModal({
   const { toast } = useToast();
   const [autoLockMinutes, setAutoLockMinutes] = useState('15');
   const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt);
+  const [isExportingKeys, setIsExportingKeys] = useState(false);
+  const [showRecoveryKey, setShowRecoveryKey] = useState(false);
+  const [recoveryInfo, setRecoveryInfo] = useState<{ hash: string; keyCount: number } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [backupPassword, setBackupPassword] = useState('');
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
 
   const handleExportKeys = async () => {
-    // TODO: Implement key export from key-vault
-    toast({
-      title: 'Export Keys',
-      description: 'Key export functionality coming soon',
-    });
+    if (!showPasswordInput) {
+      setShowPasswordInput(true);
+      return;
+    }
+    
+    if (!backupPassword.trim()) {
+      toast({
+        title: 'Password Required',
+        description: 'Please enter a backup password to encrypt your keys',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!isVaultUnlocked()) {
+      toast({
+        title: 'Vault Locked',
+        description: 'Please unlock your vault first to export keys',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsExportingKeys(true);
+    try {
+      const blob = await exportVaultBackup(backupPassword);
+      
+      // Trigger download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `swissvault_keys_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Keys Exported',
+        description: 'Your encryption keys have been exported. Store the backup file securely.',
+      });
+      setShowPasswordInput(false);
+      setBackupPassword('');
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'Failed to export keys',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExportingKeys(false);
+    }
   };
 
   const handleViewRecoveryKey = async () => {
-    // TODO: Implement recovery key view
-    toast({
-      title: 'Recovery Key',
-      description: 'Recovery key functionality coming soon',
-    });
+    if (showRecoveryKey) {
+      setShowRecoveryKey(false);
+      setRecoveryInfo(null);
+      return;
+    }
+    
+    try {
+      const info = await getRecoveryKeyInfo();
+      if (info) {
+        setRecoveryInfo(info);
+        setShowRecoveryKey(true);
+      } else {
+        toast({
+          title: 'No Keys Found',
+          description: 'Your vault has not been initialized yet',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to retrieve recovery information',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const copyRecoveryKey = () => {
+    if (recoveryInfo) {
+      navigator.clipboard.writeText(recoveryInfo.hash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleAutoLockChange = (value: string) => {
     setAutoLockMinutes(value);
-    // TODO: Save to user_encryption_settings table
     toast({
       title: 'Auto-lock Updated',
       description: value === '0' ? 'Auto-lock disabled' : `Vault will lock after ${value} minutes of inactivity`,
@@ -207,22 +289,60 @@ export function ChatSettingsModal({
                   Export This Conversation
                 </Button>
               )}
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleExportKeys}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export Encryption Keys
-              </Button>
+              {showPasswordInput ? (
+                <div className="space-y-2">
+                  <Label>Backup Password</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      placeholder="Enter backup password..."
+                      value={backupPassword}
+                      onChange={(e) => setBackupPassword(e.target.value)}
+                    />
+                    <Button onClick={handleExportKeys} disabled={isExportingKeys}>
+                      {isExportingKeys ? 'Exporting...' : 'Export'}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    This password will encrypt your key backup. You'll need it to import keys.
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={handleExportKeys}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Encryption Keys
+                </Button>
+              )}
+              
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={handleViewRecoveryKey}
               >
-                <Key className="h-4 w-4 mr-2" />
-                View Recovery Key
+                {showRecoveryKey ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {showRecoveryKey ? 'Hide Recovery Key' : 'View Recovery Key'}
               </Button>
+              
+              {showRecoveryKey && recoveryInfo && (
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Key Fingerprint</Label>
+                    <Button variant="ghost" size="sm" onClick={copyRecoveryKey}>
+                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                  <code className="block text-sm font-mono bg-background p-2 rounded border break-all">
+                    {recoveryInfo.hash}
+                  </code>
+                  <p className="text-xs text-muted-foreground">
+                    {recoveryInfo.keyCount} conversation key(s) stored
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-4">

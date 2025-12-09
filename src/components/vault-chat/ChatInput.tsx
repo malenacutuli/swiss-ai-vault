@@ -30,6 +30,8 @@ interface ChatInputProps {
   onFileUpload: (files: FileList) => void;
   onToggleIntegration: (type: string) => void;
   onConnectIntegration: (type: string) => void;
+  retentionMode?: RetentionMode;
+  onRetentionModeChange?: (mode: RetentionMode) => void;
 }
 
 export function ChatInput({
@@ -42,12 +44,22 @@ export function ChatInput({
   onFileUpload,
   onToggleIntegration,
   onConnectIntegration,
+  retentionMode: externalRetentionMode,
+  onRetentionModeChange,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
-  const [retentionMode, setRetentionMode] = useState<RetentionMode>('zerotrace');
+  const [internalRetentionMode, setInternalRetentionMode] = useState<RetentionMode>('zerotrace');
   const [mentions, setMentions] = useState<Array<{ id: string; type: string; name: string }>>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  
+  // Use external retention mode if provided, otherwise use internal state
+  const retentionMode = externalRetentionMode ?? internalRetentionMode;
+  
+  const handleRetentionChange = (mode: RetentionMode) => {
+    setInternalRetentionMode(mode);
+    onRetentionModeChange?.(mode);
+  };
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -173,7 +185,7 @@ export function ChatInput({
             {/* Retention Mode */}
             <RetentionModeDropdown
               value={retentionMode}
-              onChange={setRetentionMode}
+              onChange={handleRetentionChange}
               disabled={disabled || isProcessing}
             />
           </div>
