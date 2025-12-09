@@ -58,7 +58,7 @@ const features = [
   {
     icon: Cpu,
     title: "Model-Agnostic",
-    description: "Use OpenAI, Claude, Gemini, or open-source LLMs — your choice"
+    description: "Use OpenAI, Claude, Gemini, or open-source LLMs - your choice"
   },
   {
     icon: Flag,
@@ -139,7 +139,7 @@ const VaultChatFeatures = () => {
               Built for:
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Use AI to understand, extract, and act on your most sensitive data — 
+              Use AI to understand, extract, and act on your most sensitive data - 
               entirely within your perimeter. <strong>No logs. No leaks. No exceptions.</strong>
             </p>
           </div>
@@ -205,7 +205,6 @@ const VaultChatFeatures = () => {
         <div className="container mx-auto max-w-4xl">
           <div className="bg-white rounded-2xl p-8 md:p-12 border border-gray-200 shadow-sm">
             <div className="text-center mb-10">
-              <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                 Your Data Never Leaves Your Control
               </h2>
@@ -231,9 +230,9 @@ const VaultChatFeatures = () => {
             </div>
 
             <div className="mt-10 text-center">
-              <Button asChild size="lg" className="px-8">
-                <Link to="/chat">
-                  Try Vault Chat Now
+              <Button asChild size="lg" className="px-8 bg-gray-700/80 hover:bg-gray-800/90 text-white border-0 shadow-none">
+                <Link to="/auth">
+                  Sign Up for Early Access
                   <Lock className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
