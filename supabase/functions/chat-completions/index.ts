@@ -246,20 +246,31 @@ serve(async (req) => {
       });
     }
 
-    console.log('[chat-completions] Authenticated user:', user.id);
+    // Only log user ID when NOT in zero-retention mode (checked after parsing body)
+    const body = await req.json();
+    const { model: rawModel, messages, max_tokens, temperature, rag_context, zero_retention } = body;
+    
+    // Conditional logging based on zero-retention mode
+    if (!zero_retention) {
+      console.log('[chat-completions] Authenticated user:', user.id);
+    } else {
+      console.log('[chat-completions] Zero-retention mode active - minimal logging');
+    }
 
-    const { model: rawModel, messages, max_tokens, temperature, rag_context, zero_retention } = await req.json();
     if (!rawModel || !messages) {
       return new Response(JSON.stringify({ error: 'Missing model or messages' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Normalize model name (handle deprecated aliases)
     const model = normalizeModelName(rawModel);
-    if (model !== rawModel) {
+    if (model !== rawModel && !zero_retention) {
       console.log('[chat-completions] Aliased model:', rawModel, '->', model);
     }
 
-    console.log('[chat-completions] Model:', model, 'Provider:', getProvider(model), 'RAG context:', rag_context ? 'yes' : 'no');
+    // Only log detailed request info when NOT in zero-retention mode
+    if (!zero_retention) {
+      console.log('[chat-completions] Model:', model, 'Provider:', getProvider(model), 'RAG context:', rag_context ? 'yes' : 'no');
+    }
 
     // Inject RAG context as system message if provided
     let processedMessages = [...messages];
@@ -277,7 +288,9 @@ serve(async (req) => {
         // Add RAG context as new system message at the beginning
         processedMessages.unshift({ role: 'system', content: rag_context });
       }
-      console.log('[chat-completions] Injected RAG context into messages');
+      if (!zero_retention) {
+        console.log('[chat-completions] Injected RAG context into messages');
+      }
     }
 
     const options = { maxTokens: max_tokens, temperature };
@@ -290,14 +303,19 @@ serve(async (req) => {
       default: result = await callOpenAI(processedMessages, model, options); break;
     }
 
-    const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
-    if (zero_retention) {
-      responseHeaders['X-Zero-Retention'] = 'true';
-    }
+    // Build response headers with zero-retention indicators
+    const responseHeaders: Record<string, string> = { 
+      ...corsHeaders, 
+      'Content-Type': 'application/json',
+      'X-Zero-Retention': zero_retention ? 'true' : 'false',
+      'X-Storage-Mode': zero_retention ? 'local-only' : 'encrypted-cloud',
+    };
 
     return new Response(JSON.stringify(result), { headers: responseHeaders });
   } catch (error: unknown) {
-    console.error('[chat-completions] Error:', error);
+    // Only log errors with details when NOT in zero-retention mode
+    // Note: We can't check zero_retention here as it may have failed during parsing
+    console.error('[chat-completions] Error:', error instanceof Error ? error.message : 'Unknown error');
     const errorMessage = error instanceof Error ? error.message : 'Internal error';
     return new Response(JSON.stringify({ error: { message: errorMessage } }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
