@@ -182,33 +182,14 @@ const VaultLabsFeatures = () => {
                     className="w-full h-auto bg-white"
                   />
                 ) : (
-                  <>
-                    <div className={`absolute inset-0 bg-gradient-to-r ${section.gradient} opacity-10 rounded-3xl blur-3xl`} />
-                    <div className="relative bg-white border border-gray-200 rounded-2xl p-8 shadow-xl">
-                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${section.gradient} flex items-center justify-center mb-6`}>
-                        <section.icon className="h-8 w-8 text-white" />
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {section.features.map((_, i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <CheckCircle2 className={`h-5 w-5 text-transparent bg-gradient-to-r ${section.gradient} bg-clip-text`} style={{ color: i === 0 ? '#8B5CF6' : i === 1 ? '#EC4899' : i === 2 ? '#F97316' : '#10B981' }} />
-                            <div className="h-3 bg-gray-100 rounded-full flex-1" style={{ width: `${85 - i * 10}%` }} />
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-6 pt-6 border-t border-gray-100">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Encryption Status</span>
-                          <span className="flex items-center gap-1.5 text-green-600 font-medium">
-                            <Lock className="h-4 w-4" />
-                            E2E Encrypted
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
+                  <video
+                    src="/videos/switzerland.mov"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-auto bg-white"
+                  />
                 )}
               </div>
             </div>
