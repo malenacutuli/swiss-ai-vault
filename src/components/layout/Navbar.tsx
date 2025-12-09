@@ -1,12 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { SwissFlag } from "@/components/icons/SwissFlag";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X, ArrowRight, ChevronDown, MessageSquareLock, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { EarlyAccessModal } from "@/components/EarlyAccessModal";
 import { DemoRequestModal } from "@/components/DemoRequestModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,9 +33,26 @@ export const Navbar = () => {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {t('nav.features')}
-              </a>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  {t('nav.features')}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link to="/features/vault-chat" className="flex items-center gap-2">
+                      <MessageSquareLock className="h-4 w-4" />
+                      Vault Chat
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/features/vault-labs" className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Vault Labs
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <a href="/#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {t('nav.models')}
               </a>
@@ -66,9 +89,12 @@ export const Navbar = () => {
           {isOpen && (
             <div className="md:hidden py-4 border-t border-border/50">
               <div className="flex flex-col gap-4">
-                <a href="/#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
-                  {t('nav.features')}
-                </a>
+                <Link to="/features/vault-chat" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
+                  Vault Chat
+                </Link>
+                <Link to="/features/vault-labs" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
+                  Vault Labs
+                </Link>
                 <a href="/#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   {t('nav.models')}
                 </a>
