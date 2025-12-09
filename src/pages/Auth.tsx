@@ -65,8 +65,6 @@ export default function Auth() {
   const location = useLocation();
   const { toast } = useToast();
 
-  const searchParams = new URLSearchParams(location.search);
-  const redirectParam = searchParams.get('redirect');
   const from = location.state?.from?.pathname || '/dashboard';
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
@@ -92,7 +90,9 @@ export default function Auth() {
   useEffect(() => {
     const handleRedirectAfterLogin = async () => {
       if (user) {
-        if (redirectParam === 'checkout-pro') {
+        const pendingCheckout = localStorage.getItem('pendingCheckout');
+        if (pendingCheckout === 'pro') {
+          localStorage.removeItem('pendingCheckout');
           // Trigger Pro checkout after login
           try {
             const { data, error } = await supabase.functions.invoke('create-pro-checkout');
@@ -109,7 +109,7 @@ export default function Auth() {
       }
     };
     handleRedirectAfterLogin();
-  }, [user, navigate, from, redirectParam]);
+  }, [user, navigate, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

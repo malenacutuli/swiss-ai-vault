@@ -73,8 +73,9 @@ export const PricingSection = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          // Redirect to auth with return URL for checkout
-          navigate('/auth?redirect=checkout-pro');
+          // Store checkout intent in localStorage and redirect to auth
+          localStorage.setItem('pendingCheckout', 'pro');
+          navigate('/auth');
           setIsLoading(false);
           return;
         }
