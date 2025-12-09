@@ -48,6 +48,7 @@ import DPA from "./pages/DPA";
 import Status from "./pages/Status";
 import OAuthCallback from "./pages/OAuthCallback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
+import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 
 const queryClient = new QueryClient();
 
@@ -107,6 +108,7 @@ const App = () => {
             <Route path="/dpa" element={<DPA />} />
             <Route path="/status" element={<Status />} />
             <Route path="/features/vault-chat" element={<VaultChatFeatures />} />
+            <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
