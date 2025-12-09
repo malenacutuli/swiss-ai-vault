@@ -1138,7 +1138,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
               </div>
 
               {/* Search */}
-              <div className="p-4 border-b border-border">
+              <div className="p-3 border-b border-border">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -1148,6 +1148,12 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                     className="pl-9"
                   />
                 </div>
+              </div>
+
+              {/* Conversation Count */}
+              <div className="px-4 py-2 text-sm text-muted-foreground border-b border-border/50">
+                {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
+                {searchQuery && ` matching "${searchQuery}"`}
               </div>
 
               {/* Conversation List */}
