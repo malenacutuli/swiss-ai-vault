@@ -1095,7 +1095,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                     });
                   }}
                 />
-                {isZeroTrace && selectedConversation && (
+                {selectedConversation && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1264,7 +1264,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         />
       )}
 
-      {isZeroTrace && conversationToExport && (
+      {conversationToExport && (
         <ExportChatDialog
           open={exportDialogOpen}
           onOpenChange={(open) => {
@@ -1272,9 +1272,11 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
             if (!open) setConversationToExport(null);
           }}
           conversationId={conversationToExport}
-          conversationTitle={conversations.find(c => c.id === conversationToExport)?.encrypted_title || 'ZeroTrace Chat'}
+          conversationTitle={conversations.find(c => c.id === conversationToExport)?.encrypted_title || 'Vault Chat'}
           messageCount={messages.length}
-          wrappedKey={{ ciphertext: '', nonce: '' }} // Key wrapping handled inside dialog
+          wrappedKey={isZeroTrace ? { ciphertext: '', nonce: '' } : undefined}
+          messages={!isZeroTrace ? messages.map(m => ({ role: m.role, content: m.content, created_at: m.created_at })) : undefined}
+          isZeroTrace={isZeroTrace}
           onExportComplete={() => {
             recordExport();
             setExportDialogOpen(false);
