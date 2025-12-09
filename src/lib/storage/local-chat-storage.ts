@@ -378,7 +378,46 @@ class LocalChatStorageService {
   // ============ RETENTION CLEANUP ============
 
   /**
-   * Clean up messages older than retention period
+   * Clean up expired conversations based on their individual retention settings
+   * @returns Number of deleted conversations and messages
+   */
+  async cleanupExpiredContent(): Promise<{ conversationsDeleted: number; messagesDeleted: number }> {
+    const now = Date.now();
+    let conversationsDeleted = 0;
+    let messagesDeleted = 0;
+    
+    try {
+      const conversations = await this.listConversations();
+      
+      for (const conv of conversations) {
+        // null retention_days = forever - skip
+        if (conv.retention_days === null) continue;
+        
+        const createdAt = new Date(conv.created_at).getTime();
+        const expiryTime = createdAt + (conv.retention_days * 24 * 60 * 60 * 1000);
+        
+        if (now > expiryTime) {
+          const msgCount = conv.message_count || 0;
+          await this.deleteConversation(conv.id);
+          conversationsDeleted++;
+          messagesDeleted += msgCount;
+          console.log('[LocalChatStorage] Deleted expired conversation:', conv.id, 
+            `(${conv.retention_days} day retention, created ${conv.created_at})`);
+        }
+      }
+      
+      console.log('[LocalChatStorage] Cleanup complete:', 
+        conversationsDeleted, 'conversations,', messagesDeleted, 'messages deleted');
+      
+      return { conversationsDeleted, messagesDeleted };
+    } catch (error) {
+      console.error('[LocalChatStorage] Error during cleanup:', error);
+      return { conversationsDeleted, messagesDeleted };
+    }
+  }
+
+  /**
+   * Clean up messages older than retention period (legacy method)
    * @param retentionDays Number of days to retain messages
    * @returns Number of deleted messages
    */
