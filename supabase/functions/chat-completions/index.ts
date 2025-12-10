@@ -194,25 +194,82 @@ async function callGoogle(messages: any[], model: string, options: any) {
 
 async function callVLLM(messages: any[], model: string, options: any) {
   const VLLM_ENDPOINT = Deno.env.get('VLLM_ENDPOINT');
+  
   if (!VLLM_ENDPOINT) {
-    console.warn('[vLLM] VLLM_ENDPOINT not configured, falling back to GPT-4o-mini');
-    return await callOpenAI(messages, 'gpt-4o-mini', options);
+    console.error('[vLLM] VLLM_ENDPOINT not configured');
+    throw new Error('Open-source models are temporarily unavailable. Please select Claude, GPT, or Gemini.');
   }
 
-  console.log('[vLLM] Request:', { endpoint: VLLM_ENDPOINT, model });
+  console.log('[vLLM] Calling Modal endpoint:', { 
+    endpoint: VLLM_ENDPOINT.substring(0, 50) + '...', 
+    model,
+    maxTokens: options.maxTokens || 1024 
+  });
+
+  // 90-second timeout to handle Modal cold starts (can take 30-60s)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.warn('[vLLM] Request timeout after 90 seconds');
+    controller.abort();
+  }, 90000);
 
   try {
+    const startTime = Date.now();
+    
     const response = await fetch(VLLM_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages, max_tokens: options.maxTokens || 1024, temperature: options.temperature || 0.7 }),
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        model, 
+        messages, 
+        max_tokens: options.maxTokens || 1024, 
+        temperature: options.temperature || 0.7,
+        stream: false,
+      }),
+      signal: controller.signal,
     });
 
-    if (!response.ok) throw new Error(`vLLM error: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('[vLLM] Failed, falling back:', error);
-    return await callOpenAI(messages, 'gpt-4o-mini', options);
+    clearTimeout(timeoutId);
+    const duration = Date.now() - startTime;
+    console.log(`[vLLM] Response received in ${duration}ms, status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[vLLM] Error response:', response.status, errorText);
+      
+      if (response.status === 503 || response.status === 504) {
+        throw new Error('The model is warming up. Please wait 30-60 seconds and try again.');
+      }
+      
+      throw new Error(`Model error (${response.status}): ${errorText.substring(0, 100)}`);
+    }
+    
+    const data = await response.json();
+    console.log('[vLLM] Success:', { 
+      model,
+      duration: `${duration}ms`,
+      hasContent: !!data.choices?.[0]?.message?.content 
+    });
+    
+    return data;
+    
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[vLLM] Request aborted - timeout after 90s');
+      throw new Error(
+        'The model is taking too long to start (cold start). ' +
+        'Open-source models may need 30-60 seconds to warm up on first use. ' +
+        'Please try again, or select a commercial model (Claude, GPT, Gemini).'
+      );
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[vLLM] Request failed:', errorMessage);
+    throw error instanceof Error ? error : new Error(errorMessage);
   }
 }
 
