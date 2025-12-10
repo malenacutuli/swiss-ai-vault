@@ -43,6 +43,8 @@ const OPENAI_MODELS: Model[] = [
   { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI', description: 'Flagship unified model', isNew: true },
   { id: 'gpt-5-pro', name: 'GPT-5 Pro', provider: 'OpenAI', description: 'Extended reasoning', isNew: true, isReasoning: true },
   { id: 'gpt-5-mini', name: 'GPT-5 Mini', provider: 'OpenAI', description: 'Fast and cost-effective', isNew: true },
+  { id: 'gpt-4.1', name: 'GPT-4.1', provider: 'OpenAI', description: 'Flagship GPT-4 model', isNew: true },
+  { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', provider: 'OpenAI', description: 'Fast GPT-4', isNew: true },
   { id: 'o1', name: 'OpenAI o1', provider: 'OpenAI', description: 'Advanced reasoning', isReasoning: true },
   { id: 'o1-mini', name: 'OpenAI o1-mini', provider: 'OpenAI', description: 'Fast reasoning', isReasoning: true },
 ];
