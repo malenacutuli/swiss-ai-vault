@@ -38,8 +38,6 @@ const providers: Provider[] = [
       { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: 'Most intelligent', badge: 'NEW' },
       { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', description: 'Balanced performance', badge: 'NEW' },
       { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', description: 'Fastest Claude', badge: 'NEW' },
-      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: 'Previous gen balanced' },
-      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Fast & efficient' },
     ]
   },
   {
@@ -47,10 +45,11 @@ const providers: Provider[] = [
     name: 'OpenAI',
     logo: openaiLogo,
     models: [
-      { id: 'o1', name: 'OpenAI o1', description: 'Advanced reasoning', badge: 'NEW', isReasoning: true },
+      { id: 'gpt-5', name: 'GPT-5', description: 'Flagship unified model', badge: 'NEW' },
+      { id: 'gpt-5-pro', name: 'GPT-5 Pro', description: 'Extended reasoning', badge: 'NEW', isReasoning: true },
+      { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Fast and cost-effective', badge: 'NEW' },
+      { id: 'o1', name: 'OpenAI o1', description: 'Advanced reasoning', isReasoning: true },
       { id: 'o1-mini', name: 'OpenAI o1-mini', description: 'Fast reasoning', isReasoning: true },
-      { id: 'gpt-4o', name: 'GPT-4o', description: 'Multimodal flagship' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Cost-effective' },
     ]
   },
   {
@@ -58,10 +57,10 @@ const providers: Provider[] = [
     name: 'Google',
     logo: googleLogo,
     models: [
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Latest Gemini', badge: 'NEW' },
-      { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', description: 'Reasoning', badge: 'NEW', isReasoning: true },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: '1M context' },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast' },
+      { id: 'gemini-3.0-pro', name: 'Gemini 3.0 Pro', description: 'Most intelligent', badge: 'NEW' },
+      { id: 'gemini-3.0-flash', name: 'Gemini 3.0 Flash', description: 'Fast multimodal', badge: 'NEW' },
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Previous gen' },
+      { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', description: 'Reasoning', isReasoning: true },
     ]
   },
   {
