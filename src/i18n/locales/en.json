@@ -472,6 +472,221 @@
     "tryAgain": "Please try again",
     "unexpectedError": "An unexpected error occurred"
   },
+  "home": {
+    "hero": {
+      "title": "Zero-Trace AI for",
+      "titleHighlight": "Regulated Teams",
+      "subtitle": "No leaks. No logs. No compromise.",
+      "description": "SwissVault lets you build AI on your data without touching U.S. clouds — with sovereign hosting and zero-trace encryption. Train and deploy AI on your most sensitive data with full end-to-end encryption, Swiss data residency, and audit-grade transparency.",
+      "bookDemo": "Book Enterprise Demo",
+      "earlyAccess": "Sign Up for Early Access",
+      "hostedInSwitzerland": "Hosted in Switzerland",
+      "gdprReady": "GDPR-ready",
+      "e2eEncryption": "Client-side E2E encryption"
+    },
+    "mockUI": {
+      "workspaceTitle": "SwissVault Assistant Workspace",
+      "complianceCopilot": "Compliance Co-Pilot",
+      "complianceCopilotDesc": "Financial regulations assistant",
+      "e2eEncrypted": "E2E Encrypted",
+      "sampleQuestion": "What are the KYC requirements for high-risk clients?",
+      "sampleAnswer": "Based on your internal policy documents, high-risk clients require enhanced due diligence including...",
+      "encryptedResponse": "Encrypted response",
+      "datasets": "Datasets",
+      "sources": "sources",
+      "fineTuned": "Fine-tuned",
+      "modelsCount": "models",
+      "evaluations": "Evaluations",
+      "accuracy": "accuracy",
+      "ragSources": "RAG Sources"
+    },
+    "whySwissVault": {
+      "title": "Why SwissVault?",
+      "subtitle": "Enterprise AI infrastructure built for privacy-first organizations.",
+      "zeroKnowledge": {
+        "title": "Zero-Knowledge by Design",
+        "description": "We can't read your encrypted conversations – and neither can anyone else.",
+        "details": "Client-side AES-256-GCM, per-conversation keys, and strict row-level security."
+      },
+      "swissResidency": {
+        "title": "Swiss Data Residency & Governance",
+        "description": "All data is stored in Swiss data centres with full audit trails and access controls.",
+        "details": "GDPR-ready today, SOC 2 / ISO 27001 / FINMA on the roadmap."
+      },
+      "fullLifecycle": {
+        "title": "Full AI Lifecycle in One Secure Platform",
+        "description": "Ingest, fine-tune, evaluate and deploy assistants – using OpenAI, Anthropic, Gemini, or sovereign open-source models on Swiss GPUs."
+      },
+      "seeArchitecture": "See security architecture"
+    },
+    "solutions": {
+      "title": "Built for Regulated Workflows",
+      "subtitle": "SwissVault is used to power internal assistants where privacy and explainability matter more than raw experimentation.",
+      "compliance": {
+        "title": "Compliance & Policy Assistants",
+        "description": "Centralise internal policies, procedures and regulations.",
+        "feature1": "Let employees ask questions in natural language with full audit logs",
+        "feature2": "Enforce zero-retention and strict model policies"
+      },
+      "developer": {
+        "title": "Secure Developer & Ops Co-Pilots",
+        "description": "Connect to private GitHub repos, run code-aware models in a zero-trust environment.",
+        "feature1": "Keep source code and credentials out of third-party logs"
+      },
+      "banking": {
+        "title": "Knowledge Co-Pilots for Banking & Insurance",
+        "description": "Ingest product docs, KYC files, and internal wikis.",
+        "feature1": "Provide frontline teams with instant, traceable answers",
+        "feature2": "RAG citations and evaluation dashboards"
+      },
+      "exploreSolutions": "Explore all solutions"
+    },
+    "howItWorks": {
+      "title": "From Raw Data to Governed AI Assistants",
+      "subtitle": "A simple four-step process to deploy secure, auditable AI.",
+      "step1": {
+        "title": "Connect & Ingest Data Securely",
+        "description": "Upload docs or connect Slack, Notion, GitHub, Gmail. All data stored in Swiss data centres with row-level access control."
+      },
+      "step2": {
+        "title": "Fine-Tune & Evaluate Models",
+        "description": "Use ready-made templates or your own datasets. Train LoRA/QLoRA adapters on open-source models or use commercial APIs. Evaluate with LLM-as-judge and custom metrics before going live."
+      },
+      "step3": {
+        "title": "Deploy Assistants in Vault Chat & via API",
+        "description": "Spin up encrypted assistants for each team or use SwissVault's OpenAI-compatible API in your own apps. Enforce per-org model and retention policies."
+      },
+      "step4": {
+        "title": "Monitor, Audit & Improve",
+        "description": "Track usage, quality, and costs in real-time. Export logs for audits. Iterate on datasets, fine-tunes and guardrails."
+      }
+    },
+    "security": {
+      "badge": "Security & Compliance",
+      "title": "Security Architecture Designed for Auditors",
+      "subtitle": "Enterprise-grade security that satisfies the most demanding compliance requirements.",
+      "e2e": {
+        "title": "Client-Side End-to-End Encryption",
+        "point1": "AES-256-GCM, per-conversation keys, PBKDF2-derived master keys",
+        "point2": "Keys never leave the browser; servers see only ciphertext"
+      },
+      "zeroTrust": {
+        "title": "Zero-Trust Backend",
+        "point1": "Row-Level Security on 40+ tables",
+        "point2": "Immutable audit logs with full before/after change history",
+        "point3": "Strict organisation roles (owner, admin, member)"
+      },
+      "swissResidency": {
+        "title": "Swiss Data Residency",
+        "point1": "All data stored in AWS eu-central-2 (Zurich) and EU-hosted databases",
+        "point2": "Optional zero-retention mode for inference traces and evaluation samples"
+      },
+      "complianceRoadmap": {
+        "title": "Compliance Roadmap",
+        "point1": "GDPR-aligned processes in place",
+        "point2": "SOC 2 Type II (in progress), ISO 27001 and FINMA readiness on the roadmap"
+      },
+      "architecture": {
+        "title": "Zero-Knowledge Architecture",
+        "browser": {
+          "title": "Your Browser (Keys Here)",
+          "description": "AES-256-GCM encryption keys stored in IndexedDB. All encryption/decryption happens client-side."
+        },
+        "backend": {
+          "title": "SwissVault Backend",
+          "description": "Stores only encrypted ciphertext + key hashes. RLS policies enforce data isolation."
+        },
+        "infrastructure": {
+          "title": "Swiss Infrastructure",
+          "description": "AWS eu-central-2 (Zurich). Data never leaves Swiss jurisdiction."
+        }
+      },
+      "downloadWhitepaper": "Download Security Whitepaper",
+      "talkToCISO": "Talk to our CISO"
+    },
+    "models": {
+      "title": "Use the Best Models – Without Losing Sovereignty",
+      "subtitle": "SwissVault abstracts away providers so you can choose the right model for each workload while keeping governance and logging in one place.",
+      "hybridCloud": {
+        "title": "Hybrid Cloud",
+        "description": "GPT-4o, o1, Claude 3.5, Gemini 2.0 for workloads allowed to use US APIs. Centralised routing, billing and monitoring."
+      },
+      "sovereignOpenSource": {
+        "title": "Sovereign Open-Source",
+        "description": "Llama, Mistral, Qwen, Gemma and more, hosted on Swiss GPUs via vLLM. Option to restrict an organisation to Swiss-hosted open-source models only."
+      },
+      "openaiCompatible": "Already using OpenAI?",
+      "openaiCompatibleDesc": "Drop-in compatible with the OpenAI Python and JS SDKs – just change the base URL."
+    },
+    "pricing": {
+      "title": "Start Free, Grow to Enterprise",
+      "subtitle": "Simple plans for teams getting started, with custom options for regulated enterprises.",
+      "free": {
+        "name": "Free",
+        "price": "$0",
+        "period": "forever",
+        "description": "For evaluation and small teams.",
+        "feature1": "10K API calls / month",
+        "feature2": "2 fine-tuning jobs / month",
+        "feature3": "1GB dataset storage",
+        "feature4": "Community support",
+        "cta": "Get Started"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$49",
+        "period": "/month",
+        "description": "For teams building assistants and professionals looking for zero-trace AI needs.",
+        "badge": "Most popular for product teams",
+        "feature1": "100K API calls / month",
+        "feature2": "20 fine-tuning jobs / month",
+        "feature3": "50GB dataset storage",
+        "feature4": "Advanced evaluation suite",
+        "feature5": "Webhook integrations, team workspaces",
+        "cta": "Get Started"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "For banks, insurers, critical infrastructure.",
+        "feature1": "1M+ API calls / month",
+        "feature2": "Unlimited fine-tuning jobs",
+        "feature3": "500GB+ storage",
+        "feature4": "Dedicated support & SLAs",
+        "feature5": "SSO & audit integrations",
+        "feature6": "Optional sovereign OSS-only tier",
+        "cta": "Contact Sales"
+      },
+      "sovereignDeployment": "Need on-premise or your own GPUs? Talk to us about sovereign deployment"
+    },
+    "socialProof": {
+      "title": "Trusted by Security-First Teams",
+      "testimonial": "SwissVault let us roll out internal AI assistants without sending any client data to US clouds – that was non-negotiable.",
+      "author": "CISO",
+      "company": "Swiss Financial Institution",
+      "industries": {
+        "swissBanks": "Swiss Banks",
+        "healthcare": "Healthcare Professionals",
+        "hnwi": "HNWI",
+        "crypto": "Crypto Managers",
+        "blockchain": "Blockchain",
+        "insurance": "Insurance Companies",
+        "regtech": "RegTech Vendor",
+        "wealthManagers": "Wealth Managers",
+        "privateBank": "Private Bank"
+      }
+    },
+    "developer": {
+      "title": "Loved by Developers and ML Teams",
+      "feature1": "OpenAI-compatible API – drop-in for existing code",
+      "feature2": "SDKs for Python and TypeScript with async and streaming",
+      "feature3": "Webhooks for evaluations, fine-tuning jobs and billing",
+      "viewApiDocs": "View API Docs"
+    },
+    "supportedBy": {
+      "title": "AI Innovative Company Supported by"
+    }
+  },
   "landing": {
     "hero": {
       "badge": "Swiss Data Residency Guaranteed",
