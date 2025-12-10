@@ -46,6 +46,7 @@
     "login": "Iniciar sesión",
     "signup": "Registrarse",
     "or": "o",
+    "and": "y",
     "total": "total",
     "thisMonth": "este mes",
     "viewAll": "Ver todo",
@@ -59,14 +60,7 @@
     "billing": "Facturación",
     "user": "Usuario",
     "there": "ahí",
-    "tryAgain": "Intentar de nuevo",
-    "details": "Detalles",
-    "start": "Iniciar",
-    "stop": "Detener",
-    "run": "Ejecutar",
-    "test": "Probar",
-    "deploy": "Desplegar",
-    "parameters": "Parámetros"
+    "tryAgain": "Intentar de nuevo"
   },
   "nav": {
     "home": "Inicio",
@@ -88,7 +82,12 @@
     "compliance": "Cumplimiento",
     "auditLogs": "Registros de auditoría",
     "admin": "Administración",
-    "catalog": "Catálogo"
+    "catalog": "Catálogo",
+    "features": "Características",
+    "pricing": "Precios",
+    "signIn": "Iniciar sesión",
+    "getStarted": "Comenzar",
+    "earlyAccess": "Acceso anticipado"
   },
   "sidebar": {
     "dashboard": "Panel",
@@ -107,29 +106,52 @@
     "compliance": "Cumplimiento"
   },
   "auth": {
+    "welcomeTitle": "Bienvenido a SwissVault.ai",
+    "welcomeSubtitle": "Ajuste fino de IA seguro con residencia de datos suiza",
     "welcomeBack": "Bienvenido de nuevo",
     "signInToContinue": "Inicia sesión para continuar en SwissVault",
     "createAccount": "Crear una cuenta",
     "getStarted": "Comienza con SwissVault",
     "email": "Correo electrónico",
+    "emailPlaceholder": "tu@empresa.com",
     "password": "Contraseña",
     "confirmPassword": "Confirmar contraseña",
     "fullName": "Nombre completo",
+    "fullNamePlaceholder": "Tu nombre completo",
     "signIn": "Iniciar sesión",
     "signUp": "Registrarse",
+    "logIn": "Entrar",
     "signingIn": "Iniciando sesión...",
     "signingUp": "Registrando...",
     "continueWithGoogle": "Continuar con Google",
-    "continueWithGithub": "Continuar con GitHub",
-    "orContinueWithEmail": "o continuar con correo",
+    "continueWithGitHub": "Continuar con GitHub",
+    "orContinueWithEmail": "O CONTINUAR CON CORREO",
     "alreadyHaveAccount": "¿Ya tienes una cuenta?",
     "dontHaveAccount": "¿No tienes una cuenta?",
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "resetPassword": "Restablecer contraseña",
     "backToLogin": "Volver al inicio de sesión",
+    "backToHome": "Volver al inicio",
     "signedOut": "Sesión cerrada",
     "signedOutDescription": "Has cerrado sesión correctamente",
-    "logOut": "Cerrar sesión"
+    "logOut": "Cerrar sesión",
+    "dataResidency": "Tus datos se almacenan de forma segura en Suiza",
+    "termsPrefix": "Al continuar, aceptas nuestros",
+    "termsOfService": "Términos de servicio",
+    "privacyPolicy": "Política de privacidad",
+    "fillAllFields": "Por favor, completa todos los campos",
+    "fillRequiredFields": "Por favor, completa todos los campos requeridos",
+    "loginFailed": "Error de inicio de sesión",
+    "invalidCredentials": "Correo electrónico o contraseña incorrectos",
+    "loginSuccess": "Has iniciado sesión correctamente",
+    "passwordsNoMatch": "Las contraseñas no coinciden",
+    "passwordMinLength": "La contraseña debe tener al menos 6 caracteres",
+    "accountExists": "La cuenta ya existe",
+    "accountExistsDesc": "Por favor, inicia sesión con tu cuenta existente",
+    "signupFailed": "Error de registro",
+    "accountCreated": "Cuenta creada",
+    "accountCreatedDesc": "Por favor, revisa tu correo para verificar tu cuenta",
+    "oauthError": "Error de autenticación"
   },
   "dashboard": {
     "title": "Panel de control",
@@ -158,7 +180,7 @@
   },
   "projects": {
     "title": "Proyectos",
-    "subtitle": "Gestiona tus flujos de trabajo de desarrollo de modelos de IA",
+    "subtitle": "Gestiona tus proyectos de ajuste fino de IA",
     "newProject": "Nuevo proyecto",
     "createProject": "Crear proyecto",
     "projectName": "Nombre del proyecto",
@@ -166,11 +188,11 @@
     "noProjects": "Aún no hay proyectos",
     "noProjectsYet": "Aún no hay proyectos",
     "noMatchingProjects": "No hay proyectos que coincidan",
-    "createFirstProject": "Crea tu primer proyecto para comenzar a construir modelos de IA",
+    "createFirstProject": "Crea tu primer proyecto para comenzar",
     "adjustFilters": "Intenta ajustar tu búsqueda o filtros",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar este proyecto?",
     "deleteProject": "Eliminar proyecto",
-    "deleteWarning": "¿Estás seguro de que quieres eliminar este proyecto? Esta acción no se puede deshacer. Todos los conjuntos de datos, modelos y evaluaciones asociados serán eliminados permanentemente.",
+    "deleteWarning": "Esta acción no se puede deshacer. Todos los conjuntos de datos, modelos y evaluaciones asociados serán eliminados permanentemente.",
     "deleting": "Eliminando...",
     "noDescription": "Sin descripción",
     "datasets": "conjuntos de datos",
@@ -190,8 +212,8 @@
       "sortBy": "Ordenar por",
       "newest": "Más recientes",
       "oldest": "Más antiguos",
-      "nameAsc": "Nombre A-Z",
-      "nameDesc": "Nombre Z-A"
+      "nameAsc": "Nombre (A-Z)",
+      "nameDesc": "Nombre (Z-A)"
     }
   },
   "datasets": {
@@ -225,7 +247,7 @@
   },
   "finetuning": {
     "title": "Ajuste fino",
-    "subtitle": "Entrena modelos personalizados con tus conjuntos de datos",
+    "subtitle": "Entrena modelos de IA personalizados",
     "newJob": "Nuevo trabajo de ajuste fino",
     "createJob": "Crear trabajo",
     "createFinetuningJob": "Crear trabajo de ajuste fino",
@@ -272,12 +294,12 @@
   },
   "models": {
     "title": "Modelos",
-    "subtitle": "Gestiona y despliega tus modelos ajustados",
+    "subtitle": "Tus modelos ajustados",
     "catalog": "Catálogo de modelos",
     "catalogSubtitle": "Explora los modelos base disponibles",
     "noModels": "Aún no hay modelos",
     "noModelsYet": "Aún no hay modelos",
-    "trainFirst": "Completa un trabajo de ajuste fino para crear tu primer modelo",
+    "trainFirst": "Entrena tu primer modelo para verlo aquí",
     "deploy": "Desplegar",
     "undeploy": "Retirar",
     "deployed": "Desplegado",
@@ -301,7 +323,7 @@
   },
   "evaluations": {
     "title": "Evaluaciones",
-    "subtitle": "Mide y compara el rendimiento del modelo",
+    "subtitle": "Evalúa el rendimiento del modelo",
     "newEvaluation": "Nueva evaluación",
     "createEvaluation": "Crear evaluación",
     "selectModel": "Seleccionar modelo",
@@ -310,7 +332,7 @@
     "selectSnapshot": "Seleccionar instantánea",
     "noEvaluations": "Aún no hay evaluaciones",
     "noEvaluationsYet": "Aún no hay evaluaciones",
-    "runFirst": "Crea tu primera evaluación para medir el rendimiento del modelo",
+    "runFirst": "Ejecuta tu primera evaluación",
     "run": "Ejecutar",
     "rerun": "Volver a ejecutar",
     "results": "Resultados",
@@ -410,8 +432,8 @@
     "usageThisMonth": "Uso este mes"
   },
   "billing": {
-    "title": "Facturación y créditos",
-    "subtitle": "Gestiona tus créditos y ve el uso",
+    "title": "Facturación",
+    "subtitle": "Gestiona tus créditos y pagos",
     "currentBalance": "Saldo actual",
     "creditBalance": "Saldo de créditos",
     "yourCredits": "Tus créditos disponibles",
@@ -561,7 +583,9 @@
       "title": "Ajusta modelos de IA con precisión suiza",
       "subtitle": "Plataforma de ajuste fino de IA de nivel empresarial con residencia de datos suiza garantizada. Entrena, evalúa y despliega modelos personalizados con total soberanía de datos.",
       "cta": "Comenzar prueba gratuita",
-      "docs": "Ver documentación"
+      "docs": "Ver documentación",
+      "earlyAccess": "Regístrate para acceso anticipado",
+      "scheduleDemo": "Programar demostración"
     },
     "features": {
       "title": "Características de nivel empresarial",
@@ -576,9 +600,12 @@
       "subtitle": "Tus datos nunca salen de Suiza"
     },
     "cta": {
-      "title": "¿Listo para empezar?",
-      "subtitle": "Comienza a ajustar tus modelos hoy",
-      "button": "Comenzar gratis"
+      "title": "¿Listo para ajustar con",
+      "subtitle": "Sé de los primeros en experimentar el ajuste fino de IA de nivel empresarial con soberanía de datos suiza.",
+      "button": "Comenzar gratis",
+      "earlyAccess": "Regístrate para acceso anticipado",
+      "demo": "Programar demostración",
+      "noCard": "Plazas limitadas • Sé el primero en la lista"
     },
     "footer": {
       "product": "Producto",
