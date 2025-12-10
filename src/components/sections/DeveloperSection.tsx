@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const codeExample = `from openai import OpenAI
 
@@ -15,14 +16,15 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Explain this policy in plain language"}],
 )`;
 
-const features = [
-  "OpenAI-compatible API – drop-in for existing code",
-  "SDKs for Python and TypeScript with async and streaming",
-  "Webhooks for evaluations, fine-tuning jobs and billing",
-];
-
 export const DeveloperSection = () => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+
+  const features = [
+    t('landing.developer.features.openaiCompat'),
+    t('landing.developer.features.sdks'),
+    t('landing.developer.features.webhooks'),
+  ];
 
   const handleCopy = () => {
     navigator.clipboard.writeText(codeExample);
@@ -37,7 +39,7 @@ export const DeveloperSection = () => {
           {/* Left: Content */}
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-              Loved by Developers and ML Teams
+              {t('landing.developer.title')}
             </h2>
             <ul className="space-y-3 mb-6">
               {features.map((feature, idx) => (
@@ -49,7 +51,7 @@ export const DeveloperSection = () => {
             </ul>
             <Link to="/docs/api">
               <Button variant="outline" className="gap-2">
-                View API Docs
+                {t('landing.developer.viewDocs')}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

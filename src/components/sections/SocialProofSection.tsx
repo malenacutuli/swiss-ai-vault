@@ -1,26 +1,21 @@
 import { Quote } from "lucide-react";
-
-const testimonials = [
-  {
-    quote: "SwissVault let us roll out internal AI assistants without sending any client data to US clouds – that was non-negotiable.",
-    author: "CISO",
-    company: "Swiss Financial Institution",
-  },
-];
-
-const carouselItems = [
-  "Swiss Banks",
-  "Healthcare Professionals",
-  "HNWI",
-  "Crypto Managers",
-  "Blockchain",
-  "Insurance Companies",
-  "RegTech Vendor",
-  "Wealth Managers",
-  "Private Bank",
-];
+import { useTranslation } from "react-i18next";
 
 export const SocialProofSection = () => {
+  const { t } = useTranslation();
+
+  const carouselItems = [
+    t('landing.socialProof.clients.swissBanks'),
+    t('landing.socialProof.clients.healthcare'),
+    t('landing.socialProof.clients.hnwi'),
+    t('landing.socialProof.clients.crypto'),
+    t('landing.socialProof.clients.blockchain'),
+    t('landing.socialProof.clients.insurance'),
+    t('landing.socialProof.clients.regtech'),
+    t('landing.socialProof.clients.wealth'),
+    t('landing.socialProof.clients.privateBank'),
+  ];
+
   return (
     <section className="py-20 relative overflow-hidden">
       <div className="absolute inset-0 gradient-swiss opacity-20" />
@@ -28,7 +23,7 @@ export const SocialProofSection = () => {
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            Trusted by Security-First Teams
+            {t('landing.socialProof.title')}
           </h2>
         </div>
 
@@ -49,21 +44,16 @@ export const SocialProofSection = () => {
 
         {/* Testimonial */}
         <div className="max-w-3xl mx-auto">
-          {testimonials.map((testimonial, idx) => (
-            <div
-              key={idx}
-              className="relative p-8 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm"
-            >
-              <Quote className="absolute top-6 left-6 h-8 w-8 text-primary/20" />
-              <blockquote className="text-lg sm:text-xl italic text-center mb-6 pt-4">
-                "{testimonial.quote}"
-              </blockquote>
-              <div className="text-center">
-                <div className="font-semibold">{testimonial.author}</div>
-                <div className="text-sm text-muted-foreground">{testimonial.company}</div>
-              </div>
+          <div className="relative p-8 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+            <Quote className="absolute top-6 left-6 h-8 w-8 text-primary/20" />
+            <blockquote className="text-lg sm:text-xl italic text-center mb-6 pt-4">
+              "{t('landing.socialProof.testimonial.quote')}"
+            </blockquote>
+            <div className="text-center">
+              <div className="font-semibold">{t('landing.socialProof.testimonial.author')}</div>
+              <div className="text-sm text-muted-foreground">{t('landing.socialProof.testimonial.company')}</div>
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </section>

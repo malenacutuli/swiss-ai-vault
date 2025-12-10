@@ -4,8 +4,10 @@ import { useState } from "react";
 import { EarlyAccessModal } from "@/components/EarlyAccessModal";
 import { DemoRequestModal } from "@/components/DemoRequestModal";
 import { SwissFlag } from "@/components/icons/SwissFlag";
+import { useTranslation } from "react-i18next";
 
 export const HeroSection = () => {
+  const { t } = useTranslation();
   const [earlyAccessOpen, setEarlyAccessOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
   
@@ -25,25 +27,24 @@ export const HeroSection = () => {
 
               {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 animate-slide-up">
-                Zero-Trace AI for{" "}
-                <span className="text-gradient">Regulated Teams</span>
+                {t('landing.hero.title')}{" "}
+                <span className="text-gradient">{t('landing.hero.titleHighlight')}</span>
               </h1>
 
               {/* Subheadline */}
               <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-slide-up animate-delay-100">
-                <span className="font-semibold text-foreground">No leaks. No logs. No compromise.</span>{" "}
-                SwissVault lets you build AI on your data without touching U.S. clouds — with sovereign hosting and zero-trace encryption. 
-                Train and deploy AI on your most sensitive data with full end-to-end encryption, Swiss data residency, and audit-grade transparency.
+                <span className="font-semibold text-foreground">{t('landing.hero.tagline')}</span>{" "}
+                {t('landing.hero.subtitle')}
               </p>
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 animate-slide-up animate-delay-200">
                 <Button variant="hero" size="xl" onClick={() => setDemoOpen(true)}>
-                  Book Enterprise Demo
+                  {t('landing.hero.bookDemo')}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
                 <Button variant="glass" size="xl" onClick={() => setEarlyAccessOpen(true)}>
-                  Sign Up for Early Access
+                  {t('landing.hero.earlyAccess')}
                 </Button>
               </div>
 
@@ -51,15 +52,15 @@ export const HeroSection = () => {
               <div className="flex flex-wrap gap-4 justify-center lg:justify-start text-sm text-muted-foreground animate-slide-up animate-delay-300">
                 <div className="flex items-center gap-1.5">
                   <SwissFlag className="h-4 w-4" />
-                  <span>Hosted in Switzerland</span>
+                  <span>{t('landing.hero.trust.swiss')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Shield className="h-4 w-4 text-success" />
-                  <span>GDPR-ready</span>
+                  <span>{t('landing.hero.trust.gdpr')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Lock className="h-4 w-4 text-primary" />
-                  <span>Client-side E2E encryption</span>
+                  <span>{t('landing.hero.trust.e2e')}</span>
                 </div>
               </div>
             </div>
@@ -74,7 +75,7 @@ export const HeroSection = () => {
                     <div className="w-3 h-3 rounded-full bg-[hsl(0_0%_24%)]" />
                     <div className="w-3 h-3 rounded-full bg-[hsl(0_0%_24%)]" />
                   </div>
-                  <span className="text-sm font-medium text-muted-foreground ml-2">SwissVault Assistant Workspace</span>
+                  <span className="text-sm font-medium text-muted-foreground ml-2">{t('landing.hero.mockUI.title')}</span>
                 </div>
 
                 {/* Content */}
@@ -88,26 +89,26 @@ export const HeroSection = () => {
                           <MessageSquare className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium">Compliance Co-Pilot</div>
-                          <div className="text-xs text-muted-foreground">Financial regulations assistant</div>
+                          <div className="text-sm font-medium">{t('landing.hero.mockUI.chatTitle')}</div>
+                          <div className="text-xs text-muted-foreground">{t('landing.hero.mockUI.chatSubtitle')}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-success/10 border border-success/20">
                         <Lock className="h-3 w-3 text-success" />
-                        <span className="text-xs text-success font-medium">E2E Encrypted</span>
+                        <span className="text-xs text-success font-medium">{t('landing.hero.mockUI.encrypted')}</span>
                       </div>
                     </div>
 
                     {/* Sample messages */}
                     <div className="space-y-2">
                       <div className="p-3 rounded-xl bg-muted/20 border border-border/20 max-w-[85%]">
-                        <p className="text-sm text-muted-foreground">What are the KYC requirements for high-risk clients?</p>
+                        <p className="text-sm text-muted-foreground">{t('landing.hero.mockUI.userMessage')}</p>
                       </div>
                       <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 max-w-[85%] ml-auto">
-                        <p className="text-sm">Based on your internal policy documents, high-risk clients require enhanced due diligence including...</p>
+                        <p className="text-sm">{t('landing.hero.mockUI.assistantMessage')}</p>
                         <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                           <Lock className="h-3 w-3" />
-                          <span>Encrypted response</span>
+                          <span>{t('landing.hero.mockUI.encryptedResponse')}</span>
                         </div>
                       </div>
                     </div>
@@ -117,18 +118,18 @@ export const HeroSection = () => {
                   <div className="space-y-2">
                     <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
                       <Database className="h-4 w-4 text-primary mb-1" />
-                      <div className="text-xs font-medium">Datasets</div>
-                      <div className="text-xs text-muted-foreground">12 sources</div>
+                      <div className="text-xs font-medium">{t('landing.hero.mockUI.datasets')}</div>
+                      <div className="text-xs text-muted-foreground">{t('landing.hero.mockUI.datasetsCount')}</div>
                     </div>
                     <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
                       <Brain className="h-4 w-4 text-primary mb-1" />
-                      <div className="text-xs font-medium">Fine-tuned</div>
-                      <div className="text-xs text-muted-foreground">3 models</div>
+                      <div className="text-xs font-medium">{t('landing.hero.mockUI.fineTuned')}</div>
+                      <div className="text-xs text-muted-foreground">{t('landing.hero.mockUI.modelsCount')}</div>
                     </div>
                     <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
                       <Workflow className="h-4 w-4 text-primary mb-1" />
-                      <div className="text-xs font-medium">Evaluations</div>
-                      <div className="text-xs text-muted-foreground">98.5% accuracy</div>
+                      <div className="text-xs font-medium">{t('landing.hero.mockUI.evaluations')}</div>
+                      <div className="text-xs text-muted-foreground">{t('landing.hero.mockUI.accuracy')}</div>
                     </div>
                     <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
                       <div className="flex gap-1 mb-1">
@@ -136,8 +137,8 @@ export const HeroSection = () => {
                         <div className="w-4 h-4 rounded bg-[#000] flex items-center justify-center text-[8px] text-white font-bold">N</div>
                         <div className="w-4 h-4 rounded bg-[#333] flex items-center justify-center text-[8px] text-white font-bold">G</div>
                       </div>
-                      <div className="text-xs font-medium">RAG Sources</div>
-                      <div className="text-xs text-muted-foreground">Slack, Notion, GitHub</div>
+                      <div className="text-xs font-medium">{t('landing.hero.mockUI.ragSources')}</div>
+                      <div className="text-xs text-muted-foreground">{t('landing.hero.mockUI.ragSourcesList')}</div>
                     </div>
                   </div>
                 </div>
