@@ -103,7 +103,7 @@ export function ExportChatDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileJson className="w-5 h-5 text-primary" />
@@ -117,9 +117,9 @@ export function ExportChatDialog({
         <div className="space-y-4 py-4">
           {/* Conversation Info */}
           <div className="rounded-lg border bg-muted/50 p-4 space-y-2 overflow-hidden">
-            <div className="flex items-center gap-2 text-sm min-w-0">
+            <div className="flex items-center gap-2 text-sm">
               <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="font-medium truncate">{conversationTitle}</span>
+              <span className="font-medium truncate min-w-0">{conversationTitle}</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {messageCount} encrypted message{messageCount !== 1 ? 's' : ''}
