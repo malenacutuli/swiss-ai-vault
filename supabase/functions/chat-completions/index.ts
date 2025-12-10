@@ -352,20 +352,27 @@ serve(async (req) => {
 
     const options = { maxTokens: max_tokens, temperature };
     let result;
+    const provider = getProvider(model);
 
-    switch (getProvider(model)) {
+    switch (provider) {
       case 'anthropic': result = await callAnthropic(processedMessages, model, options); break;
       case 'google': result = await callGoogle(processedMessages, model, options); break;
       case 'vllm': result = await callVLLM(processedMessages, model, options); break;
       default: result = await callOpenAI(processedMessages, model, options); break;
     }
 
-    // Build response headers with zero-retention indicators
+    // Track which model actually responded (from API response or requested)
+    const actualModelUsed = result.model || model;
+
+    // Build response headers with zero-retention indicators and model tracking
     const responseHeaders: Record<string, string> = { 
       ...corsHeaders, 
       'Content-Type': 'application/json',
       'X-Zero-Retention': zero_retention ? 'true' : 'false',
       'X-Storage-Mode': zero_retention ? 'local-only' : 'encrypted-cloud',
+      'X-Model-Requested': rawModel,
+      'X-Model-Used': actualModelUsed,
+      'X-Provider': provider,
     };
 
     return new Response(JSON.stringify(result), { headers: responseHeaders });
