@@ -79,6 +79,52 @@ function getVLLMEndpoint(model: string): string {
   return VLLM_ENDPOINTS[endpointKey];
 }
 
+// Token estimation for prompt truncation (~4 chars per token heuristic)
+function estimateTokens(text: string): number {
+  return Math.ceil((text || '').length / 4);
+}
+
+function estimateMessagesTokens(messages: any[]): number {
+  return messages.reduce((total, msg) => {
+    return total + estimateTokens(msg.content || '') + 4; // +4 for role/formatting overhead
+  }, 0);
+}
+
+// Truncate messages for open-source models with smaller context windows
+// Target: under 6000 tokens, keep system prompt + recent messages
+function truncateMessagesForVLLM(messages: any[], maxTokens: number = 6000): any[] {
+  const systemMessages = messages.filter(m => m.role === 'system');
+  const nonSystemMessages = messages.filter(m => m.role !== 'system');
+  
+  const systemTokens = estimateMessagesTokens(systemMessages);
+  let availableTokens = maxTokens - systemTokens;
+  
+  // Strategy 1: Keep last 10 messages
+  let truncatedNonSystem = nonSystemMessages.slice(-10);
+  let truncatedTokens = estimateMessagesTokens(truncatedNonSystem);
+  
+  // Strategy 2: If still too long, keep last 5 messages
+  if (truncatedTokens > availableTokens && nonSystemMessages.length > 5) {
+    truncatedNonSystem = nonSystemMessages.slice(-5);
+    truncatedTokens = estimateMessagesTokens(truncatedNonSystem);
+  }
+  
+  // Strategy 3: If STILL too long, keep last 3 messages
+  if (truncatedTokens > availableTokens && nonSystemMessages.length > 3) {
+    truncatedNonSystem = nonSystemMessages.slice(-3);
+    truncatedTokens = estimateMessagesTokens(truncatedNonSystem);
+  }
+  
+  const result = [...systemMessages, ...truncatedNonSystem];
+  const totalTokens = systemTokens + truncatedTokens;
+  
+  if (result.length < messages.length) {
+    console.log(`[Truncation] ${messages.length} -> ${result.length} messages, ~${totalTokens} tokens (target: ${maxTokens})`);
+  }
+  
+  return result;
+}
+
 // Open source models -> route to vLLM
 const VLLM_MODELS = [
   'Qwen/Qwen2.5-0.5B-Instruct', 'Qwen/Qwen2.5-1.5B-Instruct',
@@ -234,9 +280,14 @@ async function callVLLM(messages: any[], model: string, options: any) {
   // Use multi-endpoint routing based on model size
   const vllmEndpoint = getVLLMEndpoint(model);
   
+  // Truncate messages for open-source models (smaller context windows)
+  const truncatedMessages = truncateMessagesForVLLM(messages, 6000);
+  
   console.log('[vLLM] Calling Modal endpoint:', { 
     endpoint: vllmEndpoint.substring(0, 50) + '...', 
     model,
+    originalMessages: messages.length,
+    truncatedMessages: truncatedMessages.length,
     maxTokens: options.maxTokens || 2048 
   });
 
@@ -257,8 +308,8 @@ async function callVLLM(messages: any[], model: string, options: any) {
       },
       body: JSON.stringify({ 
         model, 
-        messages, 
-        max_tokens: options.maxTokens || 1024, 
+        messages: truncatedMessages, 
+        max_tokens: options.maxTokens || 2048, 
         temperature: options.temperature || 0.7,
         stream: false,
       }),
