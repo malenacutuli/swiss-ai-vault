@@ -2,6 +2,8 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type ProcessingStage = 'uploading' | 'extracting' | 'embedding' | 'complete' | 'error';
+
 interface UploadedDocument {
   filename: string;
   chunkCount: number;
@@ -45,7 +47,10 @@ export function useRAGContext(externalConversationId?: string | null) {
 
   const hasContext = useMemo(() => uploadedDocuments.length > 0, [uploadedDocuments]);
 
-  const uploadDocument = useCallback(async (file: File): Promise<{ success: boolean; chunkCount: number }> => {
+  const uploadDocument = useCallback(async (
+    file: File, 
+    onStageChange?: (stage: ProcessingStage, progress: number) => void
+  ): Promise<{ success: boolean; chunkCount: number }> => {
     // Use external conversation ID if provided
     const targetConversationId = conversationId || externalConversationId;
     
@@ -68,14 +73,16 @@ export function useRAGContext(externalConversationId?: string | null) {
     }
 
     setIsUploading(true);
-    const loadingToast = toast.loading(`Processing ${file.name}...`);
+    
+    // Stage: Extracting text
+    onStageChange?.('extracting', 40);
 
     try {
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast.dismiss(loadingToast);
         toast.error('You must be logged in to upload documents');
+        onStageChange?.('error', 0);
         return { success: false, chunkCount: 0 };
       }
 
@@ -83,6 +90,9 @@ export function useRAGContext(externalConversationId?: string | null) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('conversation_id', targetConversationId);
+
+      // Stage: Embedding (the Edge Function handles both extraction and embedding)
+      onStageChange?.('embedding', 60);
 
       // Call embed-document Edge Function
       const response = await fetch(
@@ -98,10 +108,14 @@ export function useRAGContext(externalConversationId?: string | null) {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+        onStageChange?.('error', 0);
         throw new Error(error.error || 'Failed to process document');
       }
 
       const result = await response.json();
+
+      // Stage: Complete
+      onStageChange?.('complete', 100);
 
       // Add to uploaded documents
       setUploadedDocuments(prev => [...prev, {
@@ -110,13 +124,12 @@ export function useRAGContext(externalConversationId?: string | null) {
         uploadedAt: new Date(),
       }]);
 
-      toast.dismiss(loadingToast);
       toast.success(`${file.name} processed: ${result.chunks_created} chunks created`);
 
       return { success: true, chunkCount: result.chunks_created };
     } catch (error) {
       console.error('Error uploading document:', error);
-      toast.dismiss(loadingToast);
+      onStageChange?.('error', 0);
       toast.error(error instanceof Error ? error.message : 'Failed to upload document');
       return { success: false, chunkCount: 0 };
     } finally {

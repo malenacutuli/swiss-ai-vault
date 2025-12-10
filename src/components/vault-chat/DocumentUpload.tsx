@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { UploadProgress, type ProcessingStage, formatBytes as formatBytesUtil } from './UploadProgress';
 
 interface UploadedDoc {
   filename: string;
@@ -35,7 +36,7 @@ interface UploadedDoc {
 }
 
 interface DocumentUploadProps {
-  onUpload: (file: File) => Promise<{ success: boolean; chunkCount: number }>;
+  onUpload: (file: File, onStageChange?: (stage: ProcessingStage, progress: number) => void) => Promise<{ success: boolean; chunkCount: number }>;
   uploadedDocuments: UploadedDoc[];
   onRemoveDocument?: (filename: string) => void;
   isUploading: boolean;
@@ -70,6 +71,7 @@ export function DocumentUpload({
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingStage, setProcessingStage] = useState<ProcessingStage>('uploading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
@@ -101,29 +103,44 @@ export function DocumentUpload({
       // After TUS upload completes, process the document
       if (currentFile) {
         setUploadState('processing');
+        setProcessingStage('extracting');
+        setUploadProgress(40);
+        
+        const handleStageChange = (stage: ProcessingStage, progress: number) => {
+          setProcessingStage(stage);
+          setUploadProgress(progress);
+        };
+        
         try {
-          const result = await onUpload(currentFile);
+          const result = await onUpload(currentFile, handleStageChange);
           if (result.success) {
+            setProcessingStage('complete');
+            setUploadProgress(100);
             setUploadState('complete');
             setTimeout(() => {
               setUploadState('idle');
               setCurrentFile(null);
               setUploadProgress(0);
+              setProcessingStage('uploading');
             }, 1500);
           } else {
+            setProcessingStage('error');
             setUploadState('error');
             setErrorMessage('Failed to process document');
             setTimeout(() => {
               setUploadState('idle');
               setErrorMessage(null);
+              setProcessingStage('uploading');
             }, 3000);
           }
         } catch (err) {
+          setProcessingStage('error');
           setUploadState('error');
           setErrorMessage(err instanceof Error ? err.message : 'Processing failed');
           setTimeout(() => {
             setUploadState('idle');
             setErrorMessage(null);
+            setProcessingStage('uploading');
           }, 3000);
         }
       }
@@ -171,32 +188,47 @@ export function DocumentUpload({
     setUploadProgress(0);
     setIsExpanded(false);
 
+    // Stage callback to update processing stage
+    const handleStageChange = (stage: ProcessingStage, progress: number) => {
+      setProcessingStage(stage);
+      setUploadProgress(progress);
+    };
+
     // OPTIMIZED PATH: Skip storage, send directly to processing
     if (skipStorage) {
       setUploadState('processing');
+      setProcessingStage('extracting');
+      setUploadProgress(10);
       try {
-        const result = await onUpload(file);
+        const result = await onUpload(file, handleStageChange);
         if (result.success) {
+          setProcessingStage('complete');
+          setUploadProgress(100);
           setUploadState('complete');
           setTimeout(() => {
             setUploadState('idle');
             setCurrentFile(null);
             setUploadProgress(0);
+            setProcessingStage('uploading');
           }, 1500);
         } else {
+          setProcessingStage('error');
           setUploadState('error');
           setErrorMessage('Failed to process document');
           setTimeout(() => {
             setUploadState('idle');
             setErrorMessage(null);
+            setProcessingStage('uploading');
           }, 3000);
         }
       } catch (error) {
+        setProcessingStage('error');
         setUploadState('error');
         setErrorMessage(error instanceof Error ? error.message : 'Processing failed');
         setTimeout(() => {
           setUploadState('idle');
           setErrorMessage(null);
+          setProcessingStage('uploading');
         }, 3000);
       }
       return;
@@ -205,49 +237,59 @@ export function DocumentUpload({
     // STORAGE PATH: For large files, use TUS resumable upload
     if (isLargeFile(file)) {
       setUploadState('uploading');
+      setProcessingStage('uploading');
       try {
         await resumableUpload(file);
       } catch (err) {
         // Error handled by onError callback
       }
     } else {
-      // For small files, use standard upload flow
+      // For small files, use standard upload flow with stage tracking
       setUploadState('uploading');
+      setProcessingStage('uploading');
       
-      // Simulate progress for small files
+      // Simulate upload progress
       const progressInterval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
+        setUploadProgress(prev => Math.min(prev + 15, 30));
+      }, 100);
 
       try {
-        setUploadState('processing');
-        const result = await onUpload(file);
-        
         clearInterval(progressInterval);
-        setUploadProgress(100);
+        setUploadProgress(35);
+        setProcessingStage('extracting');
+        setUploadState('processing');
+        
+        const result = await onUpload(file, handleStageChange);
 
         if (result.success) {
+          setProcessingStage('complete');
+          setUploadProgress(100);
           setUploadState('complete');
           setTimeout(() => {
             setUploadState('idle');
             setCurrentFile(null);
             setUploadProgress(0);
+            setProcessingStage('uploading');
           }, 1500);
         } else {
+          setProcessingStage('error');
           setUploadState('error');
           setErrorMessage('Failed to process document');
           setTimeout(() => {
             setUploadState('idle');
             setErrorMessage(null);
+            setProcessingStage('uploading');
           }, 3000);
         }
       } catch (error) {
         clearInterval(progressInterval);
+        setProcessingStage('error');
         setUploadState('error');
         setErrorMessage(error instanceof Error ? error.message : 'Upload failed');
         setTimeout(() => {
           setUploadState('idle');
           setErrorMessage(null);
+          setProcessingStage('uploading');
         }, 3000);
       }
     }
@@ -484,31 +526,16 @@ export function DocumentUpload({
           </div>
         )}
 
-        {/* Standard Upload Progress (small files) or Direct Processing */}
-        {(uploadState === 'uploading' || uploadState === 'processing') && currentFile && !isUsingTUS && (
-          <div className="flex items-center gap-3 p-3 bg-info/10 rounded-lg border border-info/20 mb-2">
-            <Loader2 className="h-4 w-4 text-info animate-spin" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{currentFile.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {skipStorage 
-                  ? 'Processing document for context...' 
-                  : uploadState === 'processing' 
-                    ? 'Analyzing document...' 
-                    : 'Uploading...'}
-              </p>
-              {!skipStorage && <Progress value={uploadProgress} className="h-1 mt-1" />}
-            </div>
-          </div>
-        )}
-
-        {/* Complete State */}
-        {uploadState === 'complete' && currentFile && (
-          <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg border border-success/20 mb-2">
-            <CheckCircle className="h-4 w-4 text-success" />
-            <p className="text-sm font-medium text-success">
-              {currentFile.name} uploaded successfully
-            </p>
+        {/* Processing Progress with Stage Indicator (small files / direct processing) */}
+        {(uploadState === 'uploading' || uploadState === 'processing' || uploadState === 'complete') && currentFile && !isUsingTUS && (
+          <div className="mb-2">
+            <UploadProgress
+              progress={uploadProgress}
+              stage={processingStage}
+              fileName={currentFile.name}
+              fileSize={formatBytes(currentFile.size)}
+              error={errorMessage || undefined}
+            />
           </div>
         )}
 
