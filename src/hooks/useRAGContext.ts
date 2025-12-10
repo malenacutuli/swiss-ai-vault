@@ -557,6 +557,126 @@ export function useRAGContext(externalConversationId?: string | null) {
     }
   }, [conversationId, externalConversationId, user?.id]);
 
+  const importFromGoogleDrive = useCallback(async (
+    fileId: string,
+    fileName: string,
+    mimeType: string,
+    onStageChange?: (stage: ProcessingStage, progress: number) => void
+  ): Promise<{ success: boolean; jobId?: string }> => {
+    const targetConversationId = conversationId || externalConversationId;
+    
+    if (!user?.id) {
+      toast.error('You must be logged in to import from Google Drive');
+      return { success: false };
+    }
+
+    try {
+      onStageChange?.('uploading', 10);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Session expired');
+      }
+
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/googledrive-import`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            file_id: fileId,
+            file_name: fileName,
+            mime_type: mimeType,
+            conversation_id: targetConversationId,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.code === 'NOT_CONNECTED') {
+          toast.error('Please connect Google Drive first in Settings');
+        } else if (data.code === 'TOKEN_EXPIRED') {
+          toast.error('Google Drive session expired. Please reconnect.');
+        } else {
+          throw new Error(data.error || 'Failed to import from Google Drive');
+        }
+        return { success: false };
+      }
+
+      const jobId = data.job_id;
+
+      // Add to processing jobs
+      setProcessingJobs(prev => [...prev, {
+        id: jobId,
+        status: 'queued',
+        progress: 30,
+        file_name: data.filename,
+        file_size: data.file_size,
+        chunks_created: null,
+        error_message: null,
+      }]);
+
+      // Subscribe to job updates
+      const channel = supabase
+        .channel(`job-${jobId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'document_processing_jobs',
+            filter: `id=eq.${jobId}`,
+          },
+          (payload) => {
+            const newData = payload.new as ProcessingJob;
+            setProcessingJobs(prev => 
+              prev.map(j => j.id === jobId ? { ...j, ...newData } : j)
+            );
+
+            const stageMap: Record<string, ProcessingStage> = {
+              extracting: 'extracting',
+              embedding: 'embedding',
+              complete: 'complete',
+              failed: 'error',
+            };
+            onStageChange?.(stageMap[newData.status] || 'extracting', newData.progress || 0);
+
+            if (newData.status === 'complete') {
+              setUploadedDocuments(prev => [...prev, {
+                filename: data.filename,
+                chunkCount: newData.chunks_created || 0,
+                uploadedAt: new Date(),
+              }]);
+              toast.success(`${data.filename} imported: ${newData.chunks_created} chunks created`);
+              supabase.removeChannel(channel);
+              subscriptionsRef.current.delete(jobId);
+            } else if (newData.status === 'failed') {
+              toast.error(newData.error_message || 'Google Drive import failed');
+              supabase.removeChannel(channel);
+              subscriptionsRef.current.delete(jobId);
+            }
+          }
+        )
+        .subscribe();
+
+      subscriptionsRef.current.set(jobId, channel);
+
+      toast.info(`Importing ${fileName} from Google Drive...`);
+      return { success: true, jobId };
+
+    } catch (error) {
+      console.error('[RAG] Error importing from Google Drive:', error);
+      onStageChange?.('error', 0);
+      toast.error(error instanceof Error ? error.message : 'Failed to import from Google Drive');
+      return { success: false };
+    }
+  }, [conversationId, externalConversationId, user?.id]);
+
   const getContextPrompt = useCallback((chunks: DocumentChunk[]): string => {
     if (chunks.length === 0) {
       return '';
@@ -576,6 +696,7 @@ export function useRAGContext(externalConversationId?: string | null) {
     isUploading,
     uploadDocument,
     importFromURL,
+    importFromGoogleDrive,
     searchContext,
     clearContext,
     getContextPrompt,
