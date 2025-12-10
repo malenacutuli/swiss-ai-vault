@@ -48,6 +48,8 @@ const providers: Provider[] = [
       { id: 'gpt-5', name: 'GPT-5', description: 'Flagship unified model', badge: 'NEW' },
       { id: 'gpt-5-pro', name: 'GPT-5 Pro', description: 'Extended reasoning', badge: 'NEW', isReasoning: true },
       { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Fast and cost-effective', badge: 'NEW' },
+      { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Flagship GPT-4 model', badge: 'NEW' },
+      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: 'Fast GPT-4', badge: 'NEW' },
       { id: 'o1', name: 'OpenAI o1', description: 'Advanced reasoning', isReasoning: true },
       { id: 'o1-mini', name: 'OpenAI o1-mini', description: 'Fast reasoning', isReasoning: true },
     ]

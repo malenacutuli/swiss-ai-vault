@@ -39,6 +39,8 @@ const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> 
   'gpt-5': { provider: 'openai' },
   'gpt-5-pro': { provider: 'openai', isReasoning: true },
   'gpt-5-mini': { provider: 'openai' },
+  'gpt-4.1': { provider: 'openai' },
+  'gpt-4.1-mini': { provider: 'openai' },
   'o1': { provider: 'openai', isReasoning: true },
   'o1-mini': { provider: 'openai', isReasoning: true },
   'o1-pro': { provider: 'openai', isReasoning: true },
