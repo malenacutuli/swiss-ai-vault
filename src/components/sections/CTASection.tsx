@@ -21,7 +21,7 @@ export const CTASection = () => {
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
               {t('landing.cta.title')}{" "}
-              <span className="text-gradient">{t('landing.cta.titleHighlight')}</span>
+              <span className="text-gradient">Swiss Precision?</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
               {t('landing.cta.subtitle')}

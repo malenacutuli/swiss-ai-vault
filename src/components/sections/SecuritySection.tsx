@@ -12,35 +12,35 @@ export const SecuritySection = () => {
   const securityFeatures = [
     {
       icon: Lock,
-      titleKey: "landing.security.features.encryption.title",
+      titleKey: "home.security.e2e.title",
       points: [
-        t('landing.security.features.encryption.point1'),
-        t('landing.security.features.encryption.point2'),
+        t('home.security.e2e.point1'),
+        t('home.security.e2e.point2'),
       ],
     },
     {
       icon: Shield,
-      titleKey: "landing.security.features.zeroTrust.title",
+      titleKey: "home.security.zeroTrust.title",
       points: [
-        t('landing.security.features.zeroTrust.point1'),
-        t('landing.security.features.zeroTrust.point2'),
-        t('landing.security.features.zeroTrust.point3'),
+        t('home.security.zeroTrust.point1'),
+        t('home.security.zeroTrust.point2'),
+        t('home.security.zeroTrust.point3'),
       ],
     },
     {
       icon: Server,
-      titleKey: "landing.security.features.dataResidency.title",
+      titleKey: "home.security.swissResidency.title",
       points: [
-        t('landing.security.features.dataResidency.point1'),
-        t('landing.security.features.dataResidency.point2'),
+        t('home.security.swissResidency.point1'),
+        t('home.security.swissResidency.point2'),
       ],
     },
     {
       icon: FileCheck,
-      titleKey: "landing.security.features.compliance.title",
+      titleKey: "home.security.complianceRoadmap.title",
       points: [
-        t('landing.security.features.compliance.point1'),
-        t('landing.security.features.compliance.point2'),
+        t('home.security.complianceRoadmap.point1'),
+        t('home.security.complianceRoadmap.point2'),
       ],
     },
   ];
@@ -54,13 +54,13 @@ export const SecuritySection = () => {
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 mb-4">
               <Shield className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium text-primary uppercase tracking-wide">{t('landing.security.badge')}</span>
+              <span className="text-sm font-medium text-primary uppercase tracking-wide">{t('home.security.badge')}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              {t('landing.security.title')}
+              {t('home.security.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t('landing.security.subtitle')}
+              {t('home.security.subtitle')}
             </p>
           </div>
 
@@ -89,17 +89,17 @@ export const SecuritySection = () => {
 
             {/* Right: Architecture diagram */}
             <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm p-6">
-              <h4 className="font-semibold mb-6 text-center">{t('landing.security.architecture.title')}</h4>
+              <h4 className="font-semibold mb-6 text-center">{t('home.security.architecture.title')}</h4>
               
               <div className="space-y-4">
                 {/* Browser layer */}
                 <div className="p-4 rounded-xl bg-success/10 border border-success/20">
                   <div className="flex items-center gap-2 mb-2">
                     <Lock className="h-4 w-4 text-success" />
-                    <span className="text-sm font-medium">{t('landing.security.architecture.browser.title')}</span>
+                    <span className="text-sm font-medium">{t('home.security.architecture.browser.title')}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {t('landing.security.architecture.browser.description')}
+                    {t('home.security.architecture.browser.description')}
                   </p>
                 </div>
 
@@ -111,10 +111,10 @@ export const SecuritySection = () => {
                 <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
                   <div className="flex items-center gap-2 mb-2">
                     <Shield className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">{t('landing.security.architecture.backend.title')}</span>
+                    <span className="text-sm font-medium">{t('home.security.architecture.backend.title')}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {t('landing.security.architecture.backend.description')}
+                    {t('home.security.architecture.backend.description')}
                   </p>
                 </div>
 
@@ -126,10 +126,10 @@ export const SecuritySection = () => {
                 <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
                   <div className="flex items-center gap-2 mb-2">
                     <SwissFlag className="h-4 w-4" />
-                    <span className="text-sm font-medium">{t('landing.security.architecture.infrastructure.title')}</span>
+                    <span className="text-sm font-medium">{t('home.security.architecture.infrastructure.title')}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {t('landing.security.architecture.infrastructure.description')}
+                    {t('home.security.architecture.infrastructure.description')}
                   </p>
                 </div>
               </div>
@@ -138,11 +138,11 @@ export const SecuritySection = () => {
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <Button variant="outline" size="sm" className="gap-2 flex-1">
                   <Download className="h-4 w-4" />
-                  {t('landing.security.cta.whitepaper')}
+                  {t('home.security.downloadWhitepaper')}
                 </Button>
                 <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={() => setDemoOpen(true)}>
                   <MessageSquare className="h-4 w-4" />
-                  {t('landing.security.cta.talkCiso')}
+                  {t('home.security.talkToCISO')}
                 </Button>
               </div>
             </div>

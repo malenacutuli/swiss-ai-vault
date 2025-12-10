@@ -8,26 +8,26 @@ export const HowItWorksSection = () => {
     {
       number: "1",
       icon: Upload,
-      titleKey: "landing.howItWorks.steps.ingest.title",
-      descriptionKey: "landing.howItWorks.steps.ingest.description",
+      titleKey: "home.howItWorks.step1.title",
+      descriptionKey: "home.howItWorks.step1.description",
     },
     {
       number: "2",
       icon: Brain,
-      titleKey: "landing.howItWorks.steps.finetune.title",
-      descriptionKey: "landing.howItWorks.steps.finetune.description",
+      titleKey: "home.howItWorks.step2.title",
+      descriptionKey: "home.howItWorks.step2.description",
     },
     {
       number: "3",
       icon: Rocket,
-      titleKey: "landing.howItWorks.steps.deploy.title",
-      descriptionKey: "landing.howItWorks.steps.deploy.description",
+      titleKey: "home.howItWorks.step3.title",
+      descriptionKey: "home.howItWorks.step3.description",
     },
     {
       number: "4",
       icon: BarChart3,
-      titleKey: "landing.howItWorks.steps.monitor.title",
-      descriptionKey: "landing.howItWorks.steps.monitor.description",
+      titleKey: "home.howItWorks.step4.title",
+      descriptionKey: "home.howItWorks.step4.description",
     },
   ];
 
@@ -38,10 +38,10 @@ export const HowItWorksSection = () => {
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            {t('landing.howItWorks.title')}
+            {t('home.howItWorks.title')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {t('landing.howItWorks.subtitle')}
+            {t('home.howItWorks.subtitle')}
           </p>
         </div>
 

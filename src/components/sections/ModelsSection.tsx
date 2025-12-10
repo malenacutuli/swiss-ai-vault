@@ -31,10 +31,10 @@ export const ModelsSection = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            {t('landing.models.title')}
+            {t('home.models.title')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            {t('landing.models.subtitle')}
+            {t('home.models.subtitle')}
           </p>
         </div>
 
@@ -44,10 +44,10 @@ export const ModelsSection = () => {
               <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
                 <Cloud className="h-5 w-5 text-info" />
               </div>
-              <h3 className="text-lg font-semibold">{t('landing.models.hybrid.title')}</h3>
+              <h3 className="text-lg font-semibold">{t('home.models.hybridCloud.title')}</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              {t('landing.models.hybrid.description')}
+              {t('home.models.hybridCloud.description')}
             </p>
             <div className="flex flex-wrap gap-2">
               {hybridModels.map((model) => (
@@ -64,10 +64,10 @@ export const ModelsSection = () => {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <SwissFlag className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-semibold">{t('landing.models.sovereign.title')}</h3>
+              <h3 className="text-lg font-semibold">{t('home.models.sovereignOpenSource.title')}</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              {t('landing.models.sovereign.description')}
+              {t('home.models.sovereignOpenSource.description')}
             </p>
             <div className="flex flex-wrap gap-2">
               {sovereignModels.map((model) => (
@@ -83,8 +83,8 @@ export const ModelsSection = () => {
         <div className="max-w-2xl mx-auto text-center">
           <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{t('landing.models.openaiCompat.title')}</span>{" "}
-              {t('landing.models.openaiCompat.description')}
+              <span className="font-medium text-foreground">{t('home.models.openaiCompatible')}</span>{" "}
+              {t('home.models.openaiCompatibleDesc')}
             </p>
           </div>
         </div>

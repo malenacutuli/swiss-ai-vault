@@ -8,21 +8,21 @@ export const WhySwissVaultSection = () => {
   const pillars = [
     {
       icon: Lock,
-      titleKey: "landing.whySwissVault.pillars.zeroKnowledge.title",
-      descriptionKey: "landing.whySwissVault.pillars.zeroKnowledge.description",
-      detailsKey: "landing.whySwissVault.pillars.zeroKnowledge.details",
+      titleKey: "home.whySwissVault.zeroKnowledge.title",
+      descriptionKey: "home.whySwissVault.zeroKnowledge.description",
+      detailsKey: "home.whySwissVault.zeroKnowledge.details",
     },
     {
       icon: Server,
-      titleKey: "landing.whySwissVault.pillars.swissResidency.title",
-      descriptionKey: "landing.whySwissVault.pillars.swissResidency.description",
-      detailsKey: "landing.whySwissVault.pillars.swissResidency.details",
+      titleKey: "home.whySwissVault.swissResidency.title",
+      descriptionKey: "home.whySwissVault.swissResidency.description",
+      detailsKey: "home.whySwissVault.swissResidency.details",
       useSwissFlag: true,
     },
     {
       icon: Shield,
-      titleKey: "landing.whySwissVault.pillars.fullLifecycle.title",
-      descriptionKey: "landing.whySwissVault.pillars.fullLifecycle.description",
+      titleKey: "home.whySwissVault.fullLifecycle.title",
+      descriptionKey: "home.whySwissVault.fullLifecycle.description",
       detailsKey: "",
     },
   ];
@@ -34,10 +34,10 @@ export const WhySwissVaultSection = () => {
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            {t('landing.whySwissVault.title')}
+            {t('home.whySwissVault.title')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {t('landing.whySwissVault.subtitle')}
+            {t('home.whySwissVault.subtitle')}
           </p>
         </div>
 
@@ -72,7 +72,7 @@ export const WhySwissVaultSection = () => {
             href="#security" 
             className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
           >
-            {t('landing.whySwissVault.seeArchitecture')}
+            {t('home.whySwissVault.seeArchitecture')}
             <ArrowRight className="h-4 w-4" />
           </a>
         </div>

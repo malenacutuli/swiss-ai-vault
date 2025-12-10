@@ -21,9 +21,9 @@ export const DeveloperSection = () => {
   const [copied, setCopied] = useState(false);
 
   const features = [
-    t('landing.developer.features.openaiCompat'),
-    t('landing.developer.features.sdks'),
-    t('landing.developer.features.webhooks'),
+    t('home.developer.feature1'),
+    t('home.developer.feature2'),
+    t('home.developer.feature3'),
   ];
 
   const handleCopy = () => {
@@ -39,7 +39,7 @@ export const DeveloperSection = () => {
           {/* Left: Content */}
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-              {t('landing.developer.title')}
+              {t('home.developer.title')}
             </h2>
             <ul className="space-y-3 mb-6">
               {features.map((feature, idx) => (
@@ -51,7 +51,7 @@ export const DeveloperSection = () => {
             </ul>
             <Link to="/docs/api">
               <Button variant="outline" className="gap-2">
-                {t('landing.developer.viewDocs')}
+                {t('home.developer.viewApiDocs')}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
