@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Search, Lock, Shield, Upload } from 'lucide-react';
+import { Plus, Search, Lock, Shield, Upload, Sun, Moon } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/format-time';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,7 @@ export function ConversationListView({
   getDisplayTitle,
 }: ConversationListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const { theme, setTheme } = useTheme();
 
   const filtered = conversations.filter((c) => {
     const title = getDisplayTitle(c);
@@ -54,6 +56,14 @@ export function ConversationListView({
           <h1 className="text-2xl font-semibold">Vault Chat</h1>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
           {isZeroTrace && onImport && (
             <Button variant="outline" onClick={onImport} title="Import Chat">
               <Upload className="h-4 w-4" />

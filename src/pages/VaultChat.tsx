@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,9 @@ import {
   Shield,
   ArrowLeft,
   Download,
-  Trash2
+  Trash2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationListView } from '@/components/vault-chat/ConversationListView';
@@ -141,6 +144,7 @@ const VaultChat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   
   // Storage mode hook - routes to server or local based on zero_retention_mode
   const {
@@ -1224,6 +1228,15 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                     </Button>
                   </>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="h-8 w-8"
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
