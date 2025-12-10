@@ -41,6 +41,44 @@ const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> 
   'gemini-1.5-flash': { provider: 'google' },
 };
 
+// vLLM multi-endpoint routing (small vs large models)
+const VLLM_ENDPOINTS = {
+  small: "https://malena--swissvault-inference-chat-completions.modal.run",
+  large: "https://malena--swissvault-inference-7b-chat-completions.modal.run",
+};
+
+const MODEL_TO_ENDPOINT: Record<string, keyof typeof VLLM_ENDPOINTS> = {
+  // Small models (≤3B) -> small GPU
+  "qwen2.5-0.5b-instruct": "small",
+  "qwen2.5-1.5b-instruct": "small",
+  "qwen2.5-3b-instruct": "small",
+  "gemma-2-2b-it": "small",
+  "phi-3.5-mini-instruct": "small",
+  "Qwen/Qwen2.5-0.5B-Instruct": "small",
+  "Qwen/Qwen2.5-1.5B-Instruct": "small",
+  "Qwen/Qwen2.5-3B-Instruct": "small",
+  "meta-llama/Llama-3.2-1B-Instruct": "small",
+  "meta-llama/Llama-3.2-3B-Instruct": "small",
+  "google/gemma-2-2b-it": "small",
+  "microsoft/Phi-3.5-mini-instruct": "small",
+  // Large models (7B+) -> large GPU
+  "mistral-7b-instruct-v0.3": "large",
+  "deepseek-coder-7b-instruct": "large",
+  "codellama-7b-instruct": "large",
+  "mistralai/Mistral-7B-Instruct-v0.3": "large",
+  "Qwen/Qwen2.5-7B-Instruct": "large",
+  "Qwen/Qwen2.5-Coder-7B-Instruct": "large",
+  "meta-llama/Llama-3.1-8B-Instruct": "large",
+  "google/gemma-2-9b-it": "large",
+  "codellama/CodeLlama-7b-Instruct-hf": "large",
+  "deepseek-ai/deepseek-coder-7b-instruct-v1.5": "large",
+};
+
+function getVLLMEndpoint(model: string): string {
+  const endpointKey = MODEL_TO_ENDPOINT[model] || "small";
+  return VLLM_ENDPOINTS[endpointKey];
+}
+
 // Open source models -> route to vLLM
 const VLLM_MODELS = [
   'Qwen/Qwen2.5-0.5B-Instruct', 'Qwen/Qwen2.5-1.5B-Instruct',
@@ -193,17 +231,13 @@ async function callGoogle(messages: any[], model: string, options: any) {
 }
 
 async function callVLLM(messages: any[], model: string, options: any) {
-  const VLLM_ENDPOINT = Deno.env.get('VLLM_ENDPOINT');
+  // Use multi-endpoint routing based on model size
+  const vllmEndpoint = getVLLMEndpoint(model);
   
-  if (!VLLM_ENDPOINT) {
-    console.error('[vLLM] VLLM_ENDPOINT not configured');
-    throw new Error('Open-source models are temporarily unavailable. Please select Claude, GPT, or Gemini.');
-  }
-
   console.log('[vLLM] Calling Modal endpoint:', { 
-    endpoint: VLLM_ENDPOINT.substring(0, 50) + '...', 
+    endpoint: vllmEndpoint.substring(0, 50) + '...', 
     model,
-    maxTokens: options.maxTokens || 1024 
+    maxTokens: options.maxTokens || 2048 
   });
 
   // 90-second timeout to handle Modal cold starts (can take 30-60s)
@@ -216,7 +250,7 @@ async function callVLLM(messages: any[], model: string, options: any) {
   try {
     const startTime = Date.now();
     
-    const response = await fetch(VLLM_ENDPOINT, {
+    const response = await fetch(vllmEndpoint, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
