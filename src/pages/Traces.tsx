@@ -1,6 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -42,7 +40,6 @@ import { toast } from "@/hooks/use-toast";
 
 const Traces = () => {
   const { t } = useTranslation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [modelFilter, setModelFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -74,32 +71,20 @@ const Traces = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      <div
-        className={cn(
-          "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-[280px]"
-        )}
-      >
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-        <main className="flex-1 p-6">
-            <div className="max-w-6xl mx-auto space-y-6">
-              {/* Header */}
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Activity className="h-7 w-7 text-primary" />
-                  <h1 className="text-2xl font-semibold text-foreground">
-                    Traces & Feedback
-                  </h1>
-                </div>
-                <p className="text-muted-foreground">
-                  Track your model interactions and collect feedback to improve performance.
-                </p>
-              </div>
+    <div className="flex-1 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <Activity className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-semibold text-foreground">
+              Traces & Feedback
+            </h1>
+          </div>
+          <p className="text-muted-foreground">
+            Track your model interactions and collect feedback to improve performance.
+          </p>
+        </div>
 
               {/* Zero-Retention Mode Notice */}
               {zeroRetentionMode && (
@@ -132,11 +117,9 @@ const Traces = () => {
                   getOutputFromResponse={getOutputFromResponse}
                 />
               )}
-            </div>
-          </main>
-        </div>
       </div>
-    );
+    </div>
+  );
 };
 
 function EmptyState() {

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -23,7 +21,6 @@ import { Filter, X, LayoutTemplate } from "lucide-react";
 
 const Templates = () => {
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = useState(false);
   const [languageFilter, setLanguageFilter] = useState("all");
   const [domainFilter, setDomainFilter] = useState("all");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -41,11 +38,7 @@ const Templates = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-      <div className={`transition-all duration-300 ${collapsed ? "ml-16" : "ml-[280px]"}`}>
-        <DashboardHeader sidebarCollapsed={collapsed} />
-        <main className="p-6">
+    <div className="p-6">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Fine-tuning Templates</h1>
@@ -141,8 +134,6 @@ const Templates = () => {
               )}
             </div>
           )}
-        </main>
-      </div>
 
       {/* Template Detail Modal */}
       <TemplateDetailModal

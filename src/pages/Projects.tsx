@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +48,6 @@ import type { ProjectStatus } from "@/types/database";
 
 const Projects = () => {
   const { t } = useTranslation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
@@ -164,37 +161,23 @@ const Projects = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-
-      <div
-        className={cn(
-          "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-[280px]"
-        )}
-      >
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-
-        <main className="p-6 space-y-6">
-          {/* Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">{t('projects.title')}</h1>
-              <p className="text-muted-foreground mt-1">
-                {t('projects.subtitle')}
-              </p>
-            </div>
-            <Button
-              onClick={() => setIsWizardOpen(true)}
-              className="bg-primary hover:bg-primary/90 gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              {t('projects.createProject')}
-            </Button>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{t('projects.title')}</h1>
+          <p className="text-muted-foreground mt-1">
+            {t('projects.subtitle')}
+          </p>
+        </div>
+        <Button
+          onClick={() => setIsWizardOpen(true)}
+          className="bg-primary hover:bg-primary/90 gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          {t('projects.createProject')}
+        </Button>
+      </div>
 
           {/* Filter/Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4 animate-fade-in animate-delay-100">
@@ -322,8 +305,6 @@ const Projects = () => {
               ))}
             </div>
           )}
-        </main>
-      </div>
 
       {/* Project Setup Wizard */}
       <ProjectSetupWizard
@@ -332,7 +313,6 @@ const Projects = () => {
         onComplete={handleCreateProject}
         isCreating={isCreating}
       />
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteProjectId} onOpenChange={(open) => !open && setDeleteProjectId(null)}>
         <AlertDialogContent className="bg-card border-border">
