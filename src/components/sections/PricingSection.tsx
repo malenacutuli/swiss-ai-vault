@@ -17,53 +17,53 @@ export const PricingSection = () => {
 
   const plans = [
     {
-      nameKey: "landing.pricing.plans.free.name",
+      nameKey: "home.pricing.free.name",
       price: "$0",
-      periodKey: "landing.pricing.plans.free.period",
-      descriptionKey: "landing.pricing.plans.free.description",
+      periodKey: "home.pricing.free.period",
+      descriptionKey: "home.pricing.free.description",
       features: [
-        t('landing.pricing.plans.free.feature1'),
-        t('landing.pricing.plans.free.feature2'),
-        t('landing.pricing.plans.free.feature3'),
-        t('landing.pricing.plans.free.feature4'),
+        t('home.pricing.free.feature1'),
+        t('home.pricing.free.feature2'),
+        t('home.pricing.free.feature3'),
+        t('home.pricing.free.feature4'),
       ],
-      ctaKey: "landing.pricing.plans.free.cta",
+      ctaKey: "home.pricing.free.cta",
       variant: "outline" as const,
       popular: false,
       planId: "Free",
     },
     {
-      nameKey: "landing.pricing.plans.pro.name",
+      nameKey: "home.pricing.pro.name",
       price: "$49",
-      periodKey: "landing.pricing.plans.pro.period",
-      descriptionKey: "landing.pricing.plans.pro.description",
-      badgeKey: "landing.pricing.plans.pro.badge",
+      periodKey: "home.pricing.pro.period",
+      descriptionKey: "home.pricing.pro.description",
+      badgeKey: "home.pricing.pro.badge",
       features: [
-        t('landing.pricing.plans.pro.feature1'),
-        t('landing.pricing.plans.pro.feature2'),
-        t('landing.pricing.plans.pro.feature3'),
-        t('landing.pricing.plans.pro.feature4'),
-        t('landing.pricing.plans.pro.feature5'),
+        t('home.pricing.pro.feature1'),
+        t('home.pricing.pro.feature2'),
+        t('home.pricing.pro.feature3'),
+        t('home.pricing.pro.feature4'),
+        t('home.pricing.pro.feature5'),
       ],
-      ctaKey: "landing.pricing.plans.pro.cta",
+      ctaKey: "home.pricing.pro.cta",
       variant: "swiss" as const,
       popular: true,
       planId: "Pro",
     },
     {
-      nameKey: "landing.pricing.plans.enterprise.name",
-      price: t('landing.pricing.plans.enterprise.price'),
+      nameKey: "home.pricing.enterprise.name",
+      price: t('home.pricing.enterprise.price'),
       periodKey: "",
-      descriptionKey: "landing.pricing.plans.enterprise.description",
+      descriptionKey: "home.pricing.enterprise.description",
       features: [
-        t('landing.pricing.plans.enterprise.feature1'),
-        t('landing.pricing.plans.enterprise.feature2'),
-        t('landing.pricing.plans.enterprise.feature3'),
-        t('landing.pricing.plans.enterprise.feature4'),
-        t('landing.pricing.plans.enterprise.feature5'),
-        t('landing.pricing.plans.enterprise.feature6'),
+        t('home.pricing.enterprise.feature1'),
+        t('home.pricing.enterprise.feature2'),
+        t('home.pricing.enterprise.feature3'),
+        t('home.pricing.enterprise.feature4'),
+        t('home.pricing.enterprise.feature5'),
+        t('home.pricing.enterprise.feature6'),
       ],
-      ctaKey: "landing.pricing.plans.enterprise.cta",
+      ctaKey: "home.pricing.enterprise.cta",
       variant: "outline" as const,
       popular: false,
       planId: "Enterprise",
@@ -107,10 +107,10 @@ export const PricingSection = () => {
         <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              {t('landing.pricing.title')}
+              {t('home.pricing.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t('landing.pricing.subtitle')}
+              {t('home.pricing.subtitle')}
             </p>
           </div>
 
@@ -169,7 +169,7 @@ export const PricingSection = () => {
               onClick={(e) => { e.preventDefault(); setDemoOpen(true); }}
               className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
             >
-              {t('landing.pricing.sovereignNote')}
+              {t('home.pricing.sovereignDeployment')}
               <ArrowRight className="h-4 w-4" />
             </a>
           </div>

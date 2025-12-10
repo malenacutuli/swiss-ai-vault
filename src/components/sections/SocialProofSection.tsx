@@ -5,15 +5,15 @@ export const SocialProofSection = () => {
   const { t } = useTranslation();
 
   const carouselItems = [
-    t('landing.socialProof.clients.swissBanks'),
-    t('landing.socialProof.clients.healthcare'),
-    t('landing.socialProof.clients.hnwi'),
-    t('landing.socialProof.clients.crypto'),
-    t('landing.socialProof.clients.blockchain'),
-    t('landing.socialProof.clients.insurance'),
-    t('landing.socialProof.clients.regtech'),
-    t('landing.socialProof.clients.wealth'),
-    t('landing.socialProof.clients.privateBank'),
+    t('home.socialProof.industries.swissBanks'),
+    t('home.socialProof.industries.healthcare'),
+    t('home.socialProof.industries.hnwi'),
+    t('home.socialProof.industries.crypto'),
+    t('home.socialProof.industries.blockchain'),
+    t('home.socialProof.industries.insurance'),
+    t('home.socialProof.industries.regtech'),
+    t('home.socialProof.industries.wealthManagers'),
+    t('home.socialProof.industries.privateBank'),
   ];
 
   return (
@@ -23,7 +23,7 @@ export const SocialProofSection = () => {
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            {t('landing.socialProof.title')}
+            {t('home.socialProof.title')}
           </h2>
         </div>
 
@@ -47,11 +47,11 @@ export const SocialProofSection = () => {
           <div className="relative p-8 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
             <Quote className="absolute top-6 left-6 h-8 w-8 text-primary/20" />
             <blockquote className="text-lg sm:text-xl italic text-center mb-6 pt-4">
-              "{t('landing.socialProof.testimonial.quote')}"
+              "{t('home.socialProof.testimonial')}"
             </blockquote>
             <div className="text-center">
-              <div className="font-semibold">{t('landing.socialProof.testimonial.author')}</div>
-              <div className="text-sm text-muted-foreground">{t('landing.socialProof.testimonial.company')}</div>
+              <div className="font-semibold">{t('home.socialProof.author')}</div>
+              <div className="text-sm text-muted-foreground">{t('home.socialProof.company')}</div>
             </div>
           </div>
         </div>
