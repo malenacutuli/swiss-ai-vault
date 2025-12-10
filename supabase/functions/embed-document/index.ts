@@ -35,20 +35,43 @@ interface DocumentChunk {
   metadata: ChunkMetadata;
 }
 
-// Extract text from different document types
-async function extractText(file: File, anthropicKey: string): Promise<string> {
-  const filename = file.name.toLowerCase();
-  const arrayBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
+// Update job status in database
+async function updateJobStatus(
+  supabase: any,
+  jobId: string,
+  status: string,
+  progress: number,
+  additionalFields?: Record<string, any>
+) {
+  const updateData = {
+    status,
+    progress,
+    ...(status === 'extracting' && !additionalFields?.started_at ? { started_at: new Date().toISOString() } : {}),
+    ...additionalFields,
+  };
   
-  if (filename.endsWith('.txt') || filename.endsWith('.md')) {
-    // Plain text / Markdown - decode directly
+  const { error } = await supabase
+    .from('document_processing_jobs')
+    .update(updateData)
+    .eq('id', jobId);
+    
+  if (error) {
+    console.error(`[Job ${jobId}] Failed to update status:`, error);
+  } else {
+    console.log(`[Job ${jobId}] Status: ${status} (${progress}%)`);
+  }
+}
+
+// Extract text from different document types
+async function extractText(bytes: Uint8Array, filename: string, anthropicKey: string): Promise<string> {
+  const lowerFilename = filename.toLowerCase();
+  
+  if (lowerFilename.endsWith('.txt') || lowerFilename.endsWith('.md')) {
     return new TextDecoder().decode(bytes);
   }
   
-  if (filename.endsWith('.pdf') || filename.endsWith('.docx') || filename.endsWith('.pptx')) {
-    // Use Claude for binary document extraction
-    return await extractWithClaude(bytes, filename, anthropicKey);
+  if (lowerFilename.endsWith('.pdf') || lowerFilename.endsWith('.docx') || lowerFilename.endsWith('.pptx')) {
+    return await extractWithClaude(bytes, lowerFilename, anthropicKey);
   }
   
   throw new Error(`Unsupported file type: ${filename}`);
@@ -122,9 +145,7 @@ function chunkText(text: string, originalSize: number): DocumentChunk[] {
       continue;
     }
     
-    // If adding this paragraph would exceed chunk size
     if (currentChunk.length + trimmedParagraph.length > CHUNK_SIZE) {
-      // Save current chunk if not empty
       if (currentChunk.trim()) {
         chunks.push({
           content: currentChunk.trim(),
@@ -136,7 +157,6 @@ function chunkText(text: string, originalSize: number): DocumentChunk[] {
         });
       }
       
-      // Start new chunk with overlap from previous
       const overlapStart = Math.max(0, currentChunk.length - CHUNK_OVERLAP);
       const overlap = currentChunk.slice(overlapStart);
       currentChunk = overlap + (overlap ? ' ' : '') + trimmedParagraph;
@@ -148,7 +168,6 @@ function chunkText(text: string, originalSize: number): DocumentChunk[] {
     currentCharPos += paragraph.length + 2;
   }
   
-  // Don't forget the last chunk
   if (currentChunk.trim()) {
     chunks.push({
       content: currentChunk.trim(),
@@ -160,7 +179,6 @@ function chunkText(text: string, originalSize: number): DocumentChunk[] {
     });
   }
   
-  // If text is too short and no chunks created, create one chunk
   if (chunks.length === 0 && text.trim()) {
     chunks.push({
       content: text.trim(),
@@ -212,6 +230,8 @@ serve(async (req) => {
   }
   
   const startTime = Date.now();
+  let jobId: string | null = null;
+  let supabase: any = null;
   
   try {
     // Get authorization
@@ -229,34 +249,66 @@ serve(async (req) => {
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
     
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
-    }
+    if (!openaiApiKey) throw new Error('OPENAI_API_KEY is not configured');
+    if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY is not configured');
     
-    if (!anthropicKey) {
-      throw new Error('ANTHROPIC_API_KEY is not configured');
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    supabase = createClient(supabaseUrl, supabaseKey);
     
     // Get user from JWT
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      console.error('Auth error:', userError);
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`Processing document for user: ${user.id}`);
+    // Parse request - support both job-based (JSON) and legacy (FormData) modes
+    const contentType = req.headers.get('content-type') || '';
+    let file: File | null = null;
+    let conversationId: string | null = null;
+    let storagePath: string | null = null;
+    let handler: string | null = null;
     
-    // Parse multipart form data
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const conversationId = formData.get('conversation_id') as string | null;
+    if (contentType.includes('application/json')) {
+      // New job-based mode: download file from storage
+      const body = await req.json();
+      jobId = body.job_id;
+      storagePath = body.storage_path;
+      conversationId = body.conversation_id;
+      handler = body.handler;
+      
+      if (!jobId || !storagePath) {
+        return new Response(
+          JSON.stringify({ error: 'Missing job_id or storage_path' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log(`[Job ${jobId}] Starting processing for: ${storagePath}`);
+      await updateJobStatus(supabase, jobId, 'extracting', 35, { started_at: new Date().toISOString() });
+      
+      // Download file from storage
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('documents')
+        .download(storagePath);
+      
+      if (downloadError || !fileData) {
+        throw new Error(`Failed to download file: ${downloadError?.message || 'Unknown error'}`);
+      }
+      
+      const filename = storagePath.split('/').pop() || 'unknown';
+      file = new File([fileData], filename, { type: fileData.type });
+      
+    } else {
+      // Legacy FormData mode (for backward compatibility)
+      const formData = await req.formData();
+      file = formData.get('file') as File | null;
+      conversationId = formData.get('conversation_id') as string | null;
+      handler = formData.get('handler') as string | null;
+    }
     
     if (!file) {
       return new Response(
@@ -265,7 +317,7 @@ serve(async (req) => {
       );
     }
     
-    console.log(`Received file: ${file.name}, size: ${file.size} bytes`);
+    console.log(`Processing file: ${file.name}, size: ${file.size} bytes`);
     
     // Validate file type
     const filename = file.name.toLowerCase();
@@ -273,24 +325,33 @@ serve(async (req) => {
     const validExtensions = ['txt', 'md', 'pdf', 'docx', 'pptx'];
     
     if (!validExtensions.includes(fileType)) {
+      const error = `Unsupported file type: .${fileType}`;
+      if (jobId) await updateJobStatus(supabase, jobId, 'failed', 0, { error_message: error });
       return new Response(
-        JSON.stringify({ error: `Unsupported file type: .${fileType}. Supported: ${validExtensions.map(e => '.' + e).join(', ')}` }),
+        JSON.stringify({ error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     // Extract text from document
     console.log('Extracting text from document...');
-    const text = await extractText(file, anthropicKey);
+    if (jobId) await updateJobStatus(supabase, jobId, 'extracting', 45);
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const text = await extractText(bytes, file.name, anthropicKey);
     
     if (!text || text.trim().length < 50) {
+      const error = 'Could not extract sufficient text from document (minimum 50 characters)';
+      if (jobId) await updateJobStatus(supabase, jobId, 'failed', 0, { error_message: error });
       return new Response(
-        JSON.stringify({ error: 'Could not extract sufficient text from document (minimum 50 characters)' }),
+        JSON.stringify({ error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     console.log(`Extracted ${text.length} characters`);
+    if (jobId) await updateJobStatus(supabase, jobId, 'extracting', 55);
     
     // Chunk the text
     console.log('Chunking text...');
@@ -298,31 +359,43 @@ serve(async (req) => {
     console.log(`Created ${chunks.length} chunks`);
     
     if (chunks.length === 0) {
+      const error = 'No chunks created from document';
+      if (jobId) await updateJobStatus(supabase, jobId, 'failed', 0, { error_message: error });
       return new Response(
-        JSON.stringify({ error: 'No chunks created from document' }),
+        JSON.stringify({ error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     // Generate embeddings in batches
     console.log('Generating embeddings...');
+    if (jobId) await updateJobStatus(supabase, jobId, 'embedding', 60);
+    
     const allEmbeddings: number[][] = [];
+    const totalBatches = Math.ceil(chunks.length / EMBEDDING_BATCH_SIZE);
     
     for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
       const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
       const batchTexts = batch.map(c => c.content);
+      const batchNum = Math.floor(i / EMBEDDING_BATCH_SIZE) + 1;
       
-      console.log(`Processing embedding batch ${Math.floor(i / EMBEDDING_BATCH_SIZE) + 1}/${Math.ceil(chunks.length / EMBEDDING_BATCH_SIZE)}`);
+      console.log(`Processing embedding batch ${batchNum}/${totalBatches}`);
+      
+      // Update progress (60-90% range for embedding)
+      if (jobId) {
+        const embeddingProgress = 60 + Math.round((batchNum / totalBatches) * 30);
+        await updateJobStatus(supabase, jobId, 'embedding', embeddingProgress);
+      }
       
       const embeddings = await generateEmbeddings(batchTexts, openaiApiKey);
       allEmbeddings.push(...embeddings);
     }
     
-    // Prepare records for insertion with new columns
+    // Prepare records for insertion
     const records = chunks.map((chunk, index) => ({
       user_id: user.id,
       conversation_id: conversationId || null,
-      filename: file.name,
+      filename: file!.name,
       file_type: fileType,
       chunk_index: index,
       content: chunk.content,
@@ -333,6 +406,8 @@ serve(async (req) => {
     
     // Insert chunks into database
     console.log('Storing chunks in database...');
+    if (jobId) await updateJobStatus(supabase, jobId, 'embedding', 95);
+    
     const { error: insertError } = await supabase
       .from('document_chunks')
       .insert(records);
@@ -344,6 +419,15 @@ serve(async (req) => {
     
     const processingTime = Date.now() - startTime;
     console.log(`Successfully processed ${file.name} in ${processingTime}ms`);
+    
+    // Mark job as complete
+    if (jobId) {
+      await updateJobStatus(supabase, jobId, 'complete', 100, {
+        chunks_created: chunks.length,
+        processing_time_ms: processingTime,
+        completed_at: new Date().toISOString(),
+      });
+    }
     
     return new Response(
       JSON.stringify({
@@ -360,6 +444,14 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Error in embed-document:', error);
+    
+    // Mark job as failed if we have a job ID
+    if (jobId && supabase) {
+      await updateJobStatus(supabase, jobId, 'failed', 0, {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        completed_at: new Date().toISOString(),
+      });
+    }
     
     return new Response(
       JSON.stringify({

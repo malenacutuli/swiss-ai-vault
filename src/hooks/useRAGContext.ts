@@ -1,12 +1,12 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
   getFileConfig, 
-  isFileSupported, 
   getSupportedExtensions,
   type FileHandler 
 } from '@/lib/supported-file-types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type ProcessingStage = 'uploading' | 'extracting' | 'embedding' | 'complete' | 'error';
 
@@ -26,6 +26,16 @@ interface DocumentChunk {
   metadata?: Record<string, any>;
 }
 
+export interface ProcessingJob {
+  id: string;
+  status: string;
+  progress: number;
+  file_name: string;
+  file_size: number;
+  chunks_created: number | null;
+  error_message: string | null;
+}
+
 // Verify Supabase URL is available for Edge Function calls
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 if (!SUPABASE_URL) {
@@ -35,10 +45,13 @@ if (!SUPABASE_URL) {
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 export function useRAGContext(externalConversationId?: string | null) {
+  const { user } = useAuth();
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(externalConversationId || null);
   const [contextEnabled, setContextEnabled] = useState(true);
+  const [processingJobs, setProcessingJobs] = useState<ProcessingJob[]>([]);
+  const subscriptionsRef = useRef<Map<string, ReturnType<typeof supabase.channel>>>(new Map());
 
   // Sync with external conversation ID
   useEffect(() => {
@@ -47,21 +60,36 @@ export function useRAGContext(externalConversationId?: string | null) {
       // Clear documents when conversation changes
       if (externalConversationId !== conversationId) {
         setUploadedDocuments([]);
+        setProcessingJobs([]);
       }
     }
   }, [externalConversationId]);
+
+  // Cleanup subscriptions on unmount
+  useEffect(() => {
+    return () => {
+      subscriptionsRef.current.forEach((channel) => {
+        supabase.removeChannel(channel);
+      });
+      subscriptionsRef.current.clear();
+    };
+  }, []);
 
   const hasContext = useMemo(() => uploadedDocuments.length > 0, [uploadedDocuments]);
 
   const uploadDocument = useCallback(async (
     file: File, 
     onStageChange?: (stage: ProcessingStage, progress: number) => void
-  ): Promise<{ success: boolean; chunkCount: number }> => {
-    // Use external conversation ID if provided
+  ): Promise<{ success: boolean; chunkCount: number; jobId?: string }> => {
     const targetConversationId = conversationId || externalConversationId;
     
     if (!targetConversationId) {
       toast.error('Please select or create a conversation first');
+      return { success: false, chunkCount: 0 };
+    }
+
+    if (!user?.id) {
+      toast.error('You must be logged in to upload documents');
       return { success: false, chunkCount: 0 };
     }
 
@@ -80,71 +108,165 @@ export function useRAGContext(externalConversationId?: string | null) {
     }
 
     setIsUploading(true);
-    
-    // Stage: Extracting text
-    onStageChange?.('extracting', 40);
+    const jobId = crypto.randomUUID();
+    const storagePath = `${user.id}/${targetConversationId}/${jobId}/${file.name}`;
 
     try {
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('You must be logged in to upload documents');
-        onStageChange?.('error', 0);
-        return { success: false, chunkCount: 0 };
+      // 1. Create job record (user sees immediate feedback)
+      onStageChange?.('uploading', 5);
+      
+      const { error: jobError } = await supabase.from('document_processing_jobs').insert({
+        id: jobId,
+        conversation_id: targetConversationId,
+        user_id: user.id,
+        file_name: file.name,
+        file_size: file.size,
+        file_type: file.type || 'application/octet-stream',
+        handler: fileConfig.handler,
+        storage_path: storagePath,
+        status: 'uploading',
+        progress: 0,
+      });
+
+      if (jobError) {
+        console.error('[RAG] Failed to create job record:', jobError);
+        throw new Error('Failed to create processing job');
       }
 
-      // Create form data with handler info
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('conversation_id', targetConversationId);
-      formData.append('handler', fileConfig.handler);
+      // Add to processing jobs state
+      setProcessingJobs(prev => [...prev, {
+        id: jobId,
+        status: 'uploading',
+        progress: 0,
+        file_name: file.name,
+        file_size: file.size,
+        chunks_created: null,
+        error_message: null,
+      }]);
 
-      // Stage: Embedding (the Edge Function handles both extraction and embedding)
-      onStageChange?.('embedding', 60);
+      // 2. Subscribe to job updates (real-time progress)
+      const channel = supabase
+        .channel(`job-${jobId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'document_processing_jobs',
+            filter: `id=eq.${jobId}`,
+          },
+          (payload) => {
+            const newData = payload.new as ProcessingJob;
+            console.log('[RAG] Job update:', newData.status, newData.progress);
+            
+            // Update processing jobs state
+            setProcessingJobs(prev => 
+              prev.map(j => j.id === jobId ? { ...j, ...newData } : j)
+            );
 
-      // Call embed-document Edge Function
+            // Map status to stage for callback
+            const stageMap: Record<string, ProcessingStage> = {
+              uploading: 'uploading',
+              extracting: 'extracting',
+              embedding: 'embedding',
+              complete: 'complete',
+              failed: 'error',
+            };
+            const stage = stageMap[newData.status] || 'extracting';
+            onStageChange?.(stage, newData.progress || 0);
+
+            // Handle completion
+            if (newData.status === 'complete') {
+              setUploadedDocuments(prev => [...prev, {
+                filename: file.name,
+                chunkCount: newData.chunks_created || 0,
+                uploadedAt: new Date(),
+                handler: fileConfig.handler,
+              }]);
+              toast.success(`${file.name} processed: ${newData.chunks_created} chunks created`);
+              
+              // Cleanup subscription
+              supabase.removeChannel(channel);
+              subscriptionsRef.current.delete(jobId);
+            } else if (newData.status === 'failed') {
+              toast.error(newData.error_message || 'Document processing failed');
+              supabase.removeChannel(channel);
+              subscriptionsRef.current.delete(jobId);
+            }
+          }
+        )
+        .subscribe();
+
+      subscriptionsRef.current.set(jobId, channel);
+
+      // 3. Upload to storage
+      onStageChange?.('uploading', 10);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[RAG] Storage upload failed:', uploadError);
+        await supabase.from('document_processing_jobs')
+          .update({ status: 'failed', error_message: uploadError.message })
+          .eq('id', jobId);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      onStageChange?.('uploading', 30);
+
+      // 4. Trigger async processing via Edge Function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Session expired');
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed-document`,
+        `${SUPABASE_URL}/functions/v1/embed-document`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
           },
-          body: formData,
+          body: JSON.stringify({ 
+            job_id: jobId,
+            storage_path: storagePath,
+            conversation_id: targetConversationId,
+            handler: fileConfig.handler,
+          }),
         }
       );
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-        onStageChange?.('error', 0);
-        throw new Error(error.error || 'Failed to process document');
+        const error = await response.json().catch(() => ({ error: 'Processing failed' }));
+        throw new Error(error.error || 'Failed to start document processing');
       }
 
-      const result = await response.json();
-
-      // Stage: Complete
-      onStageChange?.('complete', 100);
-
-      // Add to uploaded documents
-      setUploadedDocuments(prev => [...prev, {
-        filename: file.name,
-        chunkCount: result.chunks_created,
-        uploadedAt: new Date(),
-        handler: fileConfig.handler,
-      }]);
-
-      toast.success(`${file.name} processed: ${result.chunks_created} chunks created`);
-
-      return { success: true, chunkCount: result.chunks_created };
+      // User can now continue - processing happens async
+      return { success: true, chunkCount: 0, jobId };
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error('[RAG] Error uploading document:', error);
       onStageChange?.('error', 0);
+      
+      // Update job status to failed
+      await supabase.from('document_processing_jobs')
+        .update({ 
+          status: 'failed', 
+          error_message: error instanceof Error ? error.message : 'Unknown error' 
+        })
+        .eq('id', jobId);
+      
       toast.error(error instanceof Error ? error.message : 'Failed to upload document');
       return { success: false, chunkCount: 0 };
     } finally {
       setIsUploading(false);
     }
-  }, [conversationId, externalConversationId]);
+  }, [conversationId, externalConversationId, user?.id]);
 
   const searchContext = useCallback(async (query: string, limit: number = 5): Promise<DocumentChunk[]> => {
     const targetConversationId = conversationId || externalConversationId;
@@ -343,5 +465,6 @@ export function useRAGContext(externalConversationId?: string | null) {
     conversationId,
     contextEnabled,
     setContextEnabled,
+    processingJobs,
   };
 }
