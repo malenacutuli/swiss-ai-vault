@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Plug, Download, Key, Copy, Check, Eye, EyeOff } from 'lucide-react';
+import { Settings, Plug, Download, Key, Copy, Check, Eye, EyeOff, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,7 @@ interface ChatSettingsModalProps {
   onSystemPromptChange?: (prompt: string) => void;
   isZeroTrace?: boolean;
   onExportConversation?: () => void;
+  onDeleteConversation?: () => void;
 }
 
 export function ChatSettingsModal({
@@ -70,6 +71,7 @@ export function ChatSettingsModal({
   onSystemPromptChange,
   isZeroTrace,
   onExportConversation,
+  onDeleteConversation,
 }: ChatSettingsModalProps) {
   const { toast } = useToast();
   const [autoLockMinutes, setAutoLockMinutes] = useState('15');
@@ -352,6 +354,25 @@ export function ChatSettingsModal({
                 to another device.
               </p>
             </div>
+
+            {onDeleteConversation && (
+              <div className="pt-4 border-t border-destructive/20">
+                <Button
+                  variant="destructive"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onDeleteConversation();
+                    onOpenChange(false);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete This Conversation
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This will permanently delete this conversation and its encryption key.
+                </p>
+              </div>
+            )}
           </TabsContent>
 
           {/* Integrations/Context Tab */}

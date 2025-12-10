@@ -28,7 +28,8 @@ import {
   Loader2,
   Shield,
   ArrowLeft,
-  Download
+  Download,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationListView } from '@/components/vault-chat/ConversationListView';
@@ -1101,26 +1102,31 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
     if (!conversationToDelete) return;
 
     try {
-      // Delete conversation (will cascade to messages via FK)
-      const { error } = await supabase
-        .from('encrypted_conversations')
-        .delete()
-        .eq('id', conversationToDelete);
-
-      if (error) throw error;
-
-      // Delete encryption key
-      await chatEncryption.deleteKey(conversationToDelete);
-
-      // Also delete from conversation_keys table
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) {
-        await supabase
-          .from('conversation_keys')
+      if (isZeroTrace) {
+        // ZeroTrace mode: delete from IndexedDB
+        await deleteStorageConversation(conversationToDelete);
+      } else {
+        // Cloud mode: delete from Supabase
+        const { error } = await supabase
+          .from('encrypted_conversations')
           .delete()
-          .eq('conversation_id', conversationToDelete)
-          .eq('user_id', currentUser.id);
+          .eq('id', conversationToDelete);
+
+        if (error) throw error;
+
+        // Also delete from conversation_keys table
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          await supabase
+            .from('conversation_keys')
+            .delete()
+            .eq('conversation_id', conversationToDelete)
+            .eq('user_id', currentUser.id);
+        }
       }
+
+      // Delete encryption key from IndexedDB
+      await chatEncryption.deleteKey(conversationToDelete);
 
       // Remove from local state
       setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
@@ -1191,18 +1197,32 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                   }}
                 />
                 {selectedConversation && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setConversationToExport(selectedConversation);
-                      setExportDialogOpen(true);
-                    }}
-                    className="h-8 w-8"
-                    title="Export conversation"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setConversationToExport(selectedConversation);
+                        setExportDialogOpen(true);
+                      }}
+                      className="h-8 w-8"
+                      title="Export conversation"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setConversationToDelete(selectedConversation);
+                        setDeleteDialogOpen(true);
+                      }}
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      title="Delete conversation"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
                 )}
                 <Button
                   variant="ghost"
@@ -1331,6 +1351,10 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
             setExportDialogOpen(true);
           }
         }}
+        onDeleteConversation={selectedConversation ? () => {
+          setConversationToDelete(selectedConversation);
+          setDeleteDialogOpen(true);
+        } : undefined}
       />
 
       {isZeroTrace && (
