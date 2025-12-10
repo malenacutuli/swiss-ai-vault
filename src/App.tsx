@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
@@ -69,85 +70,87 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <FirstTimeOrganizationModal />
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/docs/api" element={<ApiDocs />} />
-              <Route path="/docs/on-premises" element={<OnPremisesDeployment />} />
-              <Route path="/accept-invitation" element={<AcceptInvitation />} />
-              <Route path="/oauth/callback" element={<OAuthCallback />} />
-              <Route path="/design-system" element={<DesignSystem />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/dpa" element={<DPA />} />
-              <Route path="/status" element={<Status />} />
-              <Route path="/features/vault-chat" element={<VaultChatFeatures />} />
-              <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <FirstTimeOrganizationModal />
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/docs/api" element={<ApiDocs />} />
+                <Route path="/docs/on-premises" element={<OnPremisesDeployment />} />
+                <Route path="/accept-invitation" element={<AcceptInvitation />} />
+                <Route path="/oauth/callback" element={<OAuthCallback />} />
+                <Route path="/design-system" element={<DesignSystem />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/dpa" element={<DPA />} />
+                <Route path="/status" element={<Status />} />
+                <Route path="/features/vault-chat" element={<VaultChatFeatures />} />
+                <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
 
-              {/* Vault Chat routes (simple mode) */}
-              <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>
-                <Route index element={<VaultChat />} />
-                <Route path=":conversationId" element={<VaultChat />} />
-              </Route>
-              
-              {/* Legacy chat routes - redirect to new paths with toast */}
-              <Route path="/vault-chat" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
-              <Route path="/vault-chat/:conversationId" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
-              <Route path="/secure-chat" element={<LegacyRedirect to="/chat" message="Secure Chat has moved to /chat" />} />
-              <Route path="/secure-chat/:conversationId" element={<LegacyRedirect to="/chat" message="Secure Chat has moved to /chat" />} />
+                {/* Vault Chat routes (simple mode) */}
+                <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>
+                  <Route index element={<VaultChat />} />
+                  <Route path=":conversationId" element={<VaultChat />} />
+                </Route>
+                
+                {/* Legacy chat routes - redirect to new paths with toast */}
+                <Route path="/vault-chat" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
+                <Route path="/vault-chat/:conversationId" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
+                <Route path="/secure-chat" element={<LegacyRedirect to="/chat" message="Secure Chat has moved to /chat" />} />
+                <Route path="/secure-chat/:conversationId" element={<LegacyRedirect to="/chat" message="Secure Chat has moved to /chat" />} />
 
-              {/* Vault Labs routes (full mode) */}
-              <Route path="/labs" element={<ProtectedRoute><LabsLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="projects" element={<Projects />} />
-                <Route path="projects/:id" element={<ProjectDetail />} />
-                <Route path="datasets" element={<Datasets />} />
-                <Route path="datasets/:id" element={<DatasetDetail />} />
-                <Route path="finetuning" element={<Finetuning />} />
-                <Route path="finetuning/:id" element={<FinetuningJobDetail />} />
-                <Route path="templates" element={<Templates />} />
-                <Route path="evaluations" element={<Evaluations />} />
-                <Route path="evaluations/:id" element={<EvaluationDetail />} />
-                <Route path="models" element={<Models />} />
-                <Route path="models/:id" element={<ModelDetail />} />
-                <Route path="catalog" element={<ModelsCatalog />} />
-                <Route path="playground" element={<Playground />} />
-                <Route path="integrations" element={<VaultChatIntegrations />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="stats" element={<Stats />} />
-                <Route path="traces" element={<Traces />} />
-                <Route path="billing" element={<Billing />} />
-              </Route>
+                {/* Vault Labs routes (full mode) */}
+                <Route path="/labs" element={<ProtectedRoute><LabsLayout /></ProtectedRoute>}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="projects" element={<Projects />} />
+                  <Route path="projects/:id" element={<ProjectDetail />} />
+                  <Route path="datasets" element={<Datasets />} />
+                  <Route path="datasets/:id" element={<DatasetDetail />} />
+                  <Route path="finetuning" element={<Finetuning />} />
+                  <Route path="finetuning/:id" element={<FinetuningJobDetail />} />
+                  <Route path="templates" element={<Templates />} />
+                  <Route path="evaluations" element={<Evaluations />} />
+                  <Route path="evaluations/:id" element={<EvaluationDetail />} />
+                  <Route path="models" element={<Models />} />
+                  <Route path="models/:id" element={<ModelDetail />} />
+                  <Route path="catalog" element={<ModelsCatalog />} />
+                  <Route path="playground" element={<Playground />} />
+                  <Route path="integrations" element={<VaultChatIntegrations />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="stats" element={<Stats />} />
+                  <Route path="traces" element={<Traces />} />
+                  <Route path="billing" element={<Billing />} />
+                </Route>
 
-              {/* Admin routes */}
-              <Route path="/labs/admin" element={<AdminRoute><LabsLayout /></AdminRoute>}>
-                <Route index element={<Admin />} />
-                <Route path="audit-logs" element={<AuditLogs />} />
-                <Route path="compliance" element={<Compliance />} />
-              </Route>
+                {/* Admin routes */}
+                <Route path="/labs/admin" element={<AdminRoute><LabsLayout /></AdminRoute>}>
+                  <Route index element={<Admin />} />
+                  <Route path="audit-logs" element={<AuditLogs />} />
+                  <Route path="compliance" element={<Compliance />} />
+                </Route>
 
-              {/* Legacy dashboard routes - redirect to labs with toast */}
-              <Route path="/dashboard" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
-              <Route path="/dashboard/*" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
+                {/* Legacy dashboard routes - redirect to labs with toast */}
+                <Route path="/dashboard" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
+                <Route path="/dashboard/*" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
 
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+                {/* Catch-all */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 
