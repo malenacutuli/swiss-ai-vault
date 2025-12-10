@@ -852,6 +852,71 @@ export type Database = {
         }
         Relationships: []
       }
+      document_processing_jobs: {
+        Row: {
+          chunks_created: number | null
+          completed_at: string | null
+          conversation_id: string | null
+          created_at: string | null
+          error_message: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          handler: string
+          id: string
+          processing_time_ms: number | null
+          progress: number | null
+          started_at: string | null
+          status: string | null
+          storage_path: string | null
+          user_id: string
+        }
+        Insert: {
+          chunks_created?: number | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          handler: string
+          id?: string
+          processing_time_ms?: number | null
+          progress?: number | null
+          started_at?: string | null
+          status?: string | null
+          storage_path?: string | null
+          user_id: string
+        }
+        Update: {
+          chunks_created?: number | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          handler?: string
+          id?: string
+          processing_time_ms?: number | null
+          progress?: number | null
+          started_at?: string | null
+          status?: string | null
+          storage_path?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_processing_jobs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "encrypted_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encrypted_conversations: {
         Row: {
           created_at: string | null
