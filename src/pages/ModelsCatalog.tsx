@@ -1,6 +1,4 @@
 import { useState, useMemo } from "react";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,7 +86,6 @@ interface BaseModel {
 type SortOption = "name" | "context" | "params" | "inputPrice" | "outputPrice";
 
 const ModelsCatalog = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("base");
   const [search, setSearch] = useState("");
   const [finetuneOnly, setFinetuneOnly] = useState(false);
@@ -224,21 +221,7 @@ const ModelsCatalog = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-
-      <div
-        className={cn(
-          "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-[280px]"
-        )}
-      >
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-
-        <main className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
           {/* Page Header */}
           <div className="animate-fade-in">
             <h1 className="text-2xl font-semibold text-foreground">Model Catalog</h1>
@@ -572,8 +555,6 @@ const ModelsCatalog = () => {
               )}
             </TabsContent>
           </Tabs>
-        </main>
-      </div>
 
       {/* Model Detail Modal */}
       <Dialog open={!!selectedModel} onOpenChange={() => setSelectedModel(null)}>
