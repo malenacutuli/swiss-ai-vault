@@ -63,19 +63,93 @@ async function updateJobStatus(
   }
 }
 
-// Extract text from different document types
-async function extractText(bytes: Uint8Array, filename: string, anthropicKey: string): Promise<string> {
+// Extract text from different document types based on handler
+async function extractText(
+  bytes: Uint8Array, 
+  filename: string, 
+  handler: string | null, 
+  anthropicKey: string
+): Promise<string> {
   const lowerFilename = filename.toLowerCase();
+  const effectiveHandler = handler || getHandlerFromFilename(lowerFilename);
   
-  if (lowerFilename.endsWith('.txt') || lowerFilename.endsWith('.md')) {
-    return new TextDecoder().decode(bytes);
+  console.log(`Using handler: ${effectiveHandler} for ${filename}`);
+  
+  switch (effectiveHandler) {
+    case 'direct-text':
+      return new TextDecoder().decode(bytes);
+      
+    case 'claude-extract':
+      return await extractWithClaude(bytes, lowerFilename, anthropicKey);
+      
+    case 'claude-vision':
+      return await analyzeImageWithClaude(bytes, lowerFilename, anthropicKey);
+      
+    case 'csv-parse':
+      return parseCSV(new TextDecoder().decode(bytes), filename);
+      
+    case 'xlsx-parse':
+      // For XLSX, we'll extract it as text representation
+      return await extractSpreadsheetAsText(bytes, filename);
+      
+    default:
+      // Fallback: try text decode or Claude
+      if (isTextFile(lowerFilename)) {
+        return new TextDecoder().decode(bytes);
+      }
+      return await extractWithClaude(bytes, lowerFilename, anthropicKey);
   }
-  
-  if (lowerFilename.endsWith('.pdf') || lowerFilename.endsWith('.docx') || lowerFilename.endsWith('.pptx')) {
-    return await extractWithClaude(bytes, lowerFilename, anthropicKey);
-  }
-  
-  throw new Error(`Unsupported file type: ${filename}`);
+}
+
+function getHandlerFromFilename(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  const handlerMap: Record<string, string> = {
+    // Documents
+    'pdf': 'claude-extract',
+    'docx': 'claude-extract',
+    'pptx': 'claude-extract',
+    // Text
+    'txt': 'direct-text',
+    'md': 'direct-text',
+    'json': 'direct-text',
+    'yaml': 'direct-text',
+    'yml': 'direct-text',
+    // Code
+    'py': 'direct-text',
+    'js': 'direct-text',
+    'jsx': 'direct-text',
+    'ts': 'direct-text',
+    'tsx': 'direct-text',
+    'java': 'direct-text',
+    'c': 'direct-text',
+    'cpp': 'direct-text',
+    'h': 'direct-text',
+    'html': 'direct-text',
+    'css': 'direct-text',
+    'sql': 'direct-text',
+    'sh': 'direct-text',
+    'go': 'direct-text',
+    'rs': 'direct-text',
+    'rb': 'direct-text',
+    'php': 'direct-text',
+    // Data
+    'csv': 'csv-parse',
+    'xlsx': 'xlsx-parse',
+    'xls': 'xlsx-parse',
+    // Images
+    'png': 'claude-vision',
+    'jpg': 'claude-vision',
+    'jpeg': 'claude-vision',
+    'webp': 'claude-vision',
+    'gif': 'claude-vision',
+  };
+  return handlerMap[ext] || 'direct-text';
+}
+
+function isTextFile(filename: string): boolean {
+  const textExtensions = ['txt', 'md', 'json', 'yaml', 'yml', 'xml', 'py', 'js', 'ts', 'jsx', 'tsx', 'java', 'c', 'cpp', 'h', 'html', 'css', 'sql', 'sh', 'go', 'rs', 'rb', 'php'];
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  return textExtensions.includes(ext);
 }
 
 // Use Claude's document capability for PDF/DOCX/PPTX extraction
@@ -128,6 +202,154 @@ async function extractWithClaude(bytes: Uint8Array, filename: string, anthropicK
   console.log(`Claude extracted ${extractedText.length} characters`);
   
   return extractedText;
+}
+
+// Analyze images with Claude Vision
+async function analyzeImageWithClaude(bytes: Uint8Array, filename: string, anthropicKey: string): Promise<string> {
+  const base64 = uint8ArrayToBase64(bytes);
+  
+  const ext = filename.split('.').pop()?.toLowerCase() || 'png';
+  const mediaTypeMap: Record<string, string> = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'webp': 'image/webp',
+    'gif': 'image/gif',
+  };
+  const mediaType = mediaTypeMap[ext] || 'image/png';
+
+  console.log(`Analyzing image ${filename} with Claude Vision...`);
+
+  const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": anthropicKey,
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-5",
+      max_tokens: 4096,
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: base64 },
+          },
+          {
+            type: "text",
+            text: `Analyze this image comprehensively. Describe:
+1. What the image contains (objects, people, scenes, text)
+2. Any text visible in the image (transcribe it exactly)
+3. Data, charts, or diagrams (describe the data and any insights)
+4. Context and relevant details
+
+Provide a detailed description that captures all important information from this image.`,
+          },
+        ],
+      }],
+    }),
+  });
+
+  const claudeData = await claudeResponse.json();
+  
+  if (claudeData.error) {
+    console.error("Claude Vision error:", claudeData.error);
+    throw new Error(`Claude Vision failed: ${claudeData.error.message}`);
+  }
+  
+  const analysis = claudeData.content?.[0]?.text || "";
+  console.log(`Claude Vision analyzed image: ${analysis.length} characters`);
+  
+  // Wrap the analysis with metadata
+  return `[Image: ${filename}]\n\n${analysis}`;
+}
+
+// Parse CSV as structured text
+function parseCSV(content: string, filename: string): string {
+  const lines = content.split(/\r?\n/).filter(line => line.trim());
+  if (lines.length === 0) return '';
+  
+  // Detect delimiter (comma, tab, semicolon)
+  const firstLine = lines[0];
+  const delimiters = [',', '\t', ';'];
+  let delimiter = ',';
+  let maxCount = 0;
+  for (const d of delimiters) {
+    const count = (firstLine.match(new RegExp(d === '\t' ? '\\t' : d, 'g')) || []).length;
+    if (count > maxCount) {
+      maxCount = count;
+      delimiter = d;
+    }
+  }
+  
+  const parseRow = (row: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < row.length; i++) {
+      const char = row[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === delimiter && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+  
+  const headers = parseRow(lines[0]);
+  const rows = lines.slice(1).map(parseRow);
+  
+  // Create a readable text representation
+  let output = `[CSV Data: ${filename}]\n\n`;
+  output += `Columns: ${headers.join(', ')}\n`;
+  output += `Total Rows: ${rows.length}\n\n`;
+  
+  // Include sample data and full content for searchability
+  const maxRowsToInclude = Math.min(rows.length, 500); // Limit for very large files
+  
+  for (let i = 0; i < maxRowsToInclude; i++) {
+    const row = rows[i];
+    output += `Row ${i + 1}:\n`;
+    headers.forEach((header, idx) => {
+      output += `  ${header}: ${row[idx] || ''}\n`;
+    });
+    output += '\n';
+  }
+  
+  if (rows.length > maxRowsToInclude) {
+    output += `\n... and ${rows.length - maxRowsToInclude} more rows\n`;
+  }
+  
+  return output;
+}
+
+// Extract spreadsheet as text (simplified - for full XLSX would need xlsx library)
+async function extractSpreadsheetAsText(bytes: Uint8Array, filename: string): Promise<string> {
+  // For XLSX files, we'll try to extract any readable text
+  // A full implementation would use a library like xlsx
+  const textDecoder = new TextDecoder('utf-8', { fatal: false });
+  const rawText = textDecoder.decode(bytes);
+  
+  // XLSX files are ZIP archives with XML inside
+  // Try to extract visible strings
+  const stringMatches = rawText.match(/(?:<t[^>]*>([^<]+)<\/t>)/g) || [];
+  const extractedStrings = stringMatches
+    .map(match => match.replace(/<\/?t[^>]*>/g, ''))
+    .filter(s => s.trim().length > 0);
+  
+  if (extractedStrings.length > 0) {
+    return `[Spreadsheet: ${filename}]\n\nExtracted content:\n${extractedStrings.join('\n')}`;
+  }
+  
+  return `[Spreadsheet: ${filename}]\n\nNote: Could not extract text from this spreadsheet. Please convert to CSV for better results.`;
 }
 
 // Chunk text into smaller pieces with overlap
@@ -368,7 +590,17 @@ serve(async (req) => {
     // Validate file type
     const filename = file.name.toLowerCase();
     const fileType = getFileExtension(filename);
-    const validExtensions = ['txt', 'md', 'pdf', 'docx', 'pptx'];
+    const validExtensions = [
+      // Documents
+      'txt', 'md', 'pdf', 'docx', 'pptx',
+      // Data
+      'csv', 'xlsx', 'xls', 'json', 'yaml', 'yml', 'xml',
+      // Code
+      'py', 'js', 'jsx', 'ts', 'tsx', 'java', 'c', 'cpp', 'h', 'hpp',
+      'html', 'css', 'scss', 'sql', 'sh', 'go', 'rs', 'rb', 'php', 'swift', 'kt',
+      // Images
+      'png', 'jpg', 'jpeg', 'webp', 'gif',
+    ];
     
     if (!validExtensions.includes(fileType)) {
       const error = `Unsupported file type: .${fileType}`;
@@ -385,7 +617,7 @@ serve(async (req) => {
     
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    const text = await extractText(bytes, file.name, anthropicKey);
+    const text = await extractText(bytes, file.name, handler, anthropicKey);
     
     if (!text || text.trim().length < 50) {
       const error = 'Could not extract sufficient text from document (minimum 50 characters)';

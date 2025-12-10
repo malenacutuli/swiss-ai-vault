@@ -19,6 +19,7 @@ import { RetentionMode } from '@/components/vault-chat/RetentionModeDropdown';
 import { DeleteConversationDialog } from '@/components/vault-chat/DeleteConversationDialog';
 import { ImportChatDialog } from '@/components/vault-chat/ImportChatDialog';
 import { ExportChatDialog } from '@/components/vault-chat/ExportChatDialog';
+import { FullWindowDropZone } from '@/components/vault-chat/FullWindowDropZone';
 import { localChatStorage } from '@/lib/storage/local-chat-storage';
 import { useExportReminder } from '@/hooks/useExportReminder';
 import { toast } from 'sonner';
@@ -1163,6 +1164,12 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
 
   return (
     <div className="h-screen bg-background">
+      <FullWindowDropZone 
+        onFilesDropped={(files) => files.forEach(file => uploadDocument(file))}
+        disabled={!selectedConversation || loadingMessages}
+        maxFiles={20}
+        maxFileSize={100 * 1024 * 1024}
+      />
       <main className="h-full flex flex-col">
         {selectedConversation ? (
           // CHAT VIEW
