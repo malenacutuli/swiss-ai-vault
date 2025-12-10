@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { 
   Paperclip, X, FileText, Loader2, CheckCircle, AlertCircle, 
-  Pause, Play, XCircle, RotateCcw, Clock, Zap
+  Pause, Play, XCircle, RotateCcw, Clock, Zap, CloudUpload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,7 +51,9 @@ interface DocumentUploadProps {
   conversationId?: string;
   userId?: string;
   userTier?: UserTier;
-  skipStorage?: boolean; // Skip TUS upload, send file directly to onUpload callback
+  skipStorage?: boolean;
+  showDropZone?: boolean; // Show prominent visual drop zone
+  maxFiles?: number;
 }
 
 type UploadState = 'idle' | 'dragActive' | 'uploading' | 'processing' | 'complete' | 'error';
@@ -69,6 +71,8 @@ export function DocumentUpload({
   userId,
   userTier = 'free',
   skipStorage = false,
+  showDropZone = false,
+  maxFiles = 20,
 }: DocumentUploadProps) {
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
@@ -298,20 +302,21 @@ export function DocumentUpload({
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0 || disabled) return;
 
-    const file = acceptedFiles[0];
-    
-    // Check for incomplete uploads matching this file
-    const matchingIncomplete = incompleteUploads.find(
-      u => u.filename === file.name && u.bytesTotal === file.size
-    );
+    // Process files sequentially
+    for (const file of acceptedFiles) {
+      // Check for incomplete uploads matching this file
+      const matchingIncomplete = incompleteUploads.find(
+        u => u.filename === file.name && u.bytesTotal === file.size
+      );
 
-    if (matchingIncomplete) {
-      pendingFileRef.current = file;
-      setShowIncompleteDialog(true);
-      return;
+      if (matchingIncomplete) {
+        pendingFileRef.current = file;
+        setShowIncompleteDialog(true);
+        return;
+      }
+
+      await handleUpload(file);
     }
-
-    handleUpload(file);
   }, [handleUpload, disabled, incompleteUploads]);
 
   const handleResumeIncomplete = async () => {
@@ -355,8 +360,8 @@ export function DocumentUpload({
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: ACCEPTED_TYPES,
-    maxFiles: 1,
-    noClick: true,
+    maxFiles,
+    noClick: !showDropZone,
     noKeyboard: disabled,
     disabled,
     onDragEnter: () => setIsExpanded(true),
@@ -419,8 +424,38 @@ export function DocumentUpload({
       <div {...getRootProps()} className="relative">
         <input {...getInputProps()} aria-label="Upload document" />
         
-        {/* Expanded Drop Zone */}
-        {(isExpanded || isDragActive) && uploadState === 'idle' && (
+        {/* Prominent Visual Drop Zone */}
+        {showDropZone && uploadState === 'idle' && (
+          <div className={cn(
+            "p-8 border-2 border-dashed rounded-xl cursor-pointer",
+            "flex flex-col items-center justify-center gap-3",
+            "bg-muted/30 hover:bg-muted/50 transition-all duration-200",
+            isDragActive 
+              ? "border-primary bg-primary/10 scale-[1.02]" 
+              : "border-border hover:border-primary/50"
+          )}>
+            <div className={cn(
+              "p-4 rounded-full transition-colors",
+              isDragActive ? "bg-primary/20" : "bg-muted"
+            )}>
+              <CloudUpload className={cn(
+                "h-8 w-8 transition-colors",
+                isDragActive ? "text-primary" : "text-muted-foreground"
+              )} />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium">
+                {isDragActive ? "Drop files here" : "Drop files here or click to browse"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                PDF, DOCX, PPTX, XLSX, images, code files • Up to {maxFiles} files • Max {formatBytes(maxFileSize)} each
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Compact Expanded Drop Zone (hover state for button mode) */}
+        {!showDropZone && (isExpanded || isDragActive) && uploadState === 'idle' && (
           <div className={cn(
             "absolute bottom-full left-0 right-0 mb-2 p-6",
             "border-2 border-dashed rounded-lg",
@@ -431,12 +466,12 @@ export function DocumentUpload({
               ? "border-primary bg-primary/5" 
               : "border-border"
           )}>
-            <FileText className={cn(
+            <CloudUpload className={cn(
               "h-8 w-8",
               isDragActive ? "text-primary" : "text-muted-foreground"
             )} />
             <p className="text-sm font-medium">
-              {isDragActive ? "Drop file here" : "Drop files here or click to browse"}
+              {isDragActive ? "Drop files here" : "Drop files here or click to browse"}
             </p>
             <p className="text-xs text-muted-foreground">
               PDF, DOCX, PPTX, XLSX, TXT, MD, CSV, JSON, images & code • Max {formatBytes(maxFileSize)}
@@ -572,41 +607,43 @@ export function DocumentUpload({
           </div>
         )}
 
-        {/* Paperclip Button */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (!disabled && uploadState === 'idle') {
-                    open();
-                  }
-                }}
-                disabled={disabled || isUploading || uploadState !== 'idle'}
-                className={cn(
-                  "h-9 w-9 shrink-0",
-                  uploadedDocuments.length > 0 && "text-success"
-                )}
-                aria-label="Upload document"
-              >
-                {isUploading || tusStatus === 'uploading' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Paperclip className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>Upload document for context</p>
-              <p className="text-xs text-muted-foreground">
-                PDF, DOCX, PPTX, TXT, MD • Max {formatBytes(maxFileSize)}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Paperclip Button (only show in compact mode) */}
+        {!showDropZone && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (!disabled && uploadState === 'idle') {
+                      open();
+                    }
+                  }}
+                  disabled={disabled || isUploading || uploadState !== 'idle'}
+                  className={cn(
+                    "h-9 w-9 shrink-0",
+                    uploadedDocuments.length > 0 && "text-success"
+                  )}
+                  aria-label="Upload document"
+                >
+                  {isUploading || tusStatus === 'uploading' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Upload document for context</p>
+                <p className="text-xs text-muted-foreground">
+                  PDF, DOCX, PPTX, TXT, MD • Max {formatBytes(maxFileSize)}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* Resume Incomplete Upload Dialog */}
