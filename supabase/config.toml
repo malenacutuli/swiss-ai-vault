@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.import-url]
 verify_jwt = true
+
+[functions.googledrive-oauth]
+verify_jwt = false
+
+[functions.googledrive-import]
+verify_jwt = true
