@@ -59,3 +59,6 @@ verify_jwt = true
 
 [functions.search-documents]
 verify_jwt = true
+
+[functions.keep-modal-warm]
+verify_jwt = false
