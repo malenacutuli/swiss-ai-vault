@@ -238,19 +238,13 @@
     "upload": "Subir",
     "huggingface": "HuggingFace",
     "generateSynthetic": "Generar datos sintéticos",
-    "importHuggingFace": "Importar de HuggingFace",
-    "deleteDataset": "Eliminar conjunto de datos",
-    "deleteConfirm": "¿Estás seguro de que quieres eliminar este conjunto de datos?",
-    "viewDetails": "Ver detalles",
-    "createSnapshot": "Crear instantánea",
-    "failedToLoad": "Error al cargar conjuntos de datos"
+    "importHuggingFace": "Importar de HuggingFace"
   },
   "finetuning": {
     "title": "Ajuste fino",
     "subtitle": "Entrena modelos de IA personalizados",
     "newJob": "Nuevo trabajo de ajuste fino",
     "createJob": "Crear trabajo",
-    "createFinetuningJob": "Crear trabajo de ajuste fino",
     "jobName": "Nombre del trabajo",
     "baseModel": "Modelo base",
     "method": "Método de ajuste fino",
@@ -264,20 +258,10 @@
     "loraR": "LoRA r",
     "loraAlpha": "LoRA alpha",
     "noJobs": "Aún no hay trabajos de ajuste fino",
-    "noJobsYet": "Aún no hay trabajos de ajuste fino",
     "createFirst": "Crea tu primer trabajo de ajuste fino",
-    "createFirstJob": "Crea tu primer trabajo para comenzar a entrenar modelos personalizados",
     "start": "Iniciar",
     "stop": "Detener",
     "cancel": "Cancelar",
-    "progress": "Progreso",
-    "loss": "Pérdida",
-    "duration": "Duración",
-    "viewDetails": "Ver detalles",
-    "deleteJob": "Eliminar trabajo",
-    "failedToLoad": "Error al cargar trabajos",
-    "jobStarted": "Trabajo iniciado",
-    "jobStartedDesc": "El trabajo de ajuste fino ha sido puesto en cola",
     "status": {
       "pending": "Pendiente",
       "queued": "En cola",
@@ -305,21 +289,12 @@
     "deployed": "Desplegado",
     "notDeployed": "No desplegado",
     "parameters": "Parámetros",
-    "params": "parámetros",
-    "context": "contexto",
     "contextLength": "Longitud de contexto",
     "provider": "Proveedor",
     "category": "Categoría",
     "license": "Licencia",
     "finetunable": "Ajustable",
-    "visionSupport": "Soporte de visión",
-    "copyModelId": "Copiar ID del modelo",
-    "viewFinetuningJob": "Ver trabajo de ajuste fino",
-    "downloadCheckpoint": "Descargar checkpoint",
-    "deleteModel": "Eliminar modelo",
-    "deleteConfirm": "¿Estás seguro de que quieres eliminar este modelo? Esta acción no se puede deshacer.",
-    "test": "Probar",
-    "failedToLoad": "Error al cargar modelos"
+    "visionSupport": "Soporte de visión"
   },
   "evaluations": {
     "title": "Evaluaciones",
@@ -328,10 +303,7 @@
     "createEvaluation": "Crear evaluación",
     "selectModel": "Seleccionar modelo",
     "selectMetrics": "Seleccionar métricas",
-    "selectDataset": "Seleccionar conjunto de datos",
-    "selectSnapshot": "Seleccionar instantánea",
     "noEvaluations": "Aún no hay evaluaciones",
-    "noEvaluationsYet": "Aún no hay evaluaciones",
     "runFirst": "Ejecuta tu primera evaluación",
     "run": "Ejecutar",
     "rerun": "Volver a ejecutar",
@@ -339,23 +311,6 @@
     "metrics": "Métricas",
     "score": "Puntuación",
     "average": "Promedio",
-    "avgScore": "Puntuación promedio",
-    "model": "Modelo",
-    "snapshot": "Instantánea",
-    "created": "Creado",
-    "viewDetails": "Ver detalles",
-    "deleteEvaluation": "Eliminar evaluación",
-    "createMetric": "Crear métrica",
-    "metricName": "Nombre de la métrica",
-    "metricDescription": "Descripción de la métrica",
-    "shouldRules": "Reglas que debe cumplir",
-    "shouldNotRules": "Reglas que no debe cumplir",
-    "builtIn": "Integrada",
-    "custom": "Personalizada",
-    "noMetrics": "Aún no hay métricas",
-    "failedToLoad": "Error al cargar datos",
-    "baseModels": "Modelos base",
-    "yourModels": "Tus modelos",
     "status": {
       "pending": "Pendiente",
       "running": "Ejecutando",
@@ -371,26 +326,13 @@
     "userMessage": "Escribe tu mensaje...",
     "send": "Enviar",
     "clear": "Limpiar chat",
-    "clearChat": "Limpiar chat",
     "chatMode": "Chat",
     "codeMode": "Código",
     "privateMode": "Modo privado activado",
-    "privateModeDesc": "Las solicitudes no se registrarán",
     "uploadDocument": "Subir documento para contexto",
     "uploadImage": "Subir imagen",
     "clearContext": "Limpiar contexto",
-    "documentsLoaded": "documentos cargados",
-    "temperature": "Temperatura",
-    "maxTokens": "Tokens máximos",
-    "configuration": "Configuración",
-    "providerModels": "Modelos de proveedor",
-    "openSourceModels": "Modelos de código abierto",
-    "codeModels": "Modelos de código",
-    "yourModels": "Tus modelos",
-    "coldStartWarning": "Los modelos de código abierto pueden tardar 30-60 segundos en el primer uso",
-    "visionSupported": "Soporta visión",
-    "noMessages": "Sin mensajes aún",
-    "startConversation": "Comienza una conversación enviando un mensaje"
+    "documentsLoaded": "documentos cargados"
   },
   "templates": {
     "title": "Plantillas",
@@ -401,25 +343,18 @@
     "difficulty": "Dificultad",
     "estimatedTime": "Tiempo estimado",
     "useCases": "Casos de uso",
-    "recommendedModel": "Modelo recomendado",
-    "domain": "Dominio",
-    "language": "Idioma",
-    "viewDetails": "Ver detalles"
+    "recommendedModel": "Modelo recomendado"
   },
   "traces": {
     "title": "Trazas",
     "subtitle": "Monitoriza las solicitudes y respuestas de la API",
     "noTraces": "No hay trazas registradas",
-    "noTracesYet": "No hay trazas registradas aún",
     "startUsing": "Empieza a usar la API para ver las trazas aquí",
     "request": "Solicitud",
     "response": "Respuesta",
     "latency": "Latencia",
     "tokens": "Tokens",
-    "statusCode": "Código de estado",
-    "model": "Modelo",
-    "timestamp": "Fecha y hora",
-    "viewDetails": "Ver detalles"
+    "statusCode": "Código de estado"
   },
   "stats": {
     "title": "Estadísticas de uso",
@@ -428,15 +363,12 @@
     "monthlyUsage": "Uso mensual",
     "creditsUsed": "Créditos usados",
     "serviceType": "Tipo de servicio",
-    "noStats": "Aún no hay datos de uso",
-    "usageThisMonth": "Uso este mes"
+    "noStats": "Aún no hay datos de uso"
   },
   "billing": {
     "title": "Facturación",
     "subtitle": "Gestiona tus créditos y pagos",
     "currentBalance": "Saldo actual",
-    "creditBalance": "Saldo de créditos",
-    "yourCredits": "Tus créditos disponibles",
     "credits": "créditos",
     "buyCredits": "Comprar créditos",
     "transactionHistory": "Historial de transacciones",
@@ -444,36 +376,18 @@
     "amount": "Cantidad",
     "date": "Fecha",
     "description": "Descripción",
-    "type": "Tipo",
-    "service": "Servicio",
-    "usage": "Uso",
-    "purchase": "Compra",
-    "usageThisMonth": "Uso este mes",
-    "dailyConsumption": "Consumo diario de créditos",
-    "noUsageData": "Aún no hay datos de uso",
-    "servicePricing": "Precios de servicios",
-    "costPerOperation": "Costo por operación",
-    "popular": "Popular",
     "pricing": {
       "title": "Precios",
       "dataAugmentation": "Aumento de datos",
       "modelEvaluation": "Evaluación de modelos",
       "loraFinetuning": "Ajuste fino LoRA",
       "fullFinetuning": "Ajuste fino completo",
-      "finetuning": "Ajuste fino",
-      "evaluation": "Evaluación",
-      "syntheticData": "Datos sintéticos",
-      "inference": "Inferencia",
       "perOperation": "por operación",
-      "perJob": "por trabajo",
-      "perTokens": "por 1K tokens",
-      "perSample": "por muestra",
-      "perRow": "por fila"
+      "perJob": "por trabajo"
     }
   },
   "settings": {
     "title": "Configuración",
-    "subtitle": "Gestiona tu cuenta y acceso a la API",
     "profile": "Perfil",
     "account": "Cuenta",
     "security": "Seguridad",
@@ -492,35 +406,18 @@
     "currentPassword": "Contraseña actual",
     "newPassword": "Nueva contraseña",
     "confirmNewPassword": "Confirmar nueva contraseña",
-    "updatePassword": "Actualizar contraseña",
     "deleteAccount": "Eliminar cuenta",
     "deleteAccountWarning": "Esta acción no se puede deshacer",
     "saveChanges": "Guardar cambios",
-    "profileInfo": "Información del perfil",
-    "updateDetails": "Actualiza los detalles de tu cuenta",
-    "fullName": "Nombre completo",
-    "email": "Correo electrónico",
-    "verified": "Verificado",
-    "dangerZone": "Zona de peligro",
-    "irreversibleActions": "Acciones irreversibles",
-    "dataPrivacy": "Datos y privacidad",
-    "dataRetention": "Retención de datos",
-    "logRetention": "Retención de registros",
-    "exportData": "Exportar todos los datos",
     "apiKeysSection": {
       "title": "Claves API",
-      "subtitle": "Gestiona las claves para acceso a la API. Las claves solo se muestran una vez al crearlas.",
       "create": "Crear clave API",
       "name": "Nombre de la clave",
       "createdAt": "Creado",
       "lastUsed": "Último uso",
       "never": "Nunca",
-      "expires": "Expira",
-      "permissions": "Permisos",
       "deleteConfirm": "¿Estás seguro de que quieres eliminar esta clave API?",
-      "copyWarning": "¡Asegúrate de copiar tu clave API. No podrás verla de nuevo!",
-      "securityInfo": "Tus claves API están almacenadas de forma segura",
-      "securityDesc": "Las claves están hasheadas con SHA-256 y almacenadas con cifrado en reposo (AES-256) en centros de datos suizos"
+      "copyWarning": "¡Asegúrate de copiar tu clave API. No podrás verla de nuevo!"
     }
   },
   "notifications": {
@@ -574,8 +471,222 @@
     "serverError": "Error del servidor",
     "validationError": "Error de validación",
     "tryAgain": "Por favor, inténtalo de nuevo",
-    "failedToLoad": "Error al cargar",
     "unexpectedError": "Ocurrió un error inesperado"
+  },
+  "home": {
+    "hero": {
+      "title": "IA Sin Rastro para",
+      "titleHighlight": "Equipos Regulados",
+      "subtitle": "Sin filtraciones. Sin registros. Sin compromisos.",
+      "description": "SwissVault te permite construir IA con tus datos sin tocar nubes estadounidenses — con alojamiento soberano y cifrado sin rastro. Entrena y despliega IA con tus datos más sensibles con cifrado de extremo a extremo, residencia de datos suiza y transparencia de nivel auditoría.",
+      "bookDemo": "Reservar Demo Empresarial",
+      "earlyAccess": "Solicitar Acceso Anticipado",
+      "hostedInSwitzerland": "Alojado en Suiza",
+      "gdprReady": "Listo para GDPR",
+      "e2eEncryption": "Cifrado E2E del lado del cliente"
+    },
+    "mockUI": {
+      "workspaceTitle": "Espacio de Trabajo de Asistente SwissVault",
+      "complianceCopilot": "Co-Piloto de Cumplimiento",
+      "complianceCopilotDesc": "Asistente de regulaciones financieras",
+      "e2eEncrypted": "Cifrado E2E",
+      "sampleQuestion": "¿Cuáles son los requisitos KYC para clientes de alto riesgo?",
+      "sampleAnswer": "Según sus documentos de políticas internas, los clientes de alto riesgo requieren diligencia debida mejorada incluyendo...",
+      "encryptedResponse": "Respuesta cifrada",
+      "datasets": "Conjuntos de datos",
+      "sources": "fuentes",
+      "fineTuned": "Ajustados",
+      "modelsCount": "modelos",
+      "evaluations": "Evaluaciones",
+      "accuracy": "precisión",
+      "ragSources": "Fuentes RAG"
+    },
+    "whySwissVault": {
+      "title": "¿Por qué SwissVault?",
+      "subtitle": "Infraestructura de IA empresarial construida para organizaciones que priorizan la privacidad.",
+      "zeroKnowledge": {
+        "title": "Diseño de Conocimiento Cero",
+        "description": "No podemos leer tus conversaciones cifradas – y nadie más puede hacerlo.",
+        "details": "AES-256-GCM del lado del cliente, claves por conversación y seguridad estricta a nivel de fila."
+      },
+      "swissResidency": {
+        "title": "Residencia de Datos y Gobernanza Suiza",
+        "description": "Todos los datos se almacenan en centros de datos suizos con rastros de auditoría completos y controles de acceso.",
+        "details": "Listo para GDPR hoy, SOC 2 / ISO 27001 / FINMA en la hoja de ruta."
+      },
+      "fullLifecycle": {
+        "title": "Ciclo Completo de IA en Una Plataforma Segura",
+        "description": "Ingesta, ajusta, evalúa y despliega asistentes – usando OpenAI, Anthropic, Gemini, o modelos de código abierto soberanos en GPUs suizas."
+      },
+      "seeArchitecture": "Ver arquitectura de seguridad"
+    },
+    "solutions": {
+      "title": "Construido para Flujos de Trabajo Regulados",
+      "subtitle": "SwissVault se usa para potenciar asistentes internos donde la privacidad y la explicabilidad importan más que la experimentación pura.",
+      "compliance": {
+        "title": "Asistentes de Cumplimiento y Políticas",
+        "description": "Centraliza políticas internas, procedimientos y regulaciones.",
+        "feature1": "Permite a los empleados hacer preguntas en lenguaje natural con registros de auditoría completos",
+        "feature2": "Aplica retención cero y políticas estrictas de modelos"
+      },
+      "developer": {
+        "title": "Co-Pilotos Seguros para Desarrolladores y Operaciones",
+        "description": "Conéctate a repositorios privados de GitHub, ejecuta modelos conscientes del código en un entorno de confianza cero.",
+        "feature1": "Mantén el código fuente y credenciales fuera de registros de terceros"
+      },
+      "banking": {
+        "title": "Co-Pilotos de Conocimiento para Banca y Seguros",
+        "description": "Ingesta documentos de productos, archivos KYC y wikis internos.",
+        "feature1": "Proporciona a los equipos de primera línea respuestas instantáneas y trazables",
+        "feature2": "Citas RAG y paneles de evaluación"
+      },
+      "exploreSolutions": "Explorar todas las soluciones"
+    },
+    "howItWorks": {
+      "title": "De Datos Crudos a Asistentes de IA Gobernados",
+      "subtitle": "Un proceso simple de cuatro pasos para desplegar IA segura y auditable.",
+      "step1": {
+        "title": "Conecta e Ingesta Datos de Forma Segura",
+        "description": "Sube documentos o conecta Slack, Notion, GitHub, Gmail. Todos los datos almacenados en centros de datos suizos con control de acceso a nivel de fila."
+      },
+      "step2": {
+        "title": "Ajusta y Evalúa Modelos",
+        "description": "Usa plantillas predefinidas o tus propios conjuntos de datos. Entrena adaptadores LoRA/QLoRA en modelos de código abierto o usa APIs comerciales. Evalúa con LLM-como-juez y métricas personalizadas antes de ir a producción."
+      },
+      "step3": {
+        "title": "Despliega Asistentes en Vault Chat y vía API",
+        "description": "Levanta asistentes cifrados para cada equipo o usa la API compatible con OpenAI de SwissVault en tus propias aplicaciones. Aplica políticas de modelo y retención por organización."
+      },
+      "step4": {
+        "title": "Monitoriza, Audita y Mejora",
+        "description": "Rastrea uso, calidad y costos en tiempo real. Exporta registros para auditorías. Itera en conjuntos de datos, ajustes finos y barreras de protección."
+      }
+    },
+    "security": {
+      "badge": "Seguridad y Cumplimiento",
+      "title": "Arquitectura de Seguridad Diseñada para Auditores",
+      "subtitle": "Seguridad de nivel empresarial que satisface los requisitos de cumplimiento más exigentes.",
+      "e2e": {
+        "title": "Cifrado de Extremo a Extremo del Lado del Cliente",
+        "point1": "AES-256-GCM, claves por conversación, claves maestras derivadas de PBKDF2",
+        "point2": "Las claves nunca salen del navegador; los servidores solo ven texto cifrado"
+      },
+      "zeroTrust": {
+        "title": "Backend de Confianza Cero",
+        "point1": "Seguridad a nivel de fila en más de 40 tablas",
+        "point2": "Registros de auditoría inmutables con historial completo de cambios antes/después",
+        "point3": "Roles de organización estrictos (propietario, administrador, miembro)"
+      },
+      "swissResidency": {
+        "title": "Residencia de Datos Suiza",
+        "point1": "Todos los datos almacenados en AWS eu-central-2 (Zúrich) y bases de datos alojadas en la UE",
+        "point2": "Modo opcional de retención cero para trazas de inferencia y muestras de evaluación"
+      },
+      "complianceRoadmap": {
+        "title": "Hoja de Ruta de Cumplimiento",
+        "point1": "Procesos alineados con GDPR implementados",
+        "point2": "SOC 2 Tipo II (en progreso), ISO 27001 y preparación FINMA en la hoja de ruta"
+      },
+      "architecture": {
+        "title": "Arquitectura de Conocimiento Cero",
+        "browser": {
+          "title": "Tu Navegador (Claves Aquí)",
+          "description": "Claves de cifrado AES-256-GCM almacenadas en IndexedDB. Todo el cifrado/descifrado ocurre del lado del cliente."
+        },
+        "backend": {
+          "title": "Backend de SwissVault",
+          "description": "Almacena solo texto cifrado + hashes de claves. Las políticas RLS imponen aislamiento de datos."
+        },
+        "infrastructure": {
+          "title": "Infraestructura Suiza",
+          "description": "AWS eu-central-2 (Zúrich). Los datos nunca salen de la jurisdicción suiza."
+        }
+      },
+      "downloadWhitepaper": "Descargar Documento de Seguridad",
+      "talkToCISO": "Hablar con nuestro CISO"
+    },
+    "models": {
+      "title": "Usa los Mejores Modelos – Sin Perder Soberanía",
+      "subtitle": "SwissVault abstrae los proveedores para que puedas elegir el modelo correcto para cada carga de trabajo manteniendo la gobernanza y los registros en un solo lugar.",
+      "hybridCloud": {
+        "title": "Nube Híbrida",
+        "description": "GPT-4o, o1, Claude 3.5, Gemini 2.0 para cargas de trabajo permitidas para usar APIs estadounidenses. Enrutamiento, facturación y monitoreo centralizados."
+      },
+      "sovereignOpenSource": {
+        "title": "Código Abierto Soberano",
+        "description": "Llama, Mistral, Qwen, Gemma y más, alojados en GPUs suizas vía vLLM. Opción de restringir una organización solo a modelos de código abierto alojados en Suiza."
+      },
+      "openaiCompatible": "¿Ya usas OpenAI?",
+      "openaiCompatibleDesc": "Compatible de forma directa con los SDKs de Python y JS de OpenAI – solo cambia la URL base."
+    },
+    "pricing": {
+      "title": "Comienza Gratis, Crece a Empresarial",
+      "subtitle": "Planes simples para equipos que comienzan, con opciones personalizadas para empresas reguladas.",
+      "free": {
+        "name": "Gratis",
+        "price": "$0",
+        "period": "para siempre",
+        "description": "Para evaluación y equipos pequeños.",
+        "feature1": "10K llamadas API / mes",
+        "feature2": "2 trabajos de ajuste fino / mes",
+        "feature3": "1GB almacenamiento de datos",
+        "feature4": "Soporte comunitario",
+        "cta": "Comenzar"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$49",
+        "period": "/mes",
+        "description": "Para equipos construyendo asistentes y profesionales buscando necesidades de IA sin rastro.",
+        "badge": "Más popular para equipos de producto",
+        "feature1": "100K llamadas API / mes",
+        "feature2": "20 trabajos de ajuste fino / mes",
+        "feature3": "50GB almacenamiento de datos",
+        "feature4": "Suite de evaluación avanzada",
+        "feature5": "Integraciones webhook, espacios de trabajo de equipo",
+        "cta": "Comenzar"
+      },
+      "enterprise": {
+        "name": "Empresarial",
+        "price": "Personalizado",
+        "description": "Para bancos, aseguradoras, infraestructura crítica.",
+        "feature1": "1M+ llamadas API / mes",
+        "feature2": "Trabajos de ajuste fino ilimitados",
+        "feature3": "500GB+ almacenamiento",
+        "feature4": "Soporte dedicado y SLAs",
+        "feature5": "SSO e integraciones de auditoría",
+        "feature6": "Nivel opcional solo OSS soberano",
+        "cta": "Contactar Ventas"
+      },
+      "sovereignDeployment": "¿Necesitas instalación local o tus propias GPUs? Habla con nosotros sobre despliegue soberano"
+    },
+    "socialProof": {
+      "title": "Confianza de Equipos que Priorizan la Seguridad",
+      "testimonial": "SwissVault nos permitió desplegar asistentes de IA internos sin enviar ningún dato de clientes a nubes estadounidenses – eso era innegociable.",
+      "author": "CISO",
+      "company": "Institución Financiera Suiza",
+      "industries": {
+        "swissBanks": "Bancos Suizos",
+        "healthcare": "Profesionales de Salud",
+        "hnwi": "HNWI",
+        "crypto": "Gestores de Cripto",
+        "blockchain": "Blockchain",
+        "insurance": "Compañías de Seguros",
+        "regtech": "Proveedor RegTech",
+        "wealthManagers": "Gestores de Patrimonio",
+        "privateBank": "Banca Privada"
+      }
+    },
+    "developer": {
+      "title": "Amado por Desarrolladores y Equipos de ML",
+      "feature1": "API compatible con OpenAI – reemplazo directo para código existente",
+      "feature2": "SDKs para Python y TypeScript con async y streaming",
+      "feature3": "Webhooks para evaluaciones, trabajos de ajuste fino y facturación",
+      "viewApiDocs": "Ver Documentación API"
+    },
+    "supportedBy": {
+      "title": "Empresa Innovadora de IA Apoyada por"
+    }
   },
   "landing": {
     "hero": {
@@ -584,7 +695,7 @@
       "subtitle": "Plataforma de ajuste fino de IA de nivel empresarial con residencia de datos suiza garantizada. Entrena, evalúa y despliega modelos personalizados con total soberanía de datos.",
       "cta": "Comenzar prueba gratuita",
       "docs": "Ver documentación",
-      "earlyAccess": "Regístrate para acceso anticipado",
+      "earlyAccess": "Solicitar acceso anticipado",
       "scheduleDemo": "Programar demostración"
     },
     "features": {
@@ -603,7 +714,7 @@
       "title": "¿Listo para ajustar con",
       "subtitle": "Sé de los primeros en experimentar el ajuste fino de IA de nivel empresarial con soberanía de datos suiza.",
       "button": "Comenzar gratis",
-      "earlyAccess": "Regístrate para acceso anticipado",
+      "earlyAccess": "Solicitar acceso anticipado",
       "demo": "Programar demostración",
       "noCard": "Plazas limitadas • Sé el primero en la lista"
     },
