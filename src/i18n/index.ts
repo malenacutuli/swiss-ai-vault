@@ -13,15 +13,15 @@ import nl from './locales/nl.json';
 import ja from './locales/ja.json';
 
 export const languages = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'pt', name: 'Português', flag: '🇵🇹' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-  { code: 'ca', name: 'Català', flag: '🏴' },
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Español' },
+  { code: 'pt', name: 'Português' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'fr', name: 'Français' },
+  { code: 'it', name: 'Italiano' },
+  { code: 'ca', name: 'Català' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'ja', name: '日本語' },
 ] as const;
 
 export type LanguageCode = typeof languages[number]['code'];
