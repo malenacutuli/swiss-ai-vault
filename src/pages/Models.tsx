@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -43,7 +41,6 @@ import { useToast } from "@/hooks/use-toast";
 
 const Models = () => {
   const { t } = useTranslation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [deleteModelId, setDeleteModelId] = useState<string | null>(null);
   const [deployingModelId, setDeployingModelId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -130,30 +127,16 @@ const Models = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-
-      <div
-        className={cn(
-          "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-[280px]"
-        )}
-      >
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-
-        <main className="p-6 space-y-6">
-          {/* Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">{t('models.title')}</h1>
-              <p className="text-muted-foreground mt-1">
-                {t('models.subtitle')}
-              </p>
-            </div>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{t('models.title')}</h1>
+          <p className="text-muted-foreground mt-1">
+            {t('models.subtitle')}
+          </p>
+        </div>
+      </div>
 
           {/* Models Grid */}
           {loading ? (
@@ -326,8 +309,6 @@ const Models = () => {
               ))}
             </div>
           )}
-        </main>
-      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteModelId} onOpenChange={() => setDeleteModelId(null)}>
