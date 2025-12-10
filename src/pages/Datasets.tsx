@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,10 +47,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DatasetCreationWizard } from "@/components/datasets/DatasetCreationWizard";
 import { InsufficientCreditsModal } from "@/components/InsufficientCreditsModal";
-import { cn } from "@/lib/utils";
 import {
   Plus,
   Upload,
@@ -89,7 +87,6 @@ const sourceIcons: Record<SourceType, typeof Upload> = {
 const Datasets = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -550,21 +547,7 @@ const Datasets = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-
-      <div
-        className={cn(
-          "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-[280px]"
-        )}
-      >
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-
-        <main className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
             <div>
@@ -747,8 +730,6 @@ const Datasets = () => {
               </Table>
             </div>
           )}
-        </main>
-      </div>
 
       {/* Upload JSONL Modal */}
       <Dialog open={isUploadModalOpen} onOpenChange={(open) => {
