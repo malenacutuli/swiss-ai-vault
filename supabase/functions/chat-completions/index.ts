@@ -305,7 +305,15 @@ serve(async (req) => {
 
     // Only log user ID when NOT in zero-retention mode (checked after parsing body)
     const body = await req.json();
-    const { model: rawModel, messages, max_tokens, temperature, rag_context, zero_retention } = body;
+    const { 
+      model: rawModel, 
+      messages, 
+      max_tokens, 
+      temperature, 
+      rag_context, 
+      zero_retention,
+      allow_fallback = false,  // User must opt-in to fallback to commercial models
+    } = body;
     
     // Conditional logging based on zero-retention mode
     if (!zero_retention) {
