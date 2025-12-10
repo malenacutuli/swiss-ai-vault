@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, Sparkles, Brain, Clock } from 'lucide-react';
+import { Check, Brain } from 'lucide-react';
+import { ModelStatusIndicator } from './ModelStatusIndicator';
 
 // Import provider logos
 import anthropicLogo from '@/assets/models/anthropic-logo.png';
@@ -170,6 +171,7 @@ export function ModelProviderBar({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{model.name}</span>
+                      <ModelStatusIndicator model={model.id} />
                       {model.badge && (
                         <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-500/20 text-green-500 rounded shrink-0">
                           {model.badge}
@@ -177,9 +179,6 @@ export function ModelProviderBar({
                       )}
                       {model.isReasoning && (
                         <Brain className="w-3 h-3 text-purple-400 shrink-0" />
-                      )}
-                      {model.coldStart && (
-                        <Clock className="w-3 h-3 text-yellow-500 shrink-0" />
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">{model.description}</div>
