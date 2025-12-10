@@ -1,5 +1,6 @@
 import { Cloud } from "lucide-react";
 import { SwissFlag } from "@/components/icons/SwissFlag";
+import { useTranslation } from "react-i18next";
 
 import openaiLogo from "@/assets/models/openai-logo.png";
 import anthropicLogo from "@/assets/models/anthropic-logo.png";
@@ -23,16 +24,17 @@ const sovereignModels = [
 ];
 
 export const ModelsSection = () => {
+  const { t } = useTranslation();
+
   return (
     <section id="models" className="py-24 relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Use the Best Models – Without Losing Sovereignty
+            {t('landing.models.title')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            SwissVault abstracts away providers so you can choose the right model for each workload 
-            while keeping governance and logging in one place.
+            {t('landing.models.subtitle')}
           </p>
         </div>
 
@@ -42,11 +44,10 @@ export const ModelsSection = () => {
               <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
                 <Cloud className="h-5 w-5 text-info" />
               </div>
-              <h3 className="text-lg font-semibold">Hybrid Cloud</h3>
+              <h3 className="text-lg font-semibold">{t('landing.models.hybrid.title')}</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              GPT-4o, o1, Claude 3.5, Gemini 2.0 for workloads allowed to use US APIs. 
-              Centralised routing, billing and monitoring.
+              {t('landing.models.hybrid.description')}
             </p>
             <div className="flex flex-wrap gap-2">
               {hybridModels.map((model) => (
@@ -63,11 +64,10 @@ export const ModelsSection = () => {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <SwissFlag className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-semibold">Sovereign Open-Source</h3>
+              <h3 className="text-lg font-semibold">{t('landing.models.sovereign.title')}</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Llama, Mistral, Qwen, Gemma and more, hosted on Swiss GPUs via vLLM. 
-              Option to restrict an organisation to Swiss-hosted open-source models only.
+              {t('landing.models.sovereign.description')}
             </p>
             <div className="flex flex-wrap gap-2">
               {sovereignModels.map((model) => (
@@ -83,8 +83,8 @@ export const ModelsSection = () => {
         <div className="max-w-2xl mx-auto text-center">
           <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Already using OpenAI?</span>{" "}
-              Drop-in compatible with the OpenAI Python and JS SDKs – just change the base URL.
+              <span className="font-medium text-foreground">{t('landing.models.openaiCompat.title')}</span>{" "}
+              {t('landing.models.openaiCompat.description')}
             </p>
           </div>
         </div>
