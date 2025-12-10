@@ -281,6 +281,7 @@
     "catalog": "Models Catalog",
     "catalogSubtitle": "Browse available base models",
     "noModels": "No models yet",
+    "noModelsYet": "No models yet",
     "trainFirst": "Train your first model to see it here",
     "deploy": "Deploy",
     "undeploy": "Undeploy",
