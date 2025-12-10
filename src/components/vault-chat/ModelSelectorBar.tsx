@@ -34,19 +34,22 @@ interface ModelSelectorBarProps {
 // ============================================
 
 const ANTHROPIC_MODELS: Model[] = [
-  { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', provider: 'Anthropic', description: 'Latest balanced', isNew: true },
+  { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most intelligent', isNew: true },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Balanced performance', isNew: true },
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fastest Claude', isNew: true },
+  { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', provider: 'Anthropic', description: 'Previous gen balanced' },
   { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic', description: 'Fast & efficient' },
 ];
 
 const OPENAI_MODELS: Model[] = [
-  { id: 'o1', name: 'o1', provider: 'OpenAI', description: 'Advanced reasoning', isNew: true, isReasoning: true },
-  { id: 'o1-mini', name: 'o1 Mini', provider: 'OpenAI', description: 'Fast reasoning', isReasoning: true },
+  { id: 'o1', name: 'OpenAI o1', provider: 'OpenAI', description: 'Advanced reasoning', isNew: true, isReasoning: true },
+  { id: 'o1-mini', name: 'OpenAI o1-mini', provider: 'OpenAI', description: 'Fast reasoning', isReasoning: true },
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Multimodal flagship' },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', description: 'Cost-effective' },
 ];
 
 const GOOGLE_MODELS: Model[] = [
-  { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Latest', isNew: true },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Latest Gemini', isNew: true },
   { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', provider: 'Google', description: 'Reasoning', isNew: true, isReasoning: true },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', description: '1M context' },
   { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google', description: 'Fast' },
