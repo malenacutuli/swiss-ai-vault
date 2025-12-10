@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.keep-modal-warm]
 verify_jwt = false
+
+[functions.import-url]
+verify_jwt = true

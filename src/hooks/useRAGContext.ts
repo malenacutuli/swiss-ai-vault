@@ -440,6 +440,123 @@ export function useRAGContext(externalConversationId?: string | null) {
     }
   }, [conversationId, externalConversationId]);
 
+  const importFromURL = useCallback(async (
+    url: string,
+    onStageChange?: (stage: ProcessingStage, progress: number) => void
+  ): Promise<{ success: boolean; type: 'webpage' | 'document'; content?: string; title?: string; jobId?: string }> => {
+    const targetConversationId = conversationId || externalConversationId;
+    
+    if (!user?.id) {
+      toast.error('You must be logged in to import URLs');
+      return { success: false, type: 'webpage' };
+    }
+
+    try {
+      onStageChange?.('uploading', 10);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Session expired');
+      }
+
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/import-url`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url, conversation_id: targetConversationId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to import URL');
+      }
+
+      if (data.type === 'document') {
+        // Document is being processed async - subscribe to job updates
+        const jobId = data.job_id;
+        
+        setProcessingJobs(prev => [...prev, {
+          id: jobId,
+          status: 'queued',
+          progress: 30,
+          file_name: data.filename,
+          file_size: data.file_size,
+          chunks_created: null,
+          error_message: null,
+        }]);
+
+        // Subscribe to job updates
+        const channel = supabase
+          .channel(`job-${jobId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'document_processing_jobs',
+              filter: `id=eq.${jobId}`,
+            },
+            (payload) => {
+              const newData = payload.new as ProcessingJob;
+              setProcessingJobs(prev => 
+                prev.map(j => j.id === jobId ? { ...j, ...newData } : j)
+              );
+
+              const stageMap: Record<string, ProcessingStage> = {
+                extracting: 'extracting',
+                embedding: 'embedding',
+                complete: 'complete',
+                failed: 'error',
+              };
+              onStageChange?.(stageMap[newData.status] || 'extracting', newData.progress || 0);
+
+              if (newData.status === 'complete') {
+                setUploadedDocuments(prev => [...prev, {
+                  filename: data.filename,
+                  chunkCount: newData.chunks_created || 0,
+                  uploadedAt: new Date(),
+                }]);
+                toast.success(`${data.filename} imported: ${newData.chunks_created} chunks created`);
+                supabase.removeChannel(channel);
+                subscriptionsRef.current.delete(jobId);
+              } else if (newData.status === 'failed') {
+                toast.error(newData.error_message || 'Import processing failed');
+                supabase.removeChannel(channel);
+                subscriptionsRef.current.delete(jobId);
+              }
+            }
+          )
+          .subscribe();
+
+        subscriptionsRef.current.set(jobId, channel);
+        
+        toast.info(`Importing document from URL...`);
+        return { success: true, type: 'document', jobId };
+      } else {
+        // Webpage content extracted - return it directly
+        onStageChange?.('complete', 100);
+        toast.success(`Extracted content from: ${data.title}`);
+        return { 
+          success: true, 
+          type: 'webpage', 
+          content: data.content, 
+          title: data.title 
+        };
+      }
+    } catch (error) {
+      console.error('[RAG] Error importing URL:', error);
+      onStageChange?.('error', 0);
+      toast.error(error instanceof Error ? error.message : 'Failed to import URL');
+      return { success: false, type: 'webpage' };
+    }
+  }, [conversationId, externalConversationId, user?.id]);
+
   const getContextPrompt = useCallback((chunks: DocumentChunk[]): string => {
     if (chunks.length === 0) {
       return '';
@@ -458,6 +575,7 @@ export function useRAGContext(externalConversationId?: string | null) {
     uploadedDocuments,
     isUploading,
     uploadDocument,
+    importFromURL,
     searchContext,
     clearContext,
     getContextPrompt,
