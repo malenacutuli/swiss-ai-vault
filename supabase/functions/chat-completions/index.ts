@@ -10,19 +10,21 @@ const corsHeaders = {
 const MODEL_ALIASES: Record<string, string> = {
   'claude-3-5-sonnet-20241022': 'claude-sonnet-4-20250514',
   'claude-3-5-sonnet': 'claude-sonnet-4-20250514',
-  'claude-3-opus-20240229': 'claude-sonnet-4-20250514',
-  'claude-opus-4-5-20251101': 'claude-sonnet-4-20250514',
-  'claude-sonnet-4-5-20250929': 'claude-sonnet-4-20250514',
-  'claude-haiku-4-5-20251001': 'claude-3-5-haiku-20241022',
+  'claude-3-opus-20240229': 'claude-opus-4-5-20251101',
+  'gemini-2.0-flash-exp': 'gemini-2.0-flash', // Normalize experimental to stable
 };
 
 function normalizeModelName(model: string): string {
   return MODEL_ALIASES[model] || model;
 }
 
-// Model routing configuration - only currently valid models
+// Model routing configuration - all supported models
 const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> = {
-  // Anthropic (Valid models only)
+  // Anthropic Claude 4.5 (Latest 2025)
+  'claude-opus-4-5-20251101': { provider: 'anthropic' },
+  'claude-sonnet-4-5-20250929': { provider: 'anthropic' },
+  'claude-haiku-4-5-20251001': { provider: 'anthropic' },
+  // Anthropic Claude 4 & 3.5 (Previous gen)
   'claude-sonnet-4-20250514': { provider: 'anthropic' },
   'claude-3-5-haiku-20241022': { provider: 'anthropic' },
   
@@ -35,8 +37,8 @@ const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> 
   'gpt-4-turbo': { provider: 'openai' },
   
   // Google Gemini 2.0 (Latest)
-  'gemini-2.0-flash-exp': { provider: 'google' },
-  'gemini-2.0-flash-thinking-exp': { provider: 'google' },
+  'gemini-2.0-flash': { provider: 'google' },
+  'gemini-2.0-flash-thinking-exp': { provider: 'google', isReasoning: true },
   'gemini-1.5-pro': { provider: 'google' },
   'gemini-1.5-flash': { provider: 'google' },
 };

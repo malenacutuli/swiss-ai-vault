@@ -35,7 +35,10 @@ const providers: Provider[] = [
     name: 'Anthropic',
     logo: anthropicLogo,
     models: [
-      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: 'Latest balanced', badge: 'NEW' },
+      { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: 'Most intelligent', badge: 'NEW' },
+      { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', description: 'Balanced performance', badge: 'NEW' },
+      { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', description: 'Fastest Claude', badge: 'NEW' },
+      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: 'Previous gen balanced' },
       { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Fast & efficient' },
     ]
   },
@@ -44,8 +47,8 @@ const providers: Provider[] = [
     name: 'OpenAI',
     logo: openaiLogo,
     models: [
-      { id: 'o1', name: 'o1', description: 'Advanced reasoning', badge: 'NEW', isReasoning: true },
-      { id: 'o1-mini', name: 'o1 Mini', description: 'Fast reasoning', isReasoning: true },
+      { id: 'o1', name: 'OpenAI o1', description: 'Advanced reasoning', badge: 'NEW', isReasoning: true },
+      { id: 'o1-mini', name: 'OpenAI o1-mini', description: 'Fast reasoning', isReasoning: true },
       { id: 'gpt-4o', name: 'GPT-4o', description: 'Multimodal flagship' },
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Cost-effective' },
     ]
@@ -55,7 +58,7 @@ const providers: Provider[] = [
     name: 'Google',
     logo: googleLogo,
     models: [
-      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', description: 'Latest', badge: 'NEW' },
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Latest Gemini', badge: 'NEW' },
       { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', description: 'Reasoning', badge: 'NEW', isReasoning: true },
       { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: '1M context' },
       { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast' },
