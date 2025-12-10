@@ -28,11 +28,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { UploadProgress, type ProcessingStage, formatBytes as formatBytesUtil } from './UploadProgress';
+import { 
+  getFileConfig, 
+  getAcceptedFileTypes, 
+  getSupportedExtensions,
+  type FileHandler 
+} from '@/lib/supported-file-types';
 
 interface UploadedDoc {
   filename: string;
   chunkCount: number;
   uploadedAt: Date;
+  handler?: FileHandler;
 }
 
 interface DocumentUploadProps {
@@ -49,13 +56,8 @@ interface DocumentUploadProps {
 
 type UploadState = 'idle' | 'dragActive' | 'uploading' | 'processing' | 'complete' | 'error';
 
-const ACCEPTED_TYPES = {
-  'application/pdf': ['.pdf'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-  'text/plain': ['.txt'],
-  'text/markdown': ['.md'],
-};
+// Get accepted types from shared config
+const ACCEPTED_TYPES = getAcceptedFileTypes();
 
 export function DocumentUpload({
   onUpload,
@@ -156,12 +158,10 @@ export function DocumentUpload({
   });
 
   const validateFile = (file: File): string | null => {
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (!extension) return 'Invalid file type';
-    
-    const validExtensions = ['pdf', 'docx', 'pptx', 'txt', 'md'];
-    if (!validExtensions.includes(extension)) {
-      return `Unsupported file type: .${extension}`;
+    const fileConfig = getFileConfig(file);
+    if (!fileConfig) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown';
+      return `Unsupported file type: .${ext}`;
     }
     
     if (file.size > maxFileSize) {
@@ -439,7 +439,7 @@ export function DocumentUpload({
               {isDragActive ? "Drop file here" : "Drop files here or click to browse"}
             </p>
             <p className="text-xs text-muted-foreground">
-              PDF, DOCX, PPTX, TXT, MD • Max {formatBytes(maxFileSize)}
+              PDF, DOCX, PPTX, XLSX, TXT, MD, CSV, JSON, images & code • Max {formatBytes(maxFileSize)}
             </p>
           </div>
         )}

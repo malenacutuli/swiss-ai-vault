@@ -1,6 +1,12 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { 
+  getFileConfig, 
+  isFileSupported, 
+  getSupportedExtensions,
+  type FileHandler 
+} from '@/lib/supported-file-types';
 
 export type ProcessingStage = 'uploading' | 'extracting' | 'embedding' | 'complete' | 'error';
 
@@ -8,6 +14,7 @@ interface UploadedDocument {
   filename: string;
   chunkCount: number;
   uploadedAt: Date;
+  handler?: FileHandler;
 }
 
 interface DocumentChunk {
@@ -25,7 +32,6 @@ if (!SUPABASE_URL) {
   console.warn('[RAG] VITE_SUPABASE_URL not configured - RAG search will not work');
 }
 
-const SUPPORTED_FILE_TYPES = ['txt', 'md', 'pdf', 'docx', 'pptx'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 export function useRAGContext(externalConversationId?: string | null) {
@@ -60,9 +66,10 @@ export function useRAGContext(externalConversationId?: string | null) {
     }
 
     // Validate file type
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (!extension || !SUPPORTED_FILE_TYPES.includes(extension)) {
-      toast.error(`Unsupported file type. Supported: ${SUPPORTED_FILE_TYPES.join(', ')}`);
+    const fileConfig = getFileConfig(file);
+    if (!fileConfig) {
+      const supported = getSupportedExtensions().slice(0, 10).join(', ') + '...';
+      toast.error(`Unsupported file type. Supported: ${supported}`);
       return { success: false, chunkCount: 0 };
     }
 
@@ -86,10 +93,11 @@ export function useRAGContext(externalConversationId?: string | null) {
         return { success: false, chunkCount: 0 };
       }
 
-      // Create form data
+      // Create form data with handler info
       const formData = new FormData();
       formData.append('file', file);
       formData.append('conversation_id', targetConversationId);
+      formData.append('handler', fileConfig.handler);
 
       // Stage: Embedding (the Edge Function handles both extraction and embedding)
       onStageChange?.('embedding', 60);
@@ -122,6 +130,7 @@ export function useRAGContext(externalConversationId?: string | null) {
         filename: file.name,
         chunkCount: result.chunks_created,
         uploadedAt: new Date(),
+        handler: fileConfig.handler,
       }]);
 
       toast.success(`${file.name} processed: ${result.chunks_created} chunks created`);
