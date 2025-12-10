@@ -361,16 +361,57 @@ serve(async (req) => {
     const options = { maxTokens: max_tokens, temperature };
     let result;
     const provider = getProvider(model);
+    let actualModelUsed = model;
+    let wasFallback = false;
 
-    switch (provider) {
-      case 'anthropic': result = await callAnthropic(processedMessages, model, options); break;
-      case 'google': result = await callGoogle(processedMessages, model, options); break;
-      case 'vllm': result = await callVLLM(processedMessages, model, options); break;
-      default: result = await callOpenAI(processedMessages, model, options); break;
+    try {
+      switch (provider) {
+        case 'anthropic': result = await callAnthropic(processedMessages, model, options); break;
+        case 'google': result = await callGoogle(processedMessages, model, options); break;
+        case 'vllm': result = await callVLLM(processedMessages, model, options); break;
+        default: result = await callOpenAI(processedMessages, model, options); break;
+      }
+      
+      // Track which model actually responded (from API response or requested)
+      actualModelUsed = result.model || model;
+    } catch (modelError: unknown) {
+      const errorMessage = modelError instanceof Error ? modelError.message : 'Unknown error';
+      console.error('[chat-completions] Model call failed:', errorMessage);
+
+      // Only fallback if user explicitly allowed it AND it was a vLLM model
+      if (allow_fallback && provider === 'vllm') {
+        console.warn('[chat-completions] vLLM failed, user allowed fallback to GPT-4o-mini');
+        try {
+          result = await callOpenAI(processedMessages, 'gpt-4o-mini', options);
+          actualModelUsed = 'gpt-4o-mini';
+          wasFallback = true;
+        } catch (fallbackError: unknown) {
+          const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : 'Fallback also failed';
+          console.error('[chat-completions] Fallback to GPT-4o-mini also failed:', fallbackErrorMessage);
+          return new Response(JSON.stringify({ 
+            error: { message: fallbackErrorMessage },
+            model_requested: rawModel,
+            suggestion: 'Both the requested model and fallback failed. Please try again later.'
+          }), {
+            status: 503,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      } else {
+        // Return the error to the user with helpful info
+        return new Response(JSON.stringify({ 
+          error: { message: errorMessage },
+          model_requested: rawModel,
+          provider: provider,
+          suggestion: provider === 'vllm' 
+            ? 'Open-source models may need 30-60 seconds to warm up. Try again, or select Claude/GPT/Gemini.'
+            : 'Please try again or select a different model.'
+        }), {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
-
-    // Track which model actually responded (from API response or requested)
-    const actualModelUsed = result.model || model;
 
     // Build response headers with zero-retention indicators and model tracking
     const responseHeaders: Record<string, string> = { 
@@ -381,13 +422,13 @@ serve(async (req) => {
       'X-Model-Requested': rawModel,
       'X-Model-Used': actualModelUsed,
       'X-Provider': provider,
+      'X-Model-Fallback': wasFallback ? 'true' : 'false',
     };
 
     return new Response(JSON.stringify(result), { headers: responseHeaders });
   } catch (error: unknown) {
-    // Only log errors with details when NOT in zero-retention mode
-    // Note: We can't check zero_retention here as it may have failed during parsing
-    console.error('[chat-completions] Error:', error instanceof Error ? error.message : 'Unknown error');
+    // Catch-all for unexpected errors (auth, parsing, etc.)
+    console.error('[chat-completions] Unexpected error:', error instanceof Error ? error.message : 'Unknown error');
     const errorMessage = error instanceof Error ? error.message : 'Internal error';
     return new Response(JSON.stringify({ error: { message: errorMessage } }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
