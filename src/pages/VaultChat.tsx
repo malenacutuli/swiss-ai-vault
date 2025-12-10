@@ -949,6 +949,18 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
       // Generate AI response
       setIsGenerating(true);
 
+      // Show cold start warning for open-source models
+      const isOpenSourceModel = ['llama', 'mistral', 'qwen', 'deepseek', 'gemma', 'phi'].some(
+        name => modelToUse.toLowerCase().includes(name)
+      );
+      if (isOpenSourceModel) {
+        toast({
+          title: 'Open-Source Model',
+          description: 'First request may take 30-60 seconds while the GPU warms up.',
+          duration: 5000,
+        });
+      }
+
       // Build message history
       const messageHistory = messages.map(msg => ({
         role: msg.role,
@@ -980,10 +992,36 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         }
       );
 
+      // Check response headers for model info
+      const modelUsed = response.headers.get('X-Model-Used');
+      const wasFallback = response.headers.get('X-Model-Fallback') === 'true';
+
       if (!response.ok) {
-        const errorData = await response.text();
+        const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
         console.error('[Vault Chat] API error:', errorData);
-        throw new Error(`API error: ${response.status}`);
+        
+        // Handle 503 model unavailable with user-friendly message
+        if (response.status === 503) {
+          const errorMessage = errorData.error?.message || errorData.suggestion || 
+            'The model is warming up. Please try again in 30-60 seconds.';
+          toast({
+            title: 'Model Unavailable',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+          setIsGenerating(false);
+          return;
+        }
+        
+        throw new Error(errorData.error?.message || `API error: ${response.status}`);
+      }
+
+      // Warn if fallback occurred
+      if (wasFallback && modelUsed) {
+        toast({
+          title: 'Model Fallback',
+          description: `${modelToUse} was unavailable. Response from ${modelUsed}.`,
+        });
       }
 
       const data = await response.json();
