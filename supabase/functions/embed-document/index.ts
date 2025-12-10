@@ -21,7 +21,8 @@ const corsHeaders = {
 
 const CHUNK_SIZE = 2000; // ~500 tokens (4 chars per token)
 const CHUNK_OVERLAP = 200; // ~50 tokens overlap
-const EMBEDDING_BATCH_SIZE = 100;
+const EMBEDDING_BATCH_SIZE = 20; // Smaller batches for parallel processing
+const CONCURRENT_BATCHES = 5; // Number of batches to process in parallel
 
 interface ChunkMetadata {
   page_number?: number;
@@ -193,8 +194,8 @@ function chunkText(text: string, originalSize: number): DocumentChunk[] {
   return chunks;
 }
 
-// Generate embeddings using OpenAI
-async function generateEmbeddings(texts: string[], openaiApiKey: string): Promise<number[][]> {
+// Generate embeddings for a single batch using OpenAI
+async function generateEmbeddingsBatch(texts: string[], openaiApiKey: string): Promise<number[][]> {
   const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
@@ -202,7 +203,7 @@ async function generateEmbeddings(texts: string[], openaiApiKey: string): Promis
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'text-embedding-ada-002',
+      model: 'text-embedding-3-small', // Faster than ada-002
       input: texts,
     }),
   });
@@ -215,6 +216,51 @@ async function generateEmbeddings(texts: string[], openaiApiKey: string): Promis
   
   const data = await response.json();
   return data.data.map((item: { embedding: number[] }) => item.embedding);
+}
+
+// Generate embeddings in parallel batches
+async function generateEmbeddingsParallel(
+  chunks: DocumentChunk[],
+  openaiApiKey: string,
+  supabase: any,
+  jobId: string | null
+): Promise<number[][]> {
+  const texts = chunks.map(c => c.content);
+  
+  // Create batches
+  const batches: string[][] = [];
+  for (let i = 0; i < texts.length; i += EMBEDDING_BATCH_SIZE) {
+    batches.push(texts.slice(i, i + EMBEDDING_BATCH_SIZE));
+  }
+  
+  const embeddings: number[][] = [];
+  const totalBatches = batches.length;
+  
+  // Process batches in parallel groups
+  for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
+    const concurrentBatches = batches.slice(i, i + CONCURRENT_BATCHES);
+    const batchGroupNum = Math.floor(i / CONCURRENT_BATCHES) + 1;
+    const totalGroups = Math.ceil(batches.length / CONCURRENT_BATCHES);
+    
+    console.log(`Processing batch group ${batchGroupNum}/${totalGroups} (${concurrentBatches.length} batches in parallel)`);
+    
+    const results = await Promise.all(
+      concurrentBatches.map(batch => generateEmbeddingsBatch(batch, openaiApiKey))
+    );
+    
+    results.forEach(result => {
+      embeddings.push(...result);
+    });
+    
+    // Update progress (60-90% range for embedding)
+    if (jobId && supabase) {
+      const completedBatches = Math.min(i + CONCURRENT_BATCHES, batches.length);
+      const embeddingProgress = 60 + Math.round((completedBatches / totalBatches) * 30);
+      await updateJobStatus(supabase, jobId, 'embedding', embeddingProgress);
+    }
+  }
+  
+  return embeddings;
 }
 
 // Get file extension
@@ -367,29 +413,11 @@ serve(async (req) => {
       );
     }
     
-    // Generate embeddings in batches
+    // Generate embeddings in parallel batches
     console.log('Generating embeddings...');
     if (jobId) await updateJobStatus(supabase, jobId, 'embedding', 60);
     
-    const allEmbeddings: number[][] = [];
-    const totalBatches = Math.ceil(chunks.length / EMBEDDING_BATCH_SIZE);
-    
-    for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
-      const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
-      const batchTexts = batch.map(c => c.content);
-      const batchNum = Math.floor(i / EMBEDDING_BATCH_SIZE) + 1;
-      
-      console.log(`Processing embedding batch ${batchNum}/${totalBatches}`);
-      
-      // Update progress (60-90% range for embedding)
-      if (jobId) {
-        const embeddingProgress = 60 + Math.round((batchNum / totalBatches) * 30);
-        await updateJobStatus(supabase, jobId, 'embedding', embeddingProgress);
-      }
-      
-      const embeddings = await generateEmbeddings(batchTexts, openaiApiKey);
-      allEmbeddings.push(...embeddings);
-    }
+    const allEmbeddings = await generateEmbeddingsParallel(chunks, openaiApiKey, supabase, jobId);
     
     // Prepare records for insertion
     const records = chunks.map((chunk, index) => ({
