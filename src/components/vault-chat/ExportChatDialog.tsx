@@ -116,10 +116,10 @@ export function ExportChatDialog({
 
         <div className="space-y-4 py-4">
           {/* Conversation Info */}
-          <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Lock className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">{conversationTitle}</span>
+          <div className="rounded-lg border bg-muted/50 p-4 space-y-2 overflow-hidden">
+            <div className="flex items-center gap-2 text-sm min-w-0">
+              <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="font-medium truncate">{conversationTitle}</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {messageCount} encrypted message{messageCount !== 1 ? 's' : ''}
