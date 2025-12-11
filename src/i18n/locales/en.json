@@ -687,6 +687,75 @@
       "title": "AI Innovative Company Supported by"
     }
   },
+  "vaultChatFeatures": {
+    "hero": {
+      "title": "Vault Chat",
+      "subtitle": "Deploy AI behind your firewall — not theirs.",
+      "description": "Adaptive assistants for mission-critical sectors, running with full end-to-end encryption, Swiss data residency, and zero cloud leakage.",
+      "requestAccess": "Request Early Access",
+      "requestDemo": "Request Demo"
+    },
+    "builtFor": {
+      "title": "Built for:",
+      "description": "Use AI to understand, extract, and act on your most sensitive data - entirely within your perimeter.",
+      "noLogs": "No logs. No leaks. No exceptions."
+    },
+    "industries": {
+      "government": {
+        "title": "Public Institutions & Government",
+        "description": "Secure document processing and citizen services with full compliance"
+      },
+      "healthcare": {
+        "title": "Healthcare & Life Sciences",
+        "description": "HIPAA-compliant AI for patient data and research documents"
+      },
+      "financial": {
+        "title": "Financial & Fintech Operators",
+        "description": "Bank-grade security for sensitive financial communications"
+      },
+      "legal": {
+        "title": "Legal & Compliance Teams",
+        "description": "Privileged document analysis with attorney-client confidentiality"
+      },
+      "defense": {
+        "title": "Defense & National Security",
+        "description": "Air-gapped deployment options for classified environments"
+      }
+    },
+    "features": {
+      "title": "Enterprise-Grade Security",
+      "subtitle": "Every layer designed for zero-trust environments",
+      "e2e": {
+        "title": "End-to-End Encrypted Chat & Document Analysis",
+        "description": "AES-256-GCM encryption with keys that never leave your browser"
+      },
+      "modelAgnostic": {
+        "title": "Model-Agnostic",
+        "description": "Use OpenAI, Claude, Gemini, or open-source LLMs - your choice"
+      },
+      "sovereignty": {
+        "title": "Swiss Sovereignty",
+        "description": "Zero U.S. cloud exposure with AWS eu-central-2 (Zurich) hosting"
+      },
+      "audit": {
+        "title": "Audit-Grade Logging & Role-Level Access Controls",
+        "description": "Complete audit trails with granular permission management"
+      }
+    },
+    "trust": {
+      "title": "Your Data Never Leaves Your Control",
+      "subtitle": "SwissVault operates on a zero-knowledge principle",
+      "items": {
+        "keys": "Keys stored only in your browser",
+        "residency": "Swiss data residency (AWS Zurich)",
+        "noAccess": "No vendor access to plaintext",
+        "soc2": "SOC 2 Type II roadmap",
+        "gdpr": "GDPR & Swiss DPA compliant",
+        "onPremises": "On-premises deployment available"
+      },
+      "cta": "Apply for Exclusive Access"
+    }
+  },
   "landing": {
     "hero": {
       "badge": "Swiss Data Residency Guaranteed",
