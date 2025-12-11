@@ -28,6 +28,7 @@ interface Provider {
   name: string;
   logo: string;
   models: Model[];
+  comingSoon?: boolean;
 }
 
 const providers: Provider[] = [
@@ -66,28 +67,11 @@ const providers: Provider[] = [
     ]
   },
   {
-    id: 'meta',
-    name: 'Meta',
-    logo: metaLogo,
-    models: [
-      { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B', description: 'Compact', coldStart: true },
-      { id: 'meta-llama/Llama-3.1-8B-Instruct', name: 'Llama 3.1 8B', description: 'Versatile', coldStart: true },
-    ]
-  },
-  {
     id: 'mistral',
     name: 'Mistral',
     logo: mistralLogo,
     models: [
       { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B', description: 'Efficient', coldStart: true },
-    ]
-  },
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    logo: deepseekLogo,
-    models: [
-      { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', description: 'Code expert', coldStart: true, comingSoon: true },
     ]
   },
   {
@@ -98,6 +82,25 @@ const providers: Provider[] = [
       { id: 'Qwen/Qwen2.5-3B-Instruct', name: 'Qwen 2.5 3B', description: 'Fast & capable', coldStart: true },
       { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen 2.5 7B', description: 'Balanced', coldStart: true },
       { id: 'Qwen/Qwen2.5-Coder-7B-Instruct', name: 'Qwen 2.5 Coder', description: 'Code specialist', coldStart: true },
+    ]
+  },
+  {
+    id: 'meta',
+    name: 'Meta',
+    logo: metaLogo,
+    comingSoon: true,
+    models: [
+      { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B', description: 'Compact', coldStart: true, comingSoon: true },
+      { id: 'meta-llama/Llama-3.1-8B-Instruct', name: 'Llama 3.1 8B', description: 'Versatile', coldStart: true, comingSoon: true },
+    ]
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    logo: deepseekLogo,
+    comingSoon: true,
+    models: [
+      { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', description: 'Code expert', coldStart: true, comingSoon: true },
     ]
   },
 ];
@@ -140,9 +143,10 @@ export function ModelProviderBar({
               className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center transition-all overflow-hidden",
                 "hover:bg-accent hover:scale-110",
-                selectedProvider?.id === provider.id && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                selectedProvider?.id === provider.id && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                provider.comingSoon && "opacity-50"
               )}
-              title={provider.name}
+              title={provider.comingSoon ? `${provider.name} (Coming Soon)` : provider.name}
             >
               <img 
                 src={provider.logo} 
