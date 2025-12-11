@@ -114,8 +114,8 @@ export const PricingSection = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {plans.map((plan) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {plans.filter(plan => plan.planId !== "Free").map((plan) => (
               <div
                 key={plan.planId}
                 className={`relative rounded-2xl p-6 ${
