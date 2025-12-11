@@ -18,10 +18,13 @@ const MODEL_ALIASES: Record<string, string> = {
   'gpt-4o': 'gpt-5',
   'gpt-4o-mini': 'gpt-5-mini',
   'gpt-4-turbo': 'gpt-5',
-  // Legacy Gemini aliases
+  // Legacy Gemini aliases - map to valid API model names
   'gemini-2.0-flash-exp': 'gemini-2.0-flash',
-  'gemini-1.5-pro': 'gemini-3.0-pro',
-  'gemini-1.5-flash': 'gemini-3.0-flash',
+  'gemini-1.5-pro': 'gemini-2.5-pro-preview',
+  'gemini-1.5-flash': 'gemini-2.5-flash',
+  // Map UI model names to actual API model names
+  'gemini-3.0-pro': 'gemini-2.5-pro-preview',
+  'gemini-3.0-flash': 'gemini-2.5-flash',
 };
 
 function normalizeModelName(model: string): string {
@@ -44,9 +47,9 @@ const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> 
   'o1-mini': { provider: 'openai', isReasoning: true },
   'o1-pro': { provider: 'openai', isReasoning: true },
   
-  // Google Gemini 3.0 (December 2025)
-  'gemini-3.0-pro': { provider: 'google' },
-  'gemini-3.0-flash': { provider: 'google' },
+  // Google Gemini (use actual API model names)
+  'gemini-2.5-pro-preview': { provider: 'google' },
+  'gemini-2.5-flash': { provider: 'google' },
   'gemini-2.0-flash': { provider: 'google' },
   'gemini-2.0-flash-thinking-exp': { provider: 'google', isReasoning: true },
 };
@@ -220,17 +223,21 @@ async function callOpenAI(messages: any[], model: string, options: any) {
   const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
 
+  // GPT-5.x and reasoning models require max_completion_tokens instead of max_tokens
+  // GPT-5.x also doesn't support temperature parameter
+  const isGPT5 = model.startsWith('gpt-5');
   const isReasoning = MODEL_CONFIG[model]?.isReasoning || model.startsWith('o1');
   const requestBody: any = { model, messages };
 
-  if (isReasoning) {
+  if (isGPT5 || isReasoning) {
     requestBody.max_completion_tokens = options.maxTokens || 4096;
+    // GPT-5.x and reasoning models don't support temperature
   } else {
     requestBody.max_tokens = options.maxTokens || 4096;
     if (options.temperature !== undefined) requestBody.temperature = options.temperature;
   }
 
-  console.log('[OpenAI] Request:', { model, isReasoning });
+  console.log('[OpenAI] Request:', { model, isGPT5, isReasoning });
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
