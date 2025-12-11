@@ -603,7 +603,7 @@
       },
       "swissResidency": {
         "title": "Swiss Data Residency",
-        "point1": "All data stored in AWS eu-central-2 (Zurich) and EU-hosted databases",
+        "point1": "All data stored in Switzerland hosted databases",
         "point2": "Optional zero-retention mode for inference traces and evaluation samples"
       },
       "complianceRoadmap": {

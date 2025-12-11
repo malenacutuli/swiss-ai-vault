@@ -604,7 +604,7 @@
       },
       "swissResidency": {
         "title": "Residencia de Datos Suiza",
-        "point1": "Todos los datos almacenados en AWS eu-central-2 (Zúrich) y bases de datos alojadas en la UE",
+        "point1": "Todos los datos almacenados en bases de datos alojadas en Suiza",
         "point2": "Modo opcional de retención cero para trazas de inferencia y muestras de evaluación"
       },
       "complianceRoadmap": {
