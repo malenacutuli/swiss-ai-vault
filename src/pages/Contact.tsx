@@ -93,17 +93,21 @@ const Contact = () => {
                 <MessageSquare className="h-8 w-8 text-primary mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Enterprise Sales</h3>
                 <p className="text-muted-foreground mb-2">For enterprise deployment and custom solutions</p>
-                <a href="mailto:malena@axessible.ai" className="text-primary hover:underline font-medium">
-                  malena@axessible.ai
+                <a href="mailto:hola@axessible.ai" className="text-primary hover:underline font-medium">
+                  hola@axessible.ai
                 </a>
               </div>
 
               <div className="p-6 rounded-xl bg-card/50 border border-border/50">
                 <Building2 className="h-8 w-8 text-primary mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Headquarters</h3>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <SwissFlag className="h-4 w-4" />
-                  <span>Axessible Labs AG, Switzerland</span>
+                <div className="text-muted-foreground space-y-1">
+                  <div className="flex items-center gap-2">
+                    <SwissFlag className="h-4 w-4" />
+                    <span>Axessible Labs AG</span>
+                  </div>
+                  <p className="text-sm">Alte Landstrasse 28</p>
+                  <p className="text-sm">8802 Kilchberg, Zurich</p>
                 </div>
               </div>
 
