@@ -187,6 +187,8 @@ export const DatasetCreationWizard = ({
   const [creationError, setCreationError] = useState<string | null>(null);
   const [fileUploadProgress, setFileUploadProgress] = useState<string>('');
   const [lastFailedAction, setLastFailedAction] = useState<(() => void) | null>(null);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const [fileProcessingProgress, setFileProcessingProgress] = useState<Record<string, number>>({});
 
   // Step 1 state
   const [creationMethod, setCreationMethod] = useState<CreationMethod | null>(null);
@@ -247,32 +249,69 @@ export const DatasetCreationWizard = ({
     return true;
   }, [currentStep, creationMethod, datasetName, uploadFiles, syntheticSource, sourceContent, syntheticFiles, hfDatasetId]);
 
-  const handleFileDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files).filter(f => {
-      const ext = f.name.toLowerCase().slice(f.name.lastIndexOf('.'));
-      return ['.jsonl', '.json', '.txt'].includes(ext);
-    });
-    setUploadFiles(prev => [...prev, ...files].slice(0, 100));
-    if (files.length > 0 && !datasetName) {
-      setDatasetName(files[0].name.replace(/\.(jsonl|json|txt)$/, ""));
+  // Multi-file upload handler with validation
+  const handleMultipleFileUpload = (files: FileList | File[] | null) => {
+    if (!files || (Array.isArray(files) && files.length === 0)) return;
+    
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit per file
+    
+    for (const file of Array.from(files)) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (['jsonl', 'json', 'csv', 'txt'].includes(extension || '')) {
+        if (file.size <= MAX_FILE_SIZE) {
+          validFiles.push(file);
+        } else {
+          invalidFiles.push(`${file.name} (exceeds 10MB limit)`);
+        }
+      } else {
+        invalidFiles.push(`${file.name} (unsupported format)`);
+      }
+    }
+    
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Some files skipped",
+        description: invalidFiles.slice(0, 3).join(', ') + (invalidFiles.length > 3 ? ` and ${invalidFiles.length - 3} more` : ''),
+        variant: "destructive"
+      });
+    }
+    
+    if (validFiles.length > 0) {
+      setUploadFiles(prev => [...prev, ...validFiles].slice(0, 100));
+      if (!datasetName) {
+        setDatasetName(validFiles[0].name.replace(/\.(jsonl|json|csv|txt)$/, ""));
+      }
     }
   };
 
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleMultipleFileUpload(e.dataTransfer.files);
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter(f => {
-      const ext = f.name.toLowerCase().slice(f.name.lastIndexOf('.'));
-      return ['.jsonl', '.json', '.txt'].includes(ext);
-    });
-    setUploadFiles(prev => [...prev, ...files].slice(0, 100));
-    if (files.length > 0 && !datasetName) {
-      setDatasetName(files[0].name.replace(/\.(jsonl|json|txt)$/, ""));
-    }
+    handleMultipleFileUpload(e.target.files);
   };
 
   const removeFile = (index: number) => {
     setUploadFiles(prev => prev.filter((_, i) => i !== index));
+    setFileProcessingProgress(prev => {
+      const updated = { ...prev };
+      delete updated[uploadFiles[index]?.name];
+      return updated;
+    });
+  };
+
+  // Get file processing status icon
+  const getFileStatusIcon = (fileName: string) => {
+    const progress = fileProcessingProgress[fileName];
+    if (progress === undefined) return null;
+    if (progress === -1) return <AlertCircle className="h-4 w-4 text-destructive" />;
+    if (progress === 100) return <Check className="h-4 w-4 text-success" />;
+    return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
   };
 
   // Synthetic file handlers
@@ -648,6 +687,8 @@ export const DatasetCreationWizard = ({
     setHfMaxRows(1000);
     setCreationError(null);
     setLastFailedAction(null);
+    setIsProcessingFiles(false);
+    setFileProcessingProgress({});
     onClose();
   };
 
@@ -777,38 +818,63 @@ export const DatasetCreationWizard = ({
                   >
                     <FileUp className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                     <p className="text-sm text-foreground mb-1">
-                      Drag and drop your file here, or{" "}
+                      Drag and drop files here, or{" "}
                       <label className="text-primary cursor-pointer hover:underline">
                         browse
                         <input
                           type="file"
                           className="hidden"
-                          accept=".jsonl,.json,.txt"
+                          accept=".jsonl,.json,.csv,.txt"
+                          multiple
                           onChange={handleFileSelect}
                         />
                       </label>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Supports JSONL, JSON • Max 50MB
+                      Supports JSONL, JSON, CSV, TXT • Max 10MB per file • Up to 100 files
                     </p>
                   </div>
 
                   {uploadFiles.length > 0 && (
                     <div className="space-y-2">
-                      {uploadFiles.map((file, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <FileJson className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium text-foreground">{file.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({(file.size / 1024).toFixed(1)} KB)
-                            </span>
-                          </div>
-                          <Button variant="ghost" size="icon" onClick={() => removeFile(i)}>
-                            <X className="h-4 w-4" />
+                      <div className="flex items-center justify-between">
+                        <Label>Selected Files ({uploadFiles.length})</Label>
+                        {uploadFiles.length > 1 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setUploadFiles([]);
+                              setFileProcessingProgress({});
+                            }}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            Clear all
                           </Button>
-                        </div>
-                      ))}
+                        )}
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {uploadFiles.map((file, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <FileJson className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="text-sm font-medium text-foreground truncate">{file.name}</span>
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                ({(file.size / 1024).toFixed(1)} KB)
+                              </span>
+                              {getFileStatusIcon(file.name)}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => removeFile(i)}
+                              disabled={isProcessingFiles}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
