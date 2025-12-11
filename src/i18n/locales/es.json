@@ -796,7 +796,31 @@
     },
     "features": {
       "title": "Características de nivel empresarial",
-      "subtitle": "Todo lo que necesitas para ajustar y desplegar modelos de IA a escala"
+      "subtitle": "Todo lo que necesitas para ajustar y desplegar modelos de IA a escala",
+      "dataset": {
+        "title": "Gestión de Datasets",
+        "description": "Carga, procesa y gestiona tus datasets de entrenamiento con validación integrada y controles de calidad."
+      },
+      "finetuning": {
+        "title": "Ajuste Fino de Modelos",
+        "description": "Entrena modelos personalizados usando LoRA, QLoRA o ajuste fino completo con hiperparámetros optimizados."
+      },
+      "evaluation": {
+        "title": "Evaluación de Modelos",
+        "description": "Evalúa el rendimiento del modelo con métricas integradas y pipelines de evaluación personalizados."
+      },
+      "swiss": {
+        "title": "Residencia de Datos Suiza",
+        "description": "Todos los datos almacenados en Suiza con cumplimiento total de GDPR y soberanía de datos."
+      },
+      "inference": {
+        "title": "Inferencia Rápida",
+        "description": "Despliega modelos con inferencia de baja latencia a través de nuestra API compatible con OpenAI."
+      },
+      "sdk": {
+        "title": "SDKs para Desarrolladores",
+        "description": "Integra con SDKs de Python y TypeScript para flujos de desarrollo sin interrupciones."
+      }
     },
     "pricing": {
       "title": "Precios simples y transparentes",

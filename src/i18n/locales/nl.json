@@ -410,7 +410,31 @@
     },
     "features": {
       "title": "Enterprise-functies",
-      "subtitle": "Alles wat je nodig hebt om AI-modellen op schaal te finetunen en te deployen"
+      "subtitle": "Alles wat je nodig hebt om AI-modellen op schaal te finetunen en te deployen",
+      "dataset": {
+        "title": "Dataset Beheer",
+        "description": "Upload, verwerk en beheer je trainingsdatasets met ingebouwde validatie en kwaliteitscontroles."
+      },
+      "finetuning": {
+        "title": "Model Finetuning",
+        "description": "Train aangepaste modellen met LoRA, QLoRA of volledige finetuning met geoptimaliseerde hyperparameters."
+      },
+      "evaluation": {
+        "title": "Model Evaluatie",
+        "description": "Evalueer modelprestaties met ingebouwde metrieken en aangepaste evaluatiepipelines."
+      },
+      "swiss": {
+        "title": "Zwitserse Gegevenslocatie",
+        "description": "Alle gegevens opgeslagen in Zwitserland met volledige GDPR-naleving en gegevenssoevereiniteit."
+      },
+      "inference": {
+        "title": "Snelle Inferentie",
+        "description": "Deploy modellen met lage-latentie inferentie via onze OpenAI-compatibele API."
+      },
+      "sdk": {
+        "title": "Developer SDKs",
+        "description": "Integreer met Python en TypeScript SDKs voor naadloze ontwikkelworkflows."
+      }
     },
     "pricing": {
       "title": "Privétoegang nu. Enterprise-kracht wanneer je het nodig hebt",
