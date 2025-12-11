@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 
 const footerLinks = {
@@ -23,6 +23,33 @@ const footerLinks = {
     { label: "Status", href: "/status" },
     { label: "Email Support", href: "mailto:hola@axessible.ai" },
   ],
+};
+
+const HashLink = ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => {
+  const navigate = useNavigate();
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const [path, hash] = href.split('#');
+    const targetPath = path || '/';
+    
+    if (window.location.pathname !== targetPath) {
+      navigate(targetPath);
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        element?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      const element = document.getElementById(hash);
+      element?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
+  return (
+    <a href={href} onClick={handleClick} className={className}>
+      {children}
+    </a>
+  );
 };
 
 export const Footer = () => {
@@ -52,7 +79,14 @@ export const Footer = () => {
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
-                    {link.href.startsWith('/') ? (
+                    {link.href.includes('#') ? (
+                      <HashLink
+                        href={link.href}
+                        className="text-sm text-gray-300 hover:text-white transition-colors"
+                      >
+                        {link.label}
+                      </HashLink>
+                    ) : link.href.startsWith('/') ? (
                       <Link
                         to={link.href}
                         className="text-sm text-gray-300 hover:text-white transition-colors"

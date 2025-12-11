@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/sections/HeroSection";
+import { FeaturesSection } from "@/components/sections/FeaturesSection";
 import { WhySwissVaultSection } from "@/components/sections/WhySwissVaultSection";
 import { SolutionsSection } from "@/components/sections/SolutionsSection";
 import { HowItWorksSection } from "@/components/sections/HowItWorksSection";
@@ -17,6 +18,7 @@ const Index = () => {
       <Navbar />
       <main>
         <HeroSection />
+        <FeaturesSection />
         <WhySwissVaultSection />
         <SolutionsSection />
         <HowItWorksSection />
