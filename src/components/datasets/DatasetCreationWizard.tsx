@@ -39,6 +39,8 @@ import {
   ChevronRight,
   FileUp,
   RefreshCw,
+  Plus,
+  File,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -805,73 +807,95 @@ export const DatasetCreationWizard = ({
 
               {/* Upload Zone (if upload selected) */}
               {creationMethod === "upload" && (
-                <div className="space-y-3 animate-fade-in">
-                  <Label>Upload JSONL File</Label>
+                <div className="space-y-4 animate-fade-in">
+                  <Label>Upload Dataset Files</Label>
                   <div
                     className={cn(
                       "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-                      isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                      "hover:border-primary/50 hover:bg-muted/50",
+                      isDragging ? "border-primary bg-primary/5" : 
+                      uploadFiles.length > 0 ? "border-primary/30" : "border-muted-foreground/25"
                     )}
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleFileDrop}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragging(false);
+                      handleMultipleFileUpload(e.dataTransfer.files);
+                    }}
                   >
-                    <FileUp className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-sm text-foreground mb-1">
-                      Drag and drop files here, or{" "}
-                      <label className="text-primary cursor-pointer hover:underline">
-                        browse
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".jsonl,.json,.csv,.txt"
-                          multiple
-                          onChange={handleFileSelect}
-                        />
-                      </label>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Supports JSONL, JSON, CSV, TXT • Max 10MB per file • Up to 100 files
-                    </p>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".jsonl,.json,.csv,.txt"
+                      onChange={(e) => handleMultipleFileUpload(e.target.files)}
+                      className="hidden"
+                      id="multi-file-upload"
+                    />
+                    <label htmlFor="multi-file-upload" className="cursor-pointer">
+                      <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-lg font-medium text-foreground">Drop files here or click to upload</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Supports JSONL, JSON, CSV, TXT (max 10MB per file)
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Upload multiple files at once - they will be merged automatically
+                      </p>
+                    </label>
                   </div>
 
+                  {/* Uploaded Files List */}
                   {uploadFiles.length > 0 && (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Selected Files ({uploadFiles.length})</Label>
-                        {uploadFiles.length > 1 && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => {
-                              setUploadFiles([]);
-                              setFileProcessingProgress({});
-                            }}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            Clear all
-                          </Button>
-                        )}
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium text-foreground">Files to process ({uploadFiles.length})</h4>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setUploadFiles([]);
+                            setFileProcessingProgress({});
+                          }}
+                        >
+                          Clear All
+                        </Button>
                       </div>
-                      <div className="max-h-48 overflow-y-auto space-y-2">
-                        {uploadFiles.map((file, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
+                      
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {uploadFiles.map((file, index) => (
+                          <div
+                            key={`${file.name}-${index}`}
+                            className="flex items-center justify-between p-2 bg-muted rounded-md"
+                          >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <FileJson className="h-4 w-4 text-primary flex-shrink-0" />
-                              <span className="text-sm font-medium text-foreground truncate">{file.name}</span>
+                              <File className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate">{file.name}</span>
                               <span className="text-xs text-muted-foreground flex-shrink-0">
                                 ({(file.size / 1024).toFixed(1)} KB)
                               </span>
-                              {getFileStatusIcon(file.name)}
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removeFile(i)}
-                              disabled={isProcessingFiles}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            
+                            {fileProcessingProgress[file.name] !== undefined ? (
+                              <div className="flex items-center gap-2">
+                                {fileProcessingProgress[file.name] === -1 ? (
+                                  <span className="text-xs text-destructive">Error</span>
+                                ) : fileProcessingProgress[file.name] === 100 ? (
+                                  <span className="text-xs text-success">✓ Done</span>
+                                ) : (
+                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                )}
+                              </div>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeFile(index)}
+                                disabled={isProcessingFiles}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         ))}
                       </div>
