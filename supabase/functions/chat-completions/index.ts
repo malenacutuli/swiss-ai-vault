@@ -20,10 +20,10 @@ const MODEL_ALIASES: Record<string, string> = {
   'gpt-4-turbo': 'gpt-5',
   // Legacy Gemini aliases - map to valid API model names
   'gemini-2.0-flash-exp': 'gemini-2.0-flash',
-  'gemini-1.5-pro': 'gemini-2.5-pro-preview',
+  'gemini-1.5-pro': 'gemini-2.5-pro',
   'gemini-1.5-flash': 'gemini-2.5-flash',
   // Map UI model names to actual API model names
-  'gemini-3.0-pro': 'gemini-2.5-pro-preview',
+  'gemini-3.0-pro': 'gemini-2.5-pro',
   'gemini-3.0-flash': 'gemini-2.5-flash',
 };
 
@@ -48,7 +48,7 @@ const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> 
   'o1-pro': { provider: 'openai', isReasoning: true },
   
   // Google Gemini (use actual API model names)
-  'gemini-2.5-pro-preview': { provider: 'google' },
+  'gemini-2.5-pro': { provider: 'google' },
   'gemini-2.5-flash': { provider: 'google' },
   'gemini-2.0-flash': { provider: 'google' },
   'gemini-2.0-flash-thinking-exp': { provider: 'google', isReasoning: true },
