@@ -41,7 +41,11 @@ import {
   RefreshCw,
   Plus,
   File,
+  Split,
+  Database,
+  CheckCircle,
 } from "lucide-react";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithRetry, getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionRetry';
@@ -220,6 +224,12 @@ export const DatasetCreationWizard = ({
   
   // Step 3 state
   const [creativity, setCreativity] = useState(50);
+  
+  // Train/Validation split state
+  const [splitRatio, setSplitRatio] = useState(0.8);
+  const [isSplit, setIsSplit] = useState(false);
+  const [trainCount, setTrainCount] = useState(0);
+  const [valCount, setValCount] = useState(0);
 
   const totalPairs = useMemo(() => {
     if (creationMethod === "upload") {
@@ -343,6 +353,30 @@ export const DatasetCreationWizard = ({
 
   const removeSyntheticFile = (index: number) => {
     setSyntheticFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Calculate split preview based on estimated pairs
+  const calculateSplitPreview = () => {
+    let estimatedTotal = 0;
+    if (creationMethod === "synthetic") {
+      const sourceCount = syntheticSource === 'files' 
+        ? syntheticFiles.length 
+        : sourceContent.split('\n').filter(s => s.trim()).length || 1;
+      estimatedTotal = sourceCount * pairsPerSource;
+    } else if (creationMethod === "huggingface") {
+      estimatedTotal = hfMaxRows;
+    }
+    
+    const trainNum = Math.floor(estimatedTotal * splitRatio);
+    const valNum = estimatedTotal - trainNum;
+    setTrainCount(trainNum);
+    setValCount(valNum);
+    setIsSplit(true);
+    
+    toast({
+      title: "Split Configured",
+      description: `Training: ${trainNum} examples, Validation: ${valNum} examples`,
+    });
   };
 
   const handleCreate = async () => {
@@ -691,6 +725,10 @@ export const DatasetCreationWizard = ({
     setLastFailedAction(null);
     setIsProcessingFiles(false);
     setFileProcessingProgress({});
+    setSplitRatio(0.8);
+    setIsSplit(false);
+    setTrainCount(0);
+    setValCount(0);
     onClose();
   };
 
@@ -1292,6 +1330,73 @@ export const DatasetCreationWizard = ({
                     <span>Precise (0%)</span>
                     <span>Creative (100%)</span>
                   </div>
+                </div>
+              )}
+
+              {/* Train/Validation Split Controls */}
+              {creationMethod !== "upload" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                    <div className="flex-1">
+                      <Label>Train/Validation Split</Label>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-sm">{Math.round(splitRatio * 100)}% Train</span>
+                        <Slider
+                          value={[splitRatio]}
+                          onValueChange={([v]) => {
+                            setSplitRatio(v);
+                            setIsSplit(false);
+                          }}
+                          min={0.5}
+                          max={0.95}
+                          step={0.05}
+                          className="w-48"
+                        />
+                        <span className="text-sm">{Math.round((1 - splitRatio) * 100)}% Val</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={calculateSplitPreview}
+                      variant={isSplit ? "outline" : "default"}
+                      size="sm"
+                    >
+                      <Split className="h-4 w-4 mr-2" />
+                      {isSplit ? 'Recalculate' : 'Preview Split'}
+                    </Button>
+                  </div>
+
+                  {isSplit && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Database className="h-4 w-4" />
+                            Training Set ({trainCount})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-xs text-muted-foreground">
+                            Used for model training. Can be enriched with synthetic data.
+                          </p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-success" />
+                            Validation Set ({valCount})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-xs text-muted-foreground">
+                            Used for evaluation. Keep this real data only.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
                 </div>
               )}
 
