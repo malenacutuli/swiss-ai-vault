@@ -108,8 +108,12 @@
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
     "dontHaveAccount": "Vous n'avez pas de compte ?",
     "forgotPassword": "Mot de passe oublié ?",
-    "resetPassword": "Réinitialiser le mot de passe",
-    "backToLogin": "Retour à la connexion"
+    "resetPassword": "Réinitialiser le Mot de Passe",
+    "backToLogin": "Retour à la connexion",
+    "enterEmailForReset": "Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "sendResetLink": "Envoyer le lien de réinitialisation",
+    "resetEmailSent": "E-mail de réinitialisation envoyé",
+    "resetEmailSentDesc": "Vérifiez votre e-mail pour un lien de réinitialisation de mot de passe."
   },
   "dashboard": {
     "title": "Tableau de bord",
