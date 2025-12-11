@@ -69,7 +69,7 @@ export const Navbar = () => {
                 <Link to="/auth">{t('nav.signIn')}</Link>
               </Button>
               <Button variant="swiss" size="sm" onClick={() => setEarlyAccessOpen(true)}>
-                {t('nav.earlyAccess', 'Early Access')}
+                {t('nav.earlyAccess', 'Apply')}
                 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -110,7 +110,7 @@ export const Navbar = () => {
                     <Link to="/auth">{t('nav.signIn')}</Link>
                   </Button>
                   <Button variant="swiss" size="sm" className="flex-1" onClick={() => setEarlyAccessOpen(true)}>
-                    {t('nav.earlyAccess', 'Early Access')}
+                    {t('nav.earlyAccess', 'Apply')}
                   </Button>
                 </div>
               </div>

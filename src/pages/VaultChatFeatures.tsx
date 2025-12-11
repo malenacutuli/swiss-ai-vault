@@ -232,7 +232,7 @@ const VaultChatFeatures = () => {
             <div className="mt-10 text-center">
               <Button asChild size="lg" className="px-8 bg-gray-700/80 hover:bg-gray-800/90 text-white border-0 shadow-none">
                 <Link to="/auth">
-                  Sign Up for Early Access
+                  Apply for Exclusive Access
                   <Lock className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
