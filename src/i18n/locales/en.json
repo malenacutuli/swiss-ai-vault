@@ -619,7 +619,7 @@
         },
         "infrastructure": {
           "title": "Swiss Infrastructure",
-          "description": "AWS eu-central-2 (Zurich). Data never leaves Swiss jurisdiction."
+          "description": "Data never leaves Swiss jurisdiction."
         }
       },
       "downloadWhitepaper": "Download Security Whitepaper",

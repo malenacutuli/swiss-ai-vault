@@ -620,7 +620,7 @@
         },
         "infrastructure": {
           "title": "Infraestructura Suiza",
-          "description": "AWS eu-central-2 (Zúrich). Los datos nunca salen de la jurisdicción suiza."
+          "description": "Los datos nunca salen de la jurisdicción suiza."
         }
       },
       "downloadWhitepaper": "Descargar Documento de Seguridad",
