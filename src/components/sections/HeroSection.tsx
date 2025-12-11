@@ -26,9 +26,8 @@ export const HeroSection = () => {
             <div className="text-center lg:text-left">
 
               {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 animate-slide-up">
-                {t('home.hero.title')}{" "}
-                <span className="text-gradient">{t('home.hero.titleHighlight')}</span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 animate-slide-up text-foreground">
+                {t('home.hero.title')} {t('home.hero.titleHighlight')}
               </h1>
 
               {/* Subheadline */}
