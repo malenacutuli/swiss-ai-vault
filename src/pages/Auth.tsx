@@ -46,6 +46,8 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const { t } = useTranslation();
   
   // Login form
@@ -201,6 +203,40 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!forgotPasswordEmail) {
+      toast({
+        title: t('common.error'),
+        description: t('auth.fillAllFields'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+      redirectTo: `${window.location.origin}/auth?reset=true`,
+    });
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: t('common.error'),
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: t('auth.resetEmailSent'),
+        description: t('auth.resetEmailSentDesc'),
+      });
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -235,6 +271,50 @@ export default function Auth() {
           </div>
 
           <Card className="border-border/50 shadow-elevated">
+            {showForgotPassword ? (
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="text-center mb-4">
+                    <h2 className="text-lg font-semibold">{t('auth.resetPassword')}</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('auth.enterEmailForReset')}
+                    </p>
+                  </div>
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="forgot-email">{t('auth.email')}</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="forgot-email"
+                          type="email"
+                          placeholder={t('auth.emailPlaceholder')}
+                          value={forgotPasswordEmail}
+                          onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                          className="pl-10"
+                          autoComplete="email"
+                        />
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        t('auth.sendResetLink')
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => setShowForgotPassword(false)}
+                    >
+                      {t('auth.backToLogin')}
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
+            ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <CardHeader className="pb-4">
                 <TabsList className="grid w-full grid-cols-2">
@@ -312,6 +392,16 @@ export default function Auth() {
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForgotPassword(true);
+                          setForgotPasswordEmail(loginEmail);
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {t('auth.forgotPassword')}
+                      </button>
                     </div>
 
                     <Button type="submit" className="w-full" disabled={isLoading}>
@@ -417,6 +507,7 @@ export default function Auth() {
                 </div>
               </CardContent>
             </Tabs>
+            )}
           </Card>
 
           {/* Terms */}

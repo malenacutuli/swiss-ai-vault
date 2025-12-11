@@ -108,8 +108,12 @@
     "alreadyHaveAccount": "Heb je al een account?",
     "dontHaveAccount": "Heb je geen account?",
     "forgotPassword": "Wachtwoord vergeten?",
-    "resetPassword": "Wachtwoord resetten",
-    "backToLogin": "Terug naar inloggen"
+    "resetPassword": "Wachtwoord Resetten",
+    "backToLogin": "Terug naar inloggen",
+    "enterEmailForReset": "Voer je e-mailadres in en we sturen je een link om je wachtwoord te resetten.",
+    "sendResetLink": "Reset Link Versturen",
+    "resetEmailSent": "Reset e-mail verzonden",
+    "resetEmailSentDesc": "Controleer je e-mail voor een link om je wachtwoord te resetten."
   },
   "dashboard": {
     "title": "Dashboard",

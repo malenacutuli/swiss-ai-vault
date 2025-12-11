@@ -108,8 +108,12 @@
     "alreadyHaveAccount": "Bereits ein Konto?",
     "dontHaveAccount": "Noch kein Konto?",
     "forgotPassword": "Passwort vergessen?",
-    "resetPassword": "Passwort zurücksetzen",
-    "backToLogin": "Zurück zur Anmeldung"
+    "resetPassword": "Passwort Zurücksetzen",
+    "backToLogin": "Zurück zur Anmeldung",
+    "enterEmailForReset": "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.",
+    "sendResetLink": "Link zum Zurücksetzen senden",
+    "resetEmailSent": "E-Mail zum Zurücksetzen gesendet",
+    "resetEmailSentDesc": "Überprüfen Sie Ihre E-Mail auf einen Link zum Zurücksetzen Ihres Passworts."
   },
   "dashboard": {
     "title": "Dashboard",

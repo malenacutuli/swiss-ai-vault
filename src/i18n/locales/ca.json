@@ -108,8 +108,12 @@
     "alreadyHaveAccount": "Ja tens un compte?",
     "dontHaveAccount": "No tens un compte?",
     "forgotPassword": "Has oblidat la contrasenya?",
-    "resetPassword": "Restablir contrasenya",
-    "backToLogin": "Tornar a l'inici de sessió"
+    "resetPassword": "Restablir Contrasenya",
+    "backToLogin": "Tornar a l'inici de sessió",
+    "enterEmailForReset": "Introdueix el teu correu electrònic i t'enviarem un enllaç per restablir la contrasenya.",
+    "sendResetLink": "Enviar Enllaç de Restabliment",
+    "resetEmailSent": "Correu de restabliment enviat",
+    "resetEmailSentDesc": "Comprova el teu correu per un enllaç per restablir la contrasenya."
   },
   "dashboard": {
     "title": "Tauler de control",

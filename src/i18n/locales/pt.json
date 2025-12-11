@@ -108,8 +108,12 @@
     "alreadyHaveAccount": "Já tem uma conta?",
     "dontHaveAccount": "Não tem uma conta?",
     "forgotPassword": "Esqueceu a senha?",
-    "resetPassword": "Redefinir senha",
-    "backToLogin": "Voltar ao login"
+    "resetPassword": "Redefinir Senha",
+    "backToLogin": "Voltar ao login",
+    "enterEmailForReset": "Digite seu endereço de e-mail e enviaremos um link para redefinir sua senha.",
+    "sendResetLink": "Enviar Link de Redefinição",
+    "resetEmailSent": "E-mail de redefinição enviado",
+    "resetEmailSentDesc": "Verifique seu e-mail para um link de redefinição de senha."
   },
   "dashboard": {
     "title": "Painel de controle",
