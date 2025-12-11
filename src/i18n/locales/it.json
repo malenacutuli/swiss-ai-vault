@@ -410,7 +410,31 @@
     },
     "features": {
       "title": "Funzionalità di livello enterprise",
-      "subtitle": "Tutto ciò di cui hai bisogno per affinare e distribuire modelli AI su scala"
+      "subtitle": "Tutto ciò di cui hai bisogno per affinare e distribuire modelli AI su scala",
+      "dataset": {
+        "title": "Gestione Dataset",
+        "description": "Carica, elabora e gestisci i tuoi dataset di addestramento con validazione integrata e controlli qualità."
+      },
+      "finetuning": {
+        "title": "Fine-tuning Modelli",
+        "description": "Addestra modelli personalizzati usando LoRA, QLoRA o fine-tuning completo con iperparametri ottimizzati."
+      },
+      "evaluation": {
+        "title": "Valutazione Modelli",
+        "description": "Valuta le prestazioni del modello con metriche integrate e pipeline di valutazione personalizzate."
+      },
+      "swiss": {
+        "title": "Residenza Dati Svizzera",
+        "description": "Tutti i dati archiviati in Svizzera con piena conformità GDPR e sovranità dei dati."
+      },
+      "inference": {
+        "title": "Inferenza Veloce",
+        "description": "Distribuisci modelli con inferenza a bassa latenza tramite la nostra API compatibile OpenAI."
+      },
+      "sdk": {
+        "title": "SDK per Sviluppatori",
+        "description": "Integra con SDK Python e TypeScript per flussi di sviluppo senza interruzioni."
+      }
     },
     "pricing": {
       "title": "Accesso privato ora. Potenza enterprise quando ne hai bisogno",

@@ -410,7 +410,31 @@
     },
     "features": {
       "title": "Enterprise-Funktionen",
-      "subtitle": "Alles, was Sie brauchen, um KI-Modelle im großen Maßstab feinzuabstimmen und bereitzustellen"
+      "subtitle": "Alles, was Sie brauchen, um KI-Modelle im großen Maßstab feinzuabstimmen und bereitzustellen",
+      "dataset": {
+        "title": "Dataset-Verwaltung",
+        "description": "Laden, verarbeiten und verwalten Sie Ihre Trainingsdatensätze mit integrierter Validierung und Qualitätskontrollen."
+      },
+      "finetuning": {
+        "title": "Modell-Feinabstimmung",
+        "description": "Trainieren Sie benutzerdefinierte Modelle mit LoRA, QLoRA oder vollständiger Feinabstimmung mit optimierten Hyperparametern."
+      },
+      "evaluation": {
+        "title": "Modell-Evaluierung",
+        "description": "Bewerten Sie die Modellleistung mit integrierten Metriken und benutzerdefinierten Evaluierungspipelines."
+      },
+      "swiss": {
+        "title": "Schweizer Datenspeicherort",
+        "description": "Alle Daten werden in der Schweiz mit vollständiger GDPR-Konformität und Datensouveränität gespeichert."
+      },
+      "inference": {
+        "title": "Schnelle Inferenz",
+        "description": "Stellen Sie Modelle mit niedriger Latenz über unsere OpenAI-kompatible API bereit."
+      },
+      "sdk": {
+        "title": "Entwickler-SDKs",
+        "description": "Integrieren Sie mit Python- und TypeScript-SDKs für nahtlose Entwicklungsabläufe."
+      }
     },
     "pricing": {
       "title": "Privater Zugang jetzt. Enterprise-Power, wenn Sie sie brauchen",

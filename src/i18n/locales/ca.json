@@ -410,7 +410,31 @@
     },
     "features": {
       "title": "Característiques de nivell empresarial",
-      "subtitle": "Tot el que necessites per ajustar i desplegar models d'IA a escala"
+      "subtitle": "Tot el que necessites per ajustar i desplegar models d'IA a escala",
+      "dataset": {
+        "title": "Gestió de Datasets",
+        "description": "Carrega, processa i gestiona els teus datasets d'entrenament amb validació integrada i controls de qualitat."
+      },
+      "finetuning": {
+        "title": "Ajust Fi de Models",
+        "description": "Entrena models personalitzats usant LoRA, QLoRA o ajust fi complet amb hiperparàmetres optimitzats."
+      },
+      "evaluation": {
+        "title": "Avaluació de Models",
+        "description": "Avalua el rendiment del model amb mètriques integrades i pipelines d'avaluació personalitzats."
+      },
+      "swiss": {
+        "title": "Residència de Dades Suïssa",
+        "description": "Totes les dades emmagatzemades a Suïssa amb compliment total de GDPR i sobirania de dades."
+      },
+      "inference": {
+        "title": "Inferència Ràpida",
+        "description": "Desplega models amb inferència de baixa latència a través de la nostra API compatible amb OpenAI."
+      },
+      "sdk": {
+        "title": "SDKs per a Desenvolupadors",
+        "description": "Integra amb SDKs de Python i TypeScript per a fluxos de desenvolupament sense interrupcions."
+      }
     },
     "pricing": {
       "title": "Accés privat ara. Poder empresarial quan el necessitis",

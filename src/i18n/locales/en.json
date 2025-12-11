@@ -795,7 +795,31 @@
     },
     "features": {
       "title": "Enterprise-Grade Features",
-      "subtitle": "Everything you need to fine-tune and deploy AI models at scale"
+      "subtitle": "Everything you need to fine-tune and deploy AI models at scale",
+      "dataset": {
+        "title": "Dataset Management",
+        "description": "Upload, process, and manage your training datasets with built-in validation and quality checks."
+      },
+      "finetuning": {
+        "title": "Model Fine-tuning",
+        "description": "Train custom models using LoRA, QLoRA, or full fine-tuning with optimized hyperparameters."
+      },
+      "evaluation": {
+        "title": "Model Evaluation",
+        "description": "Evaluate model performance with built-in metrics and custom evaluation pipelines."
+      },
+      "swiss": {
+        "title": "Swiss Data Residency",
+        "description": "All data stored in Switzerland with full GDPR compliance and data sovereignty."
+      },
+      "inference": {
+        "title": "Fast Inference",
+        "description": "Deploy models with low-latency inference via our OpenAI-compatible API."
+      },
+      "sdk": {
+        "title": "Developer SDKs",
+        "description": "Integrate with Python and TypeScript SDKs for seamless development workflows."
+      }
     },
     "pricing": {
       "title": "Simple, Transparent Pricing",
