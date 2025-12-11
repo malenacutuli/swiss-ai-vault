@@ -1,4 +1,25 @@
 {
+  "contact": {
+    "title": "お問い合わせ",
+    "subtitle": "SwissVaultについてご質問がありますか？エンタープライズ導入についてご相談されたいですか？ぜひお聞かせください。",
+    "sendMessage": "メッセージを送信",
+    "firstName": "名",
+    "lastName": "姓",
+    "workEmail": "仕事用メール",
+    "company": "会社名",
+    "message": "メッセージ",
+    "messagePlaceholder": "ご要望をお聞かせください...",
+    "sendButton": "メッセージを送信",
+    "sending": "送信中...",
+    "successMessage": "メッセージが送信されました！24時間以内にご返信いたします。",
+    "emailUs": "メールでお問い合わせ",
+    "emailUsDesc": "一般的なお問い合わせとサポート",
+    "enterpriseSales": "企業向け営業",
+    "enterpriseSalesDesc": "エンタープライズ導入とカスタムソリューション",
+    "headquarters": "本社",
+    "responseTime": "返信時間",
+    "responseTimeDesc": "営業日（CET）の24時間以内にご返信いたします。"
+  },
   "common": {
     "loading": "読み込み中...",
     "save": "保存",

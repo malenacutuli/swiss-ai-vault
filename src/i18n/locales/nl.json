@@ -1,4 +1,25 @@
 {
+  "contact": {
+    "title": "Neem Contact Op",
+    "subtitle": "Heeft u vragen over SwissVault? Wilt u enterprise-implementatie bespreken? We horen graag van u.",
+    "sendMessage": "Stuur ons een bericht",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "workEmail": "Zakelijk e-mail",
+    "company": "Bedrijf",
+    "message": "Bericht",
+    "messagePlaceholder": "Vertel ons over uw behoeften...",
+    "sendButton": "Bericht versturen",
+    "sending": "Versturen...",
+    "successMessage": "Bericht verzonden! We nemen binnen 24 uur contact met u op.",
+    "emailUs": "E-mail ons",
+    "emailUsDesc": "Voor algemene vragen en ondersteuning",
+    "enterpriseSales": "Enterprise Verkoop",
+    "enterpriseSalesDesc": "Voor enterprise-implementatie en maatwerkoplossingen",
+    "headquarters": "Hoofdkantoor",
+    "responseTime": "Reactietijd",
+    "responseTimeDesc": "We reageren meestal binnen 24 uur op werkdagen (CET)."
+  },
   "common": {
     "loading": "Laden...",
     "save": "Opslaan",

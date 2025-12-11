@@ -1,4 +1,25 @@
 {
+  "contact": {
+    "title": "Contacta'ns",
+    "subtitle": "Tens preguntes sobre SwissVault? Vols parlar sobre implementació empresarial? Ens encantaria saber de tu.",
+    "sendMessage": "Envia'ns un missatge",
+    "firstName": "Nom",
+    "lastName": "Cognom",
+    "workEmail": "Email de treball",
+    "company": "Empresa",
+    "message": "Missatge",
+    "messagePlaceholder": "Explica'ns les teves necessitats...",
+    "sendButton": "Enviar missatge",
+    "sending": "Enviant...",
+    "successMessage": "Missatge enviat! Et respondrem en 24 hores.",
+    "emailUs": "Escriu-nos",
+    "emailUsDesc": "Per a consultes generals i suport",
+    "enterpriseSales": "Vendes Empresarials",
+    "enterpriseSalesDesc": "Per a implementació empresarial i solucions personalitzades",
+    "headquarters": "Seu Central",
+    "responseTime": "Temps de Resposta",
+    "responseTimeDesc": "Normalment responem en 24 hores durant dies laborables (CET)."
+  },
   "common": {
     "loading": "Carregant...",
     "save": "Desar",
