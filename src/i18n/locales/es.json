@@ -501,7 +501,7 @@
       "subtitle": "Cifrado de extremo a extremo. Sin rastro. Alojado en Suiza.",
       "description": "Confiado por industrias reguladas y las personas más sensibles a la privacidad del mundo.",
       "bookDemo": "Reservar Demo Empresarial",
-      "earlyAccess": "Solicitar Acceso Exclusivo",
+      "earlyAccess": "Solicitar Acceso Privado",
       "hostedInSwitzerland": "Alojado en Suiza",
       "gdprReady": "Listo para GDPR",
       "e2eEncryption": "Cifrado E2E del lado del cliente"
@@ -667,7 +667,7 @@
         "feature5": "Cómputo prioritario",
         "feature6": "Ingeniero de soporte con base en Suiza",
         "feature7": "Derechos de invitación (limitados)",
-        "cta": "Solicitar Acceso Exclusivo"
+        "cta": "Solicitar Acceso Privado"
       },
       "enterprise": {
         "name": "Empresarial",
@@ -777,7 +777,7 @@
         "gdpr": "Compatible con GDPR y DPA suizo",
         "onPremises": "Despliegue local disponible"
       },
-      "cta": "Solicitar Acceso Exclusivo"
+      "cta": "Solicitar Acceso Privado"
     }
   },
   "landing": {
@@ -787,7 +787,7 @@
       "subtitle": "Plataforma de ajuste fino de IA de nivel empresarial con residencia de datos suiza garantizada. Entrena, evalúa y despliega modelos personalizados con total soberanía de datos.",
       "cta": "Comenzar prueba gratuita",
       "docs": "Ver documentación",
-      "earlyAccess": "Solicitar acceso exclusivo",
+      "earlyAccess": "Solicitar acceso privado",
       "scheduleDemo": "Programar demostración"
     },
     "features": {
@@ -806,7 +806,7 @@
       "title": "¿Listo para ajustar con",
       "subtitle": "Sé de los primeros en experimentar el ajuste fino de IA de nivel empresarial con soberanía de datos suiza.",
       "button": "Comenzar gratis",
-      "earlyAccess": "Solicitar acceso exclusivo",
+      "earlyAccess": "Solicitar acceso privado",
       "demo": "Programar demostración",
       "noCard": "Plazas limitadas • Sé el primero en la lista"
     },
