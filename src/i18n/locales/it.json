@@ -582,7 +582,7 @@
       },
       "sovereignty": {
         "title": "Sovranità Svizzera",
-        "description": "Zero esposizione al cloud USA con hosting AWS eu-central-2 (Zurigo)"
+        "description": "Zero esposizione al cloud USA con hosting svizzero"
       },
       "audit": {
         "title": "Logging di Audit e Controlli Accesso per Ruolo",
@@ -594,7 +594,7 @@
       "subtitle": "SwissVault opera su un principio di zero conoscenza",
       "items": {
         "keys": "Chiavi memorizzate solo nel tuo browser",
-        "residency": "Residenza dati svizzera (AWS Zurigo)",
+        "residency": "Residenza dati svizzera",
         "noAccess": "Nessun accesso fornitore al testo in chiaro",
         "soc2": "Roadmap SOC 2 Type II",
         "gdpr": "Conforme GDPR e DPA svizzero",
