@@ -655,16 +655,18 @@
         "cta": "Comenzar"
       },
       "pro": {
-        "name": "Pro",
-        "price": "$49",
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
         "period": "/mes",
-        "description": "Para profesionales buscando necesidades de IA sin rastro.",
+        "description": "Instancia LLM cifrada personal",
         "badge": "Solo por Invitación",
-        "feature1": "100K llamadas API / mes",
-        "feature2": "20 trabajos de ajuste fino / mes",
-        "feature3": "50GB almacenamiento de datos",
-        "feature4": "Suite de evaluación avanzada",
-        "feature5": "Integraciones webhook, espacios de trabajo de equipo",
+        "feature1": "Chat privado ilimitado",
+        "feature2": "Análisis de archivos cifrados ilimitado",
+        "feature3": "Bóveda de datos privada hasta 10 GB",
+        "feature4": "Acceso anticipado a nuevos modos criptográficos",
+        "feature5": "Cómputo prioritario",
+        "feature6": "Ingeniero de soporte con base en Suiza",
+        "feature7": "Derechos de invitación (limitados)",
         "cta": "Solicitar Acceso Exclusivo"
       },
       "enterprise": {

@@ -410,7 +410,46 @@
     },
     "pricing": {
       "title": "Accesso privato ora. Potenza enterprise quando ne hai bisogno",
-      "subtitle": "L'accesso è limitato. L'ingresso è su invito o approvazione personale."
+      "subtitle": "L'accesso è limitato. L'ingresso è su invito o approvazione personale.",
+      "free": {
+        "name": "Gratuito",
+        "price": "$0",
+        "period": "per sempre",
+        "description": "Per valutazione e piccoli team.",
+        "feature1": "10K chiamate API / mese",
+        "feature2": "2 job di fine-tuning / mese",
+        "feature3": "1GB di storage dati",
+        "feature4": "Supporto community",
+        "cta": "Inizia"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/mese",
+        "description": "Istanza LLM crittografata personale",
+        "badge": "Solo su invito",
+        "feature1": "Chat privata illimitata",
+        "feature2": "Analisi file crittografati illimitata",
+        "feature3": "Vault dati privato fino a 10 GB",
+        "feature4": "Accesso anticipato a nuove modalità crittografiche",
+        "feature5": "Calcolo prioritario",
+        "feature6": "Ingegnere di supporto in Svizzera",
+        "feature7": "Diritti di invito (limitati)",
+        "cta": "Richiedi accesso esclusivo"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Personalizzato",
+        "description": "Per banche, assicurazioni, infrastrutture critiche.",
+        "feature1": "1M+ chiamate API / mese",
+        "feature2": "Job di fine-tuning illimitati",
+        "feature3": "500GB+ di storage",
+        "feature4": "Supporto dedicato & SLA",
+        "feature5": "Integrazioni SSO & audit",
+        "feature6": "Livello OSS sovrano opzionale",
+        "cta": "Contatta vendite"
+      },
+      "sovereignDeployment": "Hai bisogno di on-premise o delle tue GPU? Parliamo di deployment sovrano"
     },
     "trust": {
       "title": "Sovranità dei dati svizzera",

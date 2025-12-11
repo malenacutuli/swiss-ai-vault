@@ -410,7 +410,46 @@
     },
     "pricing": {
       "title": "Accés privat ara. Poder empresarial quan el necessitis",
-      "subtitle": "L'accés és limitat. L'entrada és per invitació o aprovació personal."
+      "subtitle": "L'accés és limitat. L'entrada és per invitació o aprovació personal.",
+      "free": {
+        "name": "Gratuït",
+        "price": "$0",
+        "period": "per sempre",
+        "description": "Per a avaluació i equips petits.",
+        "feature1": "10K crides API / mes",
+        "feature2": "2 treballs d'ajust fi / mes",
+        "feature3": "1GB d'emmagatzematge de dades",
+        "feature4": "Suport de la comunitat",
+        "cta": "Començar"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/mes",
+        "description": "Instància LLM xifrada personal",
+        "badge": "Només per invitació",
+        "feature1": "Xat privat il·limitat",
+        "feature2": "Anàlisi d'arxius xifrats il·limitada",
+        "feature3": "Caixa forta de dades privada fins a 10 GB",
+        "feature4": "Accés anticipat a nous modes criptogràfics",
+        "feature5": "Còmput prioritari",
+        "feature6": "Enginyer de suport a Suïssa",
+        "feature7": "Drets d'invitació (limitats)",
+        "cta": "Sol·licitar accés exclusiu"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Personalitzat",
+        "description": "Per a bancs, asseguradores, infraestructura crítica.",
+        "feature1": "1M+ crides API / mes",
+        "feature2": "Treballs d'ajust fi il·limitats",
+        "feature3": "500GB+ d'emmagatzematge",
+        "feature4": "Suport dedicat i SLAs",
+        "feature5": "Integracions SSO i auditoria",
+        "feature6": "Nivell OSS sobirà opcional",
+        "cta": "Contactar vendes"
+      },
+      "sovereignDeployment": "Necessites on-premise o les teves pròpies GPUs? Parla amb nosaltres sobre desplegament sobirà"
     },
     "trust": {
       "title": "Sobirania de dades suïssa",

@@ -410,7 +410,46 @@
     },
     "pricing": {
       "title": "Accès privé maintenant. Puissance entreprise quand vous en avez besoin",
-      "subtitle": "L'accès est limité. L'entrée se fait sur invitation ou approbation personnelle."
+      "subtitle": "L'accès est limité. L'entrée se fait sur invitation ou approbation personnelle.",
+      "free": {
+        "name": "Gratuit",
+        "price": "$0",
+        "period": "pour toujours",
+        "description": "Pour l'évaluation et les petites équipes.",
+        "feature1": "10K appels API / mois",
+        "feature2": "2 jobs de fine-tuning / mois",
+        "feature3": "1GB de stockage de données",
+        "feature4": "Support communautaire",
+        "cta": "Commencer"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/mois",
+        "description": "Instance LLM chiffrée personnelle",
+        "badge": "Sur invitation uniquement",
+        "feature1": "Chat privé illimité",
+        "feature2": "Analyse de fichiers chiffrés illimitée",
+        "feature3": "Coffre-fort de données privé jusqu'à 10 Go",
+        "feature4": "Accès anticipé aux nouveaux modes cryptographiques",
+        "feature5": "Calcul prioritaire",
+        "feature6": "Ingénieur support basé en Suisse",
+        "feature7": "Droits d'invitation (limités)",
+        "cta": "Demander un accès exclusif"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Personnalisé",
+        "description": "Pour banques, assureurs, infrastructures critiques.",
+        "feature1": "1M+ appels API / mois",
+        "feature2": "Jobs de fine-tuning illimités",
+        "feature3": "500GB+ de stockage",
+        "feature4": "Support dédié & SLAs",
+        "feature5": "Intégrations SSO & audit",
+        "feature6": "Niveau souverain OSS uniquement optionnel",
+        "cta": "Contacter les ventes"
+      },
+      "sovereignDeployment": "Besoin d'on-premise ou de vos propres GPUs ? Parlons déploiement souverain"
     },
     "trust": {
       "title": "Souveraineté des données suisse",

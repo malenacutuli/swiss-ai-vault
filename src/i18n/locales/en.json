@@ -654,16 +654,18 @@
         "cta": "Get Started"
       },
       "pro": {
-        "name": "Pro",
-        "price": "$49",
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
         "period": "/month",
-        "description": "For professionals looking for zero-trace AI needs.",
+        "description": "Personal encrypted LLM instance",
         "badge": "By Invitation Only",
-        "feature1": "100K API calls / month",
-        "feature2": "20 fine-tuning jobs / month",
-        "feature3": "50GB dataset storage",
-        "feature4": "Advanced evaluation suite",
-        "feature5": "Webhook integrations, team workspaces",
+        "feature1": "Unlimited private chat",
+        "feature2": "Unlimited encrypted file analysis",
+        "feature3": "Private data vault up to 10 GB",
+        "feature4": "Early access to new cryptographic modes",
+        "feature5": "Priority compute",
+        "feature6": "Swiss-based support engineer",
+        "feature7": "Invitation rights (limited)",
         "cta": "Apply for Exclusive Access"
       },
       "enterprise": {
