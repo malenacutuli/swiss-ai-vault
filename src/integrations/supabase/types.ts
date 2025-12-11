@@ -2536,6 +2536,10 @@ export type Database = {
           similarity: number
         }[]
       }
+      setup_vaultchat_only_user: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       user_owns_vault_conversation: {
         Args: { p_conversation_id: string }
         Returns: boolean
