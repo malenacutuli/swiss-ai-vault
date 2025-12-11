@@ -11,6 +11,7 @@ import it from './locales/it.json';
 import ca from './locales/ca.json';
 import nl from './locales/nl.json';
 import ja from './locales/ja.json';
+import ru from './locales/ru.json';
 
 export const languages = [
   { code: 'en', name: 'English' },
@@ -22,6 +23,7 @@ export const languages = [
   { code: 'ca', name: 'Català' },
   { code: 'nl', name: 'Nederlands' },
   { code: 'ja', name: '日本語' },
+  { code: 'ru', name: 'Русский' },
 ] as const;
 
 export type LanguageCode = typeof languages[number]['code'];
@@ -40,6 +42,7 @@ i18n
       ca: { translation: ca },
       nl: { translation: nl },
       ja: { translation: ja },
+      ru: { translation: ru },
     },
     fallbackLng: 'en',
     interpolation: {
