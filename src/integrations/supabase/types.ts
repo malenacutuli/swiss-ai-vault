@@ -2463,6 +2463,14 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      get_org_member_profiles: {
+        Args: { p_org_id: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+        }[]
+      }
       get_research_quota: { Args: never; Returns: Json }
       has_role: {
         Args: {
