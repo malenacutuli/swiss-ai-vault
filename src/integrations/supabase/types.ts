@@ -1750,6 +1750,132 @@ export type Database = {
           },
         ]
       }
+      research_queries: {
+        Row: {
+          citations_encrypted: string | null
+          citations_nonce: string | null
+          citations_plaintext: Json | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          input_tokens: number | null
+          is_encrypted: boolean | null
+          mode: string
+          model: string
+          organization_id: string | null
+          output_tokens: number | null
+          processing_time_ms: number | null
+          query_encrypted: string | null
+          query_nonce: string | null
+          query_plaintext: string | null
+          reasoning_tokens: number | null
+          response_encrypted: string | null
+          response_nonce: string | null
+          search_queries_count: number | null
+          status: string | null
+          total_cost: number | null
+          user_id: string
+        }
+        Insert: {
+          citations_encrypted?: string | null
+          citations_nonce?: string | null
+          citations_plaintext?: Json | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          input_tokens?: number | null
+          is_encrypted?: boolean | null
+          mode?: string
+          model?: string
+          organization_id?: string | null
+          output_tokens?: number | null
+          processing_time_ms?: number | null
+          query_encrypted?: string | null
+          query_nonce?: string | null
+          query_plaintext?: string | null
+          reasoning_tokens?: number | null
+          response_encrypted?: string | null
+          response_nonce?: string | null
+          search_queries_count?: number | null
+          status?: string | null
+          total_cost?: number | null
+          user_id: string
+        }
+        Update: {
+          citations_encrypted?: string | null
+          citations_nonce?: string | null
+          citations_plaintext?: Json | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          input_tokens?: number | null
+          is_encrypted?: boolean | null
+          mode?: string
+          model?: string
+          organization_id?: string | null
+          output_tokens?: number | null
+          processing_time_ms?: number | null
+          query_encrypted?: string | null
+          query_nonce?: string | null
+          query_plaintext?: string | null
+          reasoning_tokens?: number | null
+          response_encrypted?: string | null
+          response_nonce?: string | null
+          search_queries_count?: number | null
+          status?: string | null
+          total_cost?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_queries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "encrypted_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_queries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_quotas: {
+        Row: {
+          created_at: string | null
+          deep_research_enabled: boolean | null
+          id: string
+          max_tokens_per_query: number | null
+          models_allowed: string[] | null
+          monthly_queries: number
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deep_research_enabled?: boolean | null
+          id?: string
+          max_tokens_per_query?: number | null
+          models_allowed?: string[] | null
+          monthly_queries: number
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deep_research_enabled?: boolean | null
+          id?: string
+          max_tokens_per_query?: number | null
+          models_allowed?: string[] | null
+          monthly_queries?: number
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       traces: {
         Row: {
           api_key_id: string | null
@@ -1998,6 +2124,7 @@ export type Database = {
           created_at: string | null
           current_organization_id: string | null
           data_retention_days: number | null
+          deep_research_enabled: boolean | null
           id: string
           log_retention_days: number | null
           notification_browser: boolean | null
@@ -2011,6 +2138,7 @@ export type Database = {
           created_at?: string | null
           current_organization_id?: string | null
           data_retention_days?: number | null
+          deep_research_enabled?: boolean | null
           id?: string
           log_retention_days?: number | null
           notification_browser?: boolean | null
@@ -2024,6 +2152,7 @@ export type Database = {
           created_at?: string | null
           current_organization_id?: string | null
           data_retention_days?: number | null
+          deep_research_enabled?: boolean | null
           id?: string
           log_retention_days?: number | null
           notification_browser?: boolean | null
@@ -2334,6 +2463,7 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: number
       }
+      get_research_quota: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
