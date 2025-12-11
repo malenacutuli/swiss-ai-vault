@@ -477,6 +477,35 @@
       "madeInSwitzerland": "Gemaakt in Zwitserland"
     }
   },
+  "home": {
+    "hero": {
+      "title": "Het Meest Private AI-Platform",
+      "titleHighlight": "ter Wereld",
+      "subtitle": "End-to-end versleuteld. Geen sporen. Zwitsers gehost.",
+      "description": "Vertrouwd door gereguleerde industrieën en 's werelds meest privacybewuste individuen.",
+      "bookDemo": "Enterprise demo boeken",
+      "earlyAccess": "Exclusieve toegang aanvragen",
+      "hostedInSwitzerland": "Gehost in Zwitserland",
+      "gdprReady": "AVG-klaar",
+      "e2eEncryption": "Client-side E2E-versleuteling"
+    },
+    "mockUI": {
+      "workspaceTitle": "SwissVault Assistent Werkruimte",
+      "complianceCopilot": "Compliance Co-Piloot",
+      "complianceCopilotDesc": "Financiële regelgeving assistent",
+      "e2eEncrypted": "E2E Versleuteld",
+      "sampleQuestion": "Wat zijn de KYC-vereisten voor hoog-risico klanten?",
+      "sampleAnswer": "Op basis van uw interne beleidsdocumenten vereisen hoog-risico klanten uitgebreide due diligence waaronder...",
+      "encryptedResponse": "Versleuteld antwoord",
+      "datasets": "Datasets",
+      "sources": "bronnen",
+      "fineTuned": "Afgestemd",
+      "modelsCount": "modellen",
+      "evaluations": "Evaluaties",
+      "accuracy": "nauwkeurigheid",
+      "ragSources": "RAG-bronnen"
+    }
+  },
   "vaultChatFeatures": {
     "hero": {
       "title": "Vault Chat",

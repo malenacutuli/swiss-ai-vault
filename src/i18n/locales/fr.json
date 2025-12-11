@@ -477,6 +477,35 @@
       "madeInSwitzerland": "Fabriqué en Suisse"
     }
   },
+  "home": {
+    "hero": {
+      "title": "La Plateforme IA la Plus Privée",
+      "titleHighlight": "au Monde",
+      "subtitle": "Chiffrement de bout en bout. Sans trace. Hébergé en Suisse.",
+      "description": "Approuvée par les industries réglementées et les individus les plus soucieux de leur vie privée.",
+      "bookDemo": "Réserver une démo entreprise",
+      "earlyAccess": "Demander un accès exclusif",
+      "hostedInSwitzerland": "Hébergé en Suisse",
+      "gdprReady": "Conforme RGPD",
+      "e2eEncryption": "Chiffrement E2E côté client"
+    },
+    "mockUI": {
+      "workspaceTitle": "Espace de travail Assistant SwissVault",
+      "complianceCopilot": "Co-Pilote Conformité",
+      "complianceCopilotDesc": "Assistant réglementations financières",
+      "e2eEncrypted": "E2E Chiffré",
+      "sampleQuestion": "Quelles sont les exigences KYC pour les clients à haut risque?",
+      "sampleAnswer": "Selon vos documents de politique interne, les clients à haut risque nécessitent une diligence renforcée incluant...",
+      "encryptedResponse": "Réponse chiffrée",
+      "datasets": "Jeux de données",
+      "sources": "sources",
+      "fineTuned": "Affiné",
+      "modelsCount": "modèles",
+      "evaluations": "Évaluations",
+      "accuracy": "précision",
+      "ragSources": "Sources RAG"
+    }
+  },
   "vaultChatFeatures": {
     "hero": {
       "title": "Vault Chat",

@@ -477,6 +477,35 @@
       "madeInSwitzerland": "スイス製"
     }
   },
+  "home": {
+    "hero": {
+      "title": "世界で最もプライベートな",
+      "titleHighlight": "AIプラットフォーム",
+      "subtitle": "エンドツーエンド暗号化。痕跡ゼロ。スイスホスティング。",
+      "description": "規制産業と世界で最もプライバシーに敏感な個人から信頼されています。",
+      "bookDemo": "エンタープライズデモを予約",
+      "earlyAccess": "限定アクセスを申請",
+      "hostedInSwitzerland": "スイスでホスティング",
+      "gdprReady": "GDPR対応",
+      "e2eEncryption": "クライアントサイドE2E暗号化"
+    },
+    "mockUI": {
+      "workspaceTitle": "SwissVaultアシスタントワークスペース",
+      "complianceCopilot": "コンプライアンスコパイロット",
+      "complianceCopilotDesc": "金融規制アシスタント",
+      "e2eEncrypted": "E2E暗号化",
+      "sampleQuestion": "高リスク顧客のKYC要件は何ですか？",
+      "sampleAnswer": "内部ポリシー文書に基づき、高リスク顧客には強化されたデューデリジェンスが必要で、これには...",
+      "encryptedResponse": "暗号化された応答",
+      "datasets": "データセット",
+      "sources": "ソース",
+      "fineTuned": "ファインチューニング済み",
+      "modelsCount": "モデル",
+      "evaluations": "評価",
+      "accuracy": "精度",
+      "ragSources": "RAGソース"
+    }
+  },
   "vaultChatFeatures": {
     "hero": {
       "title": "Vault Chat",

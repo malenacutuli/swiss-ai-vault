@@ -477,6 +477,35 @@
       "madeInSwitzerland": "Fet a Suïssa"
     }
   },
+  "home": {
+    "hero": {
+      "title": "La Plataforma d'IA Més Privada",
+      "titleHighlight": "del Món",
+      "subtitle": "Xifrat d'extrem a extrem. Sense rastre. Allotjat a Suïssa.",
+      "description": "Confiada per indústries regulades i els individus més sensibles a la privacitat del món.",
+      "bookDemo": "Reservar demo empresarial",
+      "earlyAccess": "Sol·licitar accés exclusiu",
+      "hostedInSwitzerland": "Allotjat a Suïssa",
+      "gdprReady": "Preparat per GDPR",
+      "e2eEncryption": "Xifrat E2E del costat del client"
+    },
+    "mockUI": {
+      "workspaceTitle": "Espai de treball de l'Assistent SwissVault",
+      "complianceCopilot": "Co-Pilot de Compliance",
+      "complianceCopilotDesc": "Assistent de regulacions financeres",
+      "e2eEncrypted": "E2E Xifrat",
+      "sampleQuestion": "Quins són els requisits KYC per a clients d'alt risc?",
+      "sampleAnswer": "Segons els vostres documents de política interna, els clients d'alt risc requereixen una diligència deguda millorada que inclou...",
+      "encryptedResponse": "Resposta xifrada",
+      "datasets": "Datasets",
+      "sources": "fonts",
+      "fineTuned": "Ajustat",
+      "modelsCount": "models",
+      "evaluations": "Avaluacions",
+      "accuracy": "precisió",
+      "ragSources": "Fonts RAG"
+    }
+  },
   "vaultChatFeatures": {
     "hero": {
       "title": "Vault Chat",
