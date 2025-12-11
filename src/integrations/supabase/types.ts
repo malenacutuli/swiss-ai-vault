@@ -2121,10 +2121,12 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          account_type: string | null
           created_at: string | null
           current_organization_id: string | null
           data_retention_days: number | null
           deep_research_enabled: boolean | null
+          feature_access: Json | null
           id: string
           log_retention_days: number | null
           notification_browser: boolean | null
@@ -2135,10 +2137,12 @@ export type Database = {
           zero_retention_mode: boolean | null
         }
         Insert: {
+          account_type?: string | null
           created_at?: string | null
           current_organization_id?: string | null
           data_retention_days?: number | null
           deep_research_enabled?: boolean | null
+          feature_access?: Json | null
           id?: string
           log_retention_days?: number | null
           notification_browser?: boolean | null
@@ -2149,10 +2153,12 @@ export type Database = {
           zero_retention_mode?: boolean | null
         }
         Update: {
+          account_type?: string | null
           created_at?: string | null
           current_organization_id?: string | null
           data_retention_days?: number | null
           deep_research_enabled?: boolean | null
+          feature_access?: Json | null
           id?: string
           log_retention_days?: number | null
           notification_browser?: boolean | null
