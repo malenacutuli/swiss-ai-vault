@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,12 +30,14 @@ import {
   Shield,
   LayoutTemplate,
   ArrowLeft,
+  Sparkles,
 } from "lucide-react";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { useFeatureAccess, FeatureAccess } from "@/hooks/useFeatureAccess";
 
 interface LabsSidebarProps {
   collapsed: boolean;
@@ -85,6 +88,7 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const { canAccess, isRestricted, accountType } = useFeatureAccess();
 
   const isActive = (href: string) => {
     return location.pathname === href || 
@@ -106,6 +110,26 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
 
   const userName = user?.user_metadata?.full_name || t('common.user');
   const userEmail = user?.email || '';
+
+  // Helper to conditionally render sidebar links
+  const renderLink = (
+    to: string,
+    icon: React.ElementType,
+    label: string,
+    feature: keyof FeatureAccess
+  ) => {
+    if (!canAccess(feature)) return null;
+    return (
+      <SidebarLink
+        key={to}
+        to={to}
+        icon={icon}
+        label={label}
+        collapsed={collapsed}
+        isActive={isActive(to)}
+      />
+    );
+  };
 
   return (
     <aside
@@ -136,120 +160,78 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pb-3">
+        {/* Restricted Access Banner */}
+        {isRestricted && !collapsed && (
+          <Alert className="mb-3 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+            <Sparkles className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-xs text-amber-700 dark:text-amber-300">
+              {accountType === 'vaultchat_only' ? 'Beta Access' : 
+               accountType === 'beta_tester' ? 'Beta Tester' : 'Demo Access'}
+              {' — Limited features'}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Vault Chat - standalone at top */}
-        <div className="mb-2">
-          <SidebarLink 
-            to="/chat" 
-            icon={MessageSquare} 
-            label="Vault Chat" 
-            collapsed={collapsed}
-            isActive={isActive("/chat")}
-          />
-        </div>
+        {canAccess('vault_chat') && (
+          <div className="mb-2">
+            <SidebarLink 
+              to="/chat" 
+              icon={MessageSquare} 
+              label="Vault Chat" 
+              collapsed={collapsed}
+              isActive={isActive("/chat")}
+            />
+          </div>
+        )}
 
-        {/* Data & Training */}
-        <SectionHeader label="Data & Training" collapsed={collapsed} />
-        <div className="space-y-1">
-          <SidebarLink 
-            to="/labs/projects" 
-            icon={FolderKanban} 
-            label={t('sidebar.projects')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/projects")}
-          />
-          <SidebarLink 
-            to="/labs/datasets" 
-            icon={Database} 
-            label={t('sidebar.datasets')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/datasets")}
-          />
-          <SidebarLink 
-            to="/labs/finetuning" 
-            icon={SlidersHorizontal} 
-            label={t('sidebar.finetuning')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/finetuning")}
-          />
-          <SidebarLink 
-            to="/labs/templates" 
-            icon={LayoutTemplate} 
-            label={t('sidebar.templates')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/templates")}
-          />
-        </div>
+        {/* Data & Training - only show section if user has access to any feature */}
+        {(canAccess('projects') || canAccess('datasets') || canAccess('fine_tuning') || canAccess('templates')) && (
+          <>
+            <SectionHeader label="Data & Training" collapsed={collapsed} />
+            <div className="space-y-1">
+              {renderLink("/labs/projects", FolderKanban, t('sidebar.projects'), 'projects')}
+              {renderLink("/labs/datasets", Database, t('sidebar.datasets'), 'datasets')}
+              {renderLink("/labs/finetuning", SlidersHorizontal, t('sidebar.finetuning'), 'fine_tuning')}
+              {renderLink("/labs/templates", LayoutTemplate, t('sidebar.templates'), 'templates')}
+            </div>
+          </>
+        )}
 
-        {/* Inference */}
-        <SectionHeader label="Inference" collapsed={collapsed} />
-        <div className="space-y-1">
-          <SidebarLink 
-            to="/labs/models" 
-            icon={Cpu} 
-            label={t('sidebar.models')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/models")}
-          />
-          <SidebarLink 
-            to="/labs/catalog" 
-            icon={Library} 
-            label={t('sidebar.catalog')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/catalog")}
-          />
-          <SidebarLink 
-            to="/labs/playground" 
-            icon={Play} 
-            label={t('sidebar.playground')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/playground")}
-          />
-        </div>
+        {/* Inference - only show section if user has access to any feature */}
+        {(canAccess('models') || canAccess('catalog') || canAccess('playground')) && (
+          <>
+            <SectionHeader label="Inference" collapsed={collapsed} />
+            <div className="space-y-1">
+              {renderLink("/labs/models", Cpu, t('sidebar.models'), 'models')}
+              {renderLink("/labs/catalog", Library, t('sidebar.catalog'), 'catalog')}
+              {renderLink("/labs/playground", Play, t('sidebar.playground'), 'playground')}
+            </div>
+          </>
+        )}
 
-        {/* Monitoring */}
-        <SectionHeader label="Monitoring" collapsed={collapsed} />
-        <div className="space-y-1">
-          <SidebarLink 
-            to="/labs/evaluations" 
-            icon={BarChart3} 
-            label={t('sidebar.evaluations')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/evaluations")}
-          />
-          <SidebarLink 
-            to="/labs/traces" 
-            icon={Activity} 
-            label={t('sidebar.traces')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/traces")}
-          />
-          <SidebarLink 
-            to="/labs/stats" 
-            icon={TrendingUp} 
-            label={t('sidebar.stats')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/stats")}
-          />
-        </div>
+        {/* Monitoring - only show section if user has access to any feature */}
+        {(canAccess('evaluations') || canAccess('traces') || canAccess('usage_stats')) && (
+          <>
+            <SectionHeader label="Monitoring" collapsed={collapsed} />
+            <div className="space-y-1">
+              {renderLink("/labs/evaluations", BarChart3, t('sidebar.evaluations'), 'evaluations')}
+              {renderLink("/labs/traces", Activity, t('sidebar.traces'), 'traces')}
+              {renderLink("/labs/stats", TrendingUp, t('sidebar.stats'), 'usage_stats')}
+            </div>
+          </>
+        )}
 
-        {/* Settings */}
-        <SectionHeader label="Settings" collapsed={collapsed} />
-        <div className="space-y-1">
-          <SidebarLink 
-            to="/labs/admin/compliance" 
-            icon={Shield} 
-            label={t('sidebar.compliance')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/admin/compliance")}
-          />
-          <SidebarLink 
-            to="/labs/settings" 
-            icon={Settings} 
-            label={t('sidebar.settings')} 
-            collapsed={collapsed}
-            isActive={isActive("/labs/settings")}
-          />
-        </div>
+        {/* Settings - only show section if user has access to any feature */}
+        {(canAccess('compliance') || canAccess('settings')) && (
+          <>
+            <SectionHeader label="Settings" collapsed={collapsed} />
+            <div className="space-y-1">
+              {renderLink("/labs/admin/compliance", Shield, t('sidebar.compliance'), 'compliance')}
+              {renderLink("/labs/settings", Settings, t('sidebar.settings'), 'settings')}
+            </div>
+          </>
+        )}
       </nav>
 
       {/* Simple Mode Link */}
