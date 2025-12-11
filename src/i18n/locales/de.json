@@ -410,7 +410,46 @@
     },
     "pricing": {
       "title": "Privater Zugang jetzt. Enterprise-Power, wenn Sie sie brauchen",
-      "subtitle": "Der Zugang ist begrenzt. Eintritt nur auf Einladung oder persönliche Genehmigung."
+      "subtitle": "Der Zugang ist begrenzt. Eintritt nur auf Einladung oder persönliche Genehmigung.",
+      "free": {
+        "name": "Kostenlos",
+        "price": "$0",
+        "period": "für immer",
+        "description": "Für Evaluierung und kleine Teams.",
+        "feature1": "10K API-Aufrufe / Monat",
+        "feature2": "2 Feinabstimmungsjobs / Monat",
+        "feature3": "1GB Datenspeicher",
+        "feature4": "Community-Support",
+        "cta": "Loslegen"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/Monat",
+        "description": "Persönliche verschlüsselte LLM-Instanz",
+        "badge": "Nur auf Einladung",
+        "feature1": "Unbegrenzt privater Chat",
+        "feature2": "Unbegrenzte verschlüsselte Dateianalyse",
+        "feature3": "Privater Datentresor bis 10 GB",
+        "feature4": "Frühzeitiger Zugang zu neuen kryptografischen Modi",
+        "feature5": "Prioritätsberechnung",
+        "feature6": "Support-Ingenieur in der Schweiz",
+        "feature7": "Einladungsrechte (begrenzt)",
+        "cta": "Exklusiven Zugang beantragen"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Individuell",
+        "description": "Für Banken, Versicherer, kritische Infrastruktur.",
+        "feature1": "1M+ API-Aufrufe / Monat",
+        "feature2": "Unbegrenzte Feinabstimmungsjobs",
+        "feature3": "500GB+ Speicher",
+        "feature4": "Dedizierter Support & SLAs",
+        "feature5": "SSO & Audit-Integrationen",
+        "feature6": "Optionales souveränes OSS-Only-Tier",
+        "cta": "Vertrieb kontaktieren"
+      },
+      "sovereignDeployment": "Benötigen Sie On-Premise oder eigene GPUs? Sprechen Sie mit uns über souveräne Bereitstellung"
     },
     "trust": {
       "title": "Schweizer Datensouveränität",

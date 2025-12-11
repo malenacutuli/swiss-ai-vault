@@ -410,7 +410,46 @@
     },
     "pricing": {
       "title": "Privétoegang nu. Enterprise-kracht wanneer je het nodig hebt",
-      "subtitle": "Toegang is beperkt. Toegang is alleen op uitnodiging of persoonlijke goedkeuring."
+      "subtitle": "Toegang is beperkt. Toegang is alleen op uitnodiging of persoonlijke goedkeuring.",
+      "free": {
+        "name": "Gratis",
+        "price": "$0",
+        "period": "voor altijd",
+        "description": "Voor evaluatie en kleine teams.",
+        "feature1": "10K API-aanroepen / maand",
+        "feature2": "2 finetuning-jobs / maand",
+        "feature3": "1GB gegevensopslag",
+        "feature4": "Community-ondersteuning",
+        "cta": "Aan de slag"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/maand",
+        "description": "Persoonlijke versleutelde LLM-instantie",
+        "badge": "Alleen op uitnodiging",
+        "feature1": "Onbeperkte privéchat",
+        "feature2": "Onbeperkte versleutelde bestandsanalyse",
+        "feature3": "Privé datakluis tot 10 GB",
+        "feature4": "Vroege toegang tot nieuwe cryptografische modi",
+        "feature5": "Prioriteitsberekening",
+        "feature6": "Support-engineer in Zwitserland",
+        "feature7": "Uitnodigingsrechten (beperkt)",
+        "cta": "Exclusieve toegang aanvragen"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Op maat",
+        "description": "Voor banken, verzekeraars, kritieke infrastructuur.",
+        "feature1": "1M+ API-aanroepen / maand",
+        "feature2": "Onbeperkte finetuning-jobs",
+        "feature3": "500GB+ opslag",
+        "feature4": "Dedicated support & SLA's",
+        "feature5": "SSO & audit-integraties",
+        "feature6": "Optionele soevereine OSS-only tier",
+        "cta": "Contact opnemen met sales"
+      },
+      "sovereignDeployment": "On-premise of eigen GPU's nodig? Praat met ons over soevereine deployment"
     },
     "trust": {
       "title": "Zwitserse gegevenssoevereiniteit",

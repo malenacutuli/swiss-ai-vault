@@ -410,7 +410,46 @@
     },
     "pricing": {
       "title": "Acesso privado agora. Poder empresarial quando você precisar",
-      "subtitle": "O acesso é limitado. A entrada é por convite ou aprovação pessoal."
+      "subtitle": "O acesso é limitado. A entrada é por convite ou aprovação pessoal.",
+      "free": {
+        "name": "Gratuito",
+        "price": "$0",
+        "period": "para sempre",
+        "description": "Para avaliação e pequenas equipes.",
+        "feature1": "10K chamadas API / mês",
+        "feature2": "2 jobs de fine-tuning / mês",
+        "feature3": "1GB de armazenamento de dados",
+        "feature4": "Suporte da comunidade",
+        "cta": "Começar"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/mês",
+        "description": "Instância LLM criptografada pessoal",
+        "badge": "Apenas por convite",
+        "feature1": "Chat privado ilimitado",
+        "feature2": "Análise de arquivos criptografados ilimitada",
+        "feature3": "Cofre de dados privado até 10 GB",
+        "feature4": "Acesso antecipado a novos modos criptográficos",
+        "feature5": "Computação prioritária",
+        "feature6": "Engenheiro de suporte na Suíça",
+        "feature7": "Direitos de convite (limitados)",
+        "cta": "Solicitar acesso exclusivo"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Personalizado",
+        "description": "Para bancos, seguradoras, infraestrutura crítica.",
+        "feature1": "1M+ chamadas API / mês",
+        "feature2": "Jobs de fine-tuning ilimitados",
+        "feature3": "500GB+ de armazenamento",
+        "feature4": "Suporte dedicado & SLAs",
+        "feature5": "Integrações SSO & auditoria",
+        "feature6": "Nível OSS soberano opcional",
+        "cta": "Contatar vendas"
+      },
+      "sovereignDeployment": "Precisa de on-premise ou suas próprias GPUs? Fale conosco sobre deployment soberano"
     },
     "trust": {
       "title": "Soberania de dados suíça",

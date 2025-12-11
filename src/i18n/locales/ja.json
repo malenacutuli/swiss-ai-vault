@@ -410,7 +410,46 @@
     },
     "pricing": {
       "title": "今すぐプライベートアクセス。必要なときにエンタープライズパワー",
-      "subtitle": "アクセスは制限されています。招待または個人的な承認によってのみ入場できます。"
+      "subtitle": "アクセスは制限されています。招待または個人的な承認によってのみ入場できます。",
+      "free": {
+        "name": "無料",
+        "price": "$0",
+        "period": "永久",
+        "description": "評価と小規模チーム向け。",
+        "feature1": "10K APIコール / 月",
+        "feature2": "2件のファインチューニングジョブ / 月",
+        "feature3": "1GBのデータストレージ",
+        "feature4": "コミュニティサポート",
+        "cta": "始める"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/月",
+        "description": "個人用暗号化LLMインスタンス",
+        "badge": "招待制限定",
+        "feature1": "無制限プライベートチャット",
+        "feature2": "無制限暗号化ファイル分析",
+        "feature3": "10GBまでのプライベートデータ保管庫",
+        "feature4": "新しい暗号モードへの早期アクセス",
+        "feature5": "優先コンピューティング",
+        "feature6": "スイス拠点のサポートエンジニア",
+        "feature7": "招待権限（限定）",
+        "cta": "独占アクセスを申請"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "カスタム",
+        "description": "銀行、保険会社、重要インフラ向け。",
+        "feature1": "1M+ APIコール / 月",
+        "feature2": "無制限ファインチューニングジョブ",
+        "feature3": "500GB+ストレージ",
+        "feature4": "専用サポート & SLA",
+        "feature5": "SSO & 監査統合",
+        "feature6": "オプションのソブリンOSS専用ティア",
+        "cta": "営業に連絡"
+      },
+      "sovereignDeployment": "オンプレミスまたは自社GPUが必要ですか？ソブリンデプロイメントについてご相談ください"
     },
     "trust": {
       "title": "スイスのデータ主権",
