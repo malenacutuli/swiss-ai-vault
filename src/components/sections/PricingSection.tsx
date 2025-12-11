@@ -34,7 +34,7 @@ export const PricingSection = () => {
     },
     {
       nameKey: "home.pricing.pro.name",
-      price: "$49",
+      price: "$200",
       periodKey: "home.pricing.pro.period",
       descriptionKey: "home.pricing.pro.description",
       badgeKey: "home.pricing.pro.badge",
