@@ -56,25 +56,33 @@ const GOOGLE_MODELS: Model[] = [
   { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', provider: 'Google', description: 'Reasoning', isReasoning: true },
 ];
 
-const OPEN_SOURCE_MODELS: Model[] = [
-  { id: 'Qwen/Qwen2.5-3B-Instruct', name: 'Qwen 2.5 3B', provider: 'Open Source', description: 'Fast & capable', coldStart: true },
-  { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen 2.5 7B', provider: 'Open Source', description: 'Balanced', coldStart: true },
-  { id: 'Qwen/Qwen2.5-Coder-7B-Instruct', name: 'Qwen 2.5 Coder', provider: 'Open Source', description: 'Code specialist', coldStart: true },
-  { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B', provider: 'Open Source', description: 'Compact', coldStart: true },
-  { id: 'meta-llama/Llama-3.1-8B-Instruct', name: 'Llama 3.1 8B', provider: 'Open Source', description: 'Versatile', coldStart: true },
-  { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B', provider: 'Open Source', description: 'Efficient', coldStart: true },
-  { id: 'google/gemma-2-2b-it', name: 'Gemma 2 2B', provider: 'Open Source', description: 'Lightweight', coldStart: true },
-  { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B', provider: 'Open Source', description: 'Powerful', coldStart: true },
-  { id: 'microsoft/Phi-3.5-mini-instruct', name: 'Phi 3.5 Mini', provider: 'Open Source', description: 'Small but mighty', coldStart: true },
-  { id: 'codellama/CodeLlama-7b-Instruct-hf', name: 'Code Llama 7B', provider: 'Open Source', description: 'Code generation', coldStart: true },
-  { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', provider: 'Open Source', description: 'Code expert', coldStart: true, comingSoon: true },
+const MISTRAL_MODELS: Model[] = [
+  { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B', provider: 'Mistral', description: 'Efficient', coldStart: true },
+];
+
+const QWEN_MODELS: Model[] = [
+  { id: 'Qwen/Qwen2.5-3B-Instruct', name: 'Qwen 2.5 3B', provider: 'Qwen', description: 'Fast & capable', coldStart: true },
+  { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen 2.5 7B', provider: 'Qwen', description: 'Balanced', coldStart: true },
+  { id: 'Qwen/Qwen2.5-Coder-7B-Instruct', name: 'Qwen 2.5 Coder', provider: 'Qwen', description: 'Code specialist', coldStart: true },
+];
+
+const META_MODELS: Model[] = [
+  { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B', provider: 'Meta', description: 'Compact', coldStart: true, comingSoon: true },
+  { id: 'meta-llama/Llama-3.1-8B-Instruct', name: 'Llama 3.1 8B', provider: 'Meta', description: 'Versatile', coldStart: true, comingSoon: true },
+];
+
+const DEEPSEEK_MODELS: Model[] = [
+  { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', provider: 'DeepSeek', description: 'Code expert', coldStart: true, comingSoon: true },
 ];
 
 const MODEL_GROUPS = [
   { name: 'Anthropic', icon: '🟣', models: ANTHROPIC_MODELS },
   { name: 'OpenAI', icon: '🟢', models: OPENAI_MODELS },
   { name: 'Google', icon: '🔵', models: GOOGLE_MODELS },
-  { name: 'Open Source', icon: '🟠', models: OPEN_SOURCE_MODELS },
+  { name: 'Mistral', icon: '🟠', models: MISTRAL_MODELS },
+  { name: 'Qwen', icon: '🟡', models: QWEN_MODELS },
+  { name: 'Meta', icon: '🔷', models: META_MODELS },
+  { name: 'DeepSeek', icon: '🔶', models: DEEPSEEK_MODELS },
 ];
 
 export function ModelSelectorBar({ selectedModel, onModelChange, className }: ModelSelectorBarProps) {
