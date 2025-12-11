@@ -485,5 +485,64 @@
       },
       "cta": "Sol·licitar Accés Exclusiu"
     }
+  },
+  "vaultLabsFeatures": {
+    "hero": {
+      "title": "El Cicle de Vida Complet de la IA,",
+      "titleHighlight": "Totalment Sobirà",
+      "description": "Des de dades brutes fins al desplegament en producció - construeix, entrena, avalua i desplega models d'IA amb xifratge d'extrem a extrem i residència de dades suïssa a cada pas.",
+      "requestAccess": "Sol·licitar Accés",
+      "scheduleDemo": "Programar Demo"
+    },
+    "datasets": {
+      "title": "Conjunts de Dades",
+      "subtitle": "Xifrats, nets i preparats per a producció",
+      "description": "Prepara conjunts de dades preparats per a fine-tuning amb eines de precisió per a entorns que prioritzen la privadesa. Cada pas és completament auditable i protegit pel xifratge d'extrem a extrem.",
+      "features": {
+        "extract": "Extreu conjunts de dades estructurats d'arxius i converses no estructurats",
+        "clean": "Neteja, deduplica i enriqueix amb transformadors integrats",
+        "version": "Versiona, crea snapshots i gestiona conjunts de dades de forma segura entre equips",
+        "encryption": "El xifratge del costat del client garanteix que les dades brutes mai surtin del teu perímetre"
+      }
+    },
+    "finetuning": {
+      "title": "Fine-Tuning",
+      "subtitle": "Models precisos, entrenats privadament",
+      "description": "Entrena models de llenguatge adaptats al teu domini - sense comprometre la sobirania. Seleccionem i optimitzem models base per a tu, aplicant tècniques d'adaptació d'avantguarda de forma segura.",
+      "features": {
+        "methods": "QLoRA, LoRA i fine-tuning complet en més de 40 models oberts",
+        "models": "Suporta models base propis o pesos oberts allotjats a Suïssa",
+        "alignment": "Aplica alineació mitjançant DPO, GRPO o els teus sistemes de recompensa personalitzats",
+        "security": "Les dades d'entrenament romanen xifrades d'extrem a extrem durant tot el procés"
+      }
+    },
+    "evaluations": {
+      "title": "Avaluacions",
+      "subtitle": "Governades, transparents i personalitzables",
+      "description": "Mesura el rendiment del model amb avaluacions verificables, reproduïbles i explicables - fins i tot en desplegaments xifrats.",
+      "features": {
+        "judges": "Avaluadors LLM-as-Judge (Claude, GPT, etc.) + mètriques clàssiques",
+        "compare": "Compara models fine-tuned vs. base + APIs comercials (Claude, GPT-4o)",
+        "byoe": "Porta el teu propi avaluador o connecta qualsevol endpoint de forma segura",
+        "compliance": "Avalua en mode zero-retention, preservant el compliment total"
+      }
+    },
+    "deployment": {
+      "title": "Desplegament",
+      "subtitle": "Completament aïllat, escalable a l'instant",
+      "description": "Desplega models fine-tuned a través d'una infraestructura d'inferència suïssa sobirana, o executa models completament dins del teu propi stack - sense compromisos en rendiment o privadesa.",
+      "features": {
+        "gpu": "Endpoints GPU dedicats amb aïllament total",
+        "serverless": "Autoescalat serverless a través de zones segures",
+        "onprem": "Desplega dins del teu VPC, centre de dades aïllat o on-prem",
+        "inference": "Inferència xifrada amb claus del client, sense emmagatzemar ni registrar"
+      }
+    },
+    "cta": {
+      "title": "Preparat per construir IA sobirana?",
+      "description": "Uneix-te a organitzacions que construeixen IA sobre les seves dades més sensibles - amb control total, xifratge total i zero compromisos.",
+      "requestAccess": "Sol·licitar Accés",
+      "talkToSales": "Parlar amb Vendes"
+    }
   }
 }

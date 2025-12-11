@@ -485,5 +485,64 @@
       },
       "cta": "Exklusiven Zugang beantragen"
     }
+  },
+  "vaultLabsFeatures": {
+    "hero": {
+      "title": "Der vollständige KI-Lebenszyklus,",
+      "titleHighlight": "Vollständig souverän",
+      "description": "Von Rohdaten bis zur Produktionsbereitstellung - erstellen, trainieren, evaluieren und deployen Sie KI-Modelle mit End-to-End-Verschlüsselung und Schweizer Datenresidenz bei jedem Schritt.",
+      "requestAccess": "Zugang anfordern",
+      "scheduleDemo": "Demo planen"
+    },
+    "datasets": {
+      "title": "Datensätze",
+      "subtitle": "Verschlüsselt, sauber und produktionsbereit",
+      "description": "Bereiten Sie Fine-Tuning-bereite Datensätze mit Präzisionswerkzeugen für datenschutzorientierte Umgebungen vor. Jeder Schritt ist vollständig auditierbar und durch End-to-End-Verschlüsselung geschützt.",
+      "features": {
+        "extract": "Extrahieren Sie strukturierte Datensätze aus unstrukturierten Dateien und Gesprächen",
+        "clean": "Bereinigen, deduplizieren und anreichern mit integrierten Transformern",
+        "version": "Versionieren, Snapshots erstellen und Datensätze sicher teamübergreifend verwalten",
+        "encryption": "Client-seitige Verschlüsselung stellt sicher, dass Rohdaten niemals Ihren Perimeter verlassen"
+      }
+    },
+    "finetuning": {
+      "title": "Fine-Tuning",
+      "subtitle": "Präzise abgestimmte Modelle, privat trainiert",
+      "description": "Trainieren Sie Sprachmodelle, die auf Ihre Domain zugeschnitten sind - ohne Kompromisse bei der Souveränität. Wir wählen und optimieren Basismodelle für Sie und wenden modernste Anpassungstechniken sicher an.",
+      "features": {
+        "methods": "QLoRA, LoRA und vollständiges Fine-Tuning auf über 40 offenen Modellen",
+        "models": "Unterstützt eigene Basismodelle oder in der Schweiz gehostete offene Gewichte",
+        "alignment": "Erzwingen Sie Ausrichtung über DPO, GRPO oder Ihre eigenen Belohnungssysteme",
+        "security": "Trainingsdaten bleiben während des gesamten Prozesses durchgehend verschlüsselt"
+      }
+    },
+    "evaluations": {
+      "title": "Evaluierungen",
+      "subtitle": "Gesteuert, transparent und anpassbar",
+      "description": "Messen Sie die Modellleistung mit verifizierbaren, reproduzierbaren und erklärbaren Evaluierungen - auch bei verschlüsselten Deployments.",
+      "features": {
+        "judges": "LLM-as-Judge-Evaluatoren (Claude, GPT usw.) + klassische Metriken",
+        "compare": "Vergleichen Sie Fine-Tuned-Modelle vs. Basis + kommerzielle APIs (Claude, GPT-4o)",
+        "byoe": "Bringen Sie Ihren eigenen Evaluator mit oder verbinden Sie jeden Endpoint sicher",
+        "compliance": "Evaluieren Sie im Zero-Retention-Modus unter vollständiger Compliance"
+      }
+    },
+    "deployment": {
+      "title": "Bereitstellung",
+      "subtitle": "Vollständig isoliert, sofort skalierbar",
+      "description": "Deployen Sie Fine-Tuned-Modelle über eine souveräne Schweizer Inferenz-Infrastruktur oder führen Sie Modelle vollständig innerhalb Ihres eigenen Stacks aus - ohne Kompromisse bei Leistung oder Datenschutz.",
+      "features": {
+        "gpu": "Dedizierte GPU-Endpunkte mit vollständiger Isolation",
+        "serverless": "Serverloses Autoscaling über sichere Zonen",
+        "onprem": "Bereitstellung in Ihrer VPC, isoliertem Rechenzentrum oder On-Prem",
+        "inference": "Inferenz mit clientseitigen Schlüsseln verschlüsselt, nicht gespeichert oder protokolliert"
+      }
+    },
+    "cta": {
+      "title": "Bereit, souveräne KI zu bauen?",
+      "description": "Schließen Sie sich Organisationen an, die KI auf ihren sensibelsten Daten bauen - mit voller Kontrolle, vollständiger Verschlüsselung und null Kompromissen.",
+      "requestAccess": "Zugang anfordern",
+      "talkToSales": "Mit dem Vertrieb sprechen"
+    }
   }
 }

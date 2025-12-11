@@ -14,7 +14,6 @@ import {
   Layers,
   Shield,
   Zap,
-  CheckCircle2,
   Target,
   Scale,
   Eye,
@@ -32,56 +31,56 @@ const VaultLabsFeatures = () => {
     {
       id: "datasets",
       icon: Database,
-      title: "Datasets",
-      subtitle: "Encrypted, Clean, and Production-Ready",
-      description: "Prepare fine-tuning-ready datasets with precision tools for privacy-first environments. Every step is fully auditable and protected by end-to-end encryption.",
+      title: t("vaultLabsFeatures.datasets.title"),
+      subtitle: t("vaultLabsFeatures.datasets.subtitle"),
+      description: t("vaultLabsFeatures.datasets.description"),
       features: [
-        { icon: FileText, text: "Extract structured datasets from unstructured files and conversations" },
-        { icon: Trash2, text: "Clean, deduplicate, and enrich with built-in transformers" },
-        { icon: GitBranch, text: "Version, snapshot, and manage datasets securely across teams" },
-        { icon: Lock, text: "Client-side encryption ensures no raw data ever leaves your perimeter" },
+        { icon: FileText, text: t("vaultLabsFeatures.datasets.features.extract") },
+        { icon: Trash2, text: t("vaultLabsFeatures.datasets.features.clean") },
+        { icon: GitBranch, text: t("vaultLabsFeatures.datasets.features.version") },
+        { icon: Lock, text: t("vaultLabsFeatures.datasets.features.encryption") },
       ],
       gradient: "from-blue-500 to-cyan-500",
     },
     {
       id: "finetuning",
       icon: Sparkles,
-      title: "Fine-Tuning",
-      subtitle: "Precision-Tuned Models, Privately Trained",
-      description: "Train language models tailored to your domain - without compromising sovereignty. We select and optimize base models for you, applying state-of-the-art adaptation techniques securely.",
+      title: t("vaultLabsFeatures.finetuning.title"),
+      subtitle: t("vaultLabsFeatures.finetuning.subtitle"),
+      description: t("vaultLabsFeatures.finetuning.description"),
       features: [
-        { icon: Cpu, text: "QLoRA, LoRA, and full fine-tuning on 40+ open models" },
-        { icon: Layers, text: "Supports BYO base models or Swiss-hosted open weights" },
-        { icon: Target, text: "Enforce alignment via DPO, GRPO, or your custom reward systems" },
-        { icon: Shield, text: "Training data remains encrypted end-to-end throughout the process" },
+        { icon: Cpu, text: t("vaultLabsFeatures.finetuning.features.methods") },
+        { icon: Layers, text: t("vaultLabsFeatures.finetuning.features.models") },
+        { icon: Target, text: t("vaultLabsFeatures.finetuning.features.alignment") },
+        { icon: Shield, text: t("vaultLabsFeatures.finetuning.features.security") },
       ],
       gradient: "from-purple-500 to-pink-500",
     },
     {
       id: "evaluations",
       icon: BarChart3,
-      title: "Evaluations",
-      subtitle: "Governed, Transparent, and Customizable",
-      description: "Measure model performance with verifiable, reproducible, and explainable evaluations - even on encrypted deployments.",
+      title: t("vaultLabsFeatures.evaluations.title"),
+      subtitle: t("vaultLabsFeatures.evaluations.subtitle"),
+      description: t("vaultLabsFeatures.evaluations.description"),
       features: [
-        { icon: Scale, text: "LLM-as-Judge evaluators (Claude, GPT, etc.) + classical metrics" },
-        { icon: BarChart3, text: "Compare fine-tuned models vs. base + commercial APIs (Claude, GPT-4o)" },
-        { icon: Zap, text: "Bring your own evaluator or connect any endpoint securely" },
-        { icon: Eye, text: "Evaluate in zero-retention mode, preserving full compliance" },
+        { icon: Scale, text: t("vaultLabsFeatures.evaluations.features.judges") },
+        { icon: BarChart3, text: t("vaultLabsFeatures.evaluations.features.compare") },
+        { icon: Zap, text: t("vaultLabsFeatures.evaluations.features.byoe") },
+        { icon: Eye, text: t("vaultLabsFeatures.evaluations.features.compliance") },
       ],
       gradient: "from-orange-500 to-red-500",
     },
     {
       id: "deployment",
       icon: Server,
-      title: "Deployment",
-      subtitle: "Fully Isolated, Instantly Scalable",
-      description: "Deploy fine-tuned models via a sovereign Swiss inference fabric, or run models entirely within your own stack - no tradeoffs on performance or privacy.",
+      title: t("vaultLabsFeatures.deployment.title"),
+      subtitle: t("vaultLabsFeatures.deployment.subtitle"),
+      description: t("vaultLabsFeatures.deployment.description"),
       features: [
-        { icon: Cpu, text: "Dedicated GPU endpoints with full isolation" },
-        { icon: Cloud, text: "Serverless autoscaling across secure zones" },
-        { icon: HardDrive, text: "Deploy inside your VPC, air-gapped data center, or on-prem" },
-        { icon: Key, text: "Inference encrypted with client-held keys, not stored or logged" },
+        { icon: Cpu, text: t("vaultLabsFeatures.deployment.features.gpu") },
+        { icon: Cloud, text: t("vaultLabsFeatures.deployment.features.serverless") },
+        { icon: HardDrive, text: t("vaultLabsFeatures.deployment.features.onprem") },
+        { icon: Key, text: t("vaultLabsFeatures.deployment.features.inference") },
       ],
       gradient: "from-green-500 to-emerald-500",
     },
@@ -95,23 +94,22 @@ const VaultLabsFeatures = () => {
       <section className="pt-32 pb-20 px-4">
         <div className="container mx-auto max-w-6xl text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            The Complete AI Lifecycle,{" "}
+            {t("vaultLabsFeatures.hero.title")}{" "}
             <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              Fully Sovereign
+              {t("vaultLabsFeatures.hero.titleHighlight")}
             </span>
           </h1>
           
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
-            From raw data to production deployment - build, train, evaluate, and deploy AI models 
-            with end-to-end encryption and Swiss data residency at every step.
+            {t("vaultLabsFeatures.hero.description")}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gray-700/80 hover:bg-gray-800/90 text-white border-0 shadow-none" asChild>
-              <Link to="/auth">Request Access</Link>
+              <Link to="/auth">{t("vaultLabsFeatures.hero.requestAccess")}</Link>
             </Button>
             <Button size="lg" variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
-              <Link to="/contact">Schedule Demo</Link>
+              <Link to="/contact">{t("vaultLabsFeatures.hero.scheduleDemo")}</Link>
             </Button>
           </div>
         </div>
@@ -201,19 +199,18 @@ const VaultLabsFeatures = () => {
       <section className="py-24 px-4 bg-gray-900">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Ready to Build Sovereign AI?
+            {t("vaultLabsFeatures.cta.title")}
           </h2>
           <p className="text-xl text-gray-400 mb-10">
-            Join organizations building AI on their most sensitive data - 
-            with full control, full encryption, and zero compromises.
+            {t("vaultLabsFeatures.cta.description")}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100" asChild>
-              <Link to="/auth">Request Access</Link>
+              <Link to="/auth">{t("vaultLabsFeatures.cta.requestAccess")}</Link>
             </Button>
             <Button size="lg" variant="outline" className="border-gray-600 text-white hover:bg-gray-800" asChild>
-              <Link to="/contact">Talk to Sales</Link>
+              <Link to="/contact">{t("vaultLabsFeatures.cta.talkToSales")}</Link>
             </Button>
           </div>
         </div>

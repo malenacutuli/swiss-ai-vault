@@ -802,5 +802,64 @@
       "status": "System Status",
       "madeInSwitzerland": "Made in Switzerland"
     }
+  },
+  "vaultLabsFeatures": {
+    "hero": {
+      "title": "The Complete AI Lifecycle,",
+      "titleHighlight": "Fully Sovereign",
+      "description": "From raw data to production deployment - build, train, evaluate, and deploy AI models with end-to-end encryption and Swiss data residency at every step.",
+      "requestAccess": "Request Access",
+      "scheduleDemo": "Schedule Demo"
+    },
+    "datasets": {
+      "title": "Datasets",
+      "subtitle": "Encrypted, Clean, and Production-Ready",
+      "description": "Prepare fine-tuning-ready datasets with precision tools for privacy-first environments. Every step is fully auditable and protected by end-to-end encryption.",
+      "features": {
+        "extract": "Extract structured datasets from unstructured files and conversations",
+        "clean": "Clean, deduplicate, and enrich with built-in transformers",
+        "version": "Version, snapshot, and manage datasets securely across teams",
+        "encryption": "Client-side encryption ensures no raw data ever leaves your perimeter"
+      }
+    },
+    "finetuning": {
+      "title": "Fine-Tuning",
+      "subtitle": "Precision-Tuned Models, Privately Trained",
+      "description": "Train language models tailored to your domain - without compromising sovereignty. We select and optimize base models for you, applying state-of-the-art adaptation techniques securely.",
+      "features": {
+        "methods": "QLoRA, LoRA, and full fine-tuning on 40+ open models",
+        "models": "Supports BYO base models or Swiss-hosted open weights",
+        "alignment": "Enforce alignment via DPO, GRPO, or your custom reward systems",
+        "security": "Training data remains encrypted end-to-end throughout the process"
+      }
+    },
+    "evaluations": {
+      "title": "Evaluations",
+      "subtitle": "Governed, Transparent, and Customizable",
+      "description": "Measure model performance with verifiable, reproducible, and explainable evaluations - even on encrypted deployments.",
+      "features": {
+        "judges": "LLM-as-Judge evaluators (Claude, GPT, etc.) + classical metrics",
+        "compare": "Compare fine-tuned models vs. base + commercial APIs (Claude, GPT-4o)",
+        "byoe": "Bring your own evaluator or connect any endpoint securely",
+        "compliance": "Evaluate in zero-retention mode, preserving full compliance"
+      }
+    },
+    "deployment": {
+      "title": "Deployment",
+      "subtitle": "Fully Isolated, Instantly Scalable",
+      "description": "Deploy fine-tuned models via a sovereign Swiss inference fabric, or run models entirely within your own stack - no tradeoffs on performance or privacy.",
+      "features": {
+        "gpu": "Dedicated GPU endpoints with full isolation",
+        "serverless": "Serverless autoscaling across secure zones",
+        "onprem": "Deploy inside your VPC, air-gapped data center, or on-prem",
+        "inference": "Inference encrypted with client-held keys, not stored or logged"
+      }
+    },
+    "cta": {
+      "title": "Ready to Build Sovereign AI?",
+      "description": "Join organizations building AI on their most sensitive data - with full control, full encryption, and zero compromises.",
+      "requestAccess": "Request Access",
+      "talkToSales": "Talk to Sales"
+    }
   }
 }
