@@ -485,5 +485,64 @@
       },
       "cta": "Demander un accès exclusif"
     }
+  },
+  "vaultLabsFeatures": {
+    "hero": {
+      "title": "Le Cycle de Vie Complet de l'IA,",
+      "titleHighlight": "Entièrement Souverain",
+      "description": "Des données brutes au déploiement en production - construisez, entraînez, évaluez et déployez des modèles d'IA avec un chiffrement de bout en bout et une résidence des données en Suisse à chaque étape.",
+      "requestAccess": "Demander l'accès",
+      "scheduleDemo": "Planifier une démo"
+    },
+    "datasets": {
+      "title": "Jeux de Données",
+      "subtitle": "Chiffrés, propres et prêts pour la production",
+      "description": "Préparez des jeux de données prêts pour le fine-tuning avec des outils de précision pour les environnements axés sur la confidentialité. Chaque étape est entièrement auditable et protégée par un chiffrement de bout en bout.",
+      "features": {
+        "extract": "Extrayez des jeux de données structurés à partir de fichiers et conversations non structurés",
+        "clean": "Nettoyez, dédupliquez et enrichissez avec des transformateurs intégrés",
+        "version": "Versionnez, créez des snapshots et gérez les jeux de données de manière sécurisée entre équipes",
+        "encryption": "Le chiffrement côté client garantit que les données brutes ne quittent jamais votre périmètre"
+      }
+    },
+    "finetuning": {
+      "title": "Fine-Tuning",
+      "subtitle": "Modèles précis, entraînés en privé",
+      "description": "Entraînez des modèles de langage adaptés à votre domaine - sans compromettre la souveraineté. Nous sélectionnons et optimisons les modèles de base pour vous, en appliquant des techniques d'adaptation de pointe en toute sécurité.",
+      "features": {
+        "methods": "QLoRA, LoRA et fine-tuning complet sur plus de 40 modèles ouverts",
+        "models": "Prend en charge vos propres modèles de base ou des poids ouverts hébergés en Suisse",
+        "alignment": "Appliquez l'alignement via DPO, GRPO ou vos systèmes de récompense personnalisés",
+        "security": "Les données d'entraînement restent chiffrées de bout en bout tout au long du processus"
+      }
+    },
+    "evaluations": {
+      "title": "Évaluations",
+      "subtitle": "Gouvernées, transparentes et personnalisables",
+      "description": "Mesurez les performances du modèle avec des évaluations vérifiables, reproductibles et explicables - même sur des déploiements chiffrés.",
+      "features": {
+        "judges": "Évaluateurs LLM-as-Judge (Claude, GPT, etc.) + métriques classiques",
+        "compare": "Comparez les modèles fine-tunés vs. base + APIs commerciales (Claude, GPT-4o)",
+        "byoe": "Apportez votre propre évaluateur ou connectez n'importe quel endpoint en toute sécurité",
+        "compliance": "Évaluez en mode zero-retention, en préservant la conformité totale"
+      }
+    },
+    "deployment": {
+      "title": "Déploiement",
+      "subtitle": "Entièrement isolé, instantanément évolutif",
+      "description": "Déployez des modèles fine-tunés via une infrastructure d'inférence suisse souveraine, ou exécutez des modèles entièrement dans votre propre stack - sans compromis sur les performances ou la confidentialité.",
+      "features": {
+        "gpu": "Endpoints GPU dédiés avec isolation complète",
+        "serverless": "Autoscaling serverless à travers des zones sécurisées",
+        "onprem": "Déployez dans votre VPC, datacenter isolé ou on-prem",
+        "inference": "Inférence chiffrée avec des clés détenues par le client, non stockée ni enregistrée"
+      }
+    },
+    "cta": {
+      "title": "Prêt à construire une IA souveraine ?",
+      "description": "Rejoignez les organisations qui construisent l'IA sur leurs données les plus sensibles - avec un contrôle total, un chiffrement total et zéro compromis.",
+      "requestAccess": "Demander l'accès",
+      "talkToSales": "Parler aux ventes"
+    }
   }
 }

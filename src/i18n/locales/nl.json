@@ -485,5 +485,64 @@
       },
       "cta": "Exclusieve Toegang Aanvragen"
     }
+  },
+  "vaultLabsFeatures": {
+    "hero": {
+      "title": "De Complete AI-Levenscyclus,",
+      "titleHighlight": "Volledig Soeverein",
+      "description": "Van ruwe data tot productie-implementatie - bouw, train, evalueer en implementeer AI-modellen met end-to-end encryptie en Zwitserse dataresidentie bij elke stap.",
+      "requestAccess": "Toegang Aanvragen",
+      "scheduleDemo": "Demo Plannen"
+    },
+    "datasets": {
+      "title": "Datasets",
+      "subtitle": "Versleuteld, schoon en productieklaar",
+      "description": "Bereid fine-tuning-klare datasets voor met precisietools voor privacy-first omgevingen. Elke stap is volledig auditeerbaar en beschermd door end-to-end encryptie.",
+      "features": {
+        "extract": "Extraheer gestructureerde datasets uit ongestructureerde bestanden en gesprekken",
+        "clean": "Reinig, dedupliceer en verrijk met ingebouwde transformers",
+        "version": "Versieer, maak snapshots en beheer datasets veilig tussen teams",
+        "encryption": "Client-side encryptie zorgt ervoor dat ruwe data nooit je perimeter verlaat"
+      }
+    },
+    "finetuning": {
+      "title": "Fine-Tuning",
+      "subtitle": "Precies afgestelde modellen, privé getraind",
+      "description": "Train taalmodellen aangepast aan jouw domein - zonder concessies aan soevereiniteit. Wij selecteren en optimaliseren basismodellen voor je, met veilige toepassing van state-of-the-art aanpassingstechnieken.",
+      "features": {
+        "methods": "QLoRA, LoRA en volledige fine-tuning op 40+ open modellen",
+        "models": "Ondersteunt eigen basismodellen of in Zwitserland gehoste open weights",
+        "alignment": "Pas uitlijning toe via DPO, GRPO of je eigen beloningssystemen",
+        "security": "Trainingsdata blijft end-to-end versleuteld gedurende het hele proces"
+      }
+    },
+    "evaluations": {
+      "title": "Evaluaties",
+      "subtitle": "Beheerst, transparant en aanpasbaar",
+      "description": "Meet modelprestaties met verifieerbare, reproduceerbare en uitlegbare evaluaties - zelfs op versleutelde implementaties.",
+      "features": {
+        "judges": "LLM-as-Judge evaluatoren (Claude, GPT, etc.) + klassieke metrics",
+        "compare": "Vergelijk fine-tuned modellen vs. basis + commerciële APIs (Claude, GPT-4o)",
+        "byoe": "Breng je eigen evaluator mee of verbind veilig elk endpoint",
+        "compliance": "Evalueer in zero-retention modus, met behoud van volledige compliance"
+      }
+    },
+    "deployment": {
+      "title": "Implementatie",
+      "subtitle": "Volledig geïsoleerd, direct schaalbaar",
+      "description": "Implementeer fine-tuned modellen via een soevereine Zwitserse inference-infrastructuur, of draai modellen volledig binnen je eigen stack - zonder concessies aan prestaties of privacy.",
+      "features": {
+        "gpu": "Dedicated GPU-endpoints met volledige isolatie",
+        "serverless": "Serverless autoscaling over beveiligde zones",
+        "onprem": "Implementeer binnen je VPC, geïsoleerd datacenter of on-prem",
+        "inference": "Inference versleuteld met client-held keys, niet opgeslagen of gelogd"
+      }
+    },
+    "cta": {
+      "title": "Klaar om soevereine AI te bouwen?",
+      "description": "Sluit je aan bij organisaties die AI bouwen op hun meest gevoelige data - met volledige controle, volledige encryptie en nul compromissen.",
+      "requestAccess": "Toegang Aanvragen",
+      "talkToSales": "Praat met Sales"
+    }
   }
 }
