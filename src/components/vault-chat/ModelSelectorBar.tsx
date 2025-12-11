@@ -21,6 +21,7 @@ interface Model {
   isNew?: boolean;
   isReasoning?: boolean;
   coldStart?: boolean;
+  comingSoon?: boolean;
 }
 
 interface ModelSelectorBarProps {
@@ -66,7 +67,7 @@ const OPEN_SOURCE_MODELS: Model[] = [
   { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B', provider: 'Open Source', description: 'Powerful', coldStart: true },
   { id: 'microsoft/Phi-3.5-mini-instruct', name: 'Phi 3.5 Mini', provider: 'Open Source', description: 'Small but mighty', coldStart: true },
   { id: 'codellama/CodeLlama-7b-Instruct-hf', name: 'Code Llama 7B', provider: 'Open Source', description: 'Code generation', coldStart: true },
-  { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', provider: 'Open Source', description: 'Code expert', coldStart: true },
+  { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', provider: 'Open Source', description: 'Code expert', coldStart: true, comingSoon: true },
 ];
 
 const MODEL_GROUPS = [
@@ -137,19 +138,21 @@ export function ModelSelectorBar({ selectedModel, onModelChange, className }: Mo
               {group.models.map(model => (
                 <DropdownMenuItem
                   key={model.id}
-                  onClick={() => { onModelChange(model.id); setIsOpen(false); }}
-                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => { if (!model.comingSoon) { onModelChange(model.id); setIsOpen(false); } }}
+                  className={`flex items-center justify-between ${model.comingSoon ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  disabled={model.comingSoon}
                 >
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{model.name}</span>
-                      {model.isNew && <Badge className="bg-green-500/20 text-green-400 text-xs px-1">NEW</Badge>}
+                      {model.comingSoon && <Badge variant="outline" className="text-xs px-1">Coming Soon</Badge>}
+                      {model.isNew && !model.comingSoon && <Badge className="bg-green-500/20 text-green-400 text-xs px-1">NEW</Badge>}
                       {model.isReasoning && <Brain className="h-3 w-3 text-purple-400" />}
                     </div>
                     {model.description && <span className="text-xs text-muted-foreground">{model.description}</span>}
                   </div>
-                  {model.coldStart && <span className="text-xs text-yellow-500 flex items-center gap-1"><Clock className="h-3 w-3" /></span>}
-                  {selectedModel === model.id && <span className="text-primary">✓</span>}
+                  {model.coldStart && !model.comingSoon && <span className="text-xs text-yellow-500 flex items-center gap-1"><Clock className="h-3 w-3" /></span>}
+                  {selectedModel === model.id && !model.comingSoon && <span className="text-primary">✓</span>}
                 </DropdownMenuItem>
               ))}
             </React.Fragment>
