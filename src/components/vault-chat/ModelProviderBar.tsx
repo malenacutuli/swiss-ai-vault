@@ -20,6 +20,7 @@ interface Model {
   badge?: string;
   isReasoning?: boolean;
   coldStart?: boolean;
+  comingSoon?: boolean;
 }
 
 interface Provider {
@@ -86,7 +87,7 @@ const providers: Provider[] = [
     name: 'DeepSeek',
     logo: deepseekLogo,
     models: [
-      { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', description: 'Code expert', coldStart: true },
+      { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', description: 'Code expert', coldStart: true, comingSoon: true },
     ]
   },
   {
@@ -162,31 +163,43 @@ export function ModelProviderBar({
                 <button
                   key={model.id}
                   onClick={() => {
-                    onSelectModel(model.id);
-                    setOpenProvider(null);
+                    if (!model.comingSoon) {
+                      onSelectModel(model.id);
+                      setOpenProvider(null);
+                    }
                   }}
+                  disabled={model.comingSoon}
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left",
-                    "hover:bg-accent transition-colors",
-                    selectedModel === model.id && "bg-accent"
+                    "transition-colors",
+                    model.comingSoon ? "opacity-50 cursor-not-allowed" : "hover:bg-accent cursor-pointer",
+                    selectedModel === model.id && !model.comingSoon && "bg-accent"
                   )}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{model.name}</span>
-                      <ModelStatusIndicator model={model.id} />
-                      {model.badge && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-500/20 text-green-500 rounded shrink-0">
-                          {model.badge}
+                      {model.comingSoon ? (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium border border-border text-muted-foreground rounded shrink-0">
+                          Coming Soon
                         </span>
-                      )}
-                      {model.isReasoning && (
-                        <Brain className="w-3 h-3 text-purple-400 shrink-0" />
+                      ) : (
+                        <>
+                          <ModelStatusIndicator model={model.id} />
+                          {model.badge && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-500/20 text-green-500 rounded shrink-0">
+                              {model.badge}
+                            </span>
+                          )}
+                          {model.isReasoning && (
+                            <Brain className="w-3 h-3 text-purple-400 shrink-0" />
+                          )}
+                        </>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">{model.description}</div>
                   </div>
-                  {selectedModel === model.id && (
+                  {selectedModel === model.id && !model.comingSoon && (
                     <Check className="w-4 h-4 text-primary shrink-0 ml-2" />
                   )}
                 </button>
