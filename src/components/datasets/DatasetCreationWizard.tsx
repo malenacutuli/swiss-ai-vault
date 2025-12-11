@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeWithRetry, getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionRetry';
 
 type CreationMethod = "upload" | "synthetic" | "huggingface";
 type SyntheticSource = "files" | "youtube" | "web" | "mixed";
@@ -353,9 +354,7 @@ export const DatasetCreationWizard = ({
         }
         console.log('[DatasetWizard] Dataset record created, invoking process-dataset...');
 
-        await supabase.functions.invoke('process-dataset', {
-          body: { dataset_id: datasetId }
-        });
+        await invokeWithRetry('process-dataset', { dataset_id: datasetId });
 
         toast({
           title: "Dataset uploaded",
@@ -474,16 +473,14 @@ export const DatasetCreationWizard = ({
           description: "This may take 30-60 seconds.",
         });
 
-        const { data: result, error: generateError } = await supabase.functions.invoke('generate-synthetic', {
-          body: {
-            dataset_id: datasetId,
-            sources: parsedSources.length > 0 ? parsedSources : [{ type: 'text', content: sourceContent }],
-            config: {
-              num_pairs: pairsPerSource * (syntheticSource === 'files' ? syntheticFiles.length : 1),
-              question_format: questionFormat,
-              answer_format: answerFormat,
-              creativity: creativity / 100,
-            }
+        const { data: result, error: generateError } = await invokeWithRetry('generate-synthetic', {
+          dataset_id: datasetId,
+          sources: parsedSources.length > 0 ? parsedSources : [{ type: 'text', content: sourceContent }],
+          config: {
+            num_pairs: pairsPerSource * (syntheticSource === 'files' ? syntheticFiles.length : 1),
+            question_format: questionFormat,
+            answer_format: answerFormat,
+            creativity: creativity / 100,
           }
         });
 
@@ -547,14 +544,12 @@ export const DatasetCreationWizard = ({
           description: "This may take a moment.",
         });
 
-        const { data: result, error: importError } = await supabase.functions.invoke('import-huggingface', {
-          body: {
-            dataset_id: datasetId,
-            hf_dataset_id: hfDatasetId,
-            subset: hfSubset || undefined,
-            split: hfSplit,
-            max_rows: hfMaxRows,
-          }
+        const { data: result, error: importError } = await invokeWithRetry('import-huggingface', {
+          dataset_id: datasetId,
+          hf_dataset_id: hfDatasetId,
+          subset: hfSubset || undefined,
+          split: hfSplit,
+          max_rows: hfMaxRows,
         });
 
         if (importError) {

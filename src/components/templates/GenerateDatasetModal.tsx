@@ -24,6 +24,7 @@ import { Sparkles, Loader2, CheckCircle, XCircle, AlertTriangle, ArrowRight } fr
 import { useFinetuningTemplate, type FinetuningTemplate } from "@/hooks/useFinetuningTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeWithRetry, getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionRetry';
 
 interface GenerateDatasetModalProps {
   templateId: string | null;
@@ -115,43 +116,31 @@ export const GenerateDatasetModal = ({ templateId, onClose }: GenerateDatasetMod
         setProgressMessage(`Generating examples... ${generated} of ${numExamples}`);
       }, 1500);
 
-      // Call generate-synthetic Edge Function with template mode
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-synthetic`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            dataset_id: dataset.id,
-            template_mode: true,
-            template_id: template.id,
-            num_examples: numExamples,
-            variation,
-            topics: topics.split(",").map(t => t.trim()).filter(Boolean),
-            language: template.language,
-            language_code: template.language_code,
-            domain: template.domain,
-            system_prompt: template.sample_system_prompt,
-            sample_conversations: template.sample_conversations,
-          }),
-        }
-      );
+      // Call generate-synthetic Edge Function with template mode using retry helper
+      const { data: result, error: generateError } = await invokeWithRetry('generate-synthetic', {
+        dataset_id: dataset.id,
+        template_mode: true,
+        template_id: template.id,
+        num_examples: numExamples,
+        variation,
+        topics: topics.split(",").map(t => t.trim()).filter(Boolean),
+        language: template.language,
+        language_code: template.language_code,
+        domain: template.domain,
+        system_prompt: template.sample_system_prompt,
+        sample_conversations: template.sample_conversations,
+      });
 
       clearInterval(progressInterval);
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (generateError) {
         // Handle specific error codes
-        if (response.status === 402) {
-          setError(`Insufficient credits. You need ${estimatedCredits} credits. Current balance: ${result.current_balance?.toFixed(2) || "0.00"}`);
+        if (generateError.message?.includes('Insufficient') || generateError.message?.includes('402')) {
+          setError(`Insufficient credits. You need ${estimatedCredits} credits.`);
           setStatus("error");
           return;
         }
-        throw new Error(result.error || result.message || "Generation failed");
+        throw new Error(getEdgeFunctionErrorMessage(generateError, 'generate-synthetic'));
       }
 
       setProgress(100);
