@@ -582,7 +582,7 @@
       },
       "sovereignty": {
         "title": "Sobirania Suïssa",
-        "description": "Zero exposició a núvols americans amb hosting a AWS eu-central-2 (Zuric)"
+        "description": "Zero exposició a núvols americans amb hosting suís"
       },
       "audit": {
         "title": "Registres d'Auditoria i Controls d'Accés per Rol",
@@ -594,7 +594,7 @@
       "subtitle": "SwissVault opera amb un principi de coneixement zero",
       "items": {
         "keys": "Claus emmagatzemades només al teu navegador",
-        "residency": "Residència de dades suïssa (AWS Zuric)",
+        "residency": "Residència de dades suïssa",
         "noAccess": "Sense accés del proveïdor al text pla",
         "soc2": "Full de ruta SOC 2 Type II",
         "gdpr": "Compatible amb GDPR i DPA suïssa",

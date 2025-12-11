@@ -582,7 +582,7 @@
       },
       "sovereignty": {
         "title": "スイス主権",
-        "description": "AWS eu-central-2（チューリッヒ）ホスティングによる米国クラウドへのゼロ露出"
+        "description": "スイスホスティングによる米国クラウドへのゼロ露出"
       },
       "audit": {
         "title": "監査グレードのログと役割ベースのアクセス制御",
@@ -594,7 +594,7 @@
       "subtitle": "SwissVaultはゼロナレッジ原則で運用",
       "items": {
         "keys": "鍵はブラウザにのみ保存",
-        "residency": "スイスデータレジデンシー（AWSチューリッヒ）",
+        "residency": "スイスデータレジデンシー",
         "noAccess": "プロバイダーによる平文へのアクセスなし",
         "soc2": "SOC 2 Type IIロードマップ",
         "gdpr": "GDPR・スイスDPA準拠",
