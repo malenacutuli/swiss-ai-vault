@@ -100,10 +100,14 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
   * {
     @apply border-border;
   }
-
+  
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Lardy Sans', 'Inter', system-ui, sans-serif;
