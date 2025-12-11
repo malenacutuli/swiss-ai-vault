@@ -39,7 +39,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1ScM8JCAKg7jOuBKkUh2zShm",
+          price: "price_1Sd2izCAKg7jOuBKAeTfXgcp", // Vault Chat Private Edition - $200/month
           quantity: 1,
         },
       ],
