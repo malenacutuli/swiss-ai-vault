@@ -33,8 +33,13 @@ import {
   Download,
   Trash2,
   Sun,
-  Moon
+  Moon,
+  Search,
+  X
 } from 'lucide-react';
+import { useEncryptedDeepResearch } from '@/hooks/useEncryptedDeepResearch';
+import { ResearchProgress } from '@/components/vault-chat/ResearchProgress';
+import { ResearchResult } from '@/components/vault-chat/ResearchResult';
 import { cn } from '@/lib/utils';
 import { ConversationListView } from '@/components/vault-chat/ConversationListView';
 
@@ -142,6 +147,18 @@ const VaultChat = () => {
     { type: 'figma', isConnected: false, isActive: false },
     { type: 'azure_devops', isConnected: false, isActive: false },
   ]);
+  
+  // Deep Research state
+  const [deepResearchMode, setDeepResearchMode] = useState(false);
+  const { 
+    research, 
+    isResearching, 
+    stage: researchStage, 
+    progress: researchProgress, 
+    quota: researchQuota, 
+    fetchQuota: fetchResearchQuota,
+    isZeroTrace: isResearchZeroTrace 
+  } = useEncryptedDeepResearch();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -874,6 +891,12 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
   const handleSendMessage = async (messageContent: string, context?: ChatContext) => {
     if (!selectedConversation) return;
     
+    // Handle Deep Research mode
+    if (deepResearchMode) {
+      await handleDeepResearch(messageContent, context);
+      return;
+    }
+    
     // Use model and retention from context DIRECTLY to avoid stale state bug
     const modelToUse = context?.model || selectedModel;
     const retentionToUse = context?.retentionMode || 'forever';
@@ -1103,6 +1126,120 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
     }
   };
 
+  // Handle Deep Research
+  const handleDeepResearch = async (query: string, context?: ChatContext) => {
+    if (!selectedConversation) return;
+    
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('Not authenticated');
+
+      // Get encryption key
+      let key = await chatEncryption.getKey(selectedConversation);
+      if (!key) {
+        key = await chatEncryption.restoreKey(selectedConversation);
+      }
+      if (!key) throw new Error('Encryption key not found');
+
+      // Encrypt and add user message immediately
+      const encryptedUserMessage = await chatEncryption.encryptMessage(query, key);
+      const userSeqNum = await getNextSequenceNumber(selectedConversation);
+      const userMsgId = crypto.randomUUID();
+      
+      await saveMessage({
+        id: userMsgId,
+        conversation_id: selectedConversation,
+        role: 'user',
+        encrypted_content: encryptedUserMessage,
+        nonce: '',
+        sequence_number: userSeqNum
+      });
+
+      const userMsgData: DecryptedMessage = {
+        id: userMsgId,
+        conversation_id: selectedConversation,
+        ciphertext: encryptedUserMessage,
+        nonce: '',
+        role: 'user',
+        sequence_number: userSeqNum,
+        token_count: Math.ceil(query.length / 4),
+        has_attachments: false,
+        created_at: new Date().toISOString(),
+        expires_at: null,
+        content: query,
+        decrypted: true
+      };
+      setMessages(prev => [...prev, userMsgData]);
+      setTimeout(scrollToBottom, 100);
+
+      // Perform deep research
+      const result = await research(query, selectedConversation);
+      
+      if (result) {
+        // Encrypt and save assistant message
+        const encryptedAssistantMessage = await chatEncryption.encryptMessage(result.content, key);
+        const assistantSeqNum = await getNextSequenceNumber(selectedConversation);
+        const assistantMsgId = crypto.randomUUID();
+        
+        await saveMessage({
+          id: assistantMsgId,
+          conversation_id: selectedConversation,
+          role: 'assistant',
+          encrypted_content: encryptedAssistantMessage,
+          nonce: '',
+          sequence_number: assistantSeqNum
+        });
+
+        const assistantMsgData: DecryptedMessage = {
+          id: assistantMsgId,
+          conversation_id: selectedConversation,
+          ciphertext: encryptedAssistantMessage,
+          nonce: '',
+          role: 'assistant',
+          sequence_number: assistantSeqNum,
+          token_count: result.usage?.outputTokens || null,
+          has_attachments: false,
+          created_at: new Date().toISOString(),
+          expires_at: null,
+          content: result.content,
+          decrypted: true,
+          // Store research metadata for display
+          metadata: {
+            type: 'research',
+            citations: result.citations,
+            model: result.model,
+            usage: result.usage,
+            processingTime: result.processingTime,
+            isEncrypted: result.isEncrypted
+          }
+        } as DecryptedMessage & { metadata?: any };
+        
+        setMessages(prev => [...prev, assistantMsgData]);
+
+        // Generate title if first exchange
+        const wasFirstExchange = isFirstExchange.current;
+        const convHasTitle = currentConversation?.encrypted_title;
+        if (wasFirstExchange && !convHasTitle) {
+          isFirstExchange.current = false;
+          generateConversationTitle(selectedConversation, query, result.content);
+        } else {
+          isFirstExchange.current = false;
+        }
+
+        setTimeout(scrollToBottom, 100);
+      }
+      
+      setDeepResearchMode(false);
+    } catch (error) {
+      console.error('[Vault Chat] Deep research failed:', error);
+      toast({
+        title: 'Research Error',
+        description: (error as Error).message || 'Failed to complete research',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleDeleteConversation = async () => {
     if (!conversationToDelete) return;
 
@@ -1273,16 +1410,36 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                 </div>
               ) : (
                 <div className="max-w-4xl mx-auto">
-                  {messages.map((message) => (
-                    <MessageBubble
-                      key={message.id}
-                      role={message.role as 'user' | 'assistant' | 'system'}
-                      content={message.content}
-                      isDecrypting={!message.decrypted}
-                      decryptionError={message.content === '[Decryption failed]'}
-                      timestamp={message.created_at}
-                    />
-                  ))}
+                  {messages.map((message) => {
+                    const msgWithMeta = message as DecryptedMessage & { metadata?: any };
+                    const isResearchResult = msgWithMeta.metadata?.type === 'research';
+                    
+                    if (isResearchResult && message.role === 'assistant') {
+                      return (
+                        <div key={message.id} className="mb-4">
+                          <ResearchResult
+                            content={message.content}
+                            citations={msgWithMeta.metadata.citations || []}
+                            isEncrypted={msgWithMeta.metadata.isEncrypted || false}
+                            model={msgWithMeta.metadata.model || 'unknown'}
+                            processingTime={msgWithMeta.metadata.processingTime || 0}
+                            usage={msgWithMeta.metadata.usage || { inputTokens: 0, outputTokens: 0, searchQueries: 0 }}
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <MessageBubble
+                        key={message.id}
+                        role={message.role as 'user' | 'assistant' | 'system'}
+                        content={message.content}
+                        isDecrypting={!message.decrypted}
+                        decryptionError={message.content === '[Decryption failed]'}
+                        timestamp={message.created_at}
+                      />
+                    );
+                  })}
                   <div ref={messagesEndRef} />
                 </div>
               )}
@@ -1298,17 +1455,112 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
               </div>
             )}
 
+            {/* Deep Research Progress */}
+            {isResearching && (
+              <div className="px-6 py-4 border-t border-border">
+                <div className="max-w-4xl mx-auto">
+                  <ResearchProgress 
+                    stage={researchStage} 
+                    progress={researchProgress} 
+                    isZeroTrace={isResearchZeroTrace} 
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Encrypting Overlay */}
             <EncryptingOverlay visible={isEncrypting} />
+
+            {/* Deep Research Mode Banner */}
+            {deepResearchMode && !isResearching && (
+              <div className={cn(
+                "flex items-center justify-between px-4 py-2 border-b transition-colors",
+                isResearchZeroTrace
+                  ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                  : "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
+              )}>
+                <div className="flex items-center gap-2">
+                  {isResearchZeroTrace ? (
+                    <>
+                      <div className="flex items-center gap-0.5">
+                        <Shield className="h-4 w-4 text-green-600" />
+                        <Lock className="h-3 w-3 text-green-600" />
+                      </div>
+                      <span className="text-sm text-green-700 dark:text-green-300">
+                        Encrypted Deep Research - Results stored with E2E encryption
+                      </span>
+                      <Badge variant="outline" className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
+                        ZeroTrace
+                      </Badge>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm text-purple-700 dark:text-purple-300">
+                        Deep Research Mode - Comprehensive web research with citations
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {researchQuota && (
+                    <span className="text-xs text-muted-foreground">
+                      {researchQuota.remaining === -1 ? '∞' : researchQuota.remaining} researches left
+                    </span>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setDeepResearchMode(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Message Input */}
             <div className="border-t border-border p-4 bg-card">
               <div className="max-w-4xl mx-auto">
+                {/* Deep Research Toggle */}
+                <div className="flex items-center gap-2 mb-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDeepResearchMode(!deepResearchMode);
+                      if (!researchQuota) fetchResearchQuota();
+                    }}
+                    className={cn(
+                      "gap-2 transition-all duration-200",
+                      deepResearchMode && isResearchZeroTrace
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 ring-2 ring-green-500/20"
+                        : deepResearchMode
+                          ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                          : "text-muted-foreground hover:text-foreground"
+                    )}
+                    disabled={isResearching || isGenerating}
+                  >
+                    {isResearchZeroTrace ? (
+                      <div className="flex items-center">
+                        <Shield className="h-4 w-4" />
+                        <Lock className="h-3 w-3 -ml-1" />
+                      </div>
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {isResearchZeroTrace ? "Encrypted Research" : "Deep Research"}
+                    </span>
+                  </Button>
+                </div>
+                
                 <ChatInput
                   onSend={handleSendMessage}
-                  disabled={!selectedConversation || loadingMessages}
+                  disabled={!selectedConversation || loadingMessages || isResearching}
                   isEncrypting={isEncrypting}
-                  isSending={isGenerating}
+                  isSending={isGenerating || isResearching}
                   integrations={integrations}
                   documents={uploadedDocuments}
                   onFileUpload={handleFileUpload}
