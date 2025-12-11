@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -973,6 +974,7 @@ const methodColors: Record<string, string> = {
 };
 
 export default function ApiDocs() {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('auth');
   const [activeEndpoint, setActiveEndpoint] = useState('auth-overview');
   const [apiKey, setApiKey] = useState('');
@@ -987,7 +989,7 @@ export default function ApiDocs() {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-    toast({ title: 'Copied to clipboard' });
+    toast({ title: t('apiDocs.copiedToClipboard') });
   };
 
   const personalizeExample = (code: string) => {
@@ -1005,7 +1007,7 @@ export default function ApiDocs() {
     a.download = 'swissvault-openapi.json';
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: 'Downloaded OpenAPI JSON' });
+    toast({ title: t('apiDocs.downloadedJson') });
   };
 
   const handleDownloadYaml = () => {
@@ -1016,7 +1018,7 @@ export default function ApiDocs() {
     a.download = 'swissvault-openapi.yaml';
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: 'Downloaded OpenAPI YAML' });
+    toast({ title: t('apiDocs.downloadedYaml') });
   };
 
   return (
@@ -1032,7 +1034,7 @@ export default function ApiDocs() {
               </span>
             </Link>
             <div className="h-6 w-px bg-border" />
-            <span className="text-sm font-medium text-muted-foreground">API Documentation</span>
+            <span className="text-sm font-medium text-muted-foreground">{t('apiDocs.title')}</span>
           </div>
           <div className="flex items-center gap-3">
             {/* Tab Switcher */}
@@ -1046,7 +1048,7 @@ export default function ApiDocs() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Reference
+                {t('apiDocs.reference')}
               </button>
               <button
                 onClick={() => setActiveTab('explorer')}
@@ -1058,18 +1060,18 @@ export default function ApiDocs() {
                 )}
               >
                 <Zap className="h-3.5 w-3.5" />
-                API Explorer
+                {t('apiDocs.apiExplorer')}
               </button>
             </div>
             <div className="h-6 w-px bg-border" />
             <Link to="/dashboard">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Dashboard
+                {t('apiDocs.dashboard')}
               </Button>
             </Link>
             <Link to="/auth">
-              <Button size="sm">Get API Key</Button>
+              <Button size="sm">{t('apiDocs.getApiKey')}</Button>
             </Link>
           </div>
         </div>
@@ -1082,7 +1084,7 @@ export default function ApiDocs() {
             {/* API Key Input for Explorer */}
             <div>
               <label className="text-xs font-medium text-muted-foreground">
-                Your API Key
+                {t('apiDocs.yourApiKey')}
               </label>
               <Input
                 type="password"
@@ -1092,13 +1094,13 @@ export default function ApiDocs() {
                 className="mt-1.5 text-xs"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Pre-fill auth for "Try it out"
+                {t('apiDocs.prefillAuth')}
               </p>
             </div>
             
             <div className="border-t border-border pt-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Download Spec
+                {t('apiDocs.downloadSpec')}
               </h3>
               <div className="space-y-2">
                 <Button 
@@ -1124,7 +1126,7 @@ export default function ApiDocs() {
 
             <div className="border-t border-border pt-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Import to Tools
+                {t('apiDocs.importToTools')}
               </h3>
               <div className="space-y-2">
                 <Button 
@@ -1134,20 +1136,20 @@ export default function ApiDocs() {
                   onClick={() => {
                     handleDownloadJson();
                     toast({ 
-                      title: 'Import to Postman',
-                      description: 'Open Postman → Import → Upload the downloaded JSON file'
+                      title: t('apiDocs.importToPostman'),
+                      description: t('apiDocs.postmanInstructions')
                     });
                   }}
                 >
                   <Download className="h-4 w-4" />
-                  Postman Collection
+                  {t('apiDocs.importToPostman')}
                 </Button>
               </div>
             </div>
 
             <div className="border-t border-border pt-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Generate SDK
+                {t('apiDocs.generateSdk')}
               </h3>
               <div className="space-y-2">
                 <Button 
@@ -1157,13 +1159,13 @@ export default function ApiDocs() {
                   onClick={() => {
                     window.open('https://editor.swagger.io/', '_blank');
                     toast({
-                      title: 'Generate SDK',
-                      description: 'Paste the OpenAPI spec in Swagger Editor → Generate Client → Python/TypeScript'
+                      title: t('apiDocs.generateSdk'),
+                      description: t('apiDocs.sdkInstructions')
                     });
                   }}
                 >
                   <FileCode className="h-4 w-4" />
-                  Python SDK
+                  {t('apiDocs.pythonSdk')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -1172,13 +1174,13 @@ export default function ApiDocs() {
                   onClick={() => {
                     window.open('https://editor.swagger.io/', '_blank');
                     toast({
-                      title: 'Generate SDK',
-                      description: 'Paste the OpenAPI spec in Swagger Editor → Generate Client → TypeScript'
+                      title: t('apiDocs.generateSdk'),
+                      description: t('apiDocs.sdkInstructions')
                     });
                   }}
                 >
                   <FileCode className="h-4 w-4" />
-                  TypeScript SDK
+                  {t('apiDocs.typescriptSdk')}
                 </Button>
               </div>
             </div>
@@ -1202,7 +1204,7 @@ export default function ApiDocs() {
           <div className="p-4 space-y-1">
             <div className="px-3 py-2">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                API Reference
+                {t('apiDocs.apiReference')}
               </h3>
             </div>
             {categories.map((category) => (
@@ -1248,7 +1250,7 @@ export default function ApiDocs() {
           {/* API Key Input */}
           <div className="p-4 border-t border-border">
             <label className="text-xs font-medium text-muted-foreground">
-              Your API Key (personalizes examples)
+              {t('apiDocs.personalizeExamples')}
             </label>
             <Input
               type="password"
@@ -1279,7 +1281,7 @@ export default function ApiDocs() {
                 {currentEndpoint.auth && (
                   <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
                     <Key className="h-4 w-4" />
-                    <span>Requires authentication</span>
+                    <span>{t('apiDocs.requiresAuth')}</span>
                   </div>
                 )}
               </div>
@@ -1287,15 +1289,15 @@ export default function ApiDocs() {
               {/* Parameters */}
               {currentEndpoint.parameters && currentEndpoint.parameters.length > 0 && (
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground mb-3">Parameters</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-3">{t('apiDocs.parameters')}</h2>
                   <div className="border border-border rounded-lg overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50">
                         <tr>
-                          <th className="text-left px-4 py-2 font-medium text-foreground">Name</th>
-                          <th className="text-left px-4 py-2 font-medium text-foreground">Type</th>
-                          <th className="text-left px-4 py-2 font-medium text-foreground">Required</th>
-                          <th className="text-left px-4 py-2 font-medium text-foreground">Description</th>
+                          <th className="text-left px-4 py-2 font-medium text-foreground">{t('apiDocs.name')}</th>
+                          <th className="text-left px-4 py-2 font-medium text-foreground">{t('apiDocs.type')}</th>
+                          <th className="text-left px-4 py-2 font-medium text-foreground">{t('apiDocs.required')}</th>
+                          <th className="text-left px-4 py-2 font-medium text-foreground">{t('apiDocs.description')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1305,7 +1307,7 @@ export default function ApiDocs() {
                             <td className="px-4 py-2 text-muted-foreground">{param.type}</td>
                             <td className="px-4 py-2">
                               <Badge variant={param.required ? "default" : "outline"} className="text-xs">
-                                {param.required ? 'Yes' : 'No'}
+                                {param.required ? t('common.yes') : t('common.no')}
                               </Badge>
                             </td>
                             <td className="px-4 py-2 text-muted-foreground">{param.description}</td>
@@ -1320,7 +1322,7 @@ export default function ApiDocs() {
               {/* Request Body */}
               {currentEndpoint.requestBody && (
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground mb-3">Request Body</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-3">{t('apiDocs.requestBody')}</h2>
                   <div className="relative">
                     <pre className="bg-muted/50 border border-border rounded-lg p-4 overflow-x-auto text-sm font-mono">
                       <code>{currentEndpoint.requestBody}</code>
@@ -1343,7 +1345,7 @@ export default function ApiDocs() {
 
               {/* Code Examples */}
               <div>
-                <h2 className="text-lg font-semibold text-foreground mb-3">Example Request</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-3">{t('apiDocs.exampleRequest')}</h2>
                 <Tabs defaultValue="curl" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="curl">cURL</TabsTrigger>
