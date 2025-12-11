@@ -38,6 +38,7 @@ import {
   X,
   ChevronRight,
   FileUp,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -185,6 +186,7 @@ export const DatasetCreationWizard = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [creationError, setCreationError] = useState<string | null>(null);
   const [fileUploadProgress, setFileUploadProgress] = useState<string>('');
+  const [lastFailedAction, setLastFailedAction] = useState<(() => void) | null>(null);
 
   // Step 1 state
   const [creationMethod, setCreationMethod] = useState<CreationMethod | null>(null);
@@ -616,6 +618,7 @@ export const DatasetCreationWizard = ({
       }
       
       setCreationError(errorMessage);
+      setLastFailedAction(() => handleCreate);
       
       toast({
         title: "Error creating dataset",
@@ -644,6 +647,7 @@ export const DatasetCreationWizard = ({
     setHfSplit("train");
     setHfMaxRows(1000);
     setCreationError(null);
+    setLastFailedAction(null);
     onClose();
   };
 
@@ -1127,6 +1131,21 @@ export const DatasetCreationWizard = ({
                         <li>Try using the "Text" source option and paste content directly</li>
                       </ul>
                     </div>
+                    {lastFailedAction && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setCreationError(null);
+                          lastFailedAction();
+                          setLastFailedAction(null);
+                        }}
+                        className="mt-3"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
