@@ -18,8 +18,8 @@ const Index = () => {
       <Navbar />
       <main>
         <HeroSection />
-        <FeaturesSection />
         <WhySwissVaultSection />
+        <FeaturesSection />
         <SolutionsSection />
         <HowItWorksSection />
         <SecuritySection />
