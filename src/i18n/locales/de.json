@@ -416,5 +416,74 @@
       "status": "Systemstatus",
       "madeInSwitzerland": "Made in Switzerland"
     }
+  },
+  "vaultChatFeatures": {
+    "hero": {
+      "title": "Vault Chat",
+      "subtitle": "Setzen Sie KI hinter Ihrer Firewall ein — nicht deren.",
+      "description": "Adaptive Assistenten für kritische Sektoren mit End-to-End-Verschlüsselung, Schweizer Datenresidenz und null Cloud-Lecks.",
+      "requestAccess": "Frühzeitigen Zugang anfordern",
+      "requestDemo": "Demo anfordern"
+    },
+    "builtFor": {
+      "title": "Entwickelt für:",
+      "description": "Nutzen Sie KI zum Verstehen, Extrahieren und Handeln auf Ihren sensibelsten Daten - vollständig innerhalb Ihres Perimeters.",
+      "noLogs": "Keine Logs. Keine Lecks. Keine Ausnahmen."
+    },
+    "industries": {
+      "government": {
+        "title": "Öffentliche Institutionen & Behörden",
+        "description": "Sichere Dokumentenverarbeitung und Bürgerdienste mit voller Compliance"
+      },
+      "healthcare": {
+        "title": "Gesundheitswesen & Biowissenschaften",
+        "description": "HIPAA-konforme KI für Patientendaten und Forschungsdokumente"
+      },
+      "financial": {
+        "title": "Finanz- & Fintech-Betreiber",
+        "description": "Bankengrad-Sicherheit für sensible Finanzkommunikation"
+      },
+      "legal": {
+        "title": "Rechts- & Compliance-Teams",
+        "description": "Privilegierte Dokumentenanalyse mit Anwaltsgeheimnis"
+      },
+      "defense": {
+        "title": "Verteidigung & Nationale Sicherheit",
+        "description": "Air-Gapped-Bereitstellungsoptionen für klassifizierte Umgebungen"
+      }
+    },
+    "features": {
+      "title": "Enterprise-Grade Sicherheit",
+      "subtitle": "Jede Ebene für Zero-Trust-Umgebungen konzipiert",
+      "e2e": {
+        "title": "End-to-End verschlüsselter Chat & Dokumentenanalyse",
+        "description": "AES-256-GCM-Verschlüsselung mit Schlüsseln, die niemals Ihren Browser verlassen"
+      },
+      "modelAgnostic": {
+        "title": "Modell-Agnostisch",
+        "description": "Nutzen Sie OpenAI, Claude, Gemini oder Open-Source-LLMs - Ihre Wahl"
+      },
+      "sovereignty": {
+        "title": "Schweizer Souveränität",
+        "description": "Null US-Cloud-Exposition mit AWS eu-central-2 (Zürich) Hosting"
+      },
+      "audit": {
+        "title": "Audit-Grade Logging & Rollenbasierte Zugriffskontrollen",
+        "description": "Vollständige Audit-Trails mit granularem Berechtigungsmanagement"
+      }
+    },
+    "trust": {
+      "title": "Ihre Daten verlassen niemals Ihre Kontrolle",
+      "subtitle": "SwissVault arbeitet nach dem Zero-Knowledge-Prinzip",
+      "items": {
+        "keys": "Schlüssel nur in Ihrem Browser gespeichert",
+        "residency": "Schweizer Datenresidenz (AWS Zürich)",
+        "noAccess": "Kein Anbieterzugriff auf Klartext",
+        "soc2": "SOC 2 Type II Roadmap",
+        "gdpr": "DSGVO & Schweizer DSG konform",
+        "onPremises": "On-Premises-Bereitstellung verfügbar"
+      },
+      "cta": "Exklusiven Zugang beantragen"
+    }
   }
 }

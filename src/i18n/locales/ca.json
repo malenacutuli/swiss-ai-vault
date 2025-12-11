@@ -416,5 +416,74 @@
       "status": "Estat del sistema",
       "madeInSwitzerland": "Fet a Suïssa"
     }
+  },
+  "vaultChatFeatures": {
+    "hero": {
+      "title": "Vault Chat",
+      "subtitle": "Desplega IA darrere del teu tallafocs — no del seu.",
+      "description": "Assistents adaptatius per a sectors crítics, amb xifratge de punt a punt, residència de dades suïssa i zero filtracions al núvol.",
+      "requestAccess": "Sol·licitar Accés Anticipat",
+      "requestDemo": "Sol·licitar Demo"
+    },
+    "builtFor": {
+      "title": "Construït per a:",
+      "description": "Utilitza IA per entendre, extreure i actuar sobre les teves dades més sensibles - completament dins del teu perímetre.",
+      "noLogs": "Sense registres. Sense filtracions. Sense excepcions."
+    },
+    "industries": {
+      "government": {
+        "title": "Institucions Públiques i Govern",
+        "description": "Processament segur de documents i serveis ciutadans amb compliment total"
+      },
+      "healthcare": {
+        "title": "Salut i Ciències de la Vida",
+        "description": "IA compatible amb HIPAA per a dades de pacients i documents de recerca"
+      },
+      "financial": {
+        "title": "Operadors Financers i Fintech",
+        "description": "Seguretat de nivell bancari per a comunicacions financeres sensibles"
+      },
+      "legal": {
+        "title": "Equips Legals i Compliance",
+        "description": "Anàlisi de documents privilegiats amb confidencialitat advocat-client"
+      },
+      "defense": {
+        "title": "Defensa i Seguretat Nacional",
+        "description": "Opcions de desplegament aïllat per a entorns classificats"
+      }
+    },
+    "features": {
+      "title": "Seguretat de Nivell Empresarial",
+      "subtitle": "Cada capa dissenyada per a entorns de confiança zero",
+      "e2e": {
+        "title": "Xat i Anàlisi de Documents amb Xifratge de Punt a Punt",
+        "description": "Xifratge AES-256-GCM amb claus que mai surten del teu navegador"
+      },
+      "modelAgnostic": {
+        "title": "Agnòstic de Model",
+        "description": "Utilitza OpenAI, Claude, Gemini o LLMs de codi obert - la teva elecció"
+      },
+      "sovereignty": {
+        "title": "Sobirania Suïssa",
+        "description": "Zero exposició a núvols americans amb hosting a AWS eu-central-2 (Zuric)"
+      },
+      "audit": {
+        "title": "Registres d'Auditoria i Controls d'Accés per Rol",
+        "description": "Rastres d'auditoria complets amb gestió granular de permisos"
+      }
+    },
+    "trust": {
+      "title": "Les Teves Dades Mai Surten del Teu Control",
+      "subtitle": "SwissVault opera amb un principi de coneixement zero",
+      "items": {
+        "keys": "Claus emmagatzemades només al teu navegador",
+        "residency": "Residència de dades suïssa (AWS Zuric)",
+        "noAccess": "Sense accés del proveïdor al text pla",
+        "soc2": "Full de ruta SOC 2 Type II",
+        "gdpr": "Compatible amb GDPR i DPA suïssa",
+        "onPremises": "Desplegament local disponible"
+      },
+      "cta": "Sol·licitar Accés Exclusiu"
+    }
   }
 }

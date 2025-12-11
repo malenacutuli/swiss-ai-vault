@@ -688,6 +688,75 @@
       "title": "Empresa Innovadora de IA Apoyada por"
     }
   },
+  "vaultChatFeatures": {
+    "hero": {
+      "title": "Vault Chat",
+      "subtitle": "Despliega IA detrás de tu firewall — no del de ellos.",
+      "description": "Asistentes adaptativos para sectores críticos, con cifrado de extremo a extremo, residencia de datos suiza y cero filtraciones a la nube.",
+      "requestAccess": "Solicitar Acceso Anticipado",
+      "requestDemo": "Solicitar Demo"
+    },
+    "builtFor": {
+      "title": "Construido para:",
+      "description": "Usa IA para entender, extraer y actuar sobre tus datos más sensibles - completamente dentro de tu perímetro.",
+      "noLogs": "Sin registros. Sin filtraciones. Sin excepciones."
+    },
+    "industries": {
+      "government": {
+        "title": "Instituciones Públicas y Gobierno",
+        "description": "Procesamiento seguro de documentos y servicios ciudadanos con cumplimiento total"
+      },
+      "healthcare": {
+        "title": "Salud y Ciencias de la Vida",
+        "description": "IA compatible con HIPAA para datos de pacientes y documentos de investigación"
+      },
+      "financial": {
+        "title": "Operadores Financieros y Fintech",
+        "description": "Seguridad de nivel bancario para comunicaciones financieras sensibles"
+      },
+      "legal": {
+        "title": "Equipos Legales y de Cumplimiento",
+        "description": "Análisis de documentos privilegiados con confidencialidad abogado-cliente"
+      },
+      "defense": {
+        "title": "Defensa y Seguridad Nacional",
+        "description": "Opciones de despliegue aislado para entornos clasificados"
+      }
+    },
+    "features": {
+      "title": "Seguridad de Nivel Empresarial",
+      "subtitle": "Cada capa diseñada para entornos de confianza cero",
+      "e2e": {
+        "title": "Chat y Análisis de Documentos con Cifrado de Extremo a Extremo",
+        "description": "Cifrado AES-256-GCM con claves que nunca salen de tu navegador"
+      },
+      "modelAgnostic": {
+        "title": "Agnóstico de Modelo",
+        "description": "Usa OpenAI, Claude, Gemini o LLMs de código abierto - tu elección"
+      },
+      "sovereignty": {
+        "title": "Soberanía Suiza",
+        "description": "Cero exposición a nubes estadounidenses con hosting en AWS eu-central-2 (Zúrich)"
+      },
+      "audit": {
+        "title": "Registros de Auditoría y Controles de Acceso por Rol",
+        "description": "Rastros de auditoría completos con gestión granular de permisos"
+      }
+    },
+    "trust": {
+      "title": "Tus Datos Nunca Salen de Tu Control",
+      "subtitle": "SwissVault opera con un principio de conocimiento cero",
+      "items": {
+        "keys": "Claves almacenadas solo en tu navegador",
+        "residency": "Residencia de datos suiza (AWS Zúrich)",
+        "noAccess": "Sin acceso del proveedor al texto plano",
+        "soc2": "Hoja de ruta SOC 2 Tipo II",
+        "gdpr": "Compatible con GDPR y DPA suizo",
+        "onPremises": "Despliegue local disponible"
+      },
+      "cta": "Solicitar Acceso Exclusivo"
+    }
+  },
   "landing": {
     "hero": {
       "badge": "Residencia de datos suiza garantizada",

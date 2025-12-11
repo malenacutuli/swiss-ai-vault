@@ -1,7 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   Shield, 
   Lock, 
@@ -21,59 +20,68 @@ import {
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-const industries = [
-  {
-    icon: Building2,
-    title: "Public Institutions & Government",
-    description: "Secure document processing and citizen services with full compliance"
-  },
-  {
-    icon: Heart,
-    title: "Healthcare & Life Sciences",
-    description: "HIPAA-compliant AI for patient data and research documents"
-  },
-  {
-    icon: Landmark,
-    title: "Financial & Fintech Operators",
-    description: "Bank-grade security for sensitive financial communications"
-  },
-  {
-    icon: Scale,
-    title: "Legal & Compliance Teams",
-    description: "Privileged document analysis with attorney-client confidentiality"
-  },
-  {
-    icon: ShieldCheck,
-    title: "Defense & National Security",
-    description: "Air-gapped deployment options for classified environments"
-  }
-];
-
-const features = [
-  {
-    icon: MessageSquareLock,
-    title: "End-to-End Encrypted Chat & Document Analysis",
-    description: "AES-256-GCM encryption with keys that never leave your browser"
-  },
-  {
-    icon: Cpu,
-    title: "Model-Agnostic",
-    description: "Use OpenAI, Claude, Gemini, or open-source LLMs - your choice"
-  },
-  {
-    icon: Flag,
-    title: "Swiss Sovereignty",
-    description: "Zero U.S. cloud exposure with AWS eu-central-2 (Zurich) hosting"
-  },
-  {
-    icon: ClipboardCheck,
-    title: "Audit-Grade Logging & Role-Level Access Controls",
-    description: "Complete audit trails with granular permission management"
-  }
-];
-
 const VaultChatFeatures = () => {
   const { t } = useTranslation();
+
+  const industries = [
+    {
+      icon: Building2,
+      titleKey: "vaultChatFeatures.industries.government.title",
+      descKey: "vaultChatFeatures.industries.government.description"
+    },
+    {
+      icon: Heart,
+      titleKey: "vaultChatFeatures.industries.healthcare.title",
+      descKey: "vaultChatFeatures.industries.healthcare.description"
+    },
+    {
+      icon: Landmark,
+      titleKey: "vaultChatFeatures.industries.financial.title",
+      descKey: "vaultChatFeatures.industries.financial.description"
+    },
+    {
+      icon: Scale,
+      titleKey: "vaultChatFeatures.industries.legal.title",
+      descKey: "vaultChatFeatures.industries.legal.description"
+    },
+    {
+      icon: ShieldCheck,
+      titleKey: "vaultChatFeatures.industries.defense.title",
+      descKey: "vaultChatFeatures.industries.defense.description"
+    }
+  ];
+
+  const features = [
+    {
+      icon: MessageSquareLock,
+      titleKey: "vaultChatFeatures.features.e2e.title",
+      descKey: "vaultChatFeatures.features.e2e.description"
+    },
+    {
+      icon: Cpu,
+      titleKey: "vaultChatFeatures.features.modelAgnostic.title",
+      descKey: "vaultChatFeatures.features.modelAgnostic.description"
+    },
+    {
+      icon: Flag,
+      titleKey: "vaultChatFeatures.features.sovereignty.title",
+      descKey: "vaultChatFeatures.features.sovereignty.description"
+    },
+    {
+      icon: ClipboardCheck,
+      titleKey: "vaultChatFeatures.features.audit.title",
+      descKey: "vaultChatFeatures.features.audit.description"
+    }
+  ];
+
+  const trustItems = [
+    "vaultChatFeatures.trust.items.keys",
+    "vaultChatFeatures.trust.items.residency",
+    "vaultChatFeatures.trust.items.noAccess",
+    "vaultChatFeatures.trust.items.soc2",
+    "vaultChatFeatures.trust.items.gdpr",
+    "vaultChatFeatures.trust.items.onPremises"
+  ];
 
   return (
     <div className="min-h-screen bg-white">
@@ -86,28 +94,27 @@ const VaultChatFeatures = () => {
             {/* Left: Content */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
-                Vault Chat
+                {t("vaultChatFeatures.hero.title")}
               </h1>
               
               <p className="text-xl md:text-2xl text-gray-600 mb-4 font-medium">
-                Deploy AI behind <span className="text-primary">your</span> firewall — not theirs.
+                {t("vaultChatFeatures.hero.subtitle")}
               </p>
               
               <p className="text-lg text-gray-500 mb-8 leading-relaxed">
-                Adaptive assistants for mission-critical sectors, running with full end-to-end encryption, 
-                Swiss data residency, and zero cloud leakage.
+                {t("vaultChatFeatures.hero.description")}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild size="lg" className="text-base px-8 bg-gray-700/80 hover:bg-gray-800/90 text-white border-0 shadow-none">
                   <Link to="/auth">
-                    Request Early Access
+                    {t("vaultChatFeatures.hero.requestAccess")}
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-base px-8 border-gray-300 text-gray-700 hover:bg-gray-50">
                   <Link to="/contact">
-                    Request Demo
+                    {t("vaultChatFeatures.hero.requestDemo")}
                   </Link>
                 </Button>
               </div>
@@ -136,11 +143,10 @@ const VaultChatFeatures = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Built for:
+              {t("vaultChatFeatures.builtFor.title")}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Use AI to understand, extract, and act on your most sensitive data - 
-              entirely within your perimeter. <strong>No logs. No leaks. No exceptions.</strong>
+              {t("vaultChatFeatures.builtFor.description")} <strong>{t("vaultChatFeatures.builtFor.noLogs")}</strong>
             </p>
           </div>
 
@@ -154,10 +160,10 @@ const VaultChatFeatures = () => {
                   <industry.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {industry.title}
+                  {t(industry.titleKey)}
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  {industry.description}
+                  {t(industry.descKey)}
                 </p>
               </div>
             ))}
@@ -170,10 +176,10 @@ const VaultChatFeatures = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Enterprise-Grade Security
+              {t("vaultChatFeatures.features.title")}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Every layer designed for zero-trust environments
+              {t("vaultChatFeatures.features.subtitle")}
             </p>
           </div>
 
@@ -188,10 +194,10 @@ const VaultChatFeatures = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {feature.title}
+                    {t(feature.titleKey)}
                   </h3>
                   <p className="text-gray-600">
-                    {feature.description}
+                    {t(feature.descKey)}
                   </p>
                 </div>
               </div>
@@ -206,25 +212,18 @@ const VaultChatFeatures = () => {
           <div className="bg-white rounded-2xl p-8 md:p-12 border border-gray-200 shadow-sm">
             <div className="text-center mb-10">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                Your Data Never Leaves Your Control
+                {t("vaultChatFeatures.trust.title")}
               </h2>
               <p className="text-gray-600">
-                SwissVault operates on a zero-knowledge principle
+                {t("vaultChatFeatures.trust.subtitle")}
               </p>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
-              {[
-                "Keys stored only in your browser",
-                "Swiss data residency (AWS Zurich)",
-                "No vendor access to plaintext",
-                "SOC 2 Type II roadmap",
-                "GDPR & Swiss DPA compliant",
-                "On-premises deployment available"
-              ].map((item, index) => (
+              {trustItems.map((itemKey, index) => (
                 <div key={index} className="flex items-center gap-3 text-gray-700">
                   <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span>{item}</span>
+                  <span>{t(itemKey)}</span>
                 </div>
               ))}
             </div>
@@ -232,7 +231,7 @@ const VaultChatFeatures = () => {
             <div className="mt-10 text-center">
               <Button asChild size="lg" className="px-8 bg-gray-700/80 hover:bg-gray-800/90 text-white border-0 shadow-none">
                 <Link to="/auth">
-                  Apply for Exclusive Access
+                  {t("vaultChatFeatures.trust.cta")}
                   <Lock className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

@@ -416,5 +416,74 @@
       "status": "システムステータス",
       "madeInSwitzerland": "スイス製"
     }
+  },
+  "vaultChatFeatures": {
+    "hero": {
+      "title": "Vault Chat",
+      "subtitle": "AIを自社のファイアウォール内に展開 — 彼らのではなく。",
+      "description": "ミッションクリティカルなセクター向けの適応型アシスタント。エンドツーエンドの暗号化、スイスのデータレジデンシー、ゼロクラウド漏洩で運用。",
+      "requestAccess": "早期アクセスを申請",
+      "requestDemo": "デモを申請"
+    },
+    "builtFor": {
+      "title": "対象:",
+      "description": "AIを使用して、最も機密性の高いデータを理解、抽出、アクションを実行 - 完全に自社の境界内で。",
+      "noLogs": "ログなし。漏洩なし。例外なし。"
+    },
+    "industries": {
+      "government": {
+        "title": "公共機関・政府",
+        "description": "完全なコンプライアンスを備えた安全な文書処理と市民サービス"
+      },
+      "healthcare": {
+        "title": "ヘルスケア・ライフサイエンス",
+        "description": "患者データと研究文書のためのHIPAA準拠AI"
+      },
+      "financial": {
+        "title": "金融・フィンテック事業者",
+        "description": "機密性の高い金融通信のための銀行グレードのセキュリティ"
+      },
+      "legal": {
+        "title": "法務・コンプライアンスチーム",
+        "description": "弁護士依頼者間の秘匿特権を持つ特権文書分析"
+      },
+      "defense": {
+        "title": "防衛・国家安全保障",
+        "description": "機密環境向けのエアギャップ展開オプション"
+      }
+    },
+    "features": {
+      "title": "エンタープライズグレードのセキュリティ",
+      "subtitle": "ゼロトラスト環境向けに設計された全レイヤー",
+      "e2e": {
+        "title": "エンドツーエンド暗号化チャット・文書分析",
+        "description": "ブラウザから離れることのない鍵によるAES-256-GCM暗号化"
+      },
+      "modelAgnostic": {
+        "title": "モデル非依存",
+        "description": "OpenAI、Claude、Gemini、またはオープンソースLLMを使用 - お好みで"
+      },
+      "sovereignty": {
+        "title": "スイス主権",
+        "description": "AWS eu-central-2（チューリッヒ）ホスティングによる米国クラウドへのゼロ露出"
+      },
+      "audit": {
+        "title": "監査グレードのログと役割ベースのアクセス制御",
+        "description": "きめ細かな権限管理による完全な監査証跡"
+      }
+    },
+    "trust": {
+      "title": "データは決してあなたのコントロールを離れません",
+      "subtitle": "SwissVaultはゼロナレッジ原則で運用",
+      "items": {
+        "keys": "鍵はブラウザにのみ保存",
+        "residency": "スイスデータレジデンシー（AWSチューリッヒ）",
+        "noAccess": "プロバイダーによる平文へのアクセスなし",
+        "soc2": "SOC 2 Type IIロードマップ",
+        "gdpr": "GDPR・スイスDPA準拠",
+        "onPremises": "オンプレミス展開可能"
+      },
+      "cta": "限定アクセスを申請"
+    }
   }
 }

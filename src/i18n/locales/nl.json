@@ -416,5 +416,74 @@
       "status": "Systeemstatus",
       "madeInSwitzerland": "Gemaakt in Zwitserland"
     }
+  },
+  "vaultChatFeatures": {
+    "hero": {
+      "title": "Vault Chat",
+      "subtitle": "Implementeer AI achter jouw firewall — niet die van hen.",
+      "description": "Adaptieve assistenten voor missiekritische sectoren, met end-to-end encryptie, Zwitserse dataresidentie en nul cloudlekken.",
+      "requestAccess": "Vroege Toegang Aanvragen",
+      "requestDemo": "Demo Aanvragen"
+    },
+    "builtFor": {
+      "title": "Gebouwd voor:",
+      "description": "Gebruik AI om je meest gevoelige gegevens te begrijpen, te extraheren en erop te handelen - volledig binnen je perimeter.",
+      "noLogs": "Geen logs. Geen lekken. Geen uitzonderingen."
+    },
+    "industries": {
+      "government": {
+        "title": "Publieke Instellingen & Overheid",
+        "description": "Veilige documentverwerking en burgerdiensten met volledige compliance"
+      },
+      "healthcare": {
+        "title": "Gezondheidszorg & Life Sciences",
+        "description": "HIPAA-conforme AI voor patiëntgegevens en onderzoeksdocumenten"
+      },
+      "financial": {
+        "title": "Financiële & Fintech Operators",
+        "description": "Bankwaardige beveiliging voor gevoelige financiële communicatie"
+      },
+      "legal": {
+        "title": "Juridische & Compliance Teams",
+        "description": "Geprivilegieerde documentanalyse met advocaat-cliënt vertrouwelijkheid"
+      },
+      "defense": {
+        "title": "Defensie & Nationale Veiligheid",
+        "description": "Air-gapped implementatieopties voor geclassificeerde omgevingen"
+      }
+    },
+    "features": {
+      "title": "Enterprise-Grade Beveiliging",
+      "subtitle": "Elke laag ontworpen voor zero-trust omgevingen",
+      "e2e": {
+        "title": "End-to-End Versleutelde Chat & Documentanalyse",
+        "description": "AES-256-GCM encryptie met sleutels die nooit je browser verlaten"
+      },
+      "modelAgnostic": {
+        "title": "Model-Agnostisch",
+        "description": "Gebruik OpenAI, Claude, Gemini of open-source LLM's - jouw keuze"
+      },
+      "sovereignty": {
+        "title": "Zwitserse Soevereiniteit",
+        "description": "Nul US-cloud blootstelling met AWS eu-central-2 (Zürich) hosting"
+      },
+      "audit": {
+        "title": "Audit-Grade Logging & Rolgebaseerde Toegangscontroles",
+        "description": "Volledige audit trails met granulaire permissiebeheer"
+      }
+    },
+    "trust": {
+      "title": "Je Gegevens Verlaten Nooit Je Controle",
+      "subtitle": "SwissVault werkt op een zero-knowledge principe",
+      "items": {
+        "keys": "Sleutels alleen opgeslagen in je browser",
+        "residency": "Zwitserse dataresidentie (AWS Zürich)",
+        "noAccess": "Geen leverancierstoegang tot platte tekst",
+        "soc2": "SOC 2 Type II roadmap",
+        "gdpr": "AVG & Zwitserse DSG conform",
+        "onPremises": "On-premises implementatie beschikbaar"
+      },
+      "cta": "Exclusieve Toegang Aanvragen"
+    }
   }
 }
