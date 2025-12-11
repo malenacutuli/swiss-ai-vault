@@ -1,4 +1,25 @@
 {
+  "contact": {
+    "title": "Entre em Contato",
+    "subtitle": "Tem perguntas sobre o SwissVault? Quer discutir implantação empresarial? Adoraríamos ouvir de você.",
+    "sendMessage": "Envie-nos uma mensagem",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "workEmail": "Email de trabalho",
+    "company": "Empresa",
+    "message": "Mensagem",
+    "messagePlaceholder": "Conte-nos sobre suas necessidades...",
+    "sendButton": "Enviar mensagem",
+    "sending": "Enviando...",
+    "successMessage": "Mensagem enviada! Responderemos em 24 horas.",
+    "emailUs": "Envie-nos um Email",
+    "emailUsDesc": "Para consultas gerais e suporte",
+    "enterpriseSales": "Vendas Empresariais",
+    "enterpriseSalesDesc": "Para implantação empresarial e soluções personalizadas",
+    "headquarters": "Sede",
+    "responseTime": "Tempo de Resposta",
+    "responseTimeDesc": "Normalmente respondemos em 24 horas durante dias úteis (CET)."
+  },
   "common": {
     "loading": "Carregando...",
     "save": "Salvar",

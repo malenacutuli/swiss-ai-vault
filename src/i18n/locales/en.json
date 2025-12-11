@@ -1,4 +1,25 @@
 {
+  "contact": {
+    "title": "Get in Touch",
+    "subtitle": "Have questions about SwissVault? Want to discuss enterprise deployment? We'd love to hear from you.",
+    "sendMessage": "Send us a message",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "workEmail": "Work Email",
+    "company": "Company",
+    "message": "Message",
+    "messagePlaceholder": "Tell us about your needs...",
+    "sendButton": "Send Message",
+    "sending": "Sending...",
+    "successMessage": "Message sent! We'll get back to you within 24 hours.",
+    "emailUs": "Email Us",
+    "emailUsDesc": "For general inquiries and support",
+    "enterpriseSales": "Enterprise Sales",
+    "enterpriseSalesDesc": "For enterprise deployment and custom solutions",
+    "headquarters": "Headquarters",
+    "responseTime": "Response Time",
+    "responseTimeDesc": "We typically respond within 24 hours during business days (CET)."
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",
