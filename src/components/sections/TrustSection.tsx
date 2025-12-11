@@ -5,7 +5,7 @@ const trustPoints = [
   {
     icon: Server,
     title: "Swiss Data Centers",
-    description: "All infrastructure runs in AWS eu-central-2 (Zurich) and EU-hosted Supabase.",
+    description: "All infrastructure runs in Swiss data centers with guaranteed data residency.",
   },
   {
     icon: Lock,
