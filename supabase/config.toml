@@ -71,3 +71,9 @@ verify_jwt = false
 
 [functions.googledrive-import]
 verify_jwt = true
+
+[functions.encrypted-deep-research]
+verify_jwt = true
+
+[functions.create-pro-checkout]
+verify_jwt = true
