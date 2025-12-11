@@ -24,10 +24,10 @@ interface IntegrationMeta {
 }
 
 const INTEGRATIONS: (IntegrationDef & IntegrationMeta)[] = [
-  { id: 'slack', name: 'Slack', type: 'slack', icon: slackLogo, available: true },
-  { id: 'notion', name: 'Notion', type: 'notion', icon: notionLogo, available: true },
-  { id: 'gmail', name: 'Gmail', type: 'gmail', icon: gmailLogo, available: true },
-  { id: 'github', name: 'GitHub', type: 'github', icon: githubLogo, available: true },
+  { id: 'slack', name: 'Slack', type: 'slack', icon: slackLogo, available: false, comingSoon: true },
+  { id: 'notion', name: 'Notion', type: 'notion', icon: notionLogo, available: false, comingSoon: true },
+  { id: 'gmail', name: 'Gmail', type: 'gmail', icon: gmailLogo, available: false, comingSoon: true },
+  { id: 'github', name: 'GitHub', type: 'github', icon: githubLogo, available: false, comingSoon: true },
   { id: 'google_docs', name: 'Google Docs', type: 'google_docs', icon: googledocsLogo, available: false, comingSoon: true },
   { id: 'asana', name: 'Asana', type: 'asana', icon: asanaLogo, available: false, comingSoon: true },
   { id: 'figma', name: 'Figma', type: 'figma', icon: figmaLogo, available: false, comingSoon: true },
