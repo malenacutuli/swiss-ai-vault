@@ -477,6 +477,35 @@
       "madeInSwitzerland": "Feito na Suíça"
     }
   },
+  "home": {
+    "hero": {
+      "title": "A Plataforma de IA Mais Privada",
+      "titleHighlight": "do Mundo",
+      "subtitle": "Criptografia de ponta a ponta. Sem rastro. Hospedado na Suíça.",
+      "description": "Confiada por indústrias reguladas e pelos indivíduos mais sensíveis à privacidade do mundo.",
+      "bookDemo": "Agendar demo empresarial",
+      "earlyAccess": "Solicitar acesso exclusivo",
+      "hostedInSwitzerland": "Hospedado na Suíça",
+      "gdprReady": "Pronto para GDPR",
+      "e2eEncryption": "Criptografia E2E do lado do cliente"
+    },
+    "mockUI": {
+      "workspaceTitle": "Área de Trabalho do Assistente SwissVault",
+      "complianceCopilot": "Co-Piloto de Compliance",
+      "complianceCopilotDesc": "Assistente de regulamentações financeiras",
+      "e2eEncrypted": "E2E Criptografado",
+      "sampleQuestion": "Quais são os requisitos KYC para clientes de alto risco?",
+      "sampleAnswer": "Com base nos seus documentos de política interna, clientes de alto risco requerem diligência aprimorada incluindo...",
+      "encryptedResponse": "Resposta criptografada",
+      "datasets": "Datasets",
+      "sources": "fontes",
+      "fineTuned": "Ajustado",
+      "modelsCount": "modelos",
+      "evaluations": "Avaliações",
+      "accuracy": "precisão",
+      "ragSources": "Fontes RAG"
+    }
+  },
   "vaultChatFeatures": {
     "hero": {
       "title": "Vault Chat",

@@ -495,10 +495,10 @@
   },
   "home": {
     "hero": {
-      "title": "Zero-Trace AI for",
-      "titleHighlight": "Regulated Teams",
-      "subtitle": "No leaks. No logs. No compromise.",
-      "description": "SwissVault lets you build AI on your data without touching U.S. clouds — with sovereign hosting and zero-trace encryption. Train and deploy AI on your most sensitive data with full end-to-end encryption, Swiss data residency, and audit-grade transparency.",
+      "title": "The World's Most Private",
+      "titleHighlight": "AI Platform",
+      "subtitle": "End-to-end encrypted. Zero-trace. Swiss-hosted.",
+      "description": "Trusted by regulated industries and the world's most privacy-sensitive individuals.",
       "bookDemo": "Book Enterprise Demo",
       "earlyAccess": "Apply for Exclusive Access",
       "hostedInSwitzerland": "Hosted in Switzerland",

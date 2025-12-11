@@ -477,6 +477,35 @@
       "madeInSwitzerland": "Made in Switzerland"
     }
   },
+  "home": {
+    "hero": {
+      "title": "Die Privateste KI-Plattform",
+      "titleHighlight": "der Welt",
+      "subtitle": "Ende-zu-Ende-verschlüsselt. Spurlos. Schweizer Hosting.",
+      "description": "Vertraut von regulierten Branchen und den datenschutzbewusstesten Menschen der Welt.",
+      "bookDemo": "Enterprise-Demo buchen",
+      "earlyAccess": "Exklusiven Zugang beantragen",
+      "hostedInSwitzerland": "Gehostet in der Schweiz",
+      "gdprReady": "DSGVO-konform",
+      "e2eEncryption": "Client-seitige E2E-Verschlüsselung"
+    },
+    "mockUI": {
+      "workspaceTitle": "SwissVault Assistent Arbeitsbereich",
+      "complianceCopilot": "Compliance Co-Pilot",
+      "complianceCopilotDesc": "Finanzregulierungs-Assistent",
+      "e2eEncrypted": "E2E Verschlüsselt",
+      "sampleQuestion": "Was sind die KYC-Anforderungen für Hochrisiko-Kunden?",
+      "sampleAnswer": "Basierend auf Ihren internen Richtlinien erfordern Hochrisiko-Kunden erweiterte Sorgfaltspflichten einschließlich...",
+      "encryptedResponse": "Verschlüsselte Antwort",
+      "datasets": "Datensätze",
+      "sources": "Quellen",
+      "fineTuned": "Feinabgestimmt",
+      "modelsCount": "Modelle",
+      "evaluations": "Bewertungen",
+      "accuracy": "Genauigkeit",
+      "ragSources": "RAG-Quellen"
+    }
+  },
   "vaultChatFeatures": {
     "hero": {
       "title": "Vault Chat",
