@@ -87,7 +87,7 @@
     "pricing": "Pricing",
     "signIn": "Sign In",
     "getStarted": "Get Started",
-    "earlyAccess": "Early Access"
+    "earlyAccess": "Apply"
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -479,7 +479,7 @@
       "subtitle": "No leaks. No logs. No compromise.",
       "description": "SwissVault lets you build AI on your data without touching U.S. clouds — with sovereign hosting and zero-trace encryption. Train and deploy AI on your most sensitive data with full end-to-end encryption, Swiss data residency, and audit-grade transparency.",
       "bookDemo": "Book Enterprise Demo",
-      "earlyAccess": "Sign Up for Early Access",
+      "earlyAccess": "Apply for Exclusive Access",
       "hostedInSwitzerland": "Hosted in Switzerland",
       "gdprReady": "GDPR-ready",
       "e2eEncryption": "Client-side E2E encryption"
@@ -694,7 +694,7 @@
       "subtitle": "Enterprise-grade AI fine-tuning platform with guaranteed Swiss data residency. Train, evaluate, and deploy custom models with complete data sovereignty.",
       "cta": "Start Free Trial",
       "docs": "View Documentation",
-      "earlyAccess": "Sign Up for Early Access",
+      "earlyAccess": "Apply for Exclusive Access",
       "scheduleDemo": "Schedule Demo"
     },
     "features": {
@@ -713,7 +713,7 @@
       "title": "Ready to Fine-Tune with",
       "subtitle": "Be among the first to experience enterprise-grade AI fine-tuning with Swiss data sovereignty.",
       "button": "Get Started Free",
-      "earlyAccess": "Sign Up for Early Access",
+      "earlyAccess": "Apply for Exclusive Access",
       "demo": "Schedule Demo",
       "noCard": "Limited spots available • Be first in line"
     },
