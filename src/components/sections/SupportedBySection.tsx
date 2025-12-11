@@ -1,9 +1,16 @@
 import bscLogo from "@/assets/partners/bsc-ai-factory.png";
 import nvidiaLogo from "@/assets/partners/nvidia-inception.png";
+import aiFactoriesLogo from "@/assets/partners/ai-factories.png";
 import { useTranslation } from "react-i18next";
 
 export const SupportedBySection = () => {
   const { t } = useTranslation();
+  
+  const partners = [
+    { logo: bscLogo, alt: "BSC AI Factory" },
+    { logo: nvidiaLogo, alt: "NVIDIA Inception Program" },
+    { logo: aiFactoriesLogo, alt: "AI Factories" },
+  ];
   
   return (
     <section className="py-16 bg-background border-t border-border/50">
@@ -11,21 +18,19 @@ export const SupportedBySection = () => {
         <p className="text-center text-muted-foreground text-sm uppercase tracking-wider mb-8">
           {t('home.supportedBy.title')}
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-muted-foreground/40 flex items-center justify-center overflow-hidden bg-muted/30">
-            <img
-              src={bscLogo}
-              alt="BSC AI Factory"
-              className="w-[85%] h-[85%] object-cover grayscale opacity-70"
-            />
-          </div>
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-muted-foreground/40 flex items-center justify-center overflow-hidden bg-muted/30">
-            <img
-              src={nvidiaLogo}
-              alt="NVIDIA Inception Program"
-              className="w-[85%] h-[85%] object-cover grayscale opacity-70"
-            />
-          </div>
+        <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
+          {partners.map((partner, index) => (
+            <div 
+              key={index}
+              className="h-12 md:h-16 flex items-center justify-center"
+            >
+              <img
+                src={partner.logo}
+                alt={partner.alt}
+                className="h-full w-auto object-contain grayscale opacity-60 hover:opacity-80 transition-opacity"
+              />
+            </div>
+          ))}
         </div>
       </div>
     </section>
