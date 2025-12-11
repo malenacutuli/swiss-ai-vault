@@ -12,18 +12,18 @@ export const SupportedBySection = () => {
           {t('home.supportedBy.title')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-muted-foreground/40 flex items-center justify-center p-4 bg-muted/30">
+          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-muted-foreground/40 flex items-center justify-center overflow-hidden bg-muted/30">
             <img
               src={bscLogo}
               alt="BSC AI Factory"
-              className="w-full h-full object-contain grayscale opacity-70"
+              className="w-[85%] h-[85%] object-cover grayscale opacity-70"
             />
           </div>
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-muted-foreground/40 flex items-center justify-center p-4 bg-muted/30">
+          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-muted-foreground/40 flex items-center justify-center overflow-hidden bg-muted/30">
             <img
               src={nvidiaLogo}
               alt="NVIDIA Inception Program"
-              className="w-full h-full object-contain grayscale opacity-70"
+              className="w-[85%] h-[85%] object-cover grayscale opacity-70"
             />
           </div>
         </div>
