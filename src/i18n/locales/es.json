@@ -87,7 +87,7 @@
     "pricing": "Precios",
     "signIn": "Iniciar sesión",
     "getStarted": "Comenzar",
-    "earlyAccess": "Acceso anticipado"
+    "earlyAccess": "Solicitar"
   },
   "sidebar": {
     "dashboard": "Panel",
@@ -480,7 +480,7 @@
       "subtitle": "Sin filtraciones. Sin registros. Sin compromisos.",
       "description": "SwissVault te permite construir IA con tus datos sin tocar nubes estadounidenses — con alojamiento soberano y cifrado sin rastro. Entrena y despliega IA con tus datos más sensibles con cifrado de extremo a extremo, residencia de datos suiza y transparencia de nivel auditoría.",
       "bookDemo": "Reservar Demo Empresarial",
-      "earlyAccess": "Solicitar Acceso Anticipado",
+      "earlyAccess": "Solicitar Acceso Exclusivo",
       "hostedInSwitzerland": "Alojado en Suiza",
       "gdprReady": "Listo para GDPR",
       "e2eEncryption": "Cifrado E2E del lado del cliente"
@@ -637,14 +637,14 @@
         "name": "Pro",
         "price": "$49",
         "period": "/mes",
-        "description": "Para equipos construyendo asistentes y profesionales buscando necesidades de IA sin rastro.",
-        "badge": "Más popular para equipos de producto",
+        "description": "Para profesionales buscando necesidades de IA sin rastro.",
+        "badge": "Solo por Invitación",
         "feature1": "100K llamadas API / mes",
         "feature2": "20 trabajos de ajuste fino / mes",
         "feature3": "50GB almacenamiento de datos",
         "feature4": "Suite de evaluación avanzada",
         "feature5": "Integraciones webhook, espacios de trabajo de equipo",
-        "cta": "Comenzar"
+        "cta": "Solicitar Acceso Exclusivo"
       },
       "enterprise": {
         "name": "Empresarial",
@@ -695,7 +695,7 @@
       "subtitle": "Plataforma de ajuste fino de IA de nivel empresarial con residencia de datos suiza garantizada. Entrena, evalúa y despliega modelos personalizados con total soberanía de datos.",
       "cta": "Comenzar prueba gratuita",
       "docs": "Ver documentación",
-      "earlyAccess": "Solicitar acceso anticipado",
+      "earlyAccess": "Solicitar acceso exclusivo",
       "scheduleDemo": "Programar demostración"
     },
     "features": {
@@ -714,7 +714,7 @@
       "title": "¿Listo para ajustar con",
       "subtitle": "Sé de los primeros en experimentar el ajuste fino de IA de nivel empresarial con soberanía de datos suiza.",
       "button": "Comenzar gratis",
-      "earlyAccess": "Solicitar acceso anticipado",
+      "earlyAccess": "Solicitar acceso exclusivo",
       "demo": "Programar demostración",
       "noCard": "Plazas limitadas • Sé el primero en la lista"
     },
