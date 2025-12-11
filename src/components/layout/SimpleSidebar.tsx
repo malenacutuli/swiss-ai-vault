@@ -3,6 +3,7 @@ import { MessageSquare, Shield, Settings, Beaker, ArrowRight, ChevronLeft, Chevr
 import { cn } from "@/lib/utils";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { SwissFlag } from "@/components/icons/SwissFlag";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 
 interface SimpleSidebarProps {
   collapsed: boolean;
@@ -49,12 +50,18 @@ function SidebarLink({ to, icon: Icon, label, collapsed, onNavigate }: SidebarLi
 
 export function SimpleSidebar({ collapsed, onToggle, onNavigate, hideHeader }: SimpleSidebarProps) {
   const navigate = useNavigate();
+  const { canAccess, isRestricted } = useFeatureAccess();
 
   const handleLabsClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate("/labs");
     onNavigate?.();
   };
+
+  // Check if user has access to any Labs features
+  const hasLabsAccess = canAccess('projects') || canAccess('datasets') || canAccess('fine_tuning') || 
+                        canAccess('models') || canAccess('catalog') || canAccess('playground') ||
+                        canAccess('evaluations') || canAccess('traces') || canAccess('usage_stats');
 
   return (
     <aside
@@ -91,51 +98,59 @@ export function SimpleSidebar({ collapsed, onToggle, onNavigate, hideHeader }: S
 
       {/* Navigation */}
       <nav className="flex-1 p-2 space-y-1">
-        <SidebarLink 
-          to="/chat" 
-          icon={MessageSquare} 
-          label="Vault Chat" 
-          collapsed={collapsed}
-          onNavigate={onNavigate}
-        />
-        <SidebarLink 
-          to="/labs/admin/compliance" 
-          icon={Shield} 
-          label="Compliance" 
-          collapsed={collapsed}
-          onNavigate={onNavigate}
-        />
-        <SidebarLink 
-          to="/labs/settings" 
-          icon={Settings} 
-          label="Settings" 
-          collapsed={collapsed}
-          onNavigate={onNavigate}
-        />
+        {canAccess('vault_chat') && (
+          <SidebarLink 
+            to="/chat" 
+            icon={MessageSquare} 
+            label="Vault Chat" 
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          />
+        )}
+        {canAccess('compliance') && (
+          <SidebarLink 
+            to="/labs/admin/compliance" 
+            icon={Shield} 
+            label="Compliance" 
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          />
+        )}
+        {canAccess('settings') && (
+          <SidebarLink 
+            to="/labs/settings" 
+            icon={Settings} 
+            label="Settings" 
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          />
+        )}
       </nav>
 
-      {/* Vault Labs Link */}
-      <div className={cn(
-        "border-t border-sidebar-border",
-        collapsed ? "p-2" : "p-4"
-      )}>
-        <a
-          href="/labs"
-          onClick={handleLabsClick}
-          className={cn(
-            "flex items-center gap-2 text-sm text-muted-foreground hover:text-sidebar-foreground transition-colors",
-            collapsed && "justify-center"
-          )}
-        >
-          <Beaker className="h-4 w-4 flex-shrink-0" />
-          {!collapsed && (
-            <>
-              <span>Open Vault Labs</span>
-              <ArrowRight className="h-3 w-3" />
-            </>
-          )}
-        </a>
-      </div>
+      {/* Vault Labs Link - only show if user has access to any Labs features */}
+      {hasLabsAccess && (
+        <div className={cn(
+          "border-t border-sidebar-border",
+          collapsed ? "p-2" : "p-4"
+        )}>
+          <a
+            href="/labs"
+            onClick={handleLabsClick}
+            className={cn(
+              "flex items-center gap-2 text-sm text-muted-foreground hover:text-sidebar-foreground transition-colors",
+              collapsed && "justify-center"
+            )}
+          >
+            <Beaker className="h-4 w-4 flex-shrink-0" />
+            {!collapsed && (
+              <>
+                <span>Open Vault Labs</span>
+                <ArrowRight className="h-3 w-3" />
+              </>
+            )}
+          </a>
+        </div>
+      )}
 
       {/* Collapse Button - only show on desktop */}
       {!hideHeader && (
