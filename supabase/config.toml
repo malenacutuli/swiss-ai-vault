@@ -77,3 +77,6 @@ verify_jwt = true
 
 [functions.create-pro-checkout]
 verify_jwt = true
+
+[functions.create-test-user]
+verify_jwt = false
