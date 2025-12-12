@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,7 +97,6 @@ const BASE_EVALUATION_MODELS = [
 const Evaluations = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isCreateEvalModalOpen, setIsCreateEvalModalOpen] = useState(false);
   const [isCreateMetricModalOpen, setIsCreateMetricModalOpen] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
@@ -377,21 +374,7 @@ const Evaluations = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-
-      <div
-        className={cn(
-          "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-[280px]"
-        )}
-      >
-        <DashboardHeader sidebarCollapsed={sidebarCollapsed} />
-
-        <main className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
             <div>
@@ -678,8 +661,6 @@ const Evaluations = () => {
               )}
             </TabsContent>
           </Tabs>
-        </main>
-      </div>
 
       {/* Create Evaluation Modal */}
       <Dialog open={isCreateEvalModalOpen} onOpenChange={(open) => {
