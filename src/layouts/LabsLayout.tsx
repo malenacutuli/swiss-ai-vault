@@ -81,7 +81,7 @@ export function LabsLayout() {
       >
         {/* Optional header with breadcrumbs */}
         {showBreadcrumbs && (
-          <header className="h-14 border-b border-border flex items-center px-6 flex-shrink-0">
+          <header className="h-16 border-b border-border flex items-center px-6 flex-shrink-0">
             <Breadcrumbs />
           </header>
         )}
