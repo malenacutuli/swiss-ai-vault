@@ -113,7 +113,14 @@
     "enterEmailForReset": "Voer je e-mailadres in en we sturen je een link om je wachtwoord te resetten.",
     "sendResetLink": "Reset Link Versturen",
     "resetEmailSent": "Reset e-mail verzonden",
-    "resetEmailSentDesc": "Controleer je e-mail voor een link om je wachtwoord te resetten."
+    "resetEmailSentDesc": "Controleer je e-mail voor een link om je wachtwoord te resetten.",
+    "setNewPassword": "Nieuw wachtwoord instellen",
+    "setNewPasswordDesc": "Voer hieronder je nieuwe wachtwoord in.",
+    "newPassword": "Nieuw wachtwoord",
+    "confirmNewPassword": "Bevestig nieuw wachtwoord",
+    "updatePassword": "Wachtwoord bijwerken",
+    "passwordUpdated": "Wachtwoord bijgewerkt",
+    "passwordUpdatedDesc": "Je wachtwoord is succesvol bijgewerkt. Je kunt nu inloggen met je nieuwe wachtwoord."
   },
   "dashboard": {
     "title": "Dashboard",

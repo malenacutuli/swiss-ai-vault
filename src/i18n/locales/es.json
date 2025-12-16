@@ -176,7 +176,14 @@
     "signupFailed": "Error de registro",
     "accountCreated": "Cuenta creada",
     "accountCreatedDesc": "Por favor, revisa tu correo para verificar tu cuenta",
-    "oauthError": "Error de autenticación"
+    "oauthError": "Error de autenticación",
+    "setNewPassword": "Establecer Nueva Contraseña",
+    "setNewPasswordDesc": "Introduce tu nueva contraseña a continuación.",
+    "newPassword": "Nueva Contraseña",
+    "confirmNewPassword": "Confirmar Nueva Contraseña",
+    "updatePassword": "Actualizar Contraseña",
+    "passwordUpdated": "Contraseña actualizada",
+    "passwordUpdatedDesc": "Tu contraseña ha sido actualizada correctamente. Ahora puedes iniciar sesión con tu nueva contraseña."
   },
   "dashboard": {
     "title": "Panel de control",

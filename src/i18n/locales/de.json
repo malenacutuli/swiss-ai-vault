@@ -113,7 +113,14 @@
     "enterEmailForReset": "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.",
     "sendResetLink": "Link zum Zurücksetzen senden",
     "resetEmailSent": "E-Mail zum Zurücksetzen gesendet",
-    "resetEmailSentDesc": "Überprüfen Sie Ihre E-Mail auf einen Link zum Zurücksetzen Ihres Passworts."
+    "resetEmailSentDesc": "Überprüfen Sie Ihre E-Mail auf einen Link zum Zurücksetzen Ihres Passworts.",
+    "setNewPassword": "Neues Passwort festlegen",
+    "setNewPasswordDesc": "Geben Sie unten Ihr neues Passwort ein.",
+    "newPassword": "Neues Passwort",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "updatePassword": "Passwort aktualisieren",
+    "passwordUpdated": "Passwort aktualisiert",
+    "passwordUpdatedDesc": "Ihr Passwort wurde erfolgreich aktualisiert. Sie können sich jetzt mit Ihrem neuen Passwort anmelden."
   },
   "dashboard": {
     "title": "Dashboard",

@@ -176,7 +176,14 @@
     "signupFailed": "Ошибка регистрации",
     "accountCreated": "Аккаунт создан",
     "accountCreatedDesc": "Пожалуйста, проверьте email для подтверждения аккаунта",
-    "oauthError": "Ошибка аутентификации"
+    "oauthError": "Ошибка аутентификации",
+    "setNewPassword": "Установить новый пароль",
+    "setNewPasswordDesc": "Введите новый пароль ниже.",
+    "newPassword": "Новый пароль",
+    "confirmNewPassword": "Подтвердите новый пароль",
+    "updatePassword": "Обновить пароль",
+    "passwordUpdated": "Пароль обновлён",
+    "passwordUpdatedDesc": "Ваш пароль успешно обновлён. Теперь вы можете войти с новым паролем."
   },
   "dashboard": {
     "title": "Панель управления",

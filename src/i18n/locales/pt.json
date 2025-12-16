@@ -113,7 +113,14 @@
     "enterEmailForReset": "Digite seu endereço de e-mail e enviaremos um link para redefinir sua senha.",
     "sendResetLink": "Enviar Link de Redefinição",
     "resetEmailSent": "E-mail de redefinição enviado",
-    "resetEmailSentDesc": "Verifique seu e-mail para um link de redefinição de senha."
+    "resetEmailSentDesc": "Verifique seu e-mail para um link de redefinição de senha.",
+    "setNewPassword": "Definir nova senha",
+    "setNewPasswordDesc": "Digite sua nova senha abaixo.",
+    "newPassword": "Nova senha",
+    "confirmNewPassword": "Confirmar nova senha",
+    "updatePassword": "Atualizar senha",
+    "passwordUpdated": "Senha atualizada",
+    "passwordUpdatedDesc": "Sua senha foi atualizada com sucesso. Agora você pode fazer login com sua nova senha."
   },
   "dashboard": {
     "title": "Painel de controle",

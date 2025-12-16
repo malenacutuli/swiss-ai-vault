@@ -113,7 +113,14 @@
     "enterEmailForReset": "メールアドレスを入力してください。パスワードリセット用のリンクをお送りします。",
     "sendResetLink": "リセットリンクを送信",
     "resetEmailSent": "リセットメールを送信しました",
-    "resetEmailSentDesc": "パスワードリセット用のリンクが記載されたメールをご確認ください。"
+    "resetEmailSentDesc": "パスワードリセット用のリンクが記載されたメールをご確認ください。",
+    "setNewPassword": "新しいパスワードを設定",
+    "setNewPasswordDesc": "新しいパスワードを入力してください。",
+    "newPassword": "新しいパスワード",
+    "confirmNewPassword": "新しいパスワードを確認",
+    "updatePassword": "パスワードを更新",
+    "passwordUpdated": "パスワードを更新しました",
+    "passwordUpdatedDesc": "パスワードが正常に更新されました。新しいパスワードでログインできます。"
   },
   "dashboard": {
     "title": "ダッシュボード",

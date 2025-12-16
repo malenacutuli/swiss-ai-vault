@@ -113,7 +113,14 @@
     "enterEmailForReset": "Inserisci il tuo indirizzo email e ti invieremo un link per reimpostare la password.",
     "sendResetLink": "Invia Link di Reimpostazione",
     "resetEmailSent": "Email di reimpostazione inviata",
-    "resetEmailSentDesc": "Controlla la tua email per un link per reimpostare la password."
+    "resetEmailSentDesc": "Controlla la tua email per un link per reimpostare la password.",
+    "setNewPassword": "Imposta nuova password",
+    "setNewPasswordDesc": "Inserisci la tua nuova password qui sotto.",
+    "newPassword": "Nuova password",
+    "confirmNewPassword": "Conferma nuova password",
+    "updatePassword": "Aggiorna password",
+    "passwordUpdated": "Password aggiornata",
+    "passwordUpdatedDesc": "La tua password è stata aggiornata con successo. Ora puoi accedere con la tua nuova password."
   },
   "dashboard": {
     "title": "Dashboard",

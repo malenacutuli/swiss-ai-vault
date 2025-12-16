@@ -60,6 +60,11 @@ export default function Auth() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   
+  // Password reset form
+  const [showResetPasswordForm, setShowResetPasswordForm] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  
   const [isOAuthLoading, setIsOAuthLoading] = useState<'google' | 'github' | null>(null);
   
   const { signIn, signUp, user } = useAuth();
@@ -68,6 +73,30 @@ export default function Auth() {
   const { toast } = useToast();
 
   const from = location.state?.from?.pathname || '/dashboard';
+
+  // Detect password reset flow from email link
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const isReset = params.get('reset') === 'true';
+    
+    if (isReset) {
+      // Listen for PASSWORD_RECOVERY event from Supabase
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setShowResetPasswordForm(true);
+        }
+      });
+
+      // Also check if we're already in a recovery session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setShowResetPasswordForm(true);
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, [location.search]);
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     setIsOAuthLoading(provider);
@@ -88,10 +117,64 @@ export default function Auth() {
     }
   };
 
-  // Redirect if already logged in
+  // Handle password update
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword || !confirmNewPassword) {
+      toast({
+        title: t('common.error'),
+        description: t('auth.fillAllFields'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: t('common.error'),
+        description: t('auth.passwordsNoMatch'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: t('common.error'),
+        description: t('auth.passwordMinLength'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: t('common.error'),
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: t('auth.passwordUpdated'),
+        description: t('auth.passwordUpdatedDesc'),
+      });
+      setShowResetPasswordForm(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      // Clear URL params and redirect to dashboard
+      navigate('/dashboard', { replace: true });
+    }
+  };
+
+  // Redirect if already logged in (but not during password reset)
   useEffect(() => {
     const handleRedirectAfterLogin = async () => {
-      if (user) {
+      if (user && !showResetPasswordForm) {
         const pendingCheckout = localStorage.getItem('pendingCheckout');
         if (pendingCheckout === 'pro') {
           localStorage.removeItem('pendingCheckout');
@@ -111,7 +194,7 @@ export default function Auth() {
       }
     };
     handleRedirectAfterLogin();
-  }, [user, navigate, from]);
+  }, [user, navigate, from, showResetPasswordForm]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,7 +354,64 @@ export default function Auth() {
           </div>
 
           <Card className="border-border/50 shadow-elevated">
-            {showForgotPassword ? (
+            {showResetPasswordForm ? (
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="text-center mb-4">
+                    <h2 className="text-lg font-semibold">{t('auth.setNewPassword')}</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('auth.setNewPasswordDesc')}
+                    </p>
+                  </div>
+                  <form onSubmit={handleUpdatePassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">{t('auth.newPassword')}</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="new-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-new-password">{t('auth.confirmNewPassword')}</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="confirm-new-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          autoComplete="new-password"
+                        />
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        t('auth.updatePassword')
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
+            ) : showForgotPassword ? (
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   <div className="text-center mb-4">
