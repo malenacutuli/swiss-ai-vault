@@ -113,7 +113,14 @@
     "enterEmailForReset": "Introdueix el teu correu electrònic i t'enviarem un enllaç per restablir la contrasenya.",
     "sendResetLink": "Enviar Enllaç de Restabliment",
     "resetEmailSent": "Correu de restabliment enviat",
-    "resetEmailSentDesc": "Comprova el teu correu per un enllaç per restablir la contrasenya."
+    "resetEmailSentDesc": "Comprova el teu correu per un enllaç per restablir la contrasenya.",
+    "setNewPassword": "Establir nova contrasenya",
+    "setNewPasswordDesc": "Introdueix la teva nova contrasenya a continuació.",
+    "newPassword": "Nova contrasenya",
+    "confirmNewPassword": "Confirmar nova contrasenya",
+    "updatePassword": "Actualitzar contrasenya",
+    "passwordUpdated": "Contrasenya actualitzada",
+    "passwordUpdatedDesc": "La teva contrasenya s'ha actualitzat correctament. Ara pots iniciar sessió amb la teva nova contrasenya."
   },
   "dashboard": {
     "title": "Tauler de control",

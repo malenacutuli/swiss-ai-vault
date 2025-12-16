@@ -113,7 +113,14 @@
     "enterEmailForReset": "Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
     "sendResetLink": "Envoyer le lien de réinitialisation",
     "resetEmailSent": "E-mail de réinitialisation envoyé",
-    "resetEmailSentDesc": "Vérifiez votre e-mail pour un lien de réinitialisation de mot de passe."
+    "resetEmailSentDesc": "Vérifiez votre e-mail pour un lien de réinitialisation de mot de passe.",
+    "setNewPassword": "Définir un nouveau mot de passe",
+    "setNewPasswordDesc": "Entrez votre nouveau mot de passe ci-dessous.",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmer le nouveau mot de passe",
+    "updatePassword": "Mettre à jour le mot de passe",
+    "passwordUpdated": "Mot de passe mis à jour",
+    "passwordUpdatedDesc": "Votre mot de passe a été mis à jour avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe."
   },
   "dashboard": {
     "title": "Tableau de bord",

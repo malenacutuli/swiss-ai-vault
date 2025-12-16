@@ -176,7 +176,14 @@
     "signupFailed": "Signup failed",
     "accountCreated": "Account created",
     "accountCreatedDesc": "Please check your email to verify your account",
-    "oauthError": "Authentication error"
+    "oauthError": "Authentication error",
+    "setNewPassword": "Set New Password",
+    "setNewPasswordDesc": "Enter your new password below.",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "passwordUpdated": "Password updated",
+    "passwordUpdatedDesc": "Your password has been updated successfully. You can now log in with your new password."
   },
   "dashboard": {
     "title": "Dashboard",
