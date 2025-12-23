@@ -3,6 +3,12 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { GhostModelPicker } from './GhostModelPicker';
 import { VoiceButton } from './VoiceButton';
 import { useGhostSTT } from '@/hooks/useGhostSTT';
@@ -14,6 +20,10 @@ import {
   Send,
   Square,
   Loader2,
+  FileText,
+  RotateCcw,
+  Lightbulb,
+  Code,
 } from 'lucide-react';
 
 type GhostMode = 'text' | 'image' | 'video' | 'search';
@@ -115,8 +125,9 @@ export function GhostChatInput({
               </Tooltip>
             )}
             
-            <Tooltip>
-              <TooltipTrigger asChild>
+            {/* Quick Actions dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -124,9 +135,26 @@ export function GhostChatInput({
                 >
                   <Zap className="w-4 h-4" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Quick Actions</TooltipContent>
-            </Tooltip>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-popover border-border z-50">
+                <DropdownMenuItem onClick={() => onChange('Summarize this conversation')}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Summarize Chat
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange('Continue from where we left off')}>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Continue
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange('Explain this in simpler terms')}>
+                  <Lightbulb className="w-4 h-4 mr-2" />
+                  Simplify
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onChange('Generate code for this')}>
+                  <Code className="w-4 h-4 mr-2" />
+                  Generate Code
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <GhostModelPicker
               mode={mode}
