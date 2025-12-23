@@ -39,6 +39,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostSettings, type GhostSettings as GhostSettingsType } from '@/hooks/useGhostSettings';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { GhostAPIKeys } from './GhostAPIKeys';
@@ -83,9 +84,16 @@ export function GhostSettings({ open, onOpenChange }: GhostSettingsProps) {
   const { user } = useAuth();
   const { balance, formattedBalance } = useGhostCredits();
   const { settings, updateSettings, resetToDefaults, isLoading, isSaving } = useGhostSettings();
+  const { setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
   const [storageUsed, setStorageUsed] = useState(0);
   const [storageQuota, setStorageQuota] = useState(100);
+
+  // Handle theme change - both save setting and apply it
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+    updateSettings({ theme: newTheme });
+    setTheme(newTheme);
+  };
 
   // Get storage estimate
   useState(() => {
@@ -293,7 +301,7 @@ export function GhostSettings({ open, onOpenChange }: GhostSettingsProps) {
                 <SettingRow label="Color Scheme">
                   <Select
                     value={settings.theme}
-                    onValueChange={(v) => updateSettings({ theme: v as 'light' | 'dark' | 'system' })}
+                    onValueChange={(v) => handleThemeChange(v as 'light' | 'dark' | 'system')}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
