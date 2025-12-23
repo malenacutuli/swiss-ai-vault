@@ -2,13 +2,49 @@ import { useState, useEffect, useCallback } from 'react';
 import { getGhostStorage, resetGhostStorage, GhostConversation } from '@/lib/ghost/ghost-storage';
 import { useAuth } from '@/contexts/AuthContext';
 
+/**
+ * Derive a stable encryption key from user ID using PBKDF2
+ * This ensures the same key is always derived for the same user,
+ * so conversations can be decrypted after page refresh.
+ */
+const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
+  // Create a stable salt from user ID
+  const encoder = new TextEncoder();
+  const salt = encoder.encode(`swissvault_ghost_${userId}_stable_salt_v1`);
+  
+  // Import user ID as key material
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(userId),
+    'PBKDF2',
+    false,
+    ['deriveBits', 'deriveKey']
+  );
+  
+  // Derive the actual encryption key
+  const key = await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false, // not extractable for security
+    ['encrypt', 'decrypt']
+  );
+  
+  return key;
+};
+
 export function useGhostStorage() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number; messageCount: number }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize storage with encryption key
+  // Initialize storage with stable encryption key derived from user ID
   useEffect(() => {
     const initStorage = async () => {
       if (!user) {
@@ -20,12 +56,8 @@ export function useGhostStorage() {
         setIsLoading(true);
         const storage = getGhostStorage();
         
-        // Generate master key for ghost storage using Web Crypto directly
-        const masterKey = await crypto.subtle.generateKey(
-          { name: 'AES-GCM', length: 256 },
-          true,
-          ['encrypt', 'decrypt']
-        );
+        // Derive stable master key from user ID (same key every time for same user)
+        const masterKey = await deriveKeyFromUserId(user.id);
         
         await storage.init(masterKey);
         setIsInitialized(true);
