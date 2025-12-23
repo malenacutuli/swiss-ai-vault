@@ -21,7 +21,9 @@ interface GhostRequest {
   messages: { role: string; content: string }[];
   stream?: boolean;
   temperature?: number;
+  top_p?: number;
   max_tokens?: number;
+  system_prompt?: string;
 }
 
 interface Message {
@@ -134,7 +136,12 @@ serve(async (req) => {
 
     // 3. Parse and validate request
     const body = await req.json() as GhostRequest;
-    const { model, messages, stream = false, temperature = 0.7, max_tokens = 4096 } = body;
+    const { model, messages, stream = false, temperature = 0.7, top_p = 0.9, max_tokens = 4096, system_prompt } = body;
+
+    // Prepend system prompt if provided
+    const finalMessages = system_prompt 
+      ? [{ role: 'system', content: system_prompt }, ...messages]
+      : messages;
 
     if (!model || !messages || !Array.isArray(messages)) {
       return new Response(
@@ -173,9 +180,10 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: modelConfig.modelName,
-        messages,
+        messages: finalMessages,
         stream,
         temperature,
+        top_p,
         max_tokens
       })
     });
