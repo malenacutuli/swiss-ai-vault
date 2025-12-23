@@ -1,7 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { ReadAloudButton } from './ReadAloudButton';
 import { cn } from '@/lib/utils';
+import { ExternalLink } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface GhostMessageProps {
   id: string;
@@ -10,6 +21,7 @@ interface GhostMessageProps {
   timestamp?: number;
   isStreaming?: boolean;
   showDate?: boolean;
+  showExternalLinkWarning?: boolean;
   onRegenerate?: () => void;
   ttsState?: {
     isPlaying: boolean;
@@ -89,50 +101,128 @@ function parseContent(content: string): ContentSegment[] {
   return segments;
 }
 
-// Simple inline code and bold/italic parsing for text segments
-function renderTextContent(text: string): React.ReactNode {
+// Check if URL is external
+function isExternalUrl(href: string): boolean {
+  if (!href?.startsWith('http')) return false;
+  const internalDomains = ['swissvault.ai', 'localhost', '127.0.0.1'];
+  try {
+    const url = new URL(href);
+    return !internalDomains.some(domain => url.hostname.includes(domain));
+  } catch {
+    return false;
+  }
+}
+
+// Render text content with markdown parsing and link handling
+function renderTextContent(
+  text: string, 
+  onExternalLinkClick?: (url: string) => void,
+  showExternalLinkWarning?: boolean
+): React.ReactNode {
+  // First, handle links [text](url)
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let keyCounter = 0;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Add text before this link
+    if (match.index > lastIndex) {
+      parts.push(
+        <TextPart key={keyCounter++} text={text.slice(lastIndex, match.index)} />
+      );
+    }
+
+    const linkText = match[1];
+    const href = match[2];
+    const isExternal = isExternalUrl(href);
+
+    parts.push(
+      <a
+        key={keyCounter++}
+        href={href}
+        onClick={(e) => {
+          if (isExternal && showExternalLinkWarning && onExternalLinkClick) {
+            e.preventDefault();
+            onExternalLinkClick(href);
+          }
+        }}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+        className="text-swiss-sapphire hover:underline inline-flex items-center gap-1"
+      >
+        {linkText}
+        {isExternal && <ExternalLink className="w-3 h-3" />}
+      </a>
+    );
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last link
+  if (lastIndex < text.length) {
+    parts.push(
+      <TextPart key={keyCounter++} text={text.slice(lastIndex)} />
+    );
+  }
+
+  // If no links found, just render text
+  if (parts.length === 0) {
+    return <TextPart text={text} />;
+  }
+
+  return parts;
+}
+
+// Component to render text with inline code, bold, italic
+function TextPart({ text }: { text: string }) {
   // Split by inline code first
   const parts = text.split(/(`[^`]+`)/g);
   
-  return parts.map((part, i) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      // Inline code
-      return (
-        <code
-          key={i}
-          className="px-1.5 py-0.5 bg-muted rounded text-swiss-sapphire text-sm font-mono"
-        >
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-    
-    // Handle **bold** and *italic*
-    let processed = part;
-    
-    // Bold
-    processed = processed.replace(
-      /\*\*([^*]+)\*\*/g,
-      '<strong class="font-semibold">$1</strong>'
-    );
-    
-    // Italic
-    processed = processed.replace(
-      /\*([^*]+)\*/g,
-      '<em class="italic">$1</em>'
-    );
-    
-    if (processed !== part) {
-      return (
-        <span
-          key={i}
-          dangerouslySetInnerHTML={{ __html: processed }}
-        />
-      );
-    }
-    
-    return <span key={i}>{part}</span>;
-  });
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('`') && part.endsWith('`')) {
+          // Inline code
+          return (
+            <code
+              key={i}
+              className="px-1.5 py-0.5 bg-muted rounded text-swiss-sapphire text-sm font-mono"
+            >
+              {part.slice(1, -1)}
+            </code>
+          );
+        }
+        
+        // Handle **bold** and *italic*
+        let processed = part;
+        
+        // Bold
+        processed = processed.replace(
+          /\*\*([^*]+)\*\*/g,
+          '<strong class="font-semibold">$1</strong>'
+        );
+        
+        // Italic
+        processed = processed.replace(
+          /\*([^*]+)\*/g,
+          '<em class="italic">$1</em>'
+        );
+        
+        if (processed !== part) {
+          return (
+            <span
+              key={i}
+              dangerouslySetInnerHTML={{ __html: processed }}
+            />
+          );
+        }
+        
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
 }
 
 export function GhostMessage({ 
@@ -142,61 +232,111 @@ export function GhostMessage({
   timestamp, 
   isStreaming,
   showDate = true,
+  showExternalLinkWarning = false,
   onRegenerate,
   ttsState,
   onSpeak,
   onStopSpeak,
 }: GhostMessageProps) {
   const segments = useMemo(() => parseContent(content), [content]);
+  const [externalLinkDialog, setExternalLinkDialog] = useState<{ open: boolean; url: string }>({
+    open: false,
+    url: '',
+  });
+
+  const handleExternalLinkClick = (url: string) => {
+    setExternalLinkDialog({ open: true, url });
+  };
+
+  const handleConfirmExternalLink = () => {
+    window.open(externalLinkDialog.url, '_blank', 'noopener,noreferrer');
+    setExternalLinkDialog({ open: false, url: '' });
+  };
 
   return (
-    <div className="space-y-3 group relative">
-      {/* TTS button for assistant messages */}
-      {role === 'assistant' && !isStreaming && ttsState && onSpeak && onStopSpeak && (
-        <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ReadAloudButton
-            messageId={id}
-            isPlaying={ttsState.isPlaying}
-            isPaused={ttsState.isPaused}
-            isLoading={ttsState.isLoading}
-            progress={ttsState.progress}
-            currentMessageId={ttsState.currentMessageId}
-            onSpeak={() => onSpeak(id, content)}
-            onStop={onStopSpeak}
-          />
-        </div>
-      )}
-      
-      {segments.map((segment, index) => {
-        if (segment.type === 'code') {
-          return (
-            <CodeBlock
-              key={index}
-              code={segment.content}
-              language={segment.language}
+    <>
+      <div className="space-y-3 group relative">
+        {/* TTS button for assistant messages */}
+        {role === 'assistant' && !isStreaming && ttsState && onSpeak && onStopSpeak && (
+          <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ReadAloudButton
+              messageId={id}
+              isPlaying={ttsState.isPlaying}
+              isPaused={ttsState.isPaused}
+              isLoading={ttsState.isLoading}
+              progress={ttsState.progress}
+              currentMessageId={ttsState.currentMessageId}
+              onSpeak={() => onSpeak(id, content)}
+              onStop={onStopSpeak}
             />
-          );
-        }
-
-        // Text segment - render with basic markdown parsing
-        return (
-          <div key={index} className="text-sm whitespace-pre-wrap leading-relaxed">
-            {renderTextContent(segment.content)}
           </div>
-        );
-      })}
-      
-      {/* Streaming cursor */}
-      {isStreaming && (
-        <span className="inline-block w-0.5 h-4 bg-swiss-navy animate-pulse ml-0.5" />
-      )}
+        )}
+        
+        {segments.map((segment, index) => {
+          if (segment.type === 'code') {
+            return (
+              <CodeBlock
+                key={index}
+                code={segment.content}
+                language={segment.language}
+              />
+            );
+          }
 
-      {/* Timestamp */}
-      {showDate && timestamp && !isStreaming && (
-        <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-          {formatMessageTime(timestamp)}
-        </span>
-      )}
-    </div>
+          // Text segment - render with markdown parsing and link handling
+          return (
+            <div key={index} className="text-sm whitespace-pre-wrap leading-relaxed">
+              {renderTextContent(
+                segment.content, 
+                handleExternalLinkClick,
+                showExternalLinkWarning
+              )}
+            </div>
+          );
+        })}
+        
+        {/* Streaming cursor */}
+        {isStreaming && (
+          <span className="inline-block w-0.5 h-4 bg-swiss-navy animate-pulse ml-0.5" />
+        )}
+
+        {/* Timestamp */}
+        {showDate && timestamp && !isStreaming && (
+          <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+            {formatMessageTime(timestamp)}
+          </span>
+        )}
+      </div>
+
+      {/* External Link Confirmation Dialog */}
+      <AlertDialog 
+        open={externalLinkDialog.open} 
+        onOpenChange={(open) => setExternalLinkDialog({ open, url: open ? externalLinkDialog.url : '' })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ExternalLink className="w-5 h-5" />
+              External Link
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span>You are about to visit an external website:</span>
+              <code className="block text-sm bg-muted px-3 py-2 rounded break-all">
+                {externalLinkDialog.url}
+              </code>
+              <span className="text-muted-foreground text-xs">
+                Make sure you trust this website before proceeding.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmExternalLink}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
