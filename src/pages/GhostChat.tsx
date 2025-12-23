@@ -42,6 +42,8 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import ghostIcon from '@/assets/ghost-icon.jpg';
+import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
+import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
 
 const SWISS_MODELS = [
   { id: 'llama-3.1-70b-swiss', name: 'Llama 3.1 70B', provider: 'Swiss' },
@@ -93,6 +95,7 @@ export default function GhostChat() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -460,19 +463,12 @@ export default function GhostChat() {
             <Button
               size="sm"
               className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={() => setShowBuyCredits(true)}
             >
               Buy Credits
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSwitchToVaultChat}
-              className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
-            >
-              <ArrowLeftRight className="w-4 h-4 mr-2" />
-              Switch to VaultChat
-            </Button>
+            <GhostModeToggle currentMode="ghost" />
           </div>
         </div>
 
@@ -664,6 +660,9 @@ export default function GhostChat() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Buy Credits Modal */}
+      <BuyGhostCreditsModal open={showBuyCredits} onOpenChange={setShowBuyCredits} />
     </div>
   );
 }
