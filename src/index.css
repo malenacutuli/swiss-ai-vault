@@ -218,3 +218,63 @@
 .animate-delay-300 { animation-delay: 300ms; }
 .animate-delay-400 { animation-delay: 400ms; }
 .animate-delay-500 { animation-delay: 500ms; }
+
+/* Highlight.js theme for Ghost Code Blocks */
+.hljs {
+  color: #e2e8f0;
+  background: transparent;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #64748b;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-addition {
+  color: #c084fc;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute,
+.hljs-literal,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-addition {
+  color: #86efac;
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-title.function_ {
+  color: #fbbf24;
+}
+
+.hljs-deletion,
+.hljs-variable,
+.hljs-attr {
+  color: #f87171;
+}
+
+.hljs-built_in,
+.hljs-name,
+.hljs-selector-class {
+  color: #38bdf8;
+}
+
+.hljs-params {
+  color: #cbd5e1;
+}
+
+.hljs-punctuation {
+  color: #94a3b8;
+}
