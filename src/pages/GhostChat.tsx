@@ -17,6 +17,7 @@ import { GhostChatInput } from '@/components/ghost/GhostChatInput';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
 import { GhostTextView, GhostImageView, GhostVideoView, GhostSearchView } from '@/components/ghost/views';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
+import { GhostSettings } from '@/components/ghost/GhostSettings';
 
 import { EyeOff, Shield, Menu, X } from 'lucide-react';
 
@@ -74,6 +75,7 @@ export default function GhostChat() {
   const [enhancePrompt, setEnhancePrompt] = useState(false);
   const [videoInputImage, setVideoInputImage] = useState<string | undefined>();
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [folders, setFolders] = useState<GhostFolder[]>([]);
 
   // Model state per mode (persisted to localStorage)
@@ -288,7 +290,7 @@ export default function GhostChat() {
         userName={user.email?.split('@')[0] || 'User'}
         userCredits={balance}
         isPro={false}
-        onOpenSettings={() => navigate('/labs/settings')}
+        onOpenSettings={() => setShowSettings(true)}
       />
 
       {/* Main Content */}
@@ -311,7 +313,7 @@ export default function GhostChat() {
               <div className="w-8 h-8 rounded-lg bg-swiss-navy/20 border border-swiss-navy/30 flex items-center justify-center">
                 <EyeOff className="w-4 h-4 text-swiss-navy" />
               </div>
-              <span className="font-serif font-semibold text-foreground tracking-tight hidden sm:inline">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider hidden sm:inline font-sans">
                 Ghost Mode
               </span>
             </div>
@@ -440,6 +442,10 @@ export default function GhostChat() {
       <BuyGhostCreditsModal
         open={showBuyCredits}
         onOpenChange={setShowBuyCredits}
+      />
+      <GhostSettings
+        open={showSettings}
+        onOpenChange={setShowSettings}
       />
     </div>
   );

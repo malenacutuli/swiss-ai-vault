@@ -161,9 +161,9 @@ export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
             <div className="w-16 h-16 rounded-2xl bg-swiss-burgundy/10 border border-swiss-burgundy/20 flex items-center justify-center mb-6">
               <Image className="w-8 h-8 text-swiss-burgundy" />
             </div>
-            <SwissHeading as="h2" size="xl" className="text-center mb-3">
+            <h2 className="text-xs text-muted-foreground uppercase tracking-wider font-sans text-center mb-3">
               Private Image Generation
-            </SwissHeading>
+            </h2>
             <p className="text-muted-foreground text-center max-w-md">
               Generate images with state-of-the-art AI models. Your prompts and creations
               remain private and are never logged.

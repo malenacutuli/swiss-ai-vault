@@ -287,9 +287,9 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
             <div className="w-16 h-16 rounded-2xl bg-swiss-teal/10 border border-swiss-teal/20 flex items-center justify-center mb-6">
               <Video className="w-8 h-8 text-swiss-teal" />
             </div>
-            <SwissHeading as="h2" size="xl" className="text-center mb-3">
+            <h2 className="text-xs text-muted-foreground uppercase tracking-wider font-sans text-center mb-3">
               Private Video Generation
-            </SwissHeading>
+            </h2>
             <p className="text-muted-foreground text-center max-w-md">
               Create stunning videos with cutting-edge AI. From text descriptions or images,
               generate videos that remain completely private.

@@ -21,9 +21,9 @@ export function GhostSearchView({ results = [], isSearching = false, answer }: G
         <div className="w-16 h-16 rounded-2xl bg-swiss-sapphire/10 border border-swiss-sapphire/20 flex items-center justify-center mb-6">
           <Globe className="w-8 h-8 text-swiss-sapphire" />
         </div>
-        <SwissHeading as="h2" size="xl" className="text-center mb-3">
+        <h2 className="text-xs text-muted-foreground uppercase tracking-wider font-sans text-center mb-3">
           Private Web Search
-        </SwissHeading>
+        </h2>
         <p className="text-muted-foreground text-center max-w-md mb-8">
           Search the web with AI-powered understanding. Your queries are anonymized
           and never linked to your identity.
