@@ -559,6 +559,7 @@ export default function GhostChat() {
                   setVideoInputImage(imageUrl);
                   handleModeChange('video');
                 }}
+                globalSettings={settings}
               />
             )}
             {mode === 'video' && <GhostVideoView initialImageUrl={videoInputImage} />}
