@@ -27,12 +27,15 @@ import {
   Upload,
   Trash2,
   RefreshCw,
-  Coins,
   Menu,
   X,
   Loader2,
   Square,
-  FileArchive,
+  Shield,
+  Eye,
+  EyeOff,
+  Lock,
+  Sparkles,
 } from 'lucide-react';
 import ghostIcon from '@/assets/ghost-icon.jpg';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
@@ -134,7 +137,7 @@ export default function GhostChat() {
   }, [selectedConversation]);
 
   const handleNewSession = () => {
-    const id = createConversation('New Ghost Session');
+    const id = createConversation('New Session');
     if (id) {
       setSelectedConversation(id);
       setMessages([]);
@@ -176,11 +179,11 @@ export default function GhostChat() {
 
     // Set up cold start warning timers
     const coldStartTimer = setTimeout(() => {
-      setColdStartWarning('Model warming up...');
+      setColdStartWarning('Initializing model...');
     }, 3000);
     
     const longWaitTimer = setTimeout(() => {
-      setColdStartWarning('Still loading - this model needs GPU spin-up (~30s for first request)');
+      setColdStartWarning('GPU spin-up in progress — approximately 30 seconds');
     }, 10000);
 
     try {
@@ -221,7 +224,7 @@ export default function GhostChat() {
             if (error.message.includes('Insufficient ghost credits')) {
               toast({
                 title: 'Insufficient Credits',
-                description: 'You need more ghost tokens to continue.',
+                description: 'Additional tokens required to continue.',
                 variant: 'destructive',
               });
             } else {
@@ -323,14 +326,14 @@ export default function GhostChat() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-900">
-        <p className="text-muted-foreground">Please log in to use Ghost Chat</p>
+      <div className="flex items-center justify-center h-screen bg-background">
+        <p className="text-muted-foreground font-sans">Please log in to use Ghost Mode</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900">
+    <div className="flex h-screen bg-background">
       {/* Hidden file input for import */}
       <input
         ref={fileInputRef}
@@ -343,83 +346,90 @@ export default function GhostChat() {
       {/* Sidebar */}
       <div
         className={cn(
-          'flex flex-col border-r border-purple-500/20 bg-slate-900/80 backdrop-blur-sm transition-all duration-300',
+          'flex flex-col border-r border-border bg-card/50 backdrop-blur-sm transition-all duration-300 ease-in-out',
           sidebarOpen ? 'w-80' : 'w-0 overflow-hidden'
         )}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-purple-500/20">
-          <div className="flex items-center gap-3 mb-4">
-            <img src={ghostIcon} alt="Ghost" className="w-8 h-8 rounded-lg" />
-            <h2 className="text-lg font-semibold text-white">Ghost Sessions</h2>
+        <div className="p-6 border-b border-border">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-lg bg-swiss-navy/20 border border-swiss-navy/30 flex items-center justify-center">
+              <EyeOff className="w-5 h-5 text-swiss-navy" />
+            </div>
+            <div>
+              <h2 className="font-serif text-lg font-semibold text-foreground tracking-tight">Ghost Sessions</h2>
+              <p className="text-xs text-muted-foreground tracking-wide uppercase">Local Only</p>
+            </div>
           </div>
           <Button
             onClick={handleNewSession}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium tracking-wide"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Ghost Session
+            New Session
           </Button>
         </div>
 
         {/* Conversations List */}
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
+          <div className="p-3 space-y-1">
             {conversations.map(conv => (
               <div
                 key={conv.id}
                 onClick={() => setSelectedConversation(conv.id)}
                 className={cn(
-                  'group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors',
+                  'group flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-200 ease-in-out',
                   selectedConversation === conv.id
-                    ? 'bg-purple-600/30 border border-purple-500/50'
-                    : 'hover:bg-purple-500/10'
+                    ? 'bg-primary/10 border border-primary/20'
+                    : 'hover:bg-muted/50'
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {conv.title}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {formatTime(conv.updatedAt)}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-7 w-7 text-muted-foreground hover:text-white"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleExport(conv.id);
                     }}
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-7 w-7 text-muted-foreground hover:text-red-400"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       setConversationToDelete(conv.id);
                     }}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             ))}
             {conversations.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No sessions yet. Create one to start.
+              <div className="text-center py-12 text-muted-foreground text-sm">
+                <EyeOff className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                <p>No sessions yet</p>
+                <p className="text-xs mt-1">Create one to begin</p>
               </div>
             )}
           </div>
         </ScrollArea>
 
         {/* Usage Dashboard */}
-        <div className="border-t border-purple-500/20">
+        <div className="border-t border-border">
           <GhostDashboard
             onBuyCredits={() => setShowBuyCredits(true)}
             totalConversations={conversations.length}
@@ -428,31 +438,31 @@ export default function GhostChat() {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-purple-500/20 space-y-2">
+        <div className="p-4 border-t border-border space-y-2">
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+              className="flex-1 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
               onClick={() => {
                 setExportImportTab('export');
                 setShowExportImport(true);
               }}
               disabled={conversations.length === 0}
             >
-              <Download className="w-4 h-4 mr-1" />
+              <Download className="w-4 h-4 mr-1.5" />
               Export
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+              className="flex-1 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
               onClick={() => {
                 setExportImportTab('import');
                 setShowExportImport(true);
               }}
             >
-              <Upload className="w-4 h-4 mr-1" />
+              <Upload className="w-4 h-4 mr-1.5" />
               Import
             </Button>
           </div>
@@ -462,38 +472,40 @@ export default function GhostChat() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-purple-500/20 bg-slate-900/60 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/30 backdrop-blur-sm">
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-muted-foreground hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
             
-            <div className="flex items-center gap-2">
-              <img src={ghostIcon} alt="Ghost" className="w-6 h-6 rounded" />
-              <span className="font-semibold text-white">Ghost Mode</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-swiss-navy/20 border border-swiss-navy/30 flex items-center justify-center">
+                <EyeOff className="w-4 h-4 text-swiss-navy" />
+              </div>
+              <span className="font-serif font-semibold text-foreground tracking-tight">Ghost Mode</span>
             </div>
 
             {/* Local Only Indicator */}
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
               </span>
-              <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
+              <Badge variant="outline" className="border-success/30 text-success text-xs font-medium tracking-caps">
                 LOCAL ONLY
               </Badge>
             </div>
 
             {/* Streaming Status Indicator */}
             {isStreaming && (
-              <div className="flex items-center gap-2 px-2 py-1 rounded bg-purple-500/20 border border-purple-500/30">
-                <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
-                <span className="text-xs text-purple-300">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary/50 border border-border">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-secondary" />
+                <span className="text-xs text-muted-foreground">
                   {streamStatus === 'connecting' ? 'Connecting...' : 'Generating...'}
                 </span>
               </div>
@@ -502,19 +514,20 @@ export default function GhostChat() {
 
           <div className="flex items-center gap-4">
             {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30">
-              <Coins className="w-4 h-4 text-purple-400" />
-              <span className="text-sm font-medium text-purple-300">
-                {formattedBalance} tokens
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 border border-border">
+              <Sparkles className="w-4 h-4 text-swiss-sapphire" />
+              <span className="text-sm font-medium text-foreground">
+                {formattedBalance}
               </span>
+              <span className="text-xs text-muted-foreground">tokens</span>
             </div>
 
             <Button
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
               onClick={() => setShowBuyCredits(true)}
             >
-              Buy Credits
+              Purchase Credits
             </Button>
 
             <GhostModeToggle currentMode="ghost" />
@@ -522,9 +535,12 @@ export default function GhostChat() {
         </div>
 
         {/* Ghost Mode Banner */}
-        <div className="px-4 py-2 bg-purple-900/30 border-b border-purple-500/20 text-center">
-          <p className="text-sm text-purple-300">
-            <span className="font-semibold">🔒 Ghost Mode Active</span> — Nothing stored on SwissVault servers
+        <div className="px-6 py-3 bg-swiss-navy/5 border-b border-border text-center">
+          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+            <Lock className="w-4 h-4" />
+            <span className="font-medium text-foreground">Ghost Mode Active</span>
+            <span className="mx-2">—</span>
+            <span>Nothing stored on SwissVault servers</span>
           </p>
         </div>
 
@@ -532,7 +548,7 @@ export default function GhostChat() {
         <div className="flex-1 overflow-hidden">
           {selectedConversation ? (
             <ScrollArea className="h-full">
-              <div className="max-w-4xl mx-auto p-6 space-y-6">
+              <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -543,10 +559,10 @@ export default function GhostChat() {
                   >
                     <div
                       className={cn(
-                        'max-w-[80%] rounded-2xl px-4 py-3',
+                        'max-w-[80%] rounded-xl px-5 py-4 transition-all duration-200',
                         message.role === 'user'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-slate-800/80 border border-purple-500/20 text-slate-100'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card border border-border text-card-foreground'
                       )}
                     >
                       <GhostMessageComponent
@@ -557,19 +573,19 @@ export default function GhostChat() {
                       />
                       {!message.isStreaming && (
                         <>
-                          <p className="text-xs opacity-50 mt-2">
+                          <p className="text-xs opacity-50 mt-3">
                             {new Date(message.timestamp).toLocaleTimeString()}
                           </p>
                           {message.role === 'assistant' && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mt-2 text-xs text-purple-400 hover:text-purple-300 -ml-2"
+                              className="mt-2 text-xs text-muted-foreground hover:text-foreground -ml-2"
                               onClick={() => {
                                 toast({ title: 'Regenerate', description: 'Coming soon' });
                               }}
                             >
-                              <RefreshCw className="w-3 h-3 mr-1" />
+                              <RefreshCw className="w-3 h-3 mr-1.5" />
                               Regenerate
                             </Button>
                           )}
@@ -581,9 +597,9 @@ export default function GhostChat() {
                 {/* Streaming status indicators */}
                 {isStreaming && streamStatus === 'connecting' && (
                   <div className="flex gap-4 justify-start">
-                    <div className="bg-slate-800/80 border border-purple-500/20 rounded-2xl px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                    <div className="bg-card border border-border rounded-xl px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Connecting...</span>
                       </div>
                     </div>
@@ -593,17 +609,17 @@ export default function GhostChat() {
                 {/* Cold start warning */}
                 {coldStartWarning && (
                   <div className="flex gap-4 justify-start">
-                    <div className="bg-yellow-900/30 border border-yellow-500/30 rounded-2xl px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
-                        <span className="text-sm text-yellow-300">{coldStartWarning}</span>
+                    <div className="bg-warning/10 border border-warning/20 rounded-xl px-5 py-4">
+                      <div className="flex items-center gap-4">
+                        <Loader2 className="w-4 h-4 animate-spin text-warning" />
+                        <span className="text-sm text-warning">{coldStartWarning}</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => { cancelStream(); setColdStartWarning(null); }}
-                          className="h-6 px-2 text-xs text-yellow-400 hover:text-yellow-300"
+                          className="h-7 px-3 text-xs text-warning hover:text-warning/80"
                         >
-                          <Square className="w-3 h-3 mr-1" />
+                          <Square className="w-3 h-3 mr-1.5" />
                           Cancel
                         </Button>
                       </div>
@@ -614,18 +630,20 @@ export default function GhostChat() {
               </div>
             </ScrollArea>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center p-6">
-              <img src={ghostIcon} alt="Ghost" className="w-24 h-24 mb-6 opacity-50" />
-              <h3 className="text-xl font-semibold text-white mb-2">
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <div className="w-24 h-24 rounded-2xl bg-swiss-navy/10 border border-swiss-navy/20 flex items-center justify-center mb-8">
+                <EyeOff className="w-12 h-12 text-swiss-navy opacity-50" />
+              </div>
+              <h3 className="font-serif text-2xl font-semibold text-foreground mb-3 tracking-tight">
                 Welcome to Ghost Mode
               </h3>
-              <p className="text-muted-foreground max-w-md mb-6">
+              <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
                 Your conversations are stored locally and never touch SwissVault servers.
                 Select a session or create a new one to get started.
               </p>
               <Button
                 onClick={handleNewSession}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Start New Session
@@ -636,9 +654,9 @@ export default function GhostChat() {
 
         {/* Input Area */}
         {selectedConversation && (
-          <div className="p-4 border-t border-purple-500/20 bg-slate-900/60">
+          <div className="p-6 border-t border-border bg-card/30">
             <div className="max-w-4xl mx-auto">
-              <div className="flex items-end gap-3">
+              <div className="flex items-end gap-4">
                 {/* Model Selector */}
                 <GhostModelSelector 
                   value={selectedModel} 
@@ -658,7 +676,7 @@ export default function GhostChat() {
                       }
                     }}
                     placeholder="Type your message..."
-                    className="min-h-[52px] max-h-32 resize-none bg-slate-800/50 border-purple-500/30 text-white placeholder:text-muted-foreground pr-12"
+                    className="min-h-[56px] max-h-32 resize-none bg-background border-border text-foreground placeholder:text-muted-foreground pr-12"
                     disabled={isStreaming}
                   />
                 </div>
@@ -667,7 +685,7 @@ export default function GhostChat() {
                 <Button
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isStreaming}
-                  className="bg-purple-600 hover:bg-purple-700 text-white h-[52px] px-6"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground h-[56px] px-6"
                 >
                   <Send className="w-5 h-5" />
                 </Button>
@@ -679,21 +697,21 @@ export default function GhostChat() {
 
       {/* Switch to VaultChat Dialog */}
       <AlertDialog open={showSwitchDialog} onOpenChange={setShowSwitchDialog}>
-        <AlertDialogContent className="bg-slate-900 border-purple-500/30">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Switch to VaultChat?</AlertDialogTitle>
+            <AlertDialogTitle className="font-serif text-foreground">Switch to VaultChat?</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
               Switching to VaultChat will store conversations on SwissVault servers (encrypted). 
               Your Ghost Mode sessions will remain stored locally.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-purple-500/30 text-white hover:bg-purple-500/10">
+            <AlertDialogCancel className="border-border text-foreground hover:bg-muted">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSwitch}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Continue
             </AlertDialogAction>
@@ -703,20 +721,20 @@ export default function GhostChat() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!conversationToDelete} onOpenChange={() => setConversationToDelete(null)}>
-        <AlertDialogContent className="bg-slate-900 border-purple-500/30">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Session?</AlertDialogTitle>
+            <AlertDialogTitle className="font-serif text-foreground">Delete Session?</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
               This will permanently delete this Ghost session. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-purple-500/30 text-white hover:bg-purple-500/10">
+            <AlertDialogCancel className="border-border text-foreground hover:bg-muted">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => conversationToDelete && handleDelete(conversationToDelete)}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               Delete
             </AlertDialogAction>

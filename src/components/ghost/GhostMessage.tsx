@@ -70,7 +70,7 @@ function renderTextContent(text: string): React.ReactNode {
       return (
         <code
           key={i}
-          className="px-1.5 py-0.5 bg-slate-700/50 rounded text-purple-300 text-sm font-mono"
+          className="px-1.5 py-0.5 bg-muted rounded text-swiss-sapphire text-sm font-mono"
         >
           {part.slice(1, -1)}
         </code>
@@ -109,7 +109,7 @@ export function GhostMessage({ content, role, timestamp, isStreaming, onRegenera
   const segments = useMemo(() => parseContent(content), [content]);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {segments.map((segment, index) => {
         if (segment.type === 'code') {
           return (
@@ -131,7 +131,7 @@ export function GhostMessage({ content, role, timestamp, isStreaming, onRegenera
       
       {/* Streaming cursor */}
       {isStreaming && (
-        <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse ml-0.5" />
+        <span className="inline-block w-0.5 h-4 bg-swiss-navy animate-pulse ml-0.5" />
       )}
     </div>
   );

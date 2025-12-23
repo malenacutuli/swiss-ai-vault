@@ -16,11 +16,12 @@ import {
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Zap, Scale, Brain, Clock, Cpu, Code, Sparkles } from 'lucide-react';
 
 interface GhostModel {
   id: string;
   name: string;
-  icon: string;
+  icon: React.ReactNode;
   params: string;
   context: string;
   credits: number;
@@ -31,42 +32,47 @@ interface GhostModel {
 
 interface GhostModelCategory {
   label: string;
+  icon: React.ReactNode;
   description: string;
   models: GhostModel[];
 }
 
 export const GHOST_MODELS: Record<string, GhostModelCategory> = {
   fast: {
-    label: '⚡ Fast',
-    description: 'Quick responses, smaller models',
+    label: 'Fast',
+    icon: <Zap className="w-3.5 h-3.5" />,
+    description: 'Quick responses',
     models: [
-      { id: 'qwen2.5-3b', name: 'Qwen 2.5 3B', icon: '⚡', params: '3B', context: '32K', credits: 1, status: 'ready', description: 'Fast general-purpose chat' },
-      { id: 'llama3.2-1b', name: 'Llama 3.2 1B', icon: '🦙', params: '1B', context: '128K', credits: 0.5, status: 'ready', description: 'Ultra-fast, basic tasks' },
-      { id: 'llama3.2-3b', name: 'Llama 3.2 3B', icon: '🦙', params: '3B', context: '128K', credits: 1, status: 'ready', description: 'Fast with better reasoning' },
+      { id: 'qwen2.5-3b', name: 'Qwen 2.5 3B', icon: <Zap className="w-4 h-4" />, params: '3B', context: '32K', credits: 1, status: 'ready', description: 'Fast general-purpose chat' },
+      { id: 'llama3.2-1b', name: 'Llama 3.2 1B', icon: <Cpu className="w-4 h-4" />, params: '1B', context: '128K', credits: 0.5, status: 'ready', description: 'Ultra-fast, basic tasks' },
+      { id: 'llama3.2-3b', name: 'Llama 3.2 3B', icon: <Cpu className="w-4 h-4" />, params: '3B', context: '128K', credits: 1, status: 'ready', description: 'Fast with better reasoning' },
     ],
   },
   balanced: {
-    label: '⚖️ Balanced',
-    description: 'Best quality/speed tradeoff',
+    label: 'Balanced',
+    icon: <Scale className="w-3.5 h-3.5" />,
+    description: 'Quality & speed',
     models: [
-      { id: 'mistral-7b', name: 'Mistral 7B', icon: '🌀', params: '7B', context: '32K', credits: 2, status: 'cold', description: 'Excellent all-rounder' },
-      { id: 'qwen2.5-7b', name: 'Qwen 2.5 7B', icon: '⚡', params: '7B', context: '128K', credits: 2, status: 'cold', description: 'Strong multilingual support' },
-      { id: 'llama3.1-8b', name: 'Llama 3.1 8B', icon: '🦙', params: '8B', context: '128K', credits: 3, status: 'cold', description: 'Latest Llama, great reasoning' },
+      { id: 'mistral-7b', name: 'Mistral 7B', icon: <Sparkles className="w-4 h-4" />, params: '7B', context: '32K', credits: 2, status: 'cold', description: 'Excellent all-rounder' },
+      { id: 'qwen2.5-7b', name: 'Qwen 2.5 7B', icon: <Zap className="w-4 h-4" />, params: '7B', context: '128K', credits: 2, status: 'cold', description: 'Strong multilingual support' },
+      { id: 'llama3.1-8b', name: 'Llama 3.1 8B', icon: <Cpu className="w-4 h-4" />, params: '8B', context: '128K', credits: 3, status: 'cold', description: 'Latest Llama, great reasoning' },
     ],
   },
   quality: {
-    label: '🧠 Quality',
-    description: 'Best for complex tasks',
+    label: 'Quality',
+    icon: <Brain className="w-3.5 h-3.5" />,
+    description: 'Complex tasks',
     models: [
-      { id: 'qwen2.5-coder-7b', name: 'Qwen Coder 7B', icon: '💻', params: '7B', context: '128K', credits: 2, status: 'cold', description: 'Optimized for code generation' },
-      { id: 'deepseek-coder-7b', name: 'DeepSeek Coder', icon: '🔍', params: '7B', context: '16K', credits: 2, status: 'cold', description: 'Advanced code understanding' },
+      { id: 'qwen2.5-coder-7b', name: 'Qwen Coder 7B', icon: <Code className="w-4 h-4" />, params: '7B', context: '128K', credits: 2, status: 'cold', description: 'Optimized for code generation' },
+      { id: 'deepseek-coder-7b', name: 'DeepSeek Coder', icon: <Code className="w-4 h-4" />, params: '7B', context: '16K', credits: 2, status: 'cold', description: 'Advanced code understanding' },
     ],
   },
   comingSoon: {
-    label: '🔮 Coming Soon',
-    description: 'Requires GPU upgrade',
+    label: 'Coming Soon',
+    icon: <Clock className="w-3.5 h-3.5" />,
+    description: 'GPU upgrade required',
     models: [
-      { id: 'llama4-scout', name: 'Llama 4 Scout', icon: '🦙', params: '17B (MoE)', context: '10M', credits: 5, status: 'coming', disabled: true, description: '10 million token context!' },
+      { id: 'llama4-scout', name: 'Llama 4 Scout', icon: <Cpu className="w-4 h-4" />, params: '17B (MoE)', context: '10M', credits: 5, status: 'coming', disabled: true, description: '10 million token context' },
     ],
   },
 };
@@ -86,9 +92,9 @@ interface StatusIndicatorProps {
 
 function StatusIndicator({ status, showLabel = false }: StatusIndicatorProps) {
   const config = {
-    ready: { color: 'bg-green-500', label: 'Ready', textColor: 'text-green-400' },
-    cold: { color: 'bg-yellow-500', label: '~30s', textColor: 'text-yellow-400' },
-    coming: { color: 'bg-gray-400', label: 'Coming Soon', textColor: 'text-gray-400' },
+    ready: { color: 'bg-success', label: 'Ready', textColor: 'text-success' },
+    cold: { color: 'bg-warning', label: '~30s', textColor: 'text-warning' },
+    coming: { color: 'bg-muted-foreground', label: 'Coming', textColor: 'text-muted-foreground' },
   };
 
   const { color, label, textColor } = config[status];
@@ -99,13 +105,13 @@ function StatusIndicator({ status, showLabel = false }: StatusIndicatorProps) {
         <TooltipTrigger asChild>
           <span className="inline-flex items-center gap-1.5">
             <span className={cn('inline-block w-2 h-2 rounded-full', color)} />
-            {showLabel && <span className={cn('text-[10px]', textColor)}>{label}</span>}
+            {showLabel && <span className={cn('text-[10px] tracking-wide', textColor)}>{label}</span>}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="right" className="bg-slate-800 border-purple-500/30 text-white text-xs">
+        <TooltipContent side="right" className="bg-popover border-border text-popover-foreground text-xs">
           {status === 'ready' && 'Model is warm and ready'}
-          {status === 'cold' && 'Cold start: ~30 seconds to load'}
-          {status === 'coming' && 'Coming soon - requires GPU upgrade'}
+          {status === 'cold' && 'Cold start: approximately 30 seconds'}
+          {status === 'coming' && 'Coming soon — requires GPU upgrade'}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -130,25 +136,28 @@ export function GhostModelSelector({ value, onValueChange, disabled }: GhostMode
 
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger className="w-64 bg-slate-800/50 border-purple-500/30 text-white hover:border-purple-500/50 hover:bg-slate-800/70 transition-all duration-200">
+      <SelectTrigger className="w-64 bg-background border-border text-foreground hover:border-primary/50 hover:bg-muted/50 transition-all duration-200">
         <SelectValue>
           {selectedModel && (
             <div className="flex items-center gap-2">
-              <span className="text-base">{selectedModel.icon}</span>
+              <span className="text-muted-foreground">{selectedModel.icon}</span>
               <span className="truncate font-medium">{selectedModel.name}</span>
               <StatusIndicator status={selectedModel.status} />
             </div>
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="bg-slate-900 border-purple-500/30 min-w-[320px] max-h-[400px]">
+      <SelectContent className="bg-popover border-border min-w-[340px] max-h-[420px]">
         {CATEGORY_ORDER.map(categoryKey => {
           const category = GHOST_MODELS[categoryKey];
           return (
             <SelectGroup key={categoryKey}>
-              <SelectLabel className="text-purple-400 font-semibold px-3 py-2 text-sm flex items-center justify-between">
-                <span>{category.label}</span>
-                <span className="text-[10px] text-muted-foreground font-normal">
+              <SelectLabel className="text-muted-foreground font-medium px-4 py-3 text-xs flex items-center justify-between tracking-caps uppercase">
+                <span className="flex items-center gap-2">
+                  {category.icon}
+                  {category.label}
+                </span>
+                <span className="text-[10px] font-normal normal-case tracking-normal">
                   {category.description}
                 </span>
               </SelectLabel>
@@ -161,16 +170,16 @@ export function GhostModelSelector({ value, onValueChange, disabled }: GhostMode
                           value={model.id}
                           disabled={model.disabled}
                           className={cn(
-                            'text-white cursor-pointer py-2.5 px-3 focus:bg-purple-500/20 focus:text-white',
+                            'text-foreground cursor-pointer py-3 px-4 focus:bg-muted focus:text-foreground',
                             model.disabled && 'opacity-50 cursor-not-allowed'
                           )}
                         >
                           <div className="flex items-center gap-3 w-full">
-                            <span className="text-lg w-6 text-center">{model.icon}</span>
+                            <span className="text-muted-foreground">{model.icon}</span>
                             <span className="flex-1 font-medium">{model.name}</span>
                             <Badge 
                               variant="outline" 
-                              className="text-[10px] border-purple-500/30 text-purple-300 px-1.5 py-0"
+                              className="text-[10px] border-border text-muted-foreground px-2 py-0"
                             >
                               {model.params}
                             </Badge>
@@ -182,31 +191,32 @@ export function GhostModelSelector({ value, onValueChange, disabled }: GhostMode
                     <TooltipContent 
                       side="right" 
                       align="start"
-                      className="bg-slate-800 border-purple-500/30 text-white p-4 max-w-[250px]"
+                      className="bg-popover border-border text-popover-foreground p-4 max-w-[260px]"
                     >
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">{model.icon}</span>
-                          <span className="font-semibold text-purple-300">{model.name}</span>
+                          <span className="text-muted-foreground">{model.icon}</span>
+                          <span className="font-serif font-semibold text-foreground">{model.name}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{model.description}</p>
-                        <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-purple-500/20">
+                        <p className="text-xs text-muted-foreground leading-relaxed">{model.description}</p>
+                        <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-border">
                           <div>
-                            <span className="text-muted-foreground">Parameters:</span>
-                            <span className="ml-1 text-white">{model.params}</span>
+                            <span className="text-muted-foreground uppercase tracking-caps text-[10px]">Parameters</span>
+                            <p className="text-foreground mt-0.5">{model.params}</p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Context:</span>
-                            <span className="ml-1 text-white">{model.context}</span>
+                            <span className="text-muted-foreground uppercase tracking-caps text-[10px]">Context</span>
+                            <p className="text-foreground mt-0.5">{model.context}</p>
                           </div>
                           <div className="col-span-2">
-                            <span className="text-muted-foreground">Credits/1K tokens:</span>
-                            <span className="ml-1 text-purple-400 font-medium">{model.credits}</span>
+                            <span className="text-muted-foreground uppercase tracking-caps text-[10px]">Credits per 1K tokens</span>
+                            <p className="text-swiss-sapphire font-medium mt-0.5">{model.credits}</p>
                           </div>
                         </div>
                         {model.disabled && (
-                          <div className="text-yellow-400 text-xs pt-1 border-t border-purple-500/20">
-                            ⚠️ Coming soon - requires GPU upgrade
+                          <div className="text-warning text-xs pt-2 border-t border-border flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5" />
+                            Coming soon — requires GPU upgrade
                           </div>
                         )}
                       </div>
