@@ -919,6 +919,7 @@ export default function GhostChat() {
                   onOpenSettings={() => setShowSettings(true)}
                   onAttach={handleFileAttach}
                   voiceLanguage={settings?.voice_language}
+                  matureFilterEnabled={settings?.mature_filter_enabled ?? true}
                 />
               </div>
             </div>

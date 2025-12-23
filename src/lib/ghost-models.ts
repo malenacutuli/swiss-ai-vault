@@ -9,7 +9,7 @@ export interface GhostModel {
   description: string;
   
   // Capabilities
-  tags: Array<'private' | 'default' | 'new' | 'pay-per-use' | 'anonymized' | 'beta' | 'vision' | 'reasoning' | 'audio'>;
+  tags: Array<'private' | 'default' | 'new' | 'pay-per-use' | 'anonymized' | 'beta' | 'vision' | 'reasoning' | 'audio' | 'uncensored' | 'mature'>;
   contextWindow?: number;
   
   // Pricing
@@ -19,7 +19,6 @@ export interface GhostModel {
   // Availability
   enabled: boolean;
   comingSoon?: boolean;
-  requiresMatureFilter?: boolean;
 }
 
 // ==============================================
@@ -316,27 +315,61 @@ export const VIDEO_MODELS: GhostModel[] = [
 // HELPER FUNCTIONS
 // ==============================================
 
-export function getModelsByModality(modality: 'text' | 'image' | 'video'): GhostModel[] {
-  switch (modality) {
-    case 'text': return TEXT_MODELS.filter(m => m.enabled);
-    case 'image': return IMAGE_MODELS.filter(m => m.enabled);
-    case 'video': return VIDEO_MODELS.filter(m => m.enabled);
+/**
+ * Get all models, optionally filtered by mature content filter
+ */
+export function getAllModels(matureFilterEnabled: boolean = true): GhostModel[] {
+  const allModels = [...TEXT_MODELS, ...IMAGE_MODELS, ...VIDEO_MODELS];
+  
+  if (matureFilterEnabled) {
+    return allModels.filter(m => 
+      !m.tags.includes('uncensored') && !m.tags.includes('mature')
+    );
   }
+  
+  return allModels;
+}
+
+/**
+ * Get models by modality, optionally filtered by mature content filter
+ */
+export function getModelsByModality(
+  modality: 'text' | 'image' | 'video',
+  matureFilterEnabled: boolean = true
+): GhostModel[] {
+  let models: GhostModel[];
+  
+  switch (modality) {
+    case 'text': models = TEXT_MODELS; break;
+    case 'image': models = IMAGE_MODELS; break;
+    case 'video': models = VIDEO_MODELS; break;
+  }
+  
+  return models.filter(m => {
+    if (!m.enabled) return false;
+    if (matureFilterEnabled) {
+      return !m.tags.includes('uncensored') && !m.tags.includes('mature');
+    }
+    return true;
+  });
 }
 
 export function getModelById(id: string): GhostModel | undefined {
   return [...TEXT_MODELS, ...IMAGE_MODELS, ...VIDEO_MODELS].find(m => m.id === id);
 }
 
-export function getDefaultModel(modality: 'text' | 'image' | 'video'): GhostModel | undefined {
-  const models = getModelsByModality(modality);
+export function getDefaultModel(
+  modality: 'text' | 'image' | 'video',
+  matureFilterEnabled: boolean = true
+): GhostModel | undefined {
+  const models = getModelsByModality(modality, matureFilterEnabled);
   return models.find(m => m.tags.includes('default')) || models[0];
 }
 
-export function getPrivateModels(): GhostModel[] {
-  return [...TEXT_MODELS, ...IMAGE_MODELS, ...VIDEO_MODELS].filter(m => m.tags.includes('private') && m.enabled);
+export function getPrivateModels(matureFilterEnabled: boolean = true): GhostModel[] {
+  return getAllModels(matureFilterEnabled).filter(m => m.tags.includes('private') && m.enabled);
 }
 
-export function getPayPerUseModels(): GhostModel[] {
-  return [...TEXT_MODELS, ...IMAGE_MODELS, ...VIDEO_MODELS].filter(m => m.isPayPerUse && m.enabled);
+export function getPayPerUseModels(matureFilterEnabled: boolean = true): GhostModel[] {
+  return getAllModels(matureFilterEnabled).filter(m => m.isPayPerUse && m.enabled);
 }

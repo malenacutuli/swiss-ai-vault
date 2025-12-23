@@ -20,6 +20,8 @@ export interface ImageModel {
   creditCost: number;
   tags: string[];
   isDefault?: boolean;
+  isUncensored?: boolean;  // Models that allow mature content
+  isMature?: boolean;      // Models primarily for mature content
 }
 
 export const IMAGE_MODELS: ImageModel[] = [
@@ -92,12 +94,18 @@ const PROVIDER_ICONS: Record<string, typeof Image> = {
 interface ImageGenModelSelectorProps {
   selectedModel: string;
   onModelChange: (modelId: string) => void;
+  matureFilterEnabled?: boolean;
 }
 
-export function ImageGenModelSelector({ selectedModel, onModelChange }: ImageGenModelSelectorProps) {
+export function ImageGenModelSelector({ selectedModel, onModelChange, matureFilterEnabled = true }: ImageGenModelSelectorProps) {
   const [open, setOpen] = useState(false);
   
-  const currentModel = IMAGE_MODELS.find(m => m.id === selectedModel) || IMAGE_MODELS[0];
+  // Filter models based on mature filter setting
+  const availableModels = matureFilterEnabled 
+    ? IMAGE_MODELS.filter(m => !m.isUncensored && !m.isMature)
+    : IMAGE_MODELS;
+  
+  const currentModel = availableModels.find(m => m.id === selectedModel) || availableModels[0];
   const Icon = PROVIDER_ICONS[currentModel.provider] || Image;
 
   const getTagBadge = (tag: string) => {
@@ -141,7 +149,7 @@ export function ImageGenModelSelector({ selectedModel, onModelChange }: ImageGen
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {IMAGE_MODELS.map((model) => {
+        {availableModels.map((model) => {
           const ModelIcon = PROVIDER_ICONS[model.provider] || Image;
           return (
             <DropdownMenuItem
