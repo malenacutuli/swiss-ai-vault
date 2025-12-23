@@ -2869,6 +2869,18 @@ export type Database = {
         Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
       }
+      record_ghost_usage: {
+        Args: {
+          p_duration_seconds?: number
+          p_input_tokens?: number
+          p_model_id: string
+          p_output_tokens?: number
+          p_resolution?: string
+          p_service_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       reset_ghost_daily_limits: { Args: never; Returns: undefined }
       search_document_chunks: {
         Args: {
