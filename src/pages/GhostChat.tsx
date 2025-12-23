@@ -1,18 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,20 +28,13 @@ import {
   Trash2,
   RefreshCw,
   Coins,
-  ArrowLeftRight,
   Menu,
   X,
-  MessageSquare,
 } from 'lucide-react';
 import ghostIcon from '@/assets/ghost-icon.jpg';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
-
-const SWISS_MODELS = [
-  { id: 'llama-3.1-70b-swiss', name: 'Llama 3.1 70B', provider: 'Swiss' },
-  { id: 'qwen-2.5-72b-swiss', name: 'Qwen 2.5 72B', provider: 'Swiss' },
-  { id: 'mistral-7b-swiss', name: 'Mistral 7B', provider: 'Swiss' },
-];
+import { GhostModelSelector, DEFAULT_GHOST_MODEL } from '@/components/ghost/GhostModelSelector';
 
 interface GhostMessage {
   id: string;
@@ -91,7 +76,7 @@ export default function GhostChat() {
   const [messages, setMessages] = useState<GhostMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(SWISS_MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_GHOST_MODEL);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
@@ -565,23 +550,11 @@ export default function GhostChat() {
             <div className="max-w-4xl mx-auto">
               <div className="flex items-end gap-3">
                 {/* Model Selector */}
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger className="w-48 bg-slate-800/50 border-purple-500/30 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-purple-500/30">
-                    {SWISS_MODELS.map(model => (
-                      <SelectItem key={model.id} value={model.id} className="text-white">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs border-green-500/50 text-green-400">
-                            {model.provider}
-                          </Badge>
-                          {model.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <GhostModelSelector 
+                  value={selectedModel} 
+                  onValueChange={setSelectedModel}
+                  disabled={isGenerating}
+                />
 
                 {/* Input */}
                 <div className="flex-1 relative">
