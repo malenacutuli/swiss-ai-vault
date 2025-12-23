@@ -36,7 +36,26 @@ interface GhostMessageData {
   content: string;
   timestamp: number;
   isStreaming?: boolean;
+  imageUrl?: string;
 }
+
+interface AttachedFile {
+  file: File;
+  base64?: string;
+  text?: string;
+  name: string;
+  type: 'image' | 'document';
+}
+
+// Helper to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function GhostChat() {
   const navigate = useNavigate();
@@ -44,6 +63,7 @@ export default function GhostChat() {
   const { toast } = useToast();
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get mode from URL or default to 'text'
   const mode = (searchParams.get('mode') as GhostMode) || 'text';
@@ -82,6 +102,7 @@ export default function GhostChat() {
   const [showSettings, setShowSettings] = useState(false);
   const [folders, setFolders] = useState<GhostFolder[]>([]);
   const [searchCitations, setSearchCitations] = useState<SearchResult[]>([]);
+  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
 
   // Model state per mode (persisted to localStorage)
   const [selectedModels, setSelectedModels] = useState<Record<GhostMode, string>>(() => {
@@ -316,6 +337,76 @@ export default function GhostChat() {
     setFolders(prev => [...prev, newFolder]);
   };
 
+  // File attachment handlers
+  const handleFileAttach = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so same file can be selected again
+    e.target.value = '';
+
+    // For images, convert to base64 for vision models
+    if (file.type.startsWith('image/')) {
+      try {
+        const base64 = await fileToBase64(file);
+        setAttachedFile({ file, base64, name: file.name, type: 'image' });
+        toast({
+          title: 'Image attached',
+          description: 'The image will be included with your next message.',
+        });
+      } catch {
+        toast({
+          title: 'Error',
+          description: 'Failed to read image file.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    // For text files, read content
+    if (file.type === 'text/plain' || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
+      try {
+        const text = await file.text();
+        setAttachedFile({ file, text, name: file.name, type: 'document' });
+        toast({
+          title: 'Document attached',
+          description: `${file.name} will be included as context.`,
+        });
+      } catch {
+        toast({
+          title: 'Error',
+          description: 'Failed to read document.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    // PDF support would need a library - show coming soon for now
+    if (file.type === 'application/pdf') {
+      toast({
+        title: 'PDF Support',
+        description: 'PDF parsing coming soon! Try .txt or .md files.',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Unsupported file',
+      description: 'Please attach an image, .txt, or .md file.',
+      variant: 'destructive',
+    });
+  };
+
+  const clearAttachment = () => {
+    setAttachedFile(null);
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -499,6 +590,29 @@ export default function GhostChat() {
           {(mode === 'text' || mode === 'search') && (
             <div className="flex-shrink-0 p-4 lg:p-6">
               <div className="max-w-3xl mx-auto">
+                {/* Attachment preview */}
+                {attachedFile && (
+                  <div className="mb-2 flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border/50">
+                    {attachedFile.type === 'image' && attachedFile.base64 && (
+                      <img 
+                        src={attachedFile.base64} 
+                        alt="Attached" 
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    )}
+                    <span className="text-sm text-muted-foreground flex-1 truncate">
+                      {attachedFile.name}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={clearAttachment}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
                 <GhostChatInput
                   mode={mode}
                   selectedModel={selectedModels[mode]}
@@ -512,18 +626,22 @@ export default function GhostChat() {
                   enhancePrompt={enhancePrompt}
                   onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
                   onOpenSettings={() => setShowSettings(true)}
-                  onAttach={() => {
-                    toast({
-                      title: 'File Attachment',
-                      description: 'File attachment coming soon!',
-                    });
-                  }}
+                  onAttach={handleFileAttach}
                 />
               </div>
             </div>
           )}
         </div>
       </main>
+
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*,.pdf,.txt,.md"
+        onChange={handleFileSelected}
+      />
 
       {/* Modals */}
       <BuyGhostCreditsModal
