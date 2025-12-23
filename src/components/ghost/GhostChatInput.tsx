@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { GhostModelPicker } from './GhostModelPicker';
+import { VoiceButton } from './VoiceButton';
+import { useGhostSTT } from '@/hooks/useGhostSTT';
 import {
   Settings2,
   Zap,
@@ -61,6 +63,14 @@ export function GhostChatInput({
   className,
 }: GhostChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Voice input hook
+  const stt = useGhostSTT({
+    onTranscription: (text) => {
+      onChange(value ? `${value} ${text}` : text);
+      textareaRef.current?.focus();
+    },
+  });
 
   // Auto-resize textarea
   useEffect(() => {
@@ -189,8 +199,21 @@ export function GhostChatInput({
           />
         </div>
 
-        {/* Submit button */}
-        <div className="absolute right-3 bottom-3">
+        {/* Bottom action row */}
+        <div className="absolute right-3 bottom-3 flex items-center gap-2">
+          {/* Voice input button */}
+          {mode === 'text' && (
+            <VoiceButton
+              isRecording={stt.isRecording}
+              isTranscribing={stt.isTranscribing}
+              audioLevel={stt.audioLevel}
+              onClick={stt.toggleRecording}
+              onCancel={stt.cancelRecording}
+              disabled={disabled || isLoading}
+            />
+          )}
+
+          {/* Submit/Cancel button */}
           {isStreaming && onCancel ? (
             <Button
               size="icon"

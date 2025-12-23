@@ -1,13 +1,24 @@
 import { useMemo } from 'react';
 import { CodeBlock } from './CodeBlock';
+import { ReadAloudButton } from './ReadAloudButton';
 import { cn } from '@/lib/utils';
 
 interface GhostMessageProps {
+  id: string;
   content: string;
   role: 'user' | 'assistant';
   timestamp?: number;
   isStreaming?: boolean;
   onRegenerate?: () => void;
+  ttsState?: {
+    isPlaying: boolean;
+    isPaused: boolean;
+    isLoading: boolean;
+    progress: number;
+    currentMessageId: string | null;
+  };
+  onSpeak?: (messageId: string, content: string) => void;
+  onStopSpeak?: () => void;
 }
 
 // Parse content into segments of text and code blocks
@@ -105,11 +116,37 @@ function renderTextContent(text: string): React.ReactNode {
   });
 }
 
-export function GhostMessage({ content, role, timestamp, isStreaming, onRegenerate }: GhostMessageProps) {
+export function GhostMessage({ 
+  id,
+  content, 
+  role, 
+  timestamp, 
+  isStreaming, 
+  onRegenerate,
+  ttsState,
+  onSpeak,
+  onStopSpeak,
+}: GhostMessageProps) {
   const segments = useMemo(() => parseContent(content), [content]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 group relative">
+      {/* TTS button for assistant messages */}
+      {role === 'assistant' && !isStreaming && ttsState && onSpeak && onStopSpeak && (
+        <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ReadAloudButton
+            messageId={id}
+            isPlaying={ttsState.isPlaying}
+            isPaused={ttsState.isPaused}
+            isLoading={ttsState.isLoading}
+            progress={ttsState.progress}
+            currentMessageId={ttsState.currentMessageId}
+            onSpeak={() => onSpeak(id, content)}
+            onStop={onStopSpeak}
+          />
+        </div>
+      )}
+      
       {segments.map((segment, index) => {
         if (segment.type === 'code') {
           return (
