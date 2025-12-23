@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,9 +24,49 @@ import {
   RotateCcw,
   Lightbulb,
   Code,
+  Coins,
 } from 'lucide-react';
 
 type GhostMode = 'text' | 'image' | 'video' | 'search';
+
+// Estimate credits based on mode and model
+function estimateCost(
+  mode: GhostMode,
+  model: string,
+  options?: { tokens?: number }
+): number {
+  const tokenCount = options?.tokens ?? 0;
+  
+  switch (mode) {
+    case 'text':
+      // Rough estimate: ~4 chars per token, cost based on model
+      const estimatedTokens = Math.ceil(tokenCount / 4);
+      // Most models cost around 0.001-0.01 per 1k tokens
+      if (model.includes('gpt-4') || model.includes('claude-3')) {
+        return Math.max(1, Math.ceil(estimatedTokens / 100)); // ~1 credit per 100 tokens
+      }
+      return Math.max(1, Math.ceil(estimatedTokens / 500)); // cheaper models
+      
+    case 'image':
+      // Image generation typically costs more
+      if (model.includes('flux') || model.includes('dalle')) {
+        return 5; // Premium image models
+      }
+      return 3; // Standard image generation
+      
+    case 'video':
+      // Video generation is most expensive
+      return 10;
+      
+    case 'search':
+      // Web search is relatively cheap
+      return 2;
+      
+    default:
+      return 1;
+  }
+}
+
 
 interface GhostChatInputProps {
   mode: GhostMode;
@@ -102,6 +142,23 @@ export function GhostChatInput({
       }
     }
   };
+
+  // Estimate cost based on mode and input
+  const estimatedCost = useMemo(() => {
+    if (mode === 'text') {
+      return estimateCost('text', selectedModel, { tokens: value.length });
+    }
+    if (mode === 'image') {
+      return estimateCost('image', selectedModel);
+    }
+    if (mode === 'video') {
+      return estimateCost('video', selectedModel);
+    }
+    if (mode === 'search') {
+      return estimateCost('search', selectedModel);
+    }
+    return 1;
+  }, [mode, selectedModel, value.length]);
 
   const canSubmit = value.trim().length > 0 && !disabled && !isLoading;
 
@@ -184,11 +241,34 @@ export function GhostChatInput({
               </Tooltip>
             )}
 
-            {/* Credits display */}
-            <div className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground">
-              <Zap className="w-3 h-3" />
-              <span>{credits.toLocaleString()}</span>
-            </div>
+            {/* Credits and estimated cost display */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground cursor-default">
+                  <div className="flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    <span>{credits.toLocaleString()}</span>
+                  </div>
+                  {value.trim().length > 0 && (
+                    <>
+                      <span className="text-border">|</span>
+                      <div className="flex items-center gap-1 text-swiss-burgundy">
+                        <Coins className="w-3 h-3" />
+                        <span>~{estimatedCost}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <p>Balance: {credits.toLocaleString()} credits</p>
+                  {value.trim().length > 0 && (
+                    <p className="text-muted-foreground">Est. cost: ~{estimatedCost} credits</p>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
 
             {/* Enhance prompt toggle */}
             {onToggleEnhance && (mode === 'image' || mode === 'video') && (
