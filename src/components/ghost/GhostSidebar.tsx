@@ -34,6 +34,7 @@ import {
   Zap,
   X,
   Menu,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export interface GhostConversation {
@@ -84,6 +85,7 @@ export function GhostSidebar({
   isPro = false,
   onOpenSettings,
 }: GhostSidebarProps) {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [chatsOpen, setChatsOpen] = useState(true);
@@ -283,6 +285,18 @@ export function GhostSidebar({
                 )}
               </CollapsibleContent>
             </Collapsible>
+
+            {/* Library Link */}
+            <div className="mt-4 px-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/ghost/library')}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span className="text-sm">Library</span>
+              </Button>
+            </div>
           </div>
         </ScrollArea>
 
