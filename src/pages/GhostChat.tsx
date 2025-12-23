@@ -495,26 +495,33 @@ export default function GhostChat() {
             )}
           </div>
 
-          {/* Input Area */}
-          <div className="flex-shrink-0 p-4 lg:p-6">
-            <div className="max-w-3xl mx-auto">
-              <GhostChatInput
-                mode={mode}
-                selectedModel={selectedModels[mode]}
-                onSelectModel={handleModelChange}
-                value={inputValue}
-                onChange={setInputValue}
-                onSubmit={handleSendMessage}
-                onCancel={mode === 'search' ? webSearch.cancelSearch : cancelStream}
-                isStreaming={isStreaming || webSearch.isSearching}
-                credits={balance}
-                enhancePrompt={enhancePrompt}
-                onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
-                onOpenSettings={() => {}}
-                onAttach={() => {}}
-              />
+          {/* Input Area - Only for text and search modes (image/video have their own inputs) */}
+          {(mode === 'text' || mode === 'search') && (
+            <div className="flex-shrink-0 p-4 lg:p-6">
+              <div className="max-w-3xl mx-auto">
+                <GhostChatInput
+                  mode={mode}
+                  selectedModel={selectedModels[mode]}
+                  onSelectModel={handleModelChange}
+                  value={inputValue}
+                  onChange={setInputValue}
+                  onSubmit={handleSendMessage}
+                  onCancel={mode === 'search' ? webSearch.cancelSearch : cancelStream}
+                  isStreaming={isStreaming || webSearch.isSearching}
+                  credits={balance}
+                  enhancePrompt={enhancePrompt}
+                  onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
+                  onOpenSettings={() => setShowSettings(true)}
+                  onAttach={() => {
+                    toast({
+                      title: 'File Attachment',
+                      description: 'File attachment coming soon!',
+                    });
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 
