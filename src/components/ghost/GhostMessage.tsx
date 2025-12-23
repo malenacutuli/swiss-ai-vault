@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { ReadAloudButton } from './ReadAloudButton';
 import { cn } from '@/lib/utils';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Pencil, Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +25,7 @@ interface GhostMessageProps {
   showDate?: boolean;
   showExternalLinkWarning?: boolean;
   onRegenerate?: () => void;
+  onEdit?: (messageId: string, newContent: string) => void;
   ttsState?: {
     isPlaying: boolean;
     isPaused: boolean;
@@ -234,6 +237,7 @@ export function GhostMessage({
   showDate = true,
   showExternalLinkWarning = false,
   onRegenerate,
+  onEdit,
   ttsState,
   onSpeak,
   onStopSpeak,
@@ -243,6 +247,8 @@ export function GhostMessage({
     open: false,
     url: '',
   });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(content);
 
   const handleExternalLinkClick = (url: string) => {
     setExternalLinkDialog({ open: true, url });
@@ -253,9 +259,41 @@ export function GhostMessage({
     setExternalLinkDialog({ open: false, url: '' });
   };
 
+  const handleStartEdit = () => {
+    setEditedContent(content);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editedContent.trim() && editedContent !== content) {
+      onEdit?.(id, editedContent.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedContent(content);
+    setIsEditing(false);
+  };
+
+
   return (
     <>
       <div className="space-y-3 group relative">
+        {/* Edit button for user messages */}
+        {role === 'user' && !isStreaming && onEdit && !isEditing && (
+          <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={handleStartEdit}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        )}
+
         {/* TTS button for assistant messages */}
         {role === 'assistant' && !isStreaming && ttsState && onSpeak && onStopSpeak && (
           <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -272,28 +310,52 @@ export function GhostMessage({
           </div>
         )}
         
-        {segments.map((segment, index) => {
-          if (segment.type === 'code') {
-            return (
-              <CodeBlock
-                key={index}
-                code={segment.content}
-                language={segment.language}
-              />
-            );
-          }
-
-          // Text segment - render with markdown parsing and link handling
-          return (
-            <div key={index} className="text-sm whitespace-pre-wrap leading-relaxed">
-              {renderTextContent(
-                segment.content, 
-                handleExternalLinkClick,
-                showExternalLinkWarning
-              )}
+        {/* Editing UI */}
+        {isEditing ? (
+          <div className="flex flex-col gap-2">
+            <Textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="min-h-[80px] text-sm"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveEdit} className="gap-1">
+                <Check className="w-3 h-3" />
+                Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="gap-1">
+                <X className="w-3 h-3" />
+                Cancel
+              </Button>
             </div>
-          );
-        })}
+          </div>
+        ) : (
+          <>
+            {segments.map((segment, index) => {
+              if (segment.type === 'code') {
+                return (
+                  <CodeBlock
+                    key={index}
+                    code={segment.content}
+                    language={segment.language}
+                  />
+                );
+              }
+
+              // Text segment - render with markdown parsing and link handling
+              return (
+                <div key={index} className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {renderTextContent(
+                    segment.content, 
+                    handleExternalLinkClick,
+                    showExternalLinkWarning
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
         
         {/* Streaming cursor */}
         {isStreaming && (
@@ -301,7 +363,7 @@ export function GhostMessage({
         )}
 
         {/* Timestamp */}
-        {showDate && timestamp && !isStreaming && (
+        {showDate && timestamp && !isStreaming && !isEditing && (
           <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
             {formatMessageTime(timestamp)}
           </span>
