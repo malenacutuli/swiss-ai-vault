@@ -9,6 +9,7 @@ interface GhostMessageProps {
   role: 'user' | 'assistant';
   timestamp?: number;
   isStreaming?: boolean;
+  showDate?: boolean;
   onRegenerate?: () => void;
   ttsState?: {
     isPlaying: boolean;
@@ -19,6 +20,24 @@ interface GhostMessageProps {
   };
   onSpeak?: (messageId: string, content: string) => void;
   onStopSpeak?: () => void;
+}
+
+// Format timestamp for display
+function formatMessageTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  return date.toLocaleDateString([], { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
 }
 
 // Parse content into segments of text and code blocks
@@ -121,7 +140,8 @@ export function GhostMessage({
   content, 
   role, 
   timestamp, 
-  isStreaming, 
+  isStreaming,
+  showDate = true,
   onRegenerate,
   ttsState,
   onSpeak,
@@ -169,6 +189,13 @@ export function GhostMessage({
       {/* Streaming cursor */}
       {isStreaming && (
         <span className="inline-block w-0.5 h-4 bg-swiss-navy animate-pulse ml-0.5" />
+      )}
+
+      {/* Timestamp */}
+      {showDate && timestamp && !isStreaming && (
+        <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+          {formatMessageTime(timestamp)}
+        </span>
       )}
     </div>
   );

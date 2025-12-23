@@ -530,7 +530,9 @@ export default function GhostChat() {
                         id={msg.id}
                         role={msg.role}
                         content={msg.content}
+                        timestamp={msg.timestamp}
                         isStreaming={msg.isStreaming}
+                        showDate={settings?.show_message_date ?? true}
                         ttsState={{
                           isPlaying: tts.isPlaying,
                           isPaused: tts.isPaused,
@@ -597,7 +599,9 @@ export default function GhostChat() {
                           id={msg.id}
                           role={msg.role}
                           content={msg.content}
+                          timestamp={msg.timestamp}
                           isStreaming={msg.isStreaming}
+                          showDate={settings?.show_message_date ?? true}
                           ttsState={{
                             isPlaying: tts.isPlaying,
                             isPaused: tts.isPaused,
