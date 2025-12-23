@@ -184,13 +184,14 @@ export default function GhostChat() {
     isTemporary: false,
   }));
 
-  const handleNewChat = (isTemporary = false) => {
-    const id = createConversation('New Chat');
+  const handleNewChat = useCallback(() => {
+    const isTemporary = settings?.start_temporary ?? false;
+    const id = createConversation('New Chat', isTemporary);
     if (id) {
       setSelectedConversation(id);
       setMessages([]);
     }
-  };
+  }, [createConversation, settings?.start_temporary]);
 
   // Handle insufficient credits
   const handleInsufficientCredits = useCallback((reason: string) => {
