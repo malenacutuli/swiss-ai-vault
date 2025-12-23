@@ -410,6 +410,189 @@ export default function GhostChat() {
     setFolders(prev => [...prev, newFolder]);
   };
 
+  // Handle message edit with fork or regenerate behavior
+  const handleMessageEdit = useCallback(async (messageId: string, newContent: string) => {
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+
+    const enterAfterEdit = settings?.enter_after_edit ?? 'regenerate';
+
+    if (enterAfterEdit === 'fork') {
+      // Fork: Create new conversation with messages up to edited one
+      const forkedMessages = messages.slice(0, messageIndex);
+      const editedMessage: GhostMessageData = { 
+        ...messages[messageIndex], 
+        content: newContent,
+        timestamp: Date.now(),
+      };
+      forkedMessages.push(editedMessage);
+
+      // Create new forked conversation
+      const currentConv = selectedConversation ? getConversation(selectedConversation) : null;
+      const forkTitle = currentConv ? `Fork of ${currentConv.title}` : 'Forked Chat';
+      const newConvId = createConversation(forkTitle);
+      
+      if (newConvId) {
+        // Save all forked messages to new conversation
+        for (const msg of forkedMessages) {
+          saveMessage(newConvId, msg.role, msg.content);
+        }
+        
+        setSelectedConversation(newConvId);
+        setMessages(forkedMessages);
+        
+        toast({
+          title: 'Forked Conversation',
+          description: 'Created a new branch from your edit.',
+        });
+
+        // Set input to trigger regeneration
+        setInputValue(newContent);
+        // Small delay to let state update, then trigger send
+        setTimeout(() => {
+          // Manually trigger the generation for the forked branch
+          triggerRegeneration(newConvId, forkedMessages);
+        }, 100);
+      }
+    } else {
+      // Regenerate: Replace in place and remove subsequent messages
+      const updatedMessages = messages.slice(0, messageIndex);
+      const editedMessage: GhostMessageData = { 
+        ...messages[messageIndex], 
+        content: newContent,
+        timestamp: Date.now(),
+      };
+      updatedMessages.push(editedMessage);
+      
+      setMessages(updatedMessages);
+      
+      // Update the message in storage
+      if (selectedConversation) {
+        // For regenerate, we need to update storage to reflect truncated conversation
+        // The storage doesn't have an update method, so we'll trigger new generation
+        triggerRegeneration(selectedConversation, updatedMessages);
+      }
+    }
+  }, [messages, settings, selectedConversation, getConversation, createConversation, saveMessage, toast]);
+
+  // Helper to trigger regeneration after edit
+  const triggerRegeneration = useCallback(async (convId: string, currentMessages: GhostMessageData[]) => {
+    if (mode !== 'text' && mode !== 'search') return;
+    
+    // Check credits before proceeding
+    const usageType = mode as 'text' | 'search';
+    const creditCheck = await checkCredits(usageType);
+    if (!creditCheck.allowed) {
+      handleInsufficientCredits(creditCheck.reason);
+      return;
+    }
+
+    // Get the last user message
+    const lastUserMessage = [...currentMessages].reverse().find(m => m.role === 'user');
+    if (!lastUserMessage) return;
+
+    // Create placeholder for streaming response
+    const assistantId = crypto.randomUUID();
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      isStreaming: true,
+    }]);
+
+    // Build message history
+    const messageHistory = currentMessages.map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
+    try {
+      if (mode === 'text') {
+        await streamResponse(
+          messageHistory,
+          selectedModels[mode],
+          {
+            onToken: (token) => {
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantId
+                  ? { ...msg, content: msg.content + token }
+                  : msg
+              ));
+            },
+            onComplete: async (fullResponse) => {
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantId
+                  ? { ...msg, content: fullResponse, isStreaming: false }
+                  : msg
+              ));
+              if (fullResponse) {
+                saveMessage(convId, 'assistant', fullResponse);
+                const inputTokens = Math.ceil(lastUserMessage.content.length / 4);
+                const outputTokens = Math.ceil(fullResponse.length / 4);
+                await recordUsage('text', selectedModels[mode], {
+                  inputTokens,
+                  outputTokens,
+                });
+              }
+            },
+            onError: (error) => {
+              toast({
+                title: 'Error',
+                description: error.message || 'Failed to generate response',
+                variant: 'destructive',
+              });
+              setMessages(prev => prev.filter(msg => msg.id !== assistantId));
+            },
+          },
+          {
+            systemPrompt: settings?.system_prompt || undefined,
+            temperature: settings?.default_temperature ?? 0.7,
+            topP: settings?.default_top_p ?? 0.9,
+          }
+        );
+      } else if (mode === 'search') {
+        setSearchCitations([]);
+        await webSearch.search(lastUserMessage.content, {
+          onToken: (token) => {
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, content: msg.content + token }
+                : msg
+            ));
+          },
+          onCitation: (citations) => {
+            setSearchCitations(citations);
+          },
+          onComplete: async (response) => {
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, content: response.answer, isStreaming: false }
+                : msg
+            ));
+            if (response.answer) {
+              saveMessage(convId, 'assistant', response.answer);
+              await recordUsage('search', 'sonar', {
+                inputTokens: Math.ceil(lastUserMessage.content.length / 4),
+                outputTokens: Math.ceil(response.answer.length / 4),
+              });
+            }
+          },
+          onError: (error) => {
+            toast({
+              title: 'Search Error',
+              description: error.message || 'Failed to search',
+              variant: 'destructive',
+            });
+            setMessages(prev => prev.filter(msg => msg.id !== assistantId));
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Regeneration error:', error);
+    }
+  }, [mode, checkCredits, handleInsufficientCredits, streamResponse, webSearch, selectedModels, settings, saveMessage, recordUsage, toast]);
+
   // File attachment handlers
   const handleFileAttach = () => {
     fileInputRef.current?.click();
@@ -589,6 +772,7 @@ export default function GhostChat() {
                           speed: settings?.voice_speed,
                         })}
                         onStopSpeak={tts.stop}
+                        onEdit={handleMessageEdit}
                       />
                     ))}
                     <div ref={messagesEndRef} />
@@ -660,6 +844,7 @@ export default function GhostChat() {
                             speed: settings?.voice_speed,
                           })}
                           onStopSpeak={tts.stop}
+                          onEdit={handleMessageEdit}
                         />
                       ))}
                       <div ref={messagesEndRef} />
