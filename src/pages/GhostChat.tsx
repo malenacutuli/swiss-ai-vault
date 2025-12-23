@@ -8,6 +8,7 @@ import { useGhostStorage } from '@/hooks/useGhostStorage';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostInference } from '@/hooks/useGhostInference';
 import { useGhostTTS } from '@/hooks/useGhostTTS';
+import { useGhostSearch, type SearchResult } from '@/hooks/useGhostSearch';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Components
@@ -26,7 +27,7 @@ const DEFAULT_MODELS: Record<GhostMode, string> = {
   text: 'qwen2.5-3b',
   image: 'auto-image',
   video: 'runway-gen3-turbo',
-  search: 'gpt-4o-mini',
+  search: 'sonar',
 };
 
 interface GhostMessageData {
@@ -64,6 +65,9 @@ export default function GhostChat() {
   // Streaming inference hook
   const { streamResponse, cancelStream, isStreaming } = useGhostInference();
 
+  // Web search hook
+  const webSearch = useGhostSearch();
+
   // TTS hook for read-aloud
   const tts = useGhostTTS();
 
@@ -77,6 +81,7 @@ export default function GhostChat() {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [folders, setFolders] = useState<GhostFolder[]>([]);
+  const [searchCitations, setSearchCitations] = useState<SearchResult[]>([]);
 
   // Model state per mode (persisted to localStorage)
   const [selectedModels, setSelectedModels] = useState<Record<GhostMode, string>>(() => {
@@ -141,7 +146,7 @@ export default function GhostChat() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isStreaming) return;
+    if (!inputValue.trim() || isStreaming || webSearch.isSearching) return;
 
     // Create conversation if none selected
     let convId = selectedConversation;
@@ -166,7 +171,7 @@ export default function GhostChat() {
     setInputValue('');
 
     // Handle based on mode
-    if (mode === 'text' || mode === 'search') {
+    if (mode === 'text') {
       // Create placeholder for streaming response
       const assistantId = crypto.randomUUID();
       setMessages(prev => [...prev, {
@@ -219,6 +224,52 @@ export default function GhostChat() {
         );
       } catch (error) {
         console.error('Stream error:', error);
+      }
+    } else if (mode === 'search') {
+      // Web search mode
+      const assistantId = crypto.randomUUID();
+      setMessages(prev => [...prev, {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        isStreaming: true,
+      }]);
+      setSearchCitations([]);
+
+      try {
+        await webSearch.search(userMessage.content, {
+          onToken: (token) => {
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, content: msg.content + token }
+                : msg
+            ));
+          },
+          onCitation: (citations) => {
+            setSearchCitations(citations);
+          },
+          onComplete: (response) => {
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, content: response.answer, isStreaming: false }
+                : msg
+            ));
+            if (response.answer) {
+              saveMessage(convId!, 'assistant', response.answer);
+            }
+          },
+          onError: (error) => {
+            toast({
+              title: 'Search Error',
+              description: error.message || 'Failed to search',
+              variant: 'destructive',
+            });
+            setMessages(prev => prev.filter(msg => msg.id !== assistantId));
+          },
+        });
+      } catch (error) {
+        console.error('Search error:', error);
       }
     } else if (mode === 'image') {
       // Image generation - placeholder for now
@@ -386,31 +437,60 @@ export default function GhostChat() {
             {mode === 'video' && <GhostVideoView initialImageUrl={videoInputImage} />}
             {mode === 'search' && (
               messages.length > 0 ? (
-                <ScrollArea className="h-full">
-                  <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-                    {messages.map((msg) => (
-                      <GhostMessageComponent
-                        key={msg.id}
-                        id={msg.id}
-                        role={msg.role}
-                        content={msg.content}
-                        isStreaming={msg.isStreaming}
-                        ttsState={{
-                          isPlaying: tts.isPlaying,
-                          isPaused: tts.isPaused,
-                          isLoading: tts.isLoading,
-                          progress: tts.progress,
-                          currentMessageId: tts.currentMessageId,
-                        }}
-                        onSpeak={(messageId, content) => tts.speak(content, messageId)}
-                        onStopSpeak={tts.stop}
-                      />
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </ScrollArea>
+                <div className="h-full flex flex-col">
+                  {/* Search results with citations */}
+                  {searchCitations.length > 0 && (
+                    <div className="flex-shrink-0 px-4 py-3 border-b border-border/40">
+                      <div className="max-w-3xl mx-auto">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Sources</p>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {searchCitations.map((citation, idx) => (
+                            <a
+                              key={idx}
+                              href={citation.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-shrink-0 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted text-xs text-foreground/80 hover:text-foreground transition-colors flex items-center gap-1.5"
+                            >
+                              <span className="w-4 h-4 rounded bg-swiss-sapphire/20 flex items-center justify-center text-[10px] font-medium text-swiss-sapphire">
+                                {idx + 1}
+                              </span>
+                              <span className="truncate max-w-[120px]">
+                                {new URL(citation.url).hostname.replace('www.', '')}
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <ScrollArea className="flex-1">
+                    <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+                      {messages.map((msg) => (
+                        <GhostMessageComponent
+                          key={msg.id}
+                          id={msg.id}
+                          role={msg.role}
+                          content={msg.content}
+                          isStreaming={msg.isStreaming}
+                          ttsState={{
+                            isPlaying: tts.isPlaying,
+                            isPaused: tts.isPaused,
+                            isLoading: tts.isLoading,
+                            progress: tts.progress,
+                            currentMessageId: tts.currentMessageId,
+                          }}
+                          onSpeak={(messageId, content) => tts.speak(content, messageId)}
+                          onStopSpeak={tts.stop}
+                        />
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </ScrollArea>
+                </div>
               ) : (
-                <GhostSearchView />
+                <GhostSearchView isSearching={webSearch.isSearching} />
               )
             )}
           </div>
@@ -425,8 +505,8 @@ export default function GhostChat() {
                 value={inputValue}
                 onChange={setInputValue}
                 onSubmit={handleSendMessage}
-                onCancel={cancelStream}
-                isStreaming={isStreaming}
+                onCancel={mode === 'search' ? webSearch.cancelSearch : cancelStream}
+                isStreaming={isStreaming || webSearch.isSearching}
                 credits={balance}
                 enhancePrompt={enhancePrompt}
                 onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
