@@ -96,8 +96,9 @@ export default function GhostChat() {
     exportConversation,
   } = useGhostStorage();
 
+
   // Ghost credits hook
-  const { balance, isLoading: creditsLoading } = useGhostCredits();
+  const { balance, checkCredits, recordUsage, refreshCredits, isLoading: creditsLoading } = useGhostCredits();
 
   // Streaming inference hook
   const { streamResponse, cancelStream, isStreaming } = useGhostInference();
@@ -191,8 +192,38 @@ export default function GhostChat() {
     }
   };
 
+  // Handle insufficient credits
+  const handleInsufficientCredits = useCallback((reason: string) => {
+    setShowBuyCredits(true);
+    
+    let message = 'Add more credits to continue.';
+    if (reason === 'no_image_credits') {
+      message = 'You\'ve used all your image generation credits for today.';
+    } else if (reason === 'no_video_credits') {
+      message = 'You\'ve used all your video generation credits for today.';
+    } else if (reason === 'insufficient_text_credits') {
+      message = 'You\'ve run out of text generation credits.';
+    }
+    
+    toast({
+      title: 'Insufficient Credits',
+      description: message,
+      variant: 'destructive',
+    });
+  }, [toast]);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isStreaming || webSearch.isSearching) return;
+
+    // Determine usage type based on mode
+    const usageType = mode as 'text' | 'image' | 'video' | 'search';
+    
+    // Check credits before proceeding
+    const creditCheck = await checkCredits(usageType);
+    if (!creditCheck.allowed) {
+      handleInsufficientCredits(creditCheck.reason);
+      return;
+    }
 
     // Create conversation if none selected
     let convId = selectedConversation;
@@ -248,7 +279,7 @@ export default function GhostChat() {
                   : msg
               ));
             },
-            onComplete: (fullResponse) => {
+            onComplete: async (fullResponse) => {
               setMessages(prev => prev.map(msg =>
                 msg.id === assistantId
                   ? { ...msg, content: fullResponse, isStreaming: false }
@@ -256,6 +287,13 @@ export default function GhostChat() {
               ));
               if (fullResponse) {
                 saveMessage(convId!, 'assistant', fullResponse);
+                // Record usage after successful generation
+                const inputTokens = Math.ceil(userMessage.content.length / 4);
+                const outputTokens = Math.ceil(fullResponse.length / 4);
+                await recordUsage('text', selectedModels[mode], {
+                  inputTokens,
+                  outputTokens,
+                });
               }
             },
             onError: (error) => {
@@ -300,7 +338,7 @@ export default function GhostChat() {
           onCitation: (citations) => {
             setSearchCitations(citations);
           },
-          onComplete: (response) => {
+          onComplete: async (response) => {
             setMessages(prev => prev.map(msg =>
               msg.id === assistantId
                 ? { ...msg, content: response.answer, isStreaming: false }
@@ -308,6 +346,11 @@ export default function GhostChat() {
             ));
             if (response.answer) {
               saveMessage(convId!, 'assistant', response.answer);
+              // Record search usage
+              await recordUsage('search', 'sonar', {
+                inputTokens: Math.ceil(userMessage.content.length / 4),
+                outputTokens: Math.ceil(response.answer.length / 4),
+              });
             }
           },
           onError: (error) => {
