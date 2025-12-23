@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MessageSquare, Shield, Settings, Beaker, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Shield, Settings, Beaker, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { GhostModeToggle } from "@/components/ghost/GhostModeToggle";
 
 interface SimpleSidebarProps {
   collapsed: boolean;
@@ -98,14 +99,11 @@ export function SimpleSidebar({ collapsed, onToggle, onNavigate, hideHeader }: S
 
       {/* Navigation */}
       <nav className="flex-1 p-2 space-y-1">
+        {/* Ghost/Vault Mode Toggle */}
         {canAccess('vault_chat') && (
-          <SidebarLink 
-            to="/chat" 
-            icon={MessageSquare} 
-            label="Vault Chat" 
-            collapsed={collapsed}
-            onNavigate={onNavigate}
-          />
+          <div className={cn("px-3 py-2", collapsed && "px-1")}>
+            <GhostModeToggle className={collapsed ? "scale-75 origin-left" : ""} />
+          </div>
         )}
         {canAccess('compliance') && (
           <SidebarLink 
