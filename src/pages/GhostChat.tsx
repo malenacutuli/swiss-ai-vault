@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useGhostStorage } from '@/hooks/useGhostStorage';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
+import { useGhostInference } from '@/hooks/useGhostInference';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import {
@@ -30,6 +30,8 @@ import {
   Coins,
   Menu,
   X,
+  Loader2,
+  Square,
 } from 'lucide-react';
 import ghostIcon from '@/assets/ghost-icon.jpg';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
@@ -42,6 +44,7 @@ interface GhostMessageData {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  isStreaming?: boolean;
 }
 
 export default function GhostChat() {
@@ -72,16 +75,19 @@ export default function GhostChat() {
     isLoading: creditsLoading,
   } = useGhostCredits();
 
+  // Streaming inference hook
+  const { streamResponse, cancelStream, isStreaming, streamStatus } = useGhostInference();
+
   // UI State
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<GhostMessageData[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [selectedModel, setSelectedModel] = useState(getSavedGhostModel);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [coldStartWarning, setColdStartWarning] = useState<string | null>(null);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -130,7 +136,7 @@ export default function GhostChat() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isGenerating || !selectedConversation) return;
+    if (!inputValue.trim() || isStreaming || !selectedConversation) return;
 
     const userMessage: GhostMessageData = {
       id: crypto.randomUUID(),
@@ -139,72 +145,96 @@ export default function GhostChat() {
       timestamp: Date.now(),
     };
 
-    // Save to local storage
+    // Save user message to local storage
     saveMessage(selectedConversation, 'user', userMessage.content);
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
-    setIsGenerating(true);
+
+    // Create placeholder for streaming assistant response
+    const assistantId = crypto.randomUUID();
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      isStreaming: true,
+    }]);
+
+    // Build message history for context
+    const conv = getConversation(selectedConversation);
+    const messageHistory = conv?.messages.map(m => ({
+      role: m.role,
+      content: m.content
+    })) || [];
+    messageHistory.push({ role: 'user', content: userMessage.content });
+
+    // Set up cold start warning timers
+    const coldStartTimer = setTimeout(() => {
+      setColdStartWarning('Model warming up...');
+    }, 3000);
+    
+    const longWaitTimer = setTimeout(() => {
+      setColdStartWarning('Still loading - this model needs GPU spin-up (~30s for first request)');
+    }, 10000);
 
     try {
-      // Build message history for context
-      const conv = getConversation(selectedConversation);
-      const messageHistory = conv?.messages.map(m => ({
-        role: m.role,
-        content: m.content
-      })) || [];
-      
-      // Add the new user message
-      messageHistory.push({ role: 'user', content: userMessage.content });
-
-      // Call Swiss-hosted AI via ghost-inference edge function
-      const { data, error } = await supabase.functions.invoke('ghost-inference', {
-        body: {
-          model: selectedModel,
-          messages: messageHistory,
-          stream: false,
-          temperature: 0.7,
-          max_tokens: 4096
+      await streamResponse(
+        messageHistory,
+        selectedModel,
+        {
+          onToken: (token) => {
+            // Clear cold start warnings on first token
+            clearTimeout(coldStartTimer);
+            clearTimeout(longWaitTimer);
+            setColdStartWarning(null);
+            
+            // Update the streaming message with new token
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantId 
+                ? { ...msg, content: msg.content + token }
+                : msg
+            ));
+          },
+          onComplete: (fullResponse) => {
+            // Mark streaming complete and save to storage
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantId 
+                ? { ...msg, content: fullResponse, isStreaming: false }
+                : msg
+            ));
+            
+            // Save completed response to local storage
+            if (fullResponse) {
+              saveMessage(selectedConversation, 'assistant', fullResponse);
+            }
+          },
+          onError: (error) => {
+            console.error('[Ghost Chat] Streaming error:', error);
+            
+            // Handle specific error types
+            if (error.message.includes('Insufficient ghost credits')) {
+              toast({
+                title: 'Insufficient Credits',
+                description: 'You need more ghost tokens to continue.',
+                variant: 'destructive',
+              });
+            } else {
+              toast({
+                title: 'Error',
+                description: error.message || 'Failed to generate response',
+                variant: 'destructive',
+              });
+            }
+            
+            // Remove the empty assistant message on error
+            setMessages(prev => prev.filter(msg => msg.id !== assistantId));
+          },
         }
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Inference failed');
-      }
-
-      if (data.error) {
-        if (data.error === 'Insufficient ghost credits') {
-          toast({
-            title: 'Insufficient Credits',
-            description: `You need at least ${data.required} ghost tokens. Current balance: ${data.balance}`,
-            variant: 'destructive',
-          });
-          setIsGenerating(false);
-          return;
-        }
-        throw new Error(data.error);
-      }
-
-      // Extract response content
-      const responseContent = data.choices?.[0]?.message?.content || 'No response generated';
-      
-      const assistantMessage: GhostMessageData = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: responseContent,
-        timestamp: Date.now(),
-      };
-
-      saveMessage(selectedConversation, 'assistant', assistantMessage.content);
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('[Ghost Chat] Inference error:', error);
-      toast({
-        title: 'Error',
-        description: (error as Error).message || 'Failed to generate response',
-        variant: 'destructive',
-      });
+      );
     } finally {
-      setIsGenerating(false);
+      clearTimeout(coldStartTimer);
+      clearTimeout(longWaitTimer);
+      setColdStartWarning(null);
     }
   };
 
@@ -435,6 +465,16 @@ export default function GhostChat() {
                 LOCAL ONLY
               </Badge>
             </div>
+
+            {/* Streaming Status Indicator */}
+            {isStreaming && (
+              <div className="flex items-center gap-2 px-2 py-1 rounded bg-purple-500/20 border border-purple-500/30">
+                <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+                <span className="text-xs text-purple-300">
+                  {streamStatus === 'connecting' ? 'Connecting...' : 'Generating...'}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -490,36 +530,59 @@ export default function GhostChat() {
                         content={message.content}
                         role={message.role}
                         timestamp={message.timestamp}
+                        isStreaming={message.isStreaming}
                       />
-                      <p className="text-xs opacity-50 mt-2">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </p>
-                      {message.role === 'assistant' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-xs text-purple-400 hover:text-purple-300 -ml-2"
-                          onClick={() => {
-                            toast({ title: 'Regenerate', description: 'Coming soon' });
-                          }}
-                        >
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                          Regenerate
-                        </Button>
+                      {!message.isStreaming && (
+                        <>
+                          <p className="text-xs opacity-50 mt-2">
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </p>
+                          {message.role === 'assistant' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 text-xs text-purple-400 hover:text-purple-300 -ml-2"
+                              onClick={() => {
+                                toast({ title: 'Regenerate', description: 'Coming soon' });
+                              }}
+                            >
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                              Regenerate
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
                 ))}
-                {isGenerating && (
+                {/* Streaming status indicators */}
+                {isStreaming && streamStatus === 'connecting' && (
                   <div className="flex gap-4 justify-start">
                     <div className="bg-slate-800/80 border border-purple-500/20 rounded-2xl px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                          <span className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                          <span className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">Thinking...</span>
+                        <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                        <span className="text-sm text-muted-foreground">Connecting...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Cold start warning */}
+                {coldStartWarning && (
+                  <div className="flex gap-4 justify-start">
+                    <div className="bg-yellow-900/30 border border-yellow-500/30 rounded-2xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
+                        <span className="text-sm text-yellow-300">{coldStartWarning}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { cancelStream(); setColdStartWarning(null); }}
+                          className="h-6 px-2 text-xs text-yellow-400 hover:text-yellow-300"
+                        >
+                          <Square className="w-3 h-3 mr-1" />
+                          Cancel
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -557,7 +620,7 @@ export default function GhostChat() {
                 <GhostModelSelector 
                   value={selectedModel} 
                   onValueChange={setSelectedModel}
-                  disabled={isGenerating}
+                  disabled={isStreaming}
                 />
 
                 {/* Input */}
@@ -573,14 +636,14 @@ export default function GhostChat() {
                     }}
                     placeholder="Type your message..."
                     className="min-h-[52px] max-h-32 resize-none bg-slate-800/50 border-purple-500/30 text-white placeholder:text-muted-foreground pr-12"
-                    disabled={isGenerating}
+                    disabled={isStreaming}
                   />
                 </div>
 
                 {/* Send Button */}
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || isGenerating}
+                  disabled={!inputValue.trim() || isStreaming}
                   className="bg-purple-600 hover:bg-purple-700 text-white h-[52px] px-6"
                 >
                   <Send className="w-5 h-5" />
