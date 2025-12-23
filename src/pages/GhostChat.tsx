@@ -9,6 +9,7 @@ import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostInference } from '@/hooks/useGhostInference';
 import { useGhostTTS } from '@/hooks/useGhostTTS';
 import { useGhostSearch, type SearchResult } from '@/hooks/useGhostSearch';
+import { useGhostSettings } from '@/hooks/useGhostSettings';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Components
@@ -28,6 +29,22 @@ const DEFAULT_MODELS: Record<GhostMode, string> = {
   image: 'auto-image',
   video: 'runway-gen3-turbo',
   search: 'sonar',
+};
+
+// Accent color definitions
+const ACCENT_COLORS: Record<string, { primary: string; hover: string; hsl: string }> = {
+  'swiss-navy': { primary: '#1A365D', hover: '#2D4A7C', hsl: '213 55% 23%' },
+  'sapphire': { primary: '#0F4C81', hover: '#1A5F9E', hsl: '207 79% 28%' },
+  'burgundy': { primary: '#722F37', hover: '#8B3A44', hsl: '355 42% 32%' },
+  'teal': { primary: '#1D4E5F', hover: '#2A6175', hsl: '193 53% 24%' },
+};
+
+// Apply accent color to CSS custom properties
+const applyAccentColor = (accent: string) => {
+  const colors = ACCENT_COLORS[accent] || ACCENT_COLORS['swiss-navy'];
+  document.documentElement.style.setProperty('--ghost-accent', colors.primary);
+  document.documentElement.style.setProperty('--ghost-accent-hover', colors.hover);
+  document.documentElement.style.setProperty('--ghost-accent-hsl', colors.hsl);
 };
 
 interface GhostMessageData {
@@ -91,7 +108,15 @@ export default function GhostChat() {
   // TTS hook for read-aloud
   const tts = useGhostTTS();
 
-  // UI State
+  // Ghost settings hook
+  const { settings } = useGhostSettings();
+
+  // Apply accent color when settings change
+  useEffect(() => {
+    if (settings?.accent_color) {
+      applyAccentColor(settings.accent_color);
+    }
+  }, [settings?.accent_color]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<GhostMessageData[]>([]);
