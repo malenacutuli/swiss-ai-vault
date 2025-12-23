@@ -61,6 +61,11 @@
     --imperial-burgundy: 355 42% 32%;
     --sovereign-teal: 193 53% 24%;
 
+    /* Ghost accent (dynamic, set via JS) */
+    --ghost-accent: #1A365D;
+    --ghost-accent-hover: #2D4A7C;
+    --ghost-accent-hsl: 213 55% 23%;
+
     /* Badge colors */
     --badge-private: 213 55% 23%;
     --badge-default: 162 91% 17%;
