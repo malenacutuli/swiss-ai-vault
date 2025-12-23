@@ -2780,6 +2780,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      check_user_usage: {
+        Args: {
+          p_estimated_cost_cents?: number
+          p_usage_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       cleanup_expired_messages: { Args: never; Returns: number }
       clear_conversation_documents: {
         Args: { p_conversation_id: string; p_user_id: string }

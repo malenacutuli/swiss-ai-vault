@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export type UsageType = 'text' | 'image' | 'video' | 'search' | 'tts' | 'stt';
+
 interface GhostCreditsState {
   balance: number;
   isLoading: boolean;
@@ -12,6 +14,15 @@ interface GhostSubscription {
   plan: string;
   tokenLimit: number;
   expiresAt: string | null;
+}
+
+interface CreditCheckResult {
+  allowed: boolean;
+  balance: number;
+  dailyRemaining: number;
+  imageRemaining: number;
+  videoRemaining: number;
+  reason: string;
 }
 
 export function useGhostCredits() {
@@ -124,6 +135,62 @@ export function useGhostCredits() {
     }
   }, [user]);
 
+  const checkCredits = useCallback(async (
+    type: UsageType,
+    estimatedCost: number = 0
+  ): Promise<CreditCheckResult> => {
+    if (!user) {
+      return {
+        allowed: false,
+        balance: 0,
+        dailyRemaining: 0,
+        imageRemaining: 0,
+        videoRemaining: 0,
+        reason: 'not_authenticated',
+      };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('check_user_usage', {
+        p_user_id: user.id,
+        p_usage_type: type,
+        p_estimated_cost_cents: estimatedCost,
+      });
+
+      if (error) {
+        console.error('[Ghost Credits] Failed to check credits:', error);
+        return {
+          allowed: false,
+          balance: 0,
+          dailyRemaining: 0,
+          imageRemaining: 0,
+          videoRemaining: 0,
+          reason: 'check_failed',
+        };
+      }
+
+      const result = data as Record<string, unknown> | null;
+      return {
+        allowed: (result?.allowed as boolean) ?? false,
+        balance: (result?.balance as number) ?? 0,
+        dailyRemaining: (result?.daily_remaining as number) ?? 0,
+        imageRemaining: (result?.image_remaining as number) ?? 0,
+        videoRemaining: (result?.video_remaining as number) ?? 0,
+        reason: (result?.reason as string) ?? '',
+      };
+    } catch (error) {
+      console.error('[Ghost Credits] Failed to check credits:', error);
+      return {
+        allowed: false,
+        balance: 0,
+        dailyRemaining: 0,
+        imageRemaining: 0,
+        videoRemaining: 0,
+        reason: 'check_failed',
+      };
+    }
+  }, [user]);
+
   const formatTokens = (tokens: number): string => {
     if (tokens >= 1000000) {
       return `${(tokens / 1000000).toFixed(1)}M`;
@@ -140,6 +207,7 @@ export function useGhostCredits() {
     isLoading: state.isLoading,
     error: state.error,
     subscription,
+    checkCredits,
     deductCredits,
     recordUsage,
     refreshCredits: fetchCredits,
