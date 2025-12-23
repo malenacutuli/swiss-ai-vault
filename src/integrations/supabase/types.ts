@@ -1385,30 +1385,276 @@ export type Database = {
         }
         Relationships: []
       }
+      ghost_api_keys: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          monthly_credit_limit: number | null
+          name: string
+          permissions: string[] | null
+          rate_limit_per_minute: number | null
+          total_requests: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          monthly_credit_limit?: number | null
+          name: string
+          permissions?: string[] | null
+          rate_limit_per_minute?: number | null
+          total_requests?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          monthly_credit_limit?: number | null
+          name?: string
+          permissions?: string[] | null
+          rate_limit_per_minute?: number | null
+          total_requests?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ghost_credits: {
         Row: {
           balance: number | null
           created_at: string | null
+          daily_free_limit: number | null
+          daily_free_used: number | null
+          daily_reset_at: string | null
+          free_credits_remaining: number | null
           id: string
+          image_credits_remaining: number | null
+          image_daily_limit: number | null
+          image_daily_used: number | null
           last_purchase: string | null
+          paid_credits_balance: number | null
           updated_at: string | null
           user_id: string
+          video_credits_remaining: number | null
+          video_daily_limit: number | null
+          video_daily_used: number | null
         }
         Insert: {
           balance?: number | null
           created_at?: string | null
+          daily_free_limit?: number | null
+          daily_free_used?: number | null
+          daily_reset_at?: string | null
+          free_credits_remaining?: number | null
           id?: string
+          image_credits_remaining?: number | null
+          image_daily_limit?: number | null
+          image_daily_used?: number | null
           last_purchase?: string | null
+          paid_credits_balance?: number | null
           updated_at?: string | null
           user_id: string
+          video_credits_remaining?: number | null
+          video_daily_limit?: number | null
+          video_daily_used?: number | null
         }
         Update: {
           balance?: number | null
           created_at?: string | null
+          daily_free_limit?: number | null
+          daily_free_used?: number | null
+          daily_reset_at?: string | null
+          free_credits_remaining?: number | null
           id?: string
+          image_credits_remaining?: number | null
+          image_daily_limit?: number | null
+          image_daily_used?: number | null
           last_purchase?: string | null
+          paid_credits_balance?: number | null
           updated_at?: string | null
           user_id?: string
+          video_credits_remaining?: number | null
+          video_daily_limit?: number | null
+          video_daily_used?: number | null
+        }
+        Relationships: []
+      }
+      ghost_library: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          duration_seconds: number | null
+          encrypted: boolean | null
+          file_size_bytes: number | null
+          folder_id: string | null
+          format: string | null
+          height: number | null
+          id: string
+          is_favorite: boolean | null
+          model_id: string | null
+          prompt: string | null
+          storage_key: string
+          storage_type: string
+          tags: string[] | null
+          thumbnail_key: string | null
+          title: string | null
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          encrypted?: boolean | null
+          file_size_bytes?: number | null
+          folder_id?: string | null
+          format?: string | null
+          height?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          model_id?: string | null
+          prompt?: string | null
+          storage_key: string
+          storage_type: string
+          tags?: string[] | null
+          thumbnail_key?: string | null
+          title?: string | null
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          encrypted?: boolean | null
+          file_size_bytes?: number | null
+          folder_id?: string | null
+          format?: string | null
+          height?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          model_id?: string | null
+          prompt?: string | null
+          storage_key?: string
+          storage_type?: string
+          tags?: string[] | null
+          thumbnail_key?: string | null
+          title?: string | null
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
+      ghost_settings: {
+        Row: {
+          accent_color: string | null
+          arrow_key_nav: boolean | null
+          created_at: string | null
+          default_temperature: number | null
+          default_top_p: number | null
+          disable_system_prompt: boolean | null
+          disable_telemetry: boolean | null
+          enter_after_edit: string | null
+          enter_submits: boolean | null
+          hide_personal_info: boolean | null
+          id: string
+          image_aspect_ratio: string | null
+          image_embed_exif: boolean | null
+          image_enhance_prompts: boolean | null
+          image_format: string | null
+          image_hide_watermark: boolean | null
+          mature_filter_enabled: boolean | null
+          show_external_link_warning: boolean | null
+          show_message_date: boolean | null
+          start_temporary: boolean | null
+          system_prompt: string | null
+          theme: string | null
+          updated_at: string | null
+          url_scraping: boolean | null
+          user_id: string
+          voice_id: string | null
+          voice_language: string | null
+          voice_read_responses: boolean | null
+          voice_speed: number | null
+          web_enabled: boolean | null
+        }
+        Insert: {
+          accent_color?: string | null
+          arrow_key_nav?: boolean | null
+          created_at?: string | null
+          default_temperature?: number | null
+          default_top_p?: number | null
+          disable_system_prompt?: boolean | null
+          disable_telemetry?: boolean | null
+          enter_after_edit?: string | null
+          enter_submits?: boolean | null
+          hide_personal_info?: boolean | null
+          id?: string
+          image_aspect_ratio?: string | null
+          image_embed_exif?: boolean | null
+          image_enhance_prompts?: boolean | null
+          image_format?: string | null
+          image_hide_watermark?: boolean | null
+          mature_filter_enabled?: boolean | null
+          show_external_link_warning?: boolean | null
+          show_message_date?: boolean | null
+          start_temporary?: boolean | null
+          system_prompt?: string | null
+          theme?: string | null
+          updated_at?: string | null
+          url_scraping?: boolean | null
+          user_id: string
+          voice_id?: string | null
+          voice_language?: string | null
+          voice_read_responses?: boolean | null
+          voice_speed?: number | null
+          web_enabled?: boolean | null
+        }
+        Update: {
+          accent_color?: string | null
+          arrow_key_nav?: boolean | null
+          created_at?: string | null
+          default_temperature?: number | null
+          default_top_p?: number | null
+          disable_system_prompt?: boolean | null
+          disable_telemetry?: boolean | null
+          enter_after_edit?: string | null
+          enter_submits?: boolean | null
+          hide_personal_info?: boolean | null
+          id?: string
+          image_aspect_ratio?: string | null
+          image_embed_exif?: boolean | null
+          image_enhance_prompts?: boolean | null
+          image_format?: string | null
+          image_hide_watermark?: boolean | null
+          mature_filter_enabled?: boolean | null
+          show_external_link_warning?: boolean | null
+          show_message_date?: boolean | null
+          start_temporary?: boolean | null
+          system_prompt?: string | null
+          theme?: string | null
+          updated_at?: string | null
+          url_scraping?: boolean | null
+          user_id?: string
+          voice_id?: string | null
+          voice_language?: string | null
+          voice_read_responses?: boolean | null
+          voice_speed?: number | null
+          web_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -1445,27 +1691,48 @@ export type Database = {
       ghost_usage: {
         Row: {
           created_at: string | null
+          credits_used: number | null
+          duration_seconds: number | null
+          generation_time_ms: number | null
           id: string
           input_tokens: number
+          modality: string | null
           model_id: string
           output_tokens: number
+          provider: string | null
+          resolution: string | null
           user_id: string
+          was_free_tier: boolean | null
         }
         Insert: {
           created_at?: string | null
+          credits_used?: number | null
+          duration_seconds?: number | null
+          generation_time_ms?: number | null
           id?: string
           input_tokens: number
+          modality?: string | null
           model_id: string
           output_tokens: number
+          provider?: string | null
+          resolution?: string | null
           user_id: string
+          was_free_tier?: boolean | null
         }
         Update: {
           created_at?: string | null
+          credits_used?: number | null
+          duration_seconds?: number | null
+          generation_time_ms?: number | null
           id?: string
           input_tokens?: number
+          modality?: string | null
           model_id?: string
           output_tokens?: number
+          provider?: string | null
+          resolution?: string | null
           user_id?: string
+          was_free_tier?: boolean | null
         }
         Relationships: []
       }
@@ -2594,6 +2861,7 @@ export type Database = {
         Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
       }
+      reset_ghost_daily_limits: { Args: never; Returns: undefined }
       search_document_chunks: {
         Args: {
           p_conversation_id?: string
