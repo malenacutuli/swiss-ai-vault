@@ -1,0 +1,166 @@
+/* Swiss Luxury Design System Styles
+ * Inspired by Patek Philippe, Audemars Piguet, Vacheron Constantin
+ */
+
+/* ============================================
+   TYPOGRAPHY CLASSES
+   ============================================ */
+
+/* Swiss Heading: Serif, uppercase option, refined tracking */
+.swiss-heading {
+  font-family: 'Playfair Display', 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.swiss-heading-caps {
+  font-family: 'Playfair Display', 'Times New Roman', serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+
+/* Swiss Body: Sans-serif, normal tracking */
+.swiss-body {
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+/* Swiss Label: Sans, uppercase, small, wide tracking */
+.swiss-label {
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+}
+
+/* Swiss Caption: Smaller body text */
+.swiss-caption {
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Swiss Mono: Code and technical text */
+.swiss-mono {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.5;
+}
+
+/* ============================================
+   INTERACTION STATES
+   ============================================ */
+
+/* Luxury hover transition */
+.swiss-hover {
+  transition: all 200ms ease-in-out;
+}
+
+.swiss-hover:hover {
+  transform: translateY(-1px);
+}
+
+/* Focus states */
+.swiss-focus:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--swiss-navy) / 0.2);
+}
+
+.swiss-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--swiss-navy) / 0.4);
+}
+
+/* ============================================
+   DECORATIVE ELEMENTS
+   ============================================ */
+
+/* Subtle divider line */
+.swiss-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--border)) 20%,
+    hsl(var(--border)) 80%,
+    transparent 100%
+  );
+}
+
+/* Elegant border */
+.swiss-border {
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+}
+
+/* Luxury glow effect */
+.swiss-glow {
+  box-shadow: 0 0 40px hsl(var(--swiss-navy) / 0.1);
+}
+
+/* ============================================
+   NO EMOJI RULE
+   ============================================ */
+
+/* Hide emoji in Ghost Chat - use icons instead */
+.no-emoji {
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+}
+
+/* Emoji replacement styling */
+.icon-replacement {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: middle;
+}
+
+/* ============================================
+   SCROLLBAR STYLING (Luxury)
+   ============================================ */
+
+.swiss-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.swiss-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.swiss-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 3px;
+}
+
+.swiss-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* ============================================
+   SELECTION STYLING
+   ============================================ */
+
+::selection {
+  background: hsl(var(--swiss-navy) / 0.2);
+  color: inherit;
+}
+
+::-moz-selection {
+  background: hsl(var(--swiss-navy) / 0.2);
+  color: inherit;
+}
