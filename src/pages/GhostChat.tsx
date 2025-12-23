@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -156,23 +157,61 @@ export default function GhostChat() {
     setIsGenerating(true);
 
     try {
-      // TODO: Call Swiss-hosted AI endpoint
-      // For now, simulate response
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Build message history for context
+      const conv = getConversation(selectedConversation);
+      const messageHistory = conv?.messages.map(m => ({
+        role: m.role,
+        content: m.content
+      })) || [];
+      
+      // Add the new user message
+      messageHistory.push({ role: 'user', content: userMessage.content });
+
+      // Call Swiss-hosted AI via ghost-inference edge function
+      const { data, error } = await supabase.functions.invoke('ghost-inference', {
+        body: {
+          model: selectedModel,
+          messages: messageHistory,
+          stream: false,
+          temperature: 0.7,
+          max_tokens: 4096
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Inference failed');
+      }
+
+      if (data.error) {
+        if (data.error === 'Insufficient ghost credits') {
+          toast({
+            title: 'Insufficient Credits',
+            description: `You need at least ${data.required} ghost tokens. Current balance: ${data.balance}`,
+            variant: 'destructive',
+          });
+          setIsGenerating(false);
+          return;
+        }
+        throw new Error(data.error);
+      }
+
+      // Extract response content
+      const responseContent = data.choices?.[0]?.message?.content || 'No response generated';
       
       const assistantMessage: GhostMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `This is a simulated response from ${SWISS_MODELS.find(m => m.id === selectedModel)?.name}. In production, this will connect to Swiss-hosted AI models.`,
+        content: responseContent,
         timestamp: Date.now(),
       };
 
       saveMessage(selectedConversation, 'assistant', assistantMessage.content);
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
+      console.error('[Ghost Chat] Inference error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to generate response',
+        description: (error as Error).message || 'Failed to generate response',
         variant: 'destructive',
       });
     } finally {
