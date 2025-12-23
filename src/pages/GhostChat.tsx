@@ -32,12 +32,15 @@ import {
   X,
   Loader2,
   Square,
+  FileArchive,
 } from 'lucide-react';
 import ghostIcon from '@/assets/ghost-icon.jpg';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
 import { GhostModelSelector, getSavedGhostModel } from '@/components/ghost/GhostModelSelector';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
+import { ExportImportDialog } from '@/components/ghost/ExportImportDialog';
+import type { ExportableConversation } from '@/lib/ghost/export-import';
 
 interface GhostMessageData {
   id: string;
@@ -88,6 +91,8 @@ export default function GhostChat() {
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [coldStartWarning, setColdStartWarning] = useState<string | null>(null);
+  const [showExportImport, setShowExportImport] = useState(false);
+  const [exportImportTab, setExportImportTab] = useState<'export' | 'import'>('export');
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -414,25 +419,33 @@ export default function GhostChat() {
 
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-purple-500/20 space-y-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
-            onClick={handleExportAll}
-            disabled={conversations.length === 0}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export All
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+              onClick={() => {
+                setExportImportTab('export');
+                setShowExportImport(true);
+              }}
+              disabled={conversations.length === 0}
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+              onClick={() => {
+                setExportImportTab('import');
+                setShowExportImport(true);
+              }}
+            >
+              <Upload className="w-4 h-4 mr-1" />
+              Import
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -703,6 +716,40 @@ export default function GhostChat() {
 
       {/* Buy Credits Modal */}
       <BuyGhostCreditsModal open={showBuyCredits} onOpenChange={setShowBuyCredits} />
+
+      {/* Export/Import Dialog */}
+      <ExportImportDialog
+        open={showExportImport}
+        onOpenChange={setShowExportImport}
+        conversations={conversations}
+        getConversation={(id) => {
+          const conv = getConversation(id);
+          if (!conv) return undefined;
+          return {
+            id: conv.id,
+            title: conv.title,
+            messages: conv.messages,
+            createdAt: conv.createdAt,
+            updatedAt: conv.updatedAt,
+          } as ExportableConversation;
+        }}
+        onImportComplete={(imported) => {
+          // The imported conversations need to be added to storage
+          for (const conv of imported) {
+            const newId = createConversation(conv.title);
+            if (newId) {
+              for (const msg of conv.messages) {
+                saveMessage(newId, msg.role, msg.content);
+              }
+            }
+          }
+          toast({
+            title: 'Import successful',
+            description: `Imported ${imported.length} conversations`,
+          });
+        }}
+        defaultTab={exportImportTab}
+      />
     </div>
   );
 }
