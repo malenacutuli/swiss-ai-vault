@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useGhostStorage } from '@/hooks/useGhostStorage';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostInference } from '@/hooks/useGhostInference';
+import { useGhostTTS } from '@/hooks/useGhostTTS';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Components
@@ -61,6 +62,9 @@ export default function GhostChat() {
 
   // Streaming inference hook
   const { streamResponse, cancelStream, isStreaming } = useGhostInference();
+
+  // TTS hook for read-aloud
+  const tts = useGhostTTS();
 
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -349,9 +353,19 @@ export default function GhostChat() {
                     {messages.map((msg) => (
                       <GhostMessageComponent
                         key={msg.id}
+                        id={msg.id}
                         role={msg.role}
                         content={msg.content}
                         isStreaming={msg.isStreaming}
+                        ttsState={{
+                          isPlaying: tts.isPlaying,
+                          isPaused: tts.isPaused,
+                          isLoading: tts.isLoading,
+                          progress: tts.progress,
+                          currentMessageId: tts.currentMessageId,
+                        }}
+                        onSpeak={(messageId, content) => tts.speak(content, messageId)}
+                        onStopSpeak={tts.stop}
                       />
                     ))}
                     <div ref={messagesEndRef} />
@@ -375,9 +389,19 @@ export default function GhostChat() {
                     {messages.map((msg) => (
                       <GhostMessageComponent
                         key={msg.id}
+                        id={msg.id}
                         role={msg.role}
                         content={msg.content}
                         isStreaming={msg.isStreaming}
+                        ttsState={{
+                          isPlaying: tts.isPlaying,
+                          isPaused: tts.isPaused,
+                          isLoading: tts.isLoading,
+                          progress: tts.progress,
+                          currentMessageId: tts.currentMessageId,
+                        }}
+                        onSpeak={(messageId, content) => tts.speak(content, messageId)}
+                        onStopSpeak={tts.stop}
                       />
                     ))}
                     <div ref={messagesEndRef} />
