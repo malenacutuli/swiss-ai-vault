@@ -358,7 +358,14 @@ export default function GhostChat() {
                 </ScrollArea>
               </GhostTextView>
             )}
-            {mode === 'image' && <GhostImageView />}
+            {mode === 'image' && (
+              <GhostImageView
+                onNavigateToVideo={(imageUrl) => {
+                  handleModeChange('video');
+                  // TODO: Pass image URL to video view
+                }}
+              />
+            )}
             {mode === 'video' && <GhostVideoView />}
             {mode === 'search' && (
               messages.length > 0 ? (

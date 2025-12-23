@@ -83,3 +83,9 @@ verify_jwt = false
 
 [functions.ghost-inference]
 verify_jwt = true
+
+[functions.ghost-image-gen]
+verify_jwt = true
+
+[functions.create-ghost-credits-checkout]
+verify_jwt = true
