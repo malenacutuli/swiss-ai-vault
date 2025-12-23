@@ -22,7 +22,8 @@ import { GhostTextView, GhostImageView, GhostVideoView, GhostSearchView } from '
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostSettings } from '@/components/ghost/GhostSettings';
 
-import { EyeOff, Shield, Menu, X } from 'lucide-react';
+import { EyeOff, Shield, Menu, X, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Default models per mode
 const DEFAULT_MODELS: Record<GhostMode, string> = {
@@ -90,11 +91,13 @@ export default function GhostChat() {
   const {
     conversations,
     isInitialized,
+    corruptedCount,
     createConversation,
     getConversation,
     saveMessage,
     deleteConversation,
     exportConversation,
+    clearAllData,
   } = useGhostStorage();
 
 
@@ -759,6 +762,31 @@ export default function GhostChat() {
             </div>
           </div>
         </header>
+
+        {/* Corrupted Data Recovery Alert */}
+        {corruptedCount > 0 && (
+          <Alert variant="destructive" className="m-4 border-destructive/50 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Some conversations couldn't be loaded</AlertTitle>
+            <AlertDescription className="mt-2">
+              {corruptedCount} conversation{corruptedCount > 1 ? 's' : ''} encrypted with a different key could not be decrypted.
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-3 block"
+                onClick={() => {
+                  clearAllData();
+                  toast({ 
+                    title: 'Storage cleared', 
+                    description: 'All local data has been removed. You can start fresh.' 
+                  });
+                }}
+              >
+                Clear corrupted data
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col min-h-0">

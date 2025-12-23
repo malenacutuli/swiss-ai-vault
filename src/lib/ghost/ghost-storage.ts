@@ -79,6 +79,7 @@ export class GhostStorageManager {
   private masterKey: CryptoKey | null = null;
   private saveTimeouts: Map<string, NodeJS.Timeout> = new Map();
   private initialized = false;
+  private corruptedCount = 0; // Track conversations that failed to decrypt
 
   /**
    * Initialize the storage manager with user's master key
@@ -130,6 +131,7 @@ export class GhostStorageManager {
   private async loadAllConversations(): Promise<void> {
     if (!this.db || !this.masterKey) return;
 
+    this.corruptedCount = 0; // Reset count on each load
     const encryptedConvos = await this.getAllFromIndexedDB();
     
     for (const encrypted of encryptedConvos) {
@@ -138,9 +140,17 @@ export class GhostStorageManager {
         this.hotStore.set(decrypted.id, decrypted);
       } catch (error) {
         console.error(`Failed to decrypt conversation ${encrypted.id}:`, error);
+        this.corruptedCount++; // Increment corrupted count
         // Skip corrupted conversations
       }
     }
+  }
+
+  /**
+   * Get the number of conversations that failed to decrypt
+   */
+  getCorruptedCount(): number {
+    return this.corruptedCount;
   }
 
   /**

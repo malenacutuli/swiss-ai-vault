@@ -43,6 +43,7 @@ export function useGhostStorage() {
   const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number; messageCount: number }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [corruptedCount, setCorruptedCount] = useState(0); // Track failed decryptions
 
   // Initialize storage with stable encryption key derived from user ID
   useEffect(() => {
@@ -61,6 +62,11 @@ export function useGhostStorage() {
         
         await storage.init(masterKey);
         setIsInitialized(true);
+        
+        // Check for corrupted (undecryptable) conversations
+        const corrupted = storage.getCorruptedCount();
+        setCorruptedCount(corrupted);
+        
         refreshConversations();
       } catch (error) {
         console.error('[Ghost Storage] Failed to initialize:', error);
@@ -169,12 +175,14 @@ export function useGhostStorage() {
     resetGhostStorage();
     setConversations([]);
     setIsInitialized(false);
+    setCorruptedCount(0);
   }, []);
 
   return {
     conversations,
     isInitialized,
     isLoading,
+    corruptedCount, // Expose corrupted count for UI recovery
     createConversation,
     getConversation,
     saveMessage,
