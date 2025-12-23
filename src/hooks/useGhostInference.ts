@@ -7,6 +7,12 @@ interface StreamCallbacks {
   onError: (error: Error) => void;
 }
 
+interface StreamOptions {
+  systemPrompt?: string;
+  temperature?: number;
+  topP?: number;
+}
+
 export function useGhostInference() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamStatus, setStreamStatus] = useState<'idle' | 'connecting' | 'streaming' | 'complete'>('idle');
@@ -15,7 +21,8 @@ export function useGhostInference() {
   const streamResponse = useCallback(async (
     messages: Array<{ role: string; content: string }>,
     model: string,
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    options?: StreamOptions
   ) => {
     setIsStreaming(true);
     setStreamStatus('connecting');
@@ -40,7 +47,14 @@ export function useGhostInference() {
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ messages, model, stream: true }),
+          body: JSON.stringify({ 
+            messages, 
+            model, 
+            stream: true,
+            system_prompt: options?.systemPrompt,
+            temperature: options?.temperature ?? 0.7,
+            top_p: options?.topP ?? 0.9,
+          }),
           signal: abortControllerRef.current.signal,
         }
       );

@@ -266,6 +266,11 @@ export default function GhostChat() {
               });
               setMessages(prev => prev.filter(msg => msg.id !== assistantId));
             },
+          },
+          {
+            systemPrompt: settings?.system_prompt || undefined,
+            temperature: settings?.default_temperature ?? 0.7,
+            topP: settings?.default_top_p ?? 0.9,
           }
         );
       } catch (error) {
