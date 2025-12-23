@@ -6,6 +6,7 @@ interface GhostMessageProps {
   content: string;
   role: 'user' | 'assistant';
   timestamp?: number;
+  isStreaming?: boolean;
   onRegenerate?: () => void;
 }
 
@@ -104,7 +105,7 @@ function renderTextContent(text: string): React.ReactNode {
   });
 }
 
-export function GhostMessage({ content, role, timestamp, onRegenerate }: GhostMessageProps) {
+export function GhostMessage({ content, role, timestamp, isStreaming, onRegenerate }: GhostMessageProps) {
   const segments = useMemo(() => parseContent(content), [content]);
 
   return (
@@ -127,6 +128,11 @@ export function GhostMessage({ content, role, timestamp, onRegenerate }: GhostMe
           </div>
         );
       })}
+      
+      {/* Streaming cursor */}
+      {isStreaming && (
+        <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse ml-0.5" />
+      )}
     </div>
   );
 }
