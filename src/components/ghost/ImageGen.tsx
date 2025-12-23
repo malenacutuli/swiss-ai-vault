@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Image, Wand2, Coins, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { SwissHeading, SwissCard } from '@/components/ui/swiss';
-import { ImageGenSettings, ImageGenSettingsState } from './ImageGenSettings';
+import { ImageGenSettings, ImageGenSettingsState, AspectRatio } from './ImageGenSettings';
 import { ImageGenModelSelector, IMAGE_MODELS } from './ImageGenModelSelector';
 import { ImageGenResults, GeneratedImage } from './ImageGenResults';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
@@ -13,28 +13,47 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import type { GhostSettings } from '@/hooks/useGhostSettings';
 
 interface ImageGenProps {
   onNavigateToVideo?: (imageUrl: string) => void;
+  globalSettings?: GhostSettings;
 }
 
-export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
+export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
   const { user } = useAuth();
   const { balance, formattedBalance, refreshCredits } = useGhostCredits();
   
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState('auto');
-  const [enhancePrompt, setEnhancePrompt] = useState(false);
+  const [enhancePrompt, setEnhancePrompt] = useState(globalSettings?.image_enhance_prompts ?? false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   
+  // Validate aspect ratio from global settings
+  const getValidAspectRatio = (ratio?: string): AspectRatio => {
+    const validRatios: AspectRatio[] = ['1:1', '3:4', '4:3', '16:9', '9:16'];
+    return validRatios.includes(ratio as AspectRatio) ? (ratio as AspectRatio) : '1:1';
+  };
+
   const [settings, setSettings] = useState<ImageGenSettingsState>({
-    aspectRatio: '1:1',
+    aspectRatio: getValidAspectRatio(globalSettings?.image_aspect_ratio),
     style: 'none',
     negativePrompt: '',
     seed: '',
     count: 1,
   });
+
+  // Sync with global settings when they change
+  useEffect(() => {
+    if (globalSettings) {
+      setEnhancePrompt(globalSettings.image_enhance_prompts);
+      setSettings(prev => ({
+        ...prev,
+        aspectRatio: getValidAspectRatio(globalSettings.image_aspect_ratio),
+      }));
+    }
+  }, [globalSettings]);
 
   const currentModel = IMAGE_MODELS.find(m => m.id === selectedModel) || IMAGE_MODELS[0];
   const totalCost = currentModel.creditCost * settings.count;
@@ -64,6 +83,10 @@ export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
           seed: settings.seed ? parseInt(settings.seed) : undefined,
           count: settings.count,
           enhancePrompt,
+          // Pass global settings to API
+          hideWatermark: globalSettings?.image_hide_watermark ?? false,
+          format: globalSettings?.image_format ?? 'png',
+          embedExif: globalSettings?.image_embed_exif ?? false,
         },
       });
 
@@ -93,7 +116,7 @@ export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, user, selectedModel, settings, enhancePrompt, hasEnoughCredits, refreshCredits]);
+  }, [prompt, user, selectedModel, settings, enhancePrompt, hasEnoughCredits, refreshCredits, globalSettings]);
 
   const handleDownload = useCallback(async (image: GeneratedImage) => {
     try {
@@ -102,7 +125,7 @@ export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ghost-image-${image.id}.png`;
+      a.download = `ghost-image-${image.id}.${globalSettings?.image_format ?? 'png'}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -111,7 +134,7 @@ export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
     } catch (error) {
       toast.error('Failed to download image');
     }
-  }, []);
+  }, [globalSettings?.image_format]);
 
   const handleSave = useCallback(async (image: GeneratedImage) => {
     if (!user) return;
@@ -125,7 +148,7 @@ export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
         storage_key: image.url,
         prompt: image.prompt,
         model_id: image.model,
-        format: 'png',
+        format: globalSettings?.image_format ?? 'png',
         title: image.prompt.slice(0, 100),
       });
 
@@ -141,7 +164,7 @@ export function ImageGen({ onNavigateToVideo }: ImageGenProps) {
       console.error('[ImageGen] Save error:', error);
       toast.error('Failed to save image');
     }
-  }, [user]);
+  }, [user, globalSettings?.image_format]);
 
   const handleRegenerate = useCallback((image: GeneratedImage) => {
     setPrompt(image.prompt);
