@@ -13,9 +13,9 @@ export function GhostTextView({ hasMessages, children }: GhostTextViewProps) {
         <div className="w-16 h-16 rounded-2xl bg-swiss-navy/10 border border-swiss-navy/20 flex items-center justify-center mb-6">
           <MessageSquare className="w-8 h-8 text-swiss-navy" />
         </div>
-        <SwissHeading as="h2" size="xl" className="text-center mb-3">
+        <h2 className="text-xs text-muted-foreground uppercase tracking-wider font-sans text-center mb-3">
           Private AI Chat
-        </SwissHeading>
+        </h2>
         <p className="text-muted-foreground text-center max-w-md">
           Your conversations are encrypted locally and never leave your device.
           Start typing to begin a private conversation.
