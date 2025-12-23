@@ -533,6 +533,7 @@ export default function GhostChat() {
                         timestamp={msg.timestamp}
                         isStreaming={msg.isStreaming}
                         showDate={settings?.show_message_date ?? true}
+                        showExternalLinkWarning={settings?.show_external_link_warning ?? false}
                         ttsState={{
                           isPlaying: tts.isPlaying,
                           isPaused: tts.isPaused,
@@ -602,6 +603,7 @@ export default function GhostChat() {
                           timestamp={msg.timestamp}
                           isStreaming={msg.isStreaming}
                           showDate={settings?.show_message_date ?? true}
+                          showExternalLinkWarning={settings?.show_external_link_warning ?? false}
                           ttsState={{
                             isPlaying: tts.isPlaying,
                             isPaused: tts.isPaused,
