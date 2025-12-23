@@ -60,6 +60,7 @@ import Status from "./pages/Status";
 import OAuthCallback from "./pages/OAuthCallback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
+import APIPricing from "./pages/APIPricing";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const App = () => {
                 <Route path="/status" element={<Status />} />
                 <Route path="/features/vault-chat" element={<VaultChatFeatures />} />
                 <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
+                <Route path="/api-pricing" element={<APIPricing />} />
 
                 {/* Vault Chat routes (simple mode) */}
                 <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>
