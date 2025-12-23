@@ -35,8 +35,9 @@ import ghostIcon from '@/assets/ghost-icon.jpg';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
 import { GhostModelSelector, DEFAULT_GHOST_MODEL } from '@/components/ghost/GhostModelSelector';
+import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
 
-interface GhostMessage {
+interface GhostMessageData {
   id: string;
   role: 'user' | 'assistant';
   content: string;
@@ -73,7 +74,7 @@ export default function GhostChat() {
 
   // UI State
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [messages, setMessages] = useState<GhostMessage[]>([]);
+  const [messages, setMessages] = useState<GhostMessageData[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_GHOST_MODEL);
@@ -131,7 +132,7 @@ export default function GhostChat() {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isGenerating || !selectedConversation) return;
 
-    const userMessage: GhostMessage = {
+    const userMessage: GhostMessageData = {
       id: crypto.randomUUID(),
       role: 'user',
       content: inputValue.trim(),
@@ -186,7 +187,7 @@ export default function GhostChat() {
       // Extract response content
       const responseContent = data.choices?.[0]?.message?.content || 'No response generated';
       
-      const assistantMessage: GhostMessage = {
+      const assistantMessage: GhostMessageData = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: responseContent,
@@ -469,7 +470,7 @@ export default function GhostChat() {
           {selectedConversation ? (
             <ScrollArea className="h-full">
               <div className="max-w-4xl mx-auto p-6 space-y-6">
-                {messages.map((message, index) => (
+                {messages.map((message) => (
                   <div
                     key={message.id}
                     className={cn(
@@ -485,7 +486,11 @@ export default function GhostChat() {
                           : 'bg-slate-800/80 border border-purple-500/20 text-slate-100'
                       )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <GhostMessageComponent
+                        content={message.content}
+                        role={message.role}
+                        timestamp={message.timestamp}
+                      />
                       <p className="text-xs opacity-50 mt-2">
                         {new Date(message.timestamp).toLocaleTimeString()}
                       </p>
@@ -495,7 +500,6 @@ export default function GhostChat() {
                           size="sm"
                           className="mt-2 text-xs text-purple-400 hover:text-purple-300 -ml-2"
                           onClick={() => {
-                            // TODO: Implement regenerate
                             toast({ title: 'Regenerate', description: 'Coming soon' });
                           }}
                         >
