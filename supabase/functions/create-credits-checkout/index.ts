@@ -13,11 +13,18 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 // Credit packages with prices in cents
-const CREDIT_PACKAGES: Record<number, { priceInCents: number; credits: number }> = {
-  10: { priceInCents: 1000, credits: 10 },
-  25: { priceInCents: 2500, credits: 25 },
-  50: { priceInCents: 5000, credits: 50 },
-  100: { priceInCents: 10000, credits: 100 },
+const USAGE_PACKAGES: Record<number, { priceInCents: number; credits: number; description: string }> = {
+  5: { priceInCents: 500, credits: 5, description: "Good for ~500 messages" },
+  20: { priceInCents: 2000, credits: 20, description: "Good for ~2,000 messages" },
+  50: { priceInCents: 5000, credits: 50, description: "Good for ~5,000 messages" },
+  100: { priceInCents: 10000, credits: 100, description: "Good for ~10,000 messages" },
+};
+
+const TRAINING_PACKAGES: Record<number, { priceInCents: number; credits: number; description: string }> = {
+  10: { priceInCents: 1000, credits: 10, description: "~12 GPU hours" },
+  25: { priceInCents: 2500, credits: 25, description: "~31 GPU hours" },
+  50: { priceInCents: 5000, credits: 50, description: "~62 GPU hours" },
+  100: { priceInCents: 10000, credits: 100, description: "~125 GPU hours" },
 };
 
 serve(async (req) => {
@@ -48,14 +55,19 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { amount } = await req.json();
-    logStep("Requested amount", { amount });
+    const { amount, type = "usage" } = await req.json();
+    logStep("Requested purchase", { amount, type });
 
-    if (!amount || !CREDIT_PACKAGES[amount]) {
-      throw new Error(`Invalid credit amount. Available packages: ${Object.keys(CREDIT_PACKAGES).join(", ")}`);
+    const packages = type === "training" ? TRAINING_PACKAGES : USAGE_PACKAGES;
+    
+    if (!amount || !packages[amount]) {
+      throw new Error(`Invalid credit amount. Available packages: ${Object.keys(packages).join(", ")}`);
     }
 
-    const package_ = CREDIT_PACKAGES[amount];
+    const package_ = packages[amount];
+    const productName = type === "training" 
+      ? `${package_.credits} Training Credits` 
+      : `${package_.credits} Usage Credits`;
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -78,8 +90,8 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: {
-              name: `${package_.credits} SwissVault Credits`,
-              description: `Add $${package_.credits} in credits to your SwissVault account`,
+              name: productName,
+              description: package_.description,
             },
             unit_amount: package_.priceInCents,
           },
@@ -87,10 +99,11 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${origin}/dashboard/billing?success=true&credits=${package_.credits}`,
+      success_url: `${origin}/dashboard/billing?success=true&type=${type}&credits=${package_.credits}`,
       cancel_url: `${origin}/dashboard/billing?canceled=true`,
       metadata: {
         user_id: user.id,
+        type,
         credits: package_.credits.toString(),
       },
     });
