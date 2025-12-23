@@ -99,6 +99,12 @@ export default {
           audio: "hsl(var(--badge-audio))",
         },
       },
+      boxShadow: {
+        'swiss-subtle': '0 2px 8px rgba(0, 0, 0, 0.04)',
+        'swiss-card': '0 4px 16px rgba(0, 0, 0, 0.06)',
+        'swiss-elevated': '0 8px 24px rgba(0, 0, 0, 0.08)',
+        'swiss-luxury': '0 2px 16px rgba(26, 54, 93, 0.08)',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
