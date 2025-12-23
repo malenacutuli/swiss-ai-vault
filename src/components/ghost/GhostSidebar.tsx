@@ -49,6 +49,9 @@ export interface GhostConversation {
 export interface GhostFolder {
   id: string;
   name: string;
+  color?: string;
+  icon?: string;
+  sort_order?: number;
   isOpen?: boolean;
 }
 
@@ -63,6 +66,8 @@ interface GhostSidebarProps {
   onDeleteConversation: (id: string) => void;
   onExportConversation: (id: string) => void;
   onCreateFolder: () => void;
+  onRenameFolder?: (id: string, name: string) => Promise<boolean>;
+  onDeleteFolder?: (id: string) => Promise<boolean>;
   userName?: string;
   userCredits?: number;
   isPro?: boolean;
@@ -80,6 +85,8 @@ export function GhostSidebar({
   onDeleteConversation,
   onExportConversation,
   onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
   userName = 'User',
   userCredits = 0,
   isPro = false,
@@ -89,6 +96,8 @@ export function GhostSidebar({
   const [searchQuery, setSearchQuery] = useState('');
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [chatsOpen, setChatsOpen] = useState(true);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState('');
 
   const filteredConversations = conversations.filter(c =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -190,18 +199,79 @@ export function GhostSidebar({
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {folders.length === 0 ? (
+              {folders.length === 0 ? (
                   <p className="px-2 py-3 text-xs text-muted-foreground">No folders yet</p>
                 ) : (
                   <div className="space-y-0.5 mt-1">
                     {folders.map(folder => (
-                      <button
+                      <div
                         key={folder.id}
-                        className="flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm text-foreground/80 hover:bg-muted/50 transition-colors"
+                        className="group flex items-center justify-between px-2 py-2 rounded-md text-sm text-foreground/80 hover:bg-muted/50 transition-colors"
                       >
-                        <Folder className="w-4 h-4 text-muted-foreground" />
-                        {folder.name}
-                      </button>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Folder className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          {editingFolderId === folder.id ? (
+                            <Input
+                              value={editingFolderName}
+                              onChange={(e) => setEditingFolderName(e.target.value)}
+                              onBlur={async () => {
+                                if (onRenameFolder && editingFolderName.trim()) {
+                                  await onRenameFolder(folder.id, editingFolderName.trim());
+                                }
+                                setEditingFolderId(null);
+                              }}
+                              onKeyDown={async (e) => {
+                                if (e.key === 'Enter' && onRenameFolder && editingFolderName.trim()) {
+                                  await onRenameFolder(folder.id, editingFolderName.trim());
+                                  setEditingFolderId(null);
+                                }
+                                if (e.key === 'Escape') {
+                                  setEditingFolderId(null);
+                                }
+                              }}
+                              autoFocus
+                              className="h-6 text-sm px-1"
+                            />
+                          ) : (
+                            <span className="truncate">{folder.name}</span>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="w-3 h-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32 bg-popover border-border">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingFolderId(folder.id);
+                                setEditingFolderName(folder.name);
+                              }}
+                              className="gap-2 cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                if (onDeleteFolder) {
+                                  await onDeleteFolder(folder.id);
+                                }
+                              }}
+                              className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     ))}
                   </div>
                 )}

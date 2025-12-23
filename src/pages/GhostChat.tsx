@@ -10,10 +10,11 @@ import { useGhostInference } from '@/hooks/useGhostInference';
 import { useGhostTTS } from '@/hooks/useGhostTTS';
 import { useGhostSearch, type SearchResult } from '@/hooks/useGhostSearch';
 import { useGhostSettings } from '@/hooks/useGhostSettings';
+import { useGhostFolders } from '@/hooks/useGhostFolders';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Components
-import { GhostSidebar, type GhostConversation, type GhostFolder } from '@/components/ghost/GhostSidebar';
+import { GhostSidebar, type GhostConversation } from '@/components/ghost/GhostSidebar';
 import { GhostModeTabs, type GhostMode } from '@/components/ghost/GhostModeTabs';
 import { GhostChatInput } from '@/components/ghost/GhostChatInput';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
@@ -126,7 +127,8 @@ export default function GhostChat() {
   const [videoInputImage, setVideoInputImage] = useState<string | undefined>();
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [folders, setFolders] = useState<GhostFolder[]>([]);
+  // Ghost folders hook (persistent)
+  const { folders, createFolder, renameFolder, deleteFolder } = useGhostFolders();
   const [searchCitations, setSearchCitations] = useState<SearchResult[]>([]);
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
 
@@ -403,12 +405,8 @@ export default function GhostChat() {
     toast({ title: 'Deleted', description: 'Chat deleted' });
   };
 
-  const handleCreateFolder = () => {
-    const newFolder: GhostFolder = {
-      id: crypto.randomUUID(),
-      name: 'New Folder',
-    };
-    setFolders(prev => [...prev, newFolder]);
+  const handleCreateFolder = async () => {
+    await createFolder('New Folder');
   };
 
   // Handle message edit with fork or regenerate behavior
@@ -703,6 +701,8 @@ export default function GhostChat() {
         onDeleteConversation={handleDeleteConversation}
         onExportConversation={handleExportConversation}
         onCreateFolder={handleCreateFolder}
+        onRenameFolder={renameFolder}
+        onDeleteFolder={deleteFolder}
         userName={user.email?.split('@')[0] || 'User'}
         userCredits={balance}
         isPro={false}
