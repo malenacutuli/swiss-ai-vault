@@ -50,6 +50,7 @@ import VaultChat from "./pages/VaultChat";
 import VaultChatIntegrations from "./pages/VaultChatIntegrations";
 import SecureChat from "./pages/SecureChat";
 import GhostChat from "./pages/GhostChat";
+import GhostLibrary from "./pages/GhostLibrary";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import About from "./pages/About";
@@ -103,8 +104,9 @@ const App = () => {
                   <Route path=":conversationId" element={<VaultChat />} />
                 </Route>
                 
-                {/* Ghost Chat route */}
+                {/* Ghost Chat routes */}
                 <Route path="/ghost" element={<ProtectedRoute><GhostChat /></ProtectedRoute>} />
+                <Route path="/ghost/library" element={<ProtectedRoute><GhostLibrary /></ProtectedRoute>} />
 
                 {/* Legacy chat routes - redirect to new paths with toast */}
                 <Route path="/vault-chat" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
