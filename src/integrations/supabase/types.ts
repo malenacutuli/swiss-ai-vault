@@ -1385,6 +1385,90 @@ export type Database = {
         }
         Relationships: []
       }
+      ghost_credits: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          last_purchase: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          last_purchase?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          last_purchase?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ghost_subscriptions: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          ghost_tokens_limit: number
+          id: string
+          plan: string
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          ghost_tokens_limit?: number
+          id?: string
+          plan: string
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          ghost_tokens_limit?: number
+          id?: string
+          plan?: string
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ghost_usage: {
+        Row: {
+          created_at: string | null
+          id: string
+          input_tokens: number
+          model_id: string
+          output_tokens: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          input_tokens: number
+          model_id: string
+          output_tokens: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          input_tokens?: number
+          model_id?: string
+          output_tokens?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       metrics: {
         Row: {
           created_at: string | null
@@ -2464,6 +2548,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      deduct_ghost_credits: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: boolean
       }
       get_next_sequence_number: {
         Args: { p_conversation_id: string }
