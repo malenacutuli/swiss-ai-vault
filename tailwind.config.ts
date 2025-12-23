@@ -14,9 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Lardy Sans', 'Inter', 'system-ui', 'sans-serif'],
-        serif: ['Lardy Serif', 'Georgia', 'serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
+        serif: ['Playfair Display', 'Times New Roman', 'serif'],
+        mono: ['JetBrains Mono', 'SF Mono', 'monospace'],
+        display: ['Playfair Display', 'Times New Roman', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -64,6 +65,10 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        error: {
+          DEFAULT: "hsl(var(--error))",
+          foreground: "hsl(var(--error-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -74,14 +79,34 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        brand: {
-          accent: "hsl(var(--brand-accent))",
+        // Swiss luxury brand colors
+        swiss: {
+          navy: "hsl(var(--swiss-navy))",
+          sapphire: "hsl(var(--midnight-sapphire))",
+          burgundy: "hsl(var(--imperial-burgundy))",
+          teal: "hsl(var(--sovereign-teal))",
+        },
+        // Badge colors for model status
+        badge: {
+          private: "hsl(var(--badge-private))",
+          default: "hsl(var(--badge-default))",
+          new: "hsl(var(--badge-new))",
+          "pay-per-use": "hsl(var(--badge-pay-per-use))",
+          anonymized: "hsl(var(--badge-anonymized))",
+          beta: "hsl(var(--badge-beta))",
+          vision: "hsl(var(--badge-vision))",
+          reasoning: "hsl(var(--badge-reasoning))",
+          audio: "hsl(var(--badge-audio))",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      letterSpacing: {
+        luxury: "0.05em",
+        caps: "0.1em",
       },
       keyframes: {
         "accordion-down": {
@@ -92,10 +117,15 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        shimmer: "shimmer 2s linear infinite",
       },
     },
   },
