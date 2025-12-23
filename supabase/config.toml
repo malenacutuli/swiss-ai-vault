@@ -87,5 +87,8 @@ verify_jwt = true
 [functions.ghost-image-gen]
 verify_jwt = true
 
+[functions.ghost-video-gen]
+verify_jwt = true
+
 [functions.create-ghost-credits-checkout]
 verify_jwt = true

@@ -68,6 +68,7 @@ export default function GhostChat() {
   const [messages, setMessages] = useState<GhostMessageData[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [enhancePrompt, setEnhancePrompt] = useState(false);
+  const [videoInputImage, setVideoInputImage] = useState<string | undefined>();
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [folders, setFolders] = useState<GhostFolder[]>([]);
 
@@ -361,12 +362,12 @@ export default function GhostChat() {
             {mode === 'image' && (
               <GhostImageView
                 onNavigateToVideo={(imageUrl) => {
+                  setVideoInputImage(imageUrl);
                   handleModeChange('video');
-                  // TODO: Pass image URL to video view
                 }}
               />
             )}
-            {mode === 'video' && <GhostVideoView />}
+            {mode === 'video' && <GhostVideoView initialImageUrl={videoInputImage} />}
             {mode === 'search' && (
               messages.length > 0 ? (
                 <ScrollArea className="h-full">
