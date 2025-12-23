@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
-  Coins, MessageSquare, Database, Shield, 
-  TrendingUp, ChevronDown, ChevronUp, Loader2
+  Sparkles, MessageSquare, HardDrive, Shield, 
+  TrendingUp, ChevronDown, ChevronUp, Loader2, Check, Lock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface GhostDashboardProps {
   onBuyCredits: () => void;
@@ -111,11 +111,11 @@ export function GhostDashboard({ onBuyCredits, totalConversations, totalMessages
       <CollapsibleTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-between px-3 py-2 h-auto text-sm text-purple-300 hover:bg-purple-500/10"
+          className="w-full justify-between px-4 py-3 h-auto text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
         >
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
-            <span>Usage Dashboard</span>
+            <span className="font-medium">Usage Dashboard</span>
           </div>
           {isOpen ? (
             <ChevronUp className="w-4 h-4" />
@@ -126,39 +126,39 @@ export function GhostDashboard({ onBuyCredits, totalConversations, totalMessages
       </CollapsibleTrigger>
       
       <CollapsibleContent>
-        <div className="px-2 pb-3 space-y-3">
+        <div className="px-3 pb-4 space-y-3">
           {/* Credits Card */}
-          <Card className="bg-slate-800/50 border-purple-500/20">
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="text-sm font-medium text-purple-300 flex items-center gap-2">
-                <Coins className="w-4 h-4" />
+          <Card className="bg-muted/30 border-border">
+            <CardHeader className="py-4 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2 uppercase tracking-caps">
+                <Sparkles className="w-4 h-4" />
                 Ghost Credits
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-3 pt-0">
+            <CardContent className="px-4 pb-4 pt-0">
               {creditsLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-white mb-2">
+                  <p className="font-serif text-2xl font-semibold text-foreground mb-3">
                     {formattedBalance}
                   </p>
-                  <div className="flex gap-4 text-xs text-muted-foreground mb-3">
+                  <div className="flex gap-6 text-xs text-muted-foreground mb-4">
                     <div>
-                      <p className="text-purple-400">Today</p>
-                      <p className="text-white">{formatTokens(usageStats.tokensUsedToday)}</p>
+                      <p className="uppercase tracking-caps text-[10px] mb-0.5">Today</p>
+                      <p className="text-foreground font-medium">{formatTokens(usageStats.tokensUsedToday)}</p>
                     </div>
                     <div>
-                      <p className="text-purple-400">This Week</p>
-                      <p className="text-white">{formatTokens(usageStats.tokensUsedWeek)}</p>
+                      <p className="uppercase tracking-caps text-[10px] mb-0.5">This Week</p>
+                      <p className="text-foreground font-medium">{formatTokens(usageStats.tokensUsedWeek)}</p>
                     </div>
                   </div>
                   <Button
                     size="sm"
                     onClick={onBuyCredits}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                   >
-                    Buy Credits
+                    Purchase Credits
                   </Button>
                 </>
               )}
@@ -166,17 +166,17 @@ export function GhostDashboard({ onBuyCredits, totalConversations, totalMessages
           </Card>
 
           {/* Usage Chart */}
-          <Card className="bg-slate-800/50 border-purple-500/20">
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="text-sm font-medium text-purple-300 flex items-center gap-2">
+          <Card className="bg-muted/30 border-border">
+            <CardHeader className="py-4 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2 uppercase tracking-caps">
                 <TrendingUp className="w-4 h-4" />
                 Weekly Usage
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-2 pb-3 pt-0">
+            <CardContent className="px-2 pb-4 pt-0">
               {isLoadingUsage ? (
                 <div className="flex items-center justify-center h-24">
-                  <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <div className="h-24">
@@ -184,26 +184,33 @@ export function GhostDashboard({ onBuyCredits, totalConversations, totalMessages
                     <BarChart data={usageByDay}>
                       <XAxis 
                         dataKey="day" 
-                        tick={{ fill: '#a78bfa', fontSize: 10 }} 
+                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
                         axisLine={false}
                         tickLine={false}
                       />
                       <YAxis hide />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: '#1e1b4b',
-                          border: '1px solid rgba(168, 85, 247, 0.3)',
+                          backgroundColor: 'hsl(var(--popover))',
+                          border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
-                          color: '#fff',
+                          color: 'hsl(var(--popover-foreground))',
                           fontSize: '12px',
                         }}
                         formatter={(value: number) => [formatTokens(value), 'Tokens']}
                       />
                       <Bar 
                         dataKey="tokens" 
-                        fill="#a855f7" 
                         radius={[4, 4, 0, 0]}
-                      />
+                      >
+                        {usageByDay.map((_, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill="hsl(var(--swiss-navy))"
+                            opacity={0.8}
+                          />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -213,41 +220,50 @@ export function GhostDashboard({ onBuyCredits, totalConversations, totalMessages
 
           {/* Storage & Stats */}
           <div className="grid grid-cols-2 gap-2">
-            <Card className="bg-slate-800/50 border-purple-500/20 p-3">
+            <Card className="bg-muted/30 border-border p-4">
               <div className="flex flex-col items-center text-center">
-                <Database className="w-5 h-5 text-purple-400 mb-1" />
-                <p className="text-lg font-bold text-white">{storageUsedMB} MB</p>
-                <p className="text-xs text-muted-foreground">Local Storage</p>
+                <HardDrive className="w-5 h-5 text-muted-foreground mb-2" />
+                <p className="font-serif text-lg font-semibold text-foreground">{storageUsedMB} MB</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-caps">Local Storage</p>
               </div>
             </Card>
-            <Card className="bg-slate-800/50 border-purple-500/20 p-3">
+            <Card className="bg-muted/30 border-border p-4">
               <div className="flex flex-col items-center text-center">
-                <MessageSquare className="w-5 h-5 text-purple-400 mb-1" />
-                <p className="text-lg font-bold text-white">{totalMessages}</p>
-                <p className="text-xs text-muted-foreground">Messages</p>
+                <MessageSquare className="w-5 h-5 text-muted-foreground mb-2" />
+                <p className="font-serif text-lg font-semibold text-foreground">{totalMessages}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-caps">Messages</p>
               </div>
             </Card>
           </div>
 
           {/* Security Status */}
-          <Card className="bg-slate-800/50 border-purple-500/20">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-4 h-4 text-green-400" />
-                <span className="text-sm font-medium text-green-400">Security Status</span>
+          <Card className="bg-muted/30 border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield className="w-4 h-4 text-success" />
+                <span className="text-xs font-medium text-success uppercase tracking-caps">Security Status</span>
               </div>
-              <div className="space-y-1 text-xs">
+              <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Encryption</span>
-                  <span className="text-green-400">AES-256-GCM ✓</span>
+                  <span className="text-success flex items-center gap-1">
+                    AES-256-GCM
+                    <Check className="w-3 h-3" />
+                  </span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Server Logging</span>
-                  <span className="text-green-400">Zero Content ✓</span>
+                  <span className="text-success flex items-center gap-1">
+                    Zero Content
+                    <Check className="w-3 h-3" />
+                  </span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Storage</span>
-                  <span className="text-green-400">Local Only ✓</span>
+                  <span className="text-success flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    Local Only
+                  </span>
                 </div>
               </div>
             </CardContent>
