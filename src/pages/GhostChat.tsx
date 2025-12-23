@@ -34,7 +34,7 @@ import {
 import ghostIcon from '@/assets/ghost-icon.jpg';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
-import { GhostModelSelector, DEFAULT_GHOST_MODEL } from '@/components/ghost/GhostModelSelector';
+import { GhostModelSelector, getSavedGhostModel } from '@/components/ghost/GhostModelSelector';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
 
 interface GhostMessageData {
@@ -77,7 +77,7 @@ export default function GhostChat() {
   const [messages, setMessages] = useState<GhostMessageData[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_GHOST_MODEL);
+  const [selectedModel, setSelectedModel] = useState(getSavedGhostModel);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
