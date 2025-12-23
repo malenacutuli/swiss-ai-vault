@@ -36,6 +36,7 @@ interface GhostModelPickerProps {
   mode: GhostMode;
   selectedModel: string;
   onSelectModel: (modelId: string) => void;
+  matureFilterEnabled?: boolean;
   className?: string;
 }
 
@@ -86,6 +87,7 @@ export function GhostModelPicker({
   mode,
   selectedModel,
   onSelectModel,
+  matureFilterEnabled = true,
   className,
 }: GhostModelPickerProps) {
   const [open, setOpen] = useState(false);
@@ -94,10 +96,10 @@ export function GhostModelPicker({
   const models = useMemo(() => {
     if (mode === 'search') {
       // For search, only show models suitable for search (could filter by specific tags)
-      return TEXT_MODELS.filter(m => m.enabled);
+      return getModelsByModality('text', matureFilterEnabled);
     }
-    return getModelsByModality(mode);
-  }, [mode]);
+    return getModelsByModality(mode, matureFilterEnabled);
+  }, [mode, matureFilterEnabled]);
 
   // Group models by provider
   const groupedModels = useMemo(() => groupModelsByProvider(models), [models]);

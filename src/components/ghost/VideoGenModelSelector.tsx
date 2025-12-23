@@ -22,6 +22,8 @@ export interface VideoModel {
   isComingSoon?: boolean;
   supportsI2V?: boolean;
   supportsT2V?: boolean;
+  isUncensored?: boolean;  // Models that allow mature content
+  isMature?: boolean;      // Models primarily for mature content
 }
 
 export const VIDEO_MODELS: VideoModel[] = [
@@ -78,14 +80,22 @@ interface VideoGenModelSelectorProps {
   selectedModel: string;
   onModelChange: (modelId: string) => void;
   mode: 'i2v' | 't2v';
+  matureFilterEnabled?: boolean;
 }
 
-export function VideoGenModelSelector({ selectedModel, onModelChange, mode }: VideoGenModelSelectorProps) {
+export function VideoGenModelSelector({ selectedModel, onModelChange, mode, matureFilterEnabled = true }: VideoGenModelSelectorProps) {
   const [open, setOpen] = useState(false);
   
-  const availableModels = VIDEO_MODELS.filter(m => 
-    mode === 'i2v' ? m.supportsI2V : m.supportsT2V
-  );
+  const availableModels = VIDEO_MODELS.filter(m => {
+    // Filter by mode support
+    const supportsMode = mode === 'i2v' ? m.supportsI2V : m.supportsT2V;
+    if (!supportsMode) return false;
+    
+    // Filter by mature content if enabled
+    if (matureFilterEnabled && (m.isUncensored || m.isMature)) return false;
+    
+    return true;
+  });
   
   const currentModel = availableModels.find(m => m.id === selectedModel) || availableModels[0];
   const Icon = PROVIDER_ICONS[currentModel.provider] || Video;

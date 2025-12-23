@@ -85,6 +85,7 @@ interface GhostChatInputProps {
   onAttach?: () => void;
   disabled?: boolean;
   voiceLanguage?: string;
+  matureFilterEnabled?: boolean;
   className?: string;
 }
 
@@ -112,6 +113,7 @@ export function GhostChatInput({
   onAttach,
   disabled = false,
   voiceLanguage,
+  matureFilterEnabled = true,
   className,
 }: GhostChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -220,6 +222,7 @@ export function GhostChatInput({
               mode={mode}
               selectedModel={selectedModel}
               onSelectModel={onSelectModel}
+              matureFilterEnabled={matureFilterEnabled}
             />
           </div>
 
