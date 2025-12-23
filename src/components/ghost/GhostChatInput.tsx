@@ -44,6 +44,7 @@ interface GhostChatInputProps {
   onOpenSettings?: () => void;
   onAttach?: () => void;
   disabled?: boolean;
+  voiceLanguage?: string;
   className?: string;
 }
 
@@ -70,12 +71,14 @@ export function GhostChatInput({
   onOpenSettings,
   onAttach,
   disabled = false,
+  voiceLanguage,
   className,
 }: GhostChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Voice input hook
+  // Voice input hook with language setting
   const stt = useGhostSTT({
+    language: voiceLanguage,
     onTranscription: (text) => {
       onChange(value ? `${value} ${text}` : text);
       textareaRef.current?.focus();
