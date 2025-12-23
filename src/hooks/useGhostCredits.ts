@@ -117,23 +117,50 @@ export function useGhostCredits() {
   }, [user]);
 
   const recordUsage = useCallback(async (
+    serviceType: UsageType,
     modelId: string,
-    inputTokens: number,
-    outputTokens: number
-  ) => {
-    if (!user) return;
+    options?: {
+      inputTokens?: number;
+      outputTokens?: number;
+      durationSeconds?: number;
+      resolution?: string;
+    }
+  ): Promise<{ success: boolean; creditsUsed: number; wasFreeTier: boolean }> => {
+    if (!user) {
+      return { success: false, creditsUsed: 0, wasFreeTier: false };
+    }
 
     try {
-      await supabase.from('ghost_usage').insert({
-        user_id: user.id,
-        model_id: modelId,
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
+      const { data, error } = await supabase.rpc('record_ghost_usage', {
+        p_user_id: user.id,
+        p_service_type: serviceType,
+        p_model_id: modelId,
+        p_input_tokens: options?.inputTokens ?? 0,
+        p_output_tokens: options?.outputTokens ?? 0,
+        p_duration_seconds: options?.durationSeconds ?? null,
+        p_resolution: options?.resolution ?? null,
       });
+
+      if (error) {
+        console.error('[Ghost Credits] Failed to record usage:', error);
+        return { success: false, creditsUsed: 0, wasFreeTier: false };
+      }
+
+      const result = data as Record<string, unknown> | null;
+      
+      // Refresh credits after recording usage
+      await fetchCredits();
+
+      return {
+        success: (result?.success as boolean) ?? false,
+        creditsUsed: (result?.credits_used as number) ?? 0,
+        wasFreeTier: (result?.was_free_tier as boolean) ?? false,
+      };
     } catch (error) {
       console.error('[Ghost Credits] Failed to record usage:', error);
+      return { success: false, creditsUsed: 0, wasFreeTier: false };
     }
-  }, [user]);
+  }, [user, fetchCredits]);
 
   const checkCredits = useCallback(async (
     type: UsageType,
