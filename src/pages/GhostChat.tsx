@@ -538,7 +538,10 @@ export default function GhostChat() {
                           progress: tts.progress,
                           currentMessageId: tts.currentMessageId,
                         }}
-                        onSpeak={(messageId, content) => tts.speak(content, messageId)}
+                        onSpeak={(messageId, content) => tts.speak(content, messageId, {
+                          voice: settings?.voice_id as any,
+                          speed: settings?.voice_speed,
+                        })}
                         onStopSpeak={tts.stop}
                       />
                     ))}
@@ -602,7 +605,10 @@ export default function GhostChat() {
                             progress: tts.progress,
                             currentMessageId: tts.currentMessageId,
                           }}
-                          onSpeak={(messageId, content) => tts.speak(content, messageId)}
+                          onSpeak={(messageId, content) => tts.speak(content, messageId, {
+                            voice: settings?.voice_id as any,
+                            speed: settings?.voice_speed,
+                          })}
                           onStopSpeak={tts.stop}
                         />
                       ))}
@@ -657,6 +663,7 @@ export default function GhostChat() {
                   onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
                   onOpenSettings={() => setShowSettings(true)}
                   onAttach={handleFileAttach}
+                  voiceLanguage={settings?.voice_language}
                 />
               </div>
             </div>
