@@ -40,6 +40,7 @@ import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
 import { GhostModelSelector, getSavedGhostModel } from '@/components/ghost/GhostModelSelector';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
 import { ExportImportDialog } from '@/components/ghost/ExportImportDialog';
+import { GhostDashboard } from '@/components/ghost/GhostDashboard';
 import type { ExportableConversation } from '@/lib/ghost/export-import';
 
 interface GhostMessageData {
@@ -416,6 +417,15 @@ export default function GhostChat() {
             )}
           </div>
         </ScrollArea>
+
+        {/* Usage Dashboard */}
+        <div className="border-t border-purple-500/20">
+          <GhostDashboard
+            onBuyCredits={() => setShowBuyCredits(true)}
+            totalConversations={conversations.length}
+            totalMessages={conversations.reduce((sum, c) => sum + (c.messageCount || 0), 0)}
+          />
+        </div>
 
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-purple-500/20 space-y-2">

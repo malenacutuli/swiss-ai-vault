@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function useGhostStorage() {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number; messageCount: number }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
