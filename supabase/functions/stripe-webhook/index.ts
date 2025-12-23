@@ -61,119 +61,395 @@ serve(async (req) => {
       });
     }
 
-    // Handle checkout.session.completed event
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      logStep("Processing checkout.session.completed", { 
-        sessionId: session.id,
-        metadata: session.metadata 
-      });
+    // Initialize Supabase with service role key
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Extract user_id and credits from metadata
-      const userId = session.metadata?.user_id;
-      const creditsStr = session.metadata?.credits;
-      const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
+    // Helper to get user_id from Stripe customer email
+    const getUserIdFromCustomer = async (customerId: string): Promise<string | null> => {
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer.deleted) return null;
+        
+        const email = (customer as Stripe.Customer).email;
+        if (!email) return null;
 
-      if (!userId || !creditsStr) {
-        logStep("ERROR: Missing metadata", { userId, creditsStr });
-        // Return 200 to acknowledge receipt (don't want Stripe to retry)
-        return new Response(JSON.stringify({ received: true, warning: "Missing metadata" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        const { data: user } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", email)
+          .single();
+
+        return user?.id || null;
+      } catch (error) {
+        logStep("ERROR: Failed to get user from customer", { error: String(error) });
+        return null;
+      }
+    };
+
+    // Handle different event types
+    switch (event.type) {
+      // ============================================
+      // CHECKOUT SESSION COMPLETED
+      // ============================================
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        logStep("Processing checkout.session.completed", { 
+          sessionId: session.id,
+          mode: session.mode,
+          metadata: session.metadata 
         });
+
+        const userId = session.metadata?.user_id;
+        
+        if (!userId) {
+          logStep("WARNING: Missing user_id in metadata");
+          break;
+        }
+
+        // SUBSCRIPTION SIGNUP
+        if (session.mode === "subscription") {
+          logStep("Processing subscription signup", { subscriptionId: session.subscription });
+          
+          // Get subscription details from Stripe
+          const subscriptionId = session.subscription as string;
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const priceId = subscription.items.data[0]?.price.id;
+
+          // Find tier by price ID
+          const { data: tier, error: tierError } = await supabase
+            .from("subscription_tiers")
+            .select("name")
+            .eq("stripe_price_id", priceId)
+            .single();
+
+          if (tierError) {
+            logStep("WARNING: Could not find tier for price", { priceId, error: tierError.message });
+            // Fallback: update billing_customers directly
+            await supabase
+              .from("billing_customers")
+              .upsert({
+                user_id: userId,
+                email: session.customer_email || "",
+                stripe_customer_id: session.customer as string,
+                stripe_subscription_id: subscriptionId,
+                subscription_status: "active",
+                tier: "pro", // Default to pro
+                current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              }, { onConflict: "user_id" });
+          } else {
+            // Update user subscription via RPC if available, otherwise direct update
+            const { error: updateError } = await supabase
+              .from("billing_customers")
+              .upsert({
+                user_id: userId,
+                email: session.customer_email || "",
+                stripe_customer_id: session.customer as string,
+                stripe_subscription_id: subscriptionId,
+                subscription_status: "active",
+                tier: tier.name,
+                current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              }, { onConflict: "user_id" });
+
+            if (updateError) {
+              logStep("ERROR: Failed to update subscription", { error: updateError.message });
+            } else {
+              logStep("Subscription updated successfully", { tier: tier.name });
+            }
+          }
+
+          // Create notification
+          await supabase.from("notifications").insert({
+            user_id: userId,
+            type: "success",
+            title: "Subscription Activated",
+            message: `Welcome to SwissVault ${tier?.name || "Pro"}! Your subscription is now active.`,
+            metadata: { link: "/dashboard/billing" },
+          });
+        }
+
+        // ONE-TIME CREDIT PURCHASE
+        if (session.mode === "payment") {
+          const creditType = session.metadata?.type || "usage";
+          const creditsStr = session.metadata?.credits;
+          const credits = creditsStr ? parseFloat(creditsStr) : 0;
+          const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
+
+          logStep("Processing credit purchase", { creditType, credits, amountPaid });
+
+          if (creditType === "usage" && credits > 0) {
+            // Add usage credits to user_credits table
+            const { data: existingCredits } = await supabase
+              .from("user_credits")
+              .select("balance")
+              .eq("user_id", userId)
+              .single();
+
+            if (existingCredits) {
+              const newBalance = parseFloat(existingCredits.balance.toString()) + credits;
+              await supabase
+                .from("user_credits")
+                .update({ balance: newBalance, updated_at: new Date().toISOString() })
+                .eq("user_id", userId);
+              logStep("Usage credits updated", { newBalance });
+            } else {
+              await supabase
+                .from("user_credits")
+                .insert({ user_id: userId, balance: credits });
+              logStep("Usage credits inserted", { balance: credits });
+            }
+
+            // Record transaction
+            await supabase.from("credit_transactions").insert({
+              user_id: userId,
+              service_type: "USAGE_CREDIT_PURCHASE",
+              credits_used: -credits,
+              description: `Purchased $${credits} usage credits`,
+              metadata: {
+                checkout_session_id: session.id,
+                amount_paid: amountPaid,
+                currency: session.currency,
+              },
+            });
+          }
+
+          if (creditType === "training" && credits > 0) {
+            // Add training credits - stored in ghost_credits or separate table
+            const { data: ghostCredits } = await supabase
+              .from("ghost_credits")
+              .select("paid_credits_balance")
+              .eq("user_id", userId)
+              .single();
+
+            if (ghostCredits) {
+              const newBalance = (ghostCredits.paid_credits_balance || 0) + (credits * 100); // Store in cents
+              await supabase
+                .from("ghost_credits")
+                .update({ paid_credits_balance: newBalance, updated_at: new Date().toISOString() })
+                .eq("user_id", userId);
+              logStep("Training credits updated", { newBalance });
+            }
+
+            // Record transaction
+            await supabase.from("credit_transactions").insert({
+              user_id: userId,
+              service_type: "TRAINING_CREDIT_PURCHASE",
+              credits_used: -credits,
+              description: `Purchased $${credits} training credits`,
+              metadata: {
+                checkout_session_id: session.id,
+                amount_paid: amountPaid,
+                currency: session.currency,
+              },
+            });
+          }
+
+          // Create notification
+          await supabase.from("notifications").insert({
+            user_id: userId,
+            type: "success",
+            title: "Credits Added",
+            message: `Successfully added $${credits.toFixed(2)} in ${creditType} credits`,
+            metadata: { link: "/dashboard/billing", credits_added: credits },
+          });
+        }
+        break;
       }
 
-      const credits = parseFloat(creditsStr);
-      logStep("Extracted payment details", { userId, credits, amountPaid });
+      // ============================================
+      // SUBSCRIPTION UPDATED (Plan Change)
+      // ============================================
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        logStep("Processing subscription update", { 
+          subscriptionId: subscription.id,
+          status: subscription.status 
+        });
 
-      // Initialize Supabase with service role key
-      const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
+        const customerId = subscription.customer as string;
+        const userId = await getUserIdFromCustomer(customerId);
 
-      // Update user_credits - add credits to balance
-      const { data: existingCredits, error: fetchError } = await supabase
-        .from("user_credits")
-        .select("balance")
-        .eq("user_id", userId)
-        .single();
+        if (!userId) {
+          logStep("WARNING: Could not find user for customer", { customerId });
+          break;
+        }
 
-      if (fetchError && fetchError.code !== "PGRST116") {
-        logStep("ERROR: Failed to fetch user credits", { error: fetchError.message });
-      }
+        const newPriceId = subscription.items.data[0]?.price.id;
+        
+        // Find new tier
+        const { data: tier } = await supabase
+          .from("subscription_tiers")
+          .select("name")
+          .eq("stripe_price_id", newPriceId)
+          .single();
 
-      if (existingCredits) {
-        // Update existing record
-        const newBalance = parseFloat(existingCredits.balance.toString()) + credits;
+        // Update billing_customers
         const { error: updateError } = await supabase
-          .from("user_credits")
-          .update({ balance: newBalance, updated_at: new Date().toISOString() })
-          .eq("user_id", userId);
+          .from("billing_customers")
+          .update({
+            tier: tier?.name || "pro",
+            subscription_status: subscription.status,
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          })
+          .eq("stripe_subscription_id", subscription.id);
 
         if (updateError) {
-          logStep("ERROR: Failed to update credits", { error: updateError.message });
+          logStep("ERROR: Failed to update subscription", { error: updateError.message });
         } else {
-          logStep("Credits updated successfully", { newBalance });
+          logStep("Subscription updated", { tier: tier?.name, status: subscription.status });
         }
-      } else {
-        // Insert new record if doesn't exist
-        const { error: insertError } = await supabase
-          .from("user_credits")
-          .insert({ user_id: userId, balance: credits });
 
-        if (insertError) {
-          logStep("ERROR: Failed to insert credits", { error: insertError.message });
-        } else {
-          logStep("Credits inserted successfully", { balance: credits });
+        // Notify user of plan change
+        if (tier) {
+          await supabase.from("notifications").insert({
+            user_id: userId,
+            type: "info",
+            title: "Plan Updated",
+            message: `Your subscription has been updated to ${tier.name}`,
+            metadata: { link: "/dashboard/billing" },
+          });
         }
+        break;
       }
 
-      // Insert credit_transactions record (negative credits_used means credits added)
-      const { error: transactionError } = await supabase
-        .from("credit_transactions")
-        .insert({
-          user_id: userId,
-          service_type: "CREDIT_PURCHASE",
-          credits_used: -credits, // Negative value for credits added
-          description: "Credit purchase via Stripe",
-          metadata: {
-            checkout_session_id: session.id,
-            amount_paid: amountPaid,
-            currency: session.currency,
-            payment_status: session.payment_status,
-          },
+      // ============================================
+      // SUBSCRIPTION DELETED (Cancellation)
+      // ============================================
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        logStep("Processing subscription cancellation", { subscriptionId: subscription.id });
+
+        // Downgrade to free
+        const { error: updateError } = await supabase
+          .from("billing_customers")
+          .update({
+            tier: "free",
+            stripe_subscription_id: null,
+            subscription_status: "canceled",
+          })
+          .eq("stripe_subscription_id", subscription.id);
+
+        if (updateError) {
+          logStep("ERROR: Failed to cancel subscription", { error: updateError.message });
+        } else {
+          logStep("Subscription canceled, downgraded to free");
+        }
+
+        // Get user_id to send notification
+        const customerId = subscription.customer as string;
+        const userId = await getUserIdFromCustomer(customerId);
+        
+        if (userId) {
+          await supabase.from("notifications").insert({
+            user_id: userId,
+            type: "info",
+            title: "Subscription Canceled",
+            message: "Your subscription has been canceled. You've been moved to the free plan.",
+            metadata: { link: "/dashboard/billing" },
+          });
+        }
+        break;
+      }
+
+      // ============================================
+      // INVOICE PAID (Monthly Renewal)
+      // ============================================
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        logStep("Processing invoice paid", { 
+          invoiceId: invoice.id,
+          subscriptionId: invoice.subscription 
         });
 
-      if (transactionError) {
-        logStep("ERROR: Failed to insert transaction", { error: transactionError.message });
-      } else {
-        logStep("Transaction recorded successfully");
+        if (invoice.subscription) {
+          const subscriptionId = invoice.subscription as string;
+          
+          // Get subscription to update period end
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          
+          // Update billing_customers with new period end
+          await supabase
+            .from("billing_customers")
+            .update({
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_status: "active",
+            })
+            .eq("stripe_subscription_id", subscriptionId);
+
+          // Check if Team tier - add monthly training credits
+          const { data: billingCustomer } = await supabase
+            .from("billing_customers")
+            .select("user_id, tier")
+            .eq("stripe_subscription_id", subscriptionId)
+            .single();
+
+          if (billingCustomer?.tier === "team" && billingCustomer.user_id) {
+            // Add $50 training credits for Team tier
+            const { data: ghostCredits } = await supabase
+              .from("ghost_credits")
+              .select("paid_credits_balance")
+              .eq("user_id", billingCustomer.user_id)
+              .single();
+
+            if (ghostCredits) {
+              const newBalance = (ghostCredits.paid_credits_balance || 0) + 5000; // $50 in cents
+              await supabase
+                .from("ghost_credits")
+                .update({ paid_credits_balance: newBalance, updated_at: new Date().toISOString() })
+                .eq("user_id", billingCustomer.user_id);
+              
+              logStep("Added monthly training credits for Team tier", { userId: billingCustomer.user_id, added: 5000 });
+            }
+
+            // Record transaction
+            await supabase.from("credit_transactions").insert({
+              user_id: billingCustomer.user_id,
+              service_type: "TRAINING_CREDIT_ALLOCATION",
+              credits_used: -50, // $50 added
+              description: "Monthly subscription training credit allocation",
+              metadata: { invoice_id: invoice.id },
+            });
+          }
+
+          logStep("Invoice processed, subscription renewed", { subscriptionId });
+        }
+        break;
       }
 
-      // Create notification for the user
-      const { error: notificationError } = await supabase
-        .from("notifications")
-        .insert({
-          user_id: userId,
-          type: "success",
-          title: "Credits Added",
-          message: `Successfully added $${credits.toFixed(2)} in credits to your account`,
-          metadata: {
-            link: "/dashboard/billing",
-            checkout_session_id: session.id,
-            credits_added: credits,
-          },
-        });
+      // ============================================
+      // INVOICE PAYMENT FAILED
+      // ============================================
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        logStep("Processing invoice payment failed", { invoiceId: invoice.id });
 
-      if (notificationError) {
-        logStep("ERROR: Failed to create notification", { error: notificationError.message });
-      } else {
-        logStep("Notification created successfully");
+        if (invoice.subscription) {
+          // Update subscription status
+          await supabase
+            .from("billing_customers")
+            .update({ subscription_status: "past_due" })
+            .eq("stripe_subscription_id", invoice.subscription);
+
+          // Notify user
+          const customerId = invoice.customer as string;
+          const userId = await getUserIdFromCustomer(customerId);
+          
+          if (userId) {
+            await supabase.from("notifications").insert({
+              user_id: userId,
+              type: "error",
+              title: "Payment Failed",
+              message: "Your subscription payment failed. Please update your payment method.",
+              metadata: { link: "/dashboard/billing" },
+            });
+          }
+        }
+        break;
       }
 
-      logStep("Checkout session processed successfully", { userId, credits });
-    } else {
-      logStep("Unhandled event type", { type: event.type });
+      default:
+        logStep("Unhandled event type", { type: event.type });
     }
 
     // Return 200 OK to acknowledge receipt
@@ -186,7 +462,6 @@ serve(async (req) => {
     logStep("ERROR: Unhandled exception", { error: errorMessage });
     
     // Return 200 to prevent Stripe retries for unhandled errors
-    // Log the error but don't expose internal details
     return new Response(JSON.stringify({ received: true, error: "Internal processing error" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
