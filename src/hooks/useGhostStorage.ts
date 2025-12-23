@@ -171,6 +171,14 @@ export function useGhostStorage() {
     refreshConversations();
   }, [isInitialized, refreshConversations]);
 
+  const clearAllConversations = useCallback(async () => {
+    if (!isInitialized) return;
+    const storage = getGhostStorage();
+    await storage.clearAllConversations();
+    setConversations([]);
+    setCorruptedCount(0);
+  }, [isInitialized]);
+
   const clearAllData = useCallback(() => {
     resetGhostStorage();
     setConversations([]);
@@ -192,6 +200,7 @@ export function useGhostStorage() {
     importConversation,
     updateConversationTitle,
     makeConversationPersistent,
+    clearAllConversations, // New method for recovery
     clearAllData,
     refreshConversations,
   };

@@ -65,7 +65,7 @@ interface ExportedGhostFile {
 // ==========================================
 
 const DB_NAME = 'ghost-chat-storage';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented to trigger migration for stable key derivation
 const STORE_NAME = 'conversations';
 const DEBOUNCE_MS = 500;
 
@@ -536,6 +536,27 @@ export class GhostStorageManager {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
+  }
+
+  /**
+   * Clear all conversations (for recovery from corrupted data)
+   */
+  async clearAllConversations(): Promise<void> {
+    // Cancel all pending persists
+    for (const timeout of this.saveTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.saveTimeouts.clear();
+
+    // Clear hot storage
+    this.hotStore.clear();
+
+    // Clear cold storage
+    if (this.db) {
+      await this.clearIndexedDB();
+    }
+
+    this.corruptedCount = 0;
   }
 
   /**
