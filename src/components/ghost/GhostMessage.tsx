@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { ReadAloudButton } from './ReadAloudButton';
 import { cn } from '@/lib/utils';
-import { ExternalLink, Pencil, Check, X } from 'lucide-react';
+import { ExternalLink, Pencil, Check, X, RotateCcw, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,7 @@ interface GhostMessageProps {
   isStreaming?: boolean;
   showDate?: boolean;
   showExternalLinkWarning?: boolean;
-  onRegenerate?: () => void;
+  onRegenerate?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   ttsState?: {
     isPlaying: boolean;
@@ -276,7 +277,14 @@ export function GhostMessage({
     setIsEditing(false);
   };
 
-
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
   return (
     <>
       <div className="space-y-3 group relative">
@@ -294,19 +302,41 @@ export function GhostMessage({
           </div>
         )}
 
-        {/* TTS button for assistant messages */}
-        {role === 'assistant' && !isStreaming && ttsState && onSpeak && onStopSpeak && (
-          <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <ReadAloudButton
-              messageId={id}
-              isPlaying={ttsState.isPlaying}
-              isPaused={ttsState.isPaused}
-              isLoading={ttsState.isLoading}
-              progress={ttsState.progress}
-              currentMessageId={ttsState.currentMessageId}
-              onSpeak={() => onSpeak(id, content)}
-              onStop={onStopSpeak}
-            />
+        {/* Action buttons for assistant messages */}
+        {role === 'assistant' && !isStreaming && !isEditing && (
+          <div className="absolute -right-24 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+            {onRegenerate && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => onRegenerate(id)}
+                title="Regenerate response"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={handleCopy}
+              title="Copy to clipboard"
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </Button>
+            {ttsState && onSpeak && onStopSpeak && (
+              <ReadAloudButton
+                messageId={id}
+                isPlaying={ttsState.isPlaying}
+                isPaused={ttsState.isPaused}
+                isLoading={ttsState.isLoading}
+                progress={ttsState.progress}
+                currentMessageId={ttsState.currentMessageId}
+                onSpeak={() => onSpeak(id, content)}
+                onStop={onStopSpeak}
+              />
+            )}
           </div>
         )}
         

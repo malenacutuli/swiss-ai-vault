@@ -593,6 +593,23 @@ export default function GhostChat() {
     }
   }, [mode, checkCredits, handleInsufficientCredits, streamResponse, webSearch, selectedModels, settings, saveMessage, recordUsage, toast]);
 
+  // Handle regeneration of assistant message
+  const handleRegenerate = useCallback(async (messageId: string) => {
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+
+    // Remove the assistant message and any messages after it
+    const truncatedMessages = messages.slice(0, messageIndex);
+    setMessages(truncatedMessages);
+
+    // Get the last user message from truncated messages
+    const lastUserMessage = [...truncatedMessages].reverse().find(m => m.role === 'user');
+    if (!lastUserMessage || !selectedConversation) return;
+
+    // Trigger regeneration
+    await triggerRegeneration(selectedConversation, truncatedMessages);
+  }, [messages, selectedConversation, triggerRegeneration]);
+
   // File attachment handlers
   const handleFileAttach = () => {
     fileInputRef.current?.click();
@@ -773,6 +790,7 @@ export default function GhostChat() {
                         })}
                         onStopSpeak={tts.stop}
                         onEdit={handleMessageEdit}
+                        onRegenerate={handleRegenerate}
                       />
                     ))}
                     <div ref={messagesEndRef} />
@@ -845,6 +863,7 @@ export default function GhostChat() {
                           })}
                           onStopSpeak={tts.stop}
                           onEdit={handleMessageEdit}
+                          onRegenerate={handleRegenerate}
                         />
                       ))}
                       <div ref={messagesEndRef} />
