@@ -34,12 +34,15 @@ import {
   Zap,
   Shield,
   Volume2,
+  Code,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostSettings, type GhostSettings as GhostSettingsType } from '@/hooks/useGhostSettings';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { GhostAPIKeys } from './GhostAPIKeys';
+import { GhostAPIDocs } from './GhostAPIDocs';
 
 interface GhostSettingsProps {
   open: boolean;
@@ -148,7 +151,7 @@ export function GhostSettings({ open, onOpenChange }: GhostSettingsProps) {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <div className="px-6 pt-4">
-            <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-6 h-auto p-1">
               <TabsTrigger value="profile" className="flex-col gap-1 py-2 text-xs">
                 <User className="w-4 h-4" />
                 Profile
@@ -168,6 +171,10 @@ export function GhostSettings({ open, onOpenChange }: GhostSettingsProps) {
               <TabsTrigger value="image" className="flex-col gap-1 py-2 text-xs">
                 <Image className="w-4 h-4" />
                 Image
+              </TabsTrigger>
+              <TabsTrigger value="api" className="flex-col gap-1 py-2 text-xs">
+                <Code className="w-4 h-4" />
+                API
               </TabsTrigger>
             </TabsList>
           </div>
@@ -579,8 +586,8 @@ export function GhostSettings({ open, onOpenChange }: GhostSettingsProps) {
                 </SettingRow>
               </div>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={resetToDefaults}
                 className="w-full"
               >
