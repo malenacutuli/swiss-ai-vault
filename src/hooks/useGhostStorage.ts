@@ -47,12 +47,22 @@ export function useGhostStorage() {
     setConversations(convList);
   }, [isInitialized]);
 
-  const createConversation = useCallback((title: string = 'New Ghost Session'): string | null => {
+  const createConversation = useCallback((title: string = 'New Ghost Session', isTemporary: boolean = false): string | null => {
     if (!isInitialized) return null;
     const storage = getGhostStorage();
-    const id = storage.createConversation(title);
-    refreshConversations();
+    const id = storage.createConversation(title, isTemporary);
+    // Only refresh if not temporary (temporary won't show in sidebar)
+    if (!isTemporary) {
+      refreshConversations();
+    }
     return id;
+  }, [isInitialized, refreshConversations]);
+
+  const makeConversationPersistent = useCallback((convId: string) => {
+    if (!isInitialized) return;
+    const storage = getGhostStorage();
+    storage.makeConversationPersistent(convId);
+    refreshConversations();
   }, [isInitialized, refreshConversations]);
 
   const getConversation = useCallback((convId: string): GhostConversation | undefined => {
@@ -141,6 +151,7 @@ export function useGhostStorage() {
     exportAllConversations,
     importConversation,
     updateConversationTitle,
+    makeConversationPersistent,
     clearAllData,
     refreshConversations,
   };

@@ -37,6 +37,7 @@ export interface GhostConversation {
   messages: GhostMessage[];
   createdAt: number;
   updatedAt: number;
+  isTemporary?: boolean; // If true, won't be persisted to IndexedDB
 }
 
 interface EncryptedConversation {
@@ -203,8 +204,10 @@ export class GhostStorageManager {
   /**
    * Create a new conversation
    * Returns the conversation ID
+   * @param title - Conversation title
+   * @param isTemporary - If true, conversation won't be persisted to IndexedDB
    */
-  createConversation(title: string = 'New Ghost Chat'): string {
+  createConversation(title: string = 'New Ghost Chat', isTemporary: boolean = false): string {
     const id = crypto.randomUUID();
     const now = Date.now();
 
@@ -213,18 +216,23 @@ export class GhostStorageManager {
       title,
       messages: [],
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      isTemporary
     };
 
     this.hotStore.set(id, conversation);
-    this.schedulePersist(id);
+    
+    // Only persist if not temporary
+    if (!isTemporary) {
+      this.schedulePersist(id);
+    }
 
     return id;
   }
 
   /**
    * Save a message to a conversation
-   * Adds to hot store immediately, debounces persist to IndexedDB
+   * Adds to hot store immediately, debounces persist to IndexedDB (unless temporary)
    */
   saveMessage(convId: string, role: 'user' | 'assistant', content: string): GhostMessage {
     const conversation = this.hotStore.get(convId);
@@ -247,7 +255,10 @@ export class GhostStorageManager {
       conversation.title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
     }
 
-    this.schedulePersist(convId);
+    // Only persist if not temporary
+    if (!conversation.isTemporary) {
+      this.schedulePersist(convId);
+    }
 
     return message;
   }
@@ -263,7 +274,26 @@ export class GhostStorageManager {
 
     conversation.title = title;
     conversation.updatedAt = Date.now();
-    this.schedulePersist(convId);
+    
+    // Only persist if not temporary
+    if (!conversation.isTemporary) {
+      this.schedulePersist(convId);
+    }
+  }
+
+  /**
+   * Convert a temporary conversation to persistent
+   */
+  makeConversationPersistent(convId: string): void {
+    const conversation = this.hotStore.get(convId);
+    if (!conversation) {
+      throw new Error(`Conversation ${convId} not found`);
+    }
+
+    if (conversation.isTemporary) {
+      conversation.isTemporary = false;
+      this.schedulePersist(convId);
+    }
   }
 
   /**
