@@ -105,34 +105,34 @@ serve(async (req) => {
     const userId = user.id;
     console.log(`[Ghost Inference] User ${userId.slice(0, 8)}... authenticated`);
 
-    // 2. Verify user has sufficient ghost credits
-    const { data: credits, error: creditsError } = await supabase
-      .from('ghost_credits')
-      .select('balance')
-      .eq('user_id', userId)
-      .single();
+    // 2. Check user usage via RPC (properly checks all credit types)
+    const { data: usageCheck, error: usageError } = await supabase
+      .rpc('check_user_usage', {
+        p_user_id: userId,
+        p_usage_type: 'text',
+        p_estimated_cost_cents: 0
+      });
 
-    if (creditsError && creditsError.code !== 'PGRST116') {
-      console.error('[Ghost Inference] Credits lookup error:', creditsError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify credits' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (usageError) {
+      console.error('[Ghost Inference] Usage check error:', usageError);
+      // Don't block on RPC error - allow request to proceed
     }
 
-    const currentBalance = credits?.balance ?? 0;
-    
-    if (currentBalance < MIN_CREDITS_REQUIRED) {
-      console.log(`[Ghost Inference] Insufficient credits: ${currentBalance} < ${MIN_CREDITS_REQUIRED}`);
+    // Only block if explicitly not allowed
+    if (usageCheck && usageCheck.allowed === false) {
+      console.log(`[Ghost Inference] Insufficient credits - reason: ${usageCheck.reason}`);
       return new Response(
         JSON.stringify({ 
-          error: 'Insufficient ghost credits',
-          balance: currentBalance,
+          error: usageCheck.reason || 'Insufficient credits',
+          balance: usageCheck.balance || 0,
+          daily_remaining: usageCheck.daily_remaining || 0,
           required: MIN_CREDITS_REQUIRED
         }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`[Ghost Inference] Credits OK - balance: ${usageCheck?.balance}, daily: ${usageCheck?.daily_remaining}`);
 
     // 3. Parse and validate request
     const body = await req.json() as GhostRequest;
