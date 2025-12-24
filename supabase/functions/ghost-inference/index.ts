@@ -34,14 +34,32 @@ interface Message {
   content: string;
 }
 
+// Swiss-hosted Modal endpoints (axessible-labs)
+const SWISS_ENDPOINTS: Record<string, string> = {
+  'swissvault-1.0': 'https://axessible-labs--swissvault-main-main-chat.modal.run',
+  'swissvault-fast': 'https://axessible-labs--swissvault-fast-fast-chat.modal.run',
+  'swissvault-code': 'https://axessible-labs--swissvault-code-code-chat.modal.run',
+  'llama3.1-8b': 'https://axessible-labs--swissvault-llama8b-llama8b-chat.modal.run',
+  'mistral-7b': 'https://axessible-labs--swissvault-mistral-mistral-chat.modal.run',
+};
+
+// Default Swiss model
+const DEFAULT_SWISS_MODEL = 'swissvault-1.0';
+
 // Model routing configuration
 const MODEL_ROUTES: Record<string, { provider: string; endpoint: string; modelName: string }> = {
-  // Swiss-Hosted (Modal vLLM)
-  'qwen2.5-3b': { provider: 'modal', endpoint: '', modelName: 'Qwen/Qwen2.5-3B-Instruct' },
-  'qwen2.5-7b': { provider: 'modal', endpoint: '', modelName: 'Qwen/Qwen2.5-7B-Instruct' },
-  'llama3.1-8b': { provider: 'modal', endpoint: '', modelName: 'meta-llama/Llama-3.1-8B-Instruct' },
-  'mistral-7b': { provider: 'modal', endpoint: '', modelName: 'mistralai/Mistral-7B-Instruct-v0.3' },
-  'qwen2.5-coder-7b': { provider: 'modal', endpoint: '', modelName: 'Qwen/Qwen2.5-Coder-7B-Instruct' },
+  // Swiss-Hosted (Modal vLLM) - axessible-labs endpoints
+  'auto': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-1.0'], modelName: 'swissvault-1.0' },
+  'swissvault-1.0': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-1.0'], modelName: 'swissvault-1.0' },
+  'swissvault-fast': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-fast'], modelName: 'swissvault-fast' },
+  'swissvault-code': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-code'], modelName: 'swissvault-code' },
+  'llama3.1-8b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['llama3.1-8b'], modelName: 'llama3.1-8b' },
+  'mistral-7b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['mistral-7b'], modelName: 'mistral-7b' },
+  
+  // Legacy aliases for backwards compatibility
+  'qwen2.5-3b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-fast'], modelName: 'swissvault-fast' },
+  'qwen2.5-7b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-1.0'], modelName: 'swissvault-1.0' },
+  'qwen2.5-coder-7b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-code'], modelName: 'swissvault-code' },
   
   // OpenAI
   'gpt-5.2': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'gpt-5.2' },
@@ -80,9 +98,9 @@ const MODEL_ROUTES: Record<string, { provider: string; endpoint: string; modelNa
   'qwen3-coder-480b': { provider: 'qwen', endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', modelName: 'qwen3-coder-480b' },
 };
 
-// Get Modal endpoint
-function getModalEndpoint(): string {
-  return Deno.env.get('MODAL_ENDPOINT') || 'https://swissvault--swissvault-inference-chat-completions.modal.run';
+// Get Modal endpoint for a specific model
+function getModalEndpoint(model: string): string {
+  return SWISS_ENDPOINTS[model] || SWISS_ENDPOINTS[DEFAULT_SWISS_MODEL];
 }
 
 // Get API key for provider
@@ -231,17 +249,17 @@ async function callGemini(
 }
 
 /**
- * Call Modal (Swiss-hosted) API
+ * Call Modal (Swiss-hosted) API - axessible-labs endpoints
  */
 async function callModal(
-  modelName: string,
+  modelId: string,
+  endpoint: string,
   messages: Message[],
   stream: boolean,
   temperature: number,
   topP: number,
   maxTokens: number
 ): Promise<Response> {
-  const endpoint = getModalEndpoint();
   const apiKey = getApiKey('modal');
 
   const headers: Record<string, string> = {
@@ -252,11 +270,13 @@ async function callModal(
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
+  console.log(`[Ghost Inference] Calling Modal endpoint: ${endpoint}`);
+
   return fetch(endpoint, {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      model: modelName,
+      model: modelId,
       messages,
       stream,
       temperature,
@@ -357,18 +377,10 @@ serve(async (req) => {
     // 4. Get model configuration
     const modelConfig = MODEL_ROUTES[model];
     if (!modelConfig) {
-      console.log(`[Ghost Inference] Unknown model: ${model}, defaulting to qwen2.5-3b`);
-      // Default to Swiss-hosted model
-      const defaultModel = MODEL_ROUTES['qwen2.5-3b'];
-      if (!defaultModel) {
-        return new Response(
-          JSON.stringify({ error: 'Model not found' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      console.log(`[Ghost Inference] Unknown model: ${model}, defaulting to ${DEFAULT_SWISS_MODEL}`);
     }
 
-    const config = modelConfig || MODEL_ROUTES['qwen2.5-3b'];
+    const config = modelConfig || MODEL_ROUTES[DEFAULT_SWISS_MODEL];
     const { provider, modelName } = config;
 
     // Check if provider API key is available
@@ -392,7 +404,7 @@ serve(async (req) => {
 
     switch (provider) {
       case 'modal':
-        providerResponse = await callModal(modelName, finalMessages, stream, temperature, top_p, max_tokens);
+        providerResponse = await callModal(model, config.endpoint, finalMessages, stream, temperature, top_p, max_tokens);
         break;
       
       case 'openai':
