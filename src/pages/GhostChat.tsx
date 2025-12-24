@@ -7,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useGhostStorage } from '@/hooks/useGhostStorage';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostInference } from '@/hooks/useGhostInference';
-import { useGhostTTS } from '@/hooks/useGhostTTS';
 import { useGhostSearch, type SearchResult } from '@/hooks/useGhostSearch';
 import { useGhostSettings } from '@/hooks/useGhostSettings';
 import { useGhostFolders } from '@/hooks/useGhostFolders';
@@ -23,6 +22,7 @@ import { GhostTextView, GhostImageView, GhostVideoView, GhostSearchView } from '
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostSettings } from '@/components/ghost/GhostSettings';
 import { GhostThinkingIndicator } from '@/components/ghost/GhostThinkingIndicator';
+import { GhostErrorBoundary } from '@/components/ghost/GhostErrorBoundary';
 
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { EyeOff, Shield, Menu, X, AlertTriangle } from 'lucide-react';
@@ -82,7 +82,16 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-export default function GhostChat() {
+// Wrap the main component with error boundary
+export default function GhostChatPage() {
+  return (
+    <GhostErrorBoundary>
+      <GhostChat />
+    </GhostErrorBoundary>
+  );
+}
+
+function GhostChat() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
@@ -116,9 +125,6 @@ export default function GhostChat() {
 
   // Web search hook
   const webSearch = useGhostSearch();
-
-  // TTS hook for read-aloud
-  const tts = useGhostTTS();
 
   // Ghost settings hook
   const { settings } = useGhostSettings();
@@ -1003,18 +1009,6 @@ export default function GhostChat() {
                             contextUsagePercent={msg.contextUsagePercent}
                             showDate={settings?.show_message_date ?? true}
                             showExternalLinkWarning={settings?.show_external_link_warning ?? false}
-                            ttsState={{
-                              isPlaying: tts.isPlaying,
-                              isPaused: tts.isPaused,
-                              isLoading: tts.isLoading,
-                              progress: tts.progress,
-                              currentMessageId: tts.currentMessageId,
-                            }}
-                            onSpeak={(messageId, content) => tts.speak(content, messageId, {
-                              voice: settings?.voice_id as any,
-                              speed: settings?.voice_speed,
-                            })}
-                            onStopSpeak={tts.stop}
                             onEdit={handleMessageEdit}
                             onRegenerate={handleRegenerate}
                             onDelete={handleDeleteMessage}
@@ -1098,18 +1092,6 @@ export default function GhostChat() {
                           tokenCount={msg.tokenCount}
                           showDate={settings?.show_message_date ?? true}
                           showExternalLinkWarning={settings?.show_external_link_warning ?? false}
-                          ttsState={{
-                            isPlaying: tts.isPlaying,
-                            isPaused: tts.isPaused,
-                            isLoading: tts.isLoading,
-                            progress: tts.progress,
-                            currentMessageId: tts.currentMessageId,
-                          }}
-                          onSpeak={(messageId, content) => tts.speak(content, messageId, {
-                            voice: settings?.voice_id as any,
-                            speed: settings?.voice_speed,
-                          })}
-                          onStopSpeak={tts.stop}
                           onEdit={handleMessageEdit}
                           onRegenerate={handleRegenerate}
                           onDelete={handleDeleteMessage}
