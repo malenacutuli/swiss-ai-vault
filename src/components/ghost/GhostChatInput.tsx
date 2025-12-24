@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,8 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { GhostModelPicker } from './GhostModelPicker';
-import { VoiceButton } from './VoiceButton';
-import { useGhostSTT } from '@/hooks/useGhostSTT';
+import { VoiceInputButton } from './VoiceInputButton';
 import {
   Settings2,
   Zap,
@@ -115,20 +114,17 @@ export function GhostChatInput({
   onOpenSettings,
   onAttach,
   disabled = false,
-  voiceLanguage,
+  voiceLanguage = 'en',
   matureFilterEnabled = true,
   className,
 }: GhostChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Voice input hook with language setting
-  const stt = useGhostSTT({
-    language: voiceLanguage,
-    onTranscription: (text) => {
-      onChange(value ? `${value} ${text}` : text);
-      textareaRef.current?.focus();
-    },
-  });
+  // Handle voice transcript - only used when VoiceInputButton is rendered
+  const handleVoiceTranscript = (text: string) => {
+    onChange(value ? `${value} ${text}` : text);
+    textareaRef.current?.focus();
+  };
 
   // Auto-resize textarea
   useEffect(() => {
@@ -329,15 +325,12 @@ export function GhostChatInput({
             </div>
           )}
 
-          {/* Voice input button */}
+          {/* Voice input button - self-contained, only in text mode */}
           {mode === 'text' && (
-            <VoiceButton
-              isRecording={stt.isRecording}
-              isTranscribing={stt.isTranscribing}
-              audioLevel={stt.audioLevel}
-              onClick={stt.toggleRecording}
-              onCancel={stt.cancelRecording}
+            <VoiceInputButton
+              onTranscript={handleVoiceTranscript}
               disabled={disabled || isLoading}
+              language={voiceLanguage}
             />
           )}
 
