@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
-  RefreshCw, Copy, Volume2, Pencil, Image, Video,
+  RefreshCw, Copy, Volume2, VolumeX, Pencil, Image, Video,
   MoreHorizontal, Minus, Plus, ThumbsUp, ThumbsDown,
   Share2, Flag, Trash2, GitFork, Timer, Hash,
   StopCircle
@@ -40,9 +40,6 @@ interface GhostMessageActionsProps {
   onFeedback?: (type: 'good' | 'bad') => void;
   onShare?: () => void;
   onReport?: () => void;
-  onSpeak?: () => void;
-  onStopSpeak?: () => void;
-  isSpeaking?: boolean;
   onStopGeneration?: () => void;
   className?: string;
 }
@@ -65,13 +62,21 @@ export function GhostMessageActions({
   onFeedback,
   onShare,
   onReport,
-  onSpeak,
-  onStopSpeak,
-  isSpeaking,
   onStopGeneration,
   className,
 }: GhostMessageActionsProps) {
   const [feedbackGiven, setFeedbackGiven] = useState<'good' | 'bad' | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Stop speaking on unmount
+  useEffect(() => {
+    return () => {
+      if (utteranceRef.current) {
+        speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -83,15 +88,46 @@ export function GhostMessageActions({
   };
 
   const handleSpeak = () => {
-    if (isSpeaking && onStopSpeak) {
-      onStopSpeak();
-    } else if (onSpeak) {
-      onSpeak();
-    } else {
-      // Fallback to browser speech synthesis
-      const utterance = new SpeechSynthesisUtterance(content);
-      speechSynthesis.speak(utterance);
+    // Stop if already speaking
+    if (isSpeaking) {
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
     }
+
+    // Check support
+    if (!('speechSynthesis' in window)) {
+      toast.error('Text-to-speech not supported in this browser');
+      return;
+    }
+
+    // Don't speak empty content
+    if (!content.trim()) {
+      toast.error('No content to read');
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(content);
+    utteranceRef.current = utterance;
+
+    // Get voices and prefer English
+    const voices = speechSynthesis.getVoices();
+    const englishVoice = voices.find(v => v.lang.startsWith('en-'));
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      toast.error('Speech synthesis failed');
+    };
+
+    speechSynthesis.speak(utterance);
   };
 
   const handleFeedback = (type: 'good' | 'bad') => {
@@ -192,13 +228,17 @@ export function GhostMessageActions({
                 onClick={handleSpeak}
                 className={cn(
                   "h-7 px-2 text-muted-foreground hover:text-foreground",
-                  isSpeaking && "text-swiss-sapphire"
+                  isSpeaking && "text-primary"
                 )}
               >
-                <Volume2 className="w-3.5 h-3.5" />
+                {isSpeaking ? (
+                  <VolumeX className="w-3.5 h-3.5 animate-pulse" />
+                ) : (
+                  <Volume2 className="w-3.5 h-3.5" />
+                )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{isSpeaking ? 'Stop' : 'Listen'}</TooltipContent>
+            <TooltipContent>{isSpeaking ? 'Stop reading' : 'Read aloud'}</TooltipContent>
           </Tooltip>
 
           {/* Create Image */}
