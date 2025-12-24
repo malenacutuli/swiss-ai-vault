@@ -45,6 +45,11 @@ export function useGhostInference() {
     callbacks: StreamCallbacks,
     options?: StreamOptions
   ) => {
+    // Abort any existing request first
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
     setIsStreaming(true);
     setStreamStatus('connecting');
     setElapsedTime(0);
@@ -161,6 +166,7 @@ export function useGhostInference() {
       // ==========================================
       // HANDLE SSE STREAMING RESPONSE
       // ==========================================
+      console.log('[Ghost Inference] Starting SSE stream processing');
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response body');
 
@@ -168,10 +174,14 @@ export function useGhostInference() {
       setStreamStatus('generating');
       
       let buffer = '';
+      let tokenCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log('[Ghost Inference] Stream reader done, total tokens:', tokenCount);
+          break;
+        }
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
@@ -208,6 +218,7 @@ export function useGhostInference() {
                   console.log(`[Ghost Inference] First token in ${firstTokenTime - startTime}ms`);
                 }
                 
+                tokenCount++;
                 fullContent += content;
                 callbacks.onToken(content);
               }
