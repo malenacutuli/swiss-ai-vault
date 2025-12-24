@@ -40,15 +40,6 @@ interface GhostMessageProps {
   onShare?: (messageId: string) => void;
   onReport?: (messageId: string) => void;
   onStopGeneration?: () => void;
-  ttsState?: {
-    isPlaying: boolean;
-    isPaused: boolean;
-    isLoading: boolean;
-    progress: number;
-    currentMessageId: string | null;
-  };
-  onSpeak?: (messageId: string, content: string) => void;
-  onStopSpeak?: () => void;
 }
 
 // Format timestamp for display
@@ -265,9 +256,6 @@ export function GhostMessage({
   onShare,
   onReport,
   onStopGeneration,
-  ttsState,
-  onSpeak,
-  onStopSpeak,
 }: GhostMessageProps) {
   const segments = useMemo(() => parseContent(content), [content]);
   const [externalLinkDialog, setExternalLinkDialog] = useState<{ open: boolean; url: string }>({
@@ -303,7 +291,7 @@ export function GhostMessage({
     setIsEditing(false);
   };
 
-  const isSpeaking = ttsState?.isPlaying && ttsState?.currentMessageId === id;
+  
 
   return (
     <>

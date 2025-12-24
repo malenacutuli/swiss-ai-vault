@@ -67,13 +67,17 @@ export function GhostMessageActions({
 }: GhostMessageActionsProps) {
   const [feedbackGiven, setFeedbackGiven] = useState<'good' | 'bad' | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
-  // Stop speaking on unmount
+  // Lifecycle management for TTS
   useEffect(() => {
+    isMountedRef.current = true;
+    
     return () => {
-      if (utteranceRef.current) {
-        speechSynthesis.cancel();
+      isMountedRef.current = false;
+      // Stop speech on unmount
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
       }
     };
   }, []);
@@ -88,46 +92,57 @@ export function GhostMessageActions({
   };
 
   const handleSpeak = () => {
-    // Stop if already speaking
-    if (isSpeaking) {
-      speechSynthesis.cancel();
-      setIsSpeaking(false);
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      toast.error('Text-to-speech not supported');
       return;
     }
 
-    // Check support
-    if (!('speechSynthesis' in window)) {
-      toast.error('Text-to-speech not supported in this browser');
+    // Stop if already speaking
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      if (isMountedRef.current) setIsSpeaking(false);
       return;
     }
 
     // Don't speak empty content
-    if (!content.trim()) {
+    if (!content?.trim()) {
       toast.error('No content to read');
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(content);
-    utteranceRef.current = utterance;
+    try {
+      // Cancel any existing speech
+      window.speechSynthesis.cancel();
 
-    // Get voices and prefer English
-    const voices = speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang.startsWith('en-'));
-    if (englishVoice) {
-      utterance.voice = englishVoice;
+      const utterance = new SpeechSynthesisUtterance(content);
+
+      // Get voices and prefer English
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(v => v.lang.startsWith('en-'));
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      utterance.onstart = () => {
+        if (isMountedRef.current) setIsSpeaking(true);
+      };
+      
+      utterance.onend = () => {
+        if (isMountedRef.current) setIsSpeaking(false);
+      };
+      
+      utterance.onerror = () => {
+        if (isMountedRef.current) setIsSpeaking(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error('[TTS] Error:', e);
+      if (isMountedRef.current) setIsSpeaking(false);
     }
-
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      toast.error('Speech synthesis failed');
-    };
-
-    speechSynthesis.speak(utterance);
   };
 
   const handleFeedback = (type: 'good' | 'bad') => {
