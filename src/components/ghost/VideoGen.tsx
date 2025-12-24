@@ -28,7 +28,8 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
   
   const [mode, setMode] = useState<VideoMode>(initialImageUrl ? 'i2v' : 't2v');
   const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState('runway-gen3-turbo');
+  // Default to Replicate models - most reliable
+  const [selectedModel, setSelectedModel] = useState(initialImageUrl ? 'replicate-svd' : 'replicate-animatediff');
   const [inputImage, setInputImage] = useState<string | null>(initialImageUrl || null);
   const [inputImageFile, setInputImageFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
