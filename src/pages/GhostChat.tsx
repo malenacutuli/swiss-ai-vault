@@ -230,79 +230,92 @@ export default function GhostChat() {
     if (!inputValue.trim() || isStreaming || webSearch.isSearching || isSubmittingRef.current) return;
     isSubmittingRef.current = true;
 
-    // Determine usage type based on mode
-    const usageType = mode as 'text' | 'image' | 'video' | 'search';
-    
-    // Check credits before proceeding
-    const creditCheck = await checkCredits(usageType);
-    if (!creditCheck.allowed) {
-      handleInsufficientCredits(creditCheck.reason);
-      return;
-    }
+    try {
+      const requestId = crypto.randomUUID();
 
-    // Create conversation if none selected
-    let convId = selectedConversation;
-    if (!convId) {
-      convId = createConversation('New Chat');
-      if (convId) {
-        setSelectedConversation(convId);
+      // Determine usage type based on mode
+      const usageType = mode as 'text' | 'image' | 'video' | 'search';
+
+      // Check credits before proceeding
+      const creditCheck = await checkCredits(usageType);
+      if (!creditCheck.allowed) {
+        handleInsufficientCredits(creditCheck.reason);
+        return;
       }
-    }
-    if (!convId) return;
 
-    const userMessage: GhostMessageData = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: inputValue.trim(),
-      timestamp: Date.now(),
-    };
+      // Create conversation if none selected
+      let convId = selectedConversation;
+      if (!convId) {
+        convId = createConversation('New Chat');
+        if (convId) {
+          setSelectedConversation(convId);
+        }
+      }
+      if (!convId) return;
 
-    // Build message history BEFORE saving (to avoid duplicate)
-    const messageHistory = messages.map(m => ({
-      role: m.role,
-      content: m.content
-    }));
-    messageHistory.push({ role: 'user', content: userMessage.content });
-
-    // Save user message and update UI
-    saveMessage(convId, 'user', userMessage.content);
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-
-    // Handle based on mode
-    if (mode === 'text') {
-      // Track stream start time for metrics
-      const streamStartTime = Date.now();
-      
-      // Create placeholder for streaming response
-      const assistantId = crypto.randomUUID();
-      setMessages(prev => [...prev, {
-        id: assistantId,
-        role: 'assistant',
-        content: '',
+      const userMessage: GhostMessageData = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: inputValue.trim(),
         timestamp: Date.now(),
-        isStreaming: true,
-      }]);
+      };
 
-      console.log('[Ghost] Sending message, history length:', messageHistory.length);
+      // Build message history BEFORE saving (to avoid duplicate)
+      const messageHistory = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      messageHistory.push({ role: 'user', content: userMessage.content });
 
-      try {
+      // Save user message and update UI
+      saveMessage(convId, 'user', userMessage.content);
+      setMessages((prev) => [...prev, userMessage]);
+      setInputValue('');
+
+      // Handle based on mode
+      if (mode === 'text') {
+        // Track stream start time for metrics
+        const streamStartTime = Date.now();
+
+        // Create placeholder for streaming response
+        const assistantId = crypto.randomUUID();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantId,
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            isStreaming: true,
+          },
+        ]);
+
+        console.log('[Ghost] Sending message', {
+          requestId,
+          model: selectedModels[mode],
+          historyLength: messageHistory.length,
+        });
+
         await streamResponse(
           messageHistory,
           selectedModels[mode],
           {
             onToken: (token) => {
-              setMessages(prev => prev.map(msg =>
-                msg.id === assistantId
-                  ? { ...msg, content: msg.content + token }
-                  : msg
-              ));
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId ? { ...msg, content: msg.content + token } : msg
+                )
+              );
             },
             onComplete: async (fullResponse) => {
+              const safeResponse = fullResponse?.trim()
+                ? fullResponse
+                : 'No response received (empty stream). Please try again.';
+
               // Calculate metrics
-              const responseTime = lastResponseTime || (Date.now() - streamStartTime);
-              const tokens = lastTokenCount || Math.ceil(fullResponse.length / 4);
-              
+              const responseTime = lastResponseTime || Date.now() - streamStartTime;
+              const tokens = lastTokenCount || Math.ceil(safeResponse.length / 4);
+
               // Calculate context usage percentage
               const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
                 'swissvault-1.0': 128000,
@@ -315,26 +328,29 @@ export default function GhostChat() {
                 'claude-sonnet': 200000,
               };
               const contextWindow = MODEL_CONTEXT_WINDOWS[selectedModels[mode]] || 128000;
-              const totalTokens = messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0) + tokens;
+              const totalTokens =
+                messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0) + tokens;
               const contextUsage = Math.round((totalTokens / contextWindow) * 100);
-              
-              setMessages(prev => prev.map(msg =>
-                msg.id === assistantId
-                  ? { 
-                      ...msg, 
-                      content: fullResponse, 
-                      isStreaming: false,
-                      responseTimeMs: responseTime,
-                      tokenCount: tokens,
-                      contextUsagePercent: contextUsage,
-                    }
-                  : msg
-              ));
-              if (fullResponse) {
-                saveMessage(convId!, 'assistant', fullResponse);
-                // Record usage after successful generation
+
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId
+                    ? {
+                        ...msg,
+                        content: safeResponse,
+                        isStreaming: false,
+                        responseTimeMs: responseTime,
+                        tokenCount: tokens,
+                        contextUsagePercent: contextUsage,
+                      }
+                    : msg
+                )
+              );
+
+              if (safeResponse) {
+                saveMessage(convId!, 'assistant', safeResponse);
                 const inputTokens = Math.ceil(userMessage.content.length / 4);
-                const outputTokens = Math.ceil(fullResponse.length / 4);
+                const outputTokens = Math.ceil(safeResponse.length / 4);
                 await recordUsage('text', selectedModels[mode], {
                   inputTokens,
                   outputTokens,
@@ -347,88 +363,99 @@ export default function GhostChat() {
                 description: error.message || 'Failed to generate response',
                 variant: 'destructive',
               });
-              setMessages(prev => prev.filter(msg => msg.id !== assistantId));
+
+              // Keep the assistant message visible (no blank state)
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId
+                    ? {
+                        ...msg,
+                        content: `Error: ${error.message || 'Failed to generate response'}`,
+                        isStreaming: false,
+                      }
+                    : msg
+                )
+              );
             },
           },
           {
             systemPrompt: settings?.system_prompt || undefined,
             temperature: settings?.default_temperature ?? 0.7,
             topP: settings?.default_top_p ?? 0.9,
-          }
+          },
+          requestId
         );
-      } catch (error) {
-        console.error('Stream error:', error);
-      } finally {
-        isSubmittingRef.current = false;
-      }
-    } else if (mode === 'search') {
-      // Web search mode
-      const assistantId = crypto.randomUUID();
-      setMessages(prev => [...prev, {
-        id: assistantId,
-        role: 'assistant',
-        content: '',
-        timestamp: Date.now(),
-        isStreaming: true,
-      }]);
-      setSearchCitations([]);
+      } else if (mode === 'search') {
+        // Web search mode
+        const assistantId = crypto.randomUUID();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantId,
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            isStreaming: true,
+          },
+        ]);
+        setSearchCitations([]);
 
-      try {
-        await webSearch.search(userMessage.content, {
-          onToken: (token) => {
-            setMessages(prev => prev.map(msg =>
-              msg.id === assistantId
-                ? { ...msg, content: msg.content + token }
-                : msg
-            ));
-          },
-          onCitation: (citations) => {
-            setSearchCitations(citations);
-          },
-          onComplete: async (response) => {
-            setMessages(prev => prev.map(msg =>
-              msg.id === assistantId
-                ? { ...msg, content: response.answer, isStreaming: false }
-                : msg
-            ));
-            if (response.answer) {
-              saveMessage(convId!, 'assistant', response.answer);
-              // Record search usage
-              await recordUsage('search', 'sonar', {
-                inputTokens: Math.ceil(userMessage.content.length / 4),
-                outputTokens: Math.ceil(response.answer.length / 4),
+        try {
+          await webSearch.search(userMessage.content, {
+            onToken: (token) => {
+              setMessages((prev) =>
+                prev.map((msg) => (msg.id === assistantId ? { ...msg, content: msg.content + token } : msg))
+              );
+            },
+            onCitation: (citations) => {
+              setSearchCitations(citations);
+            },
+            onComplete: async (response) => {
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId ? { ...msg, content: response.answer, isStreaming: false } : msg
+                )
+              );
+              if (response.answer) {
+                saveMessage(convId!, 'assistant', response.answer);
+                await recordUsage('search', 'sonar', {
+                  inputTokens: Math.ceil(userMessage.content.length / 4),
+                  outputTokens: Math.ceil(response.answer.length / 4),
+                });
+              }
+            },
+            onError: (error) => {
+              toast({
+                title: 'Search Error',
+                description: error.message || 'Failed to search',
+                variant: 'destructive',
               });
-            }
-          },
-          onError: (error) => {
-            toast({
-              title: 'Search Error',
-              description: error.message || 'Failed to search',
-              variant: 'destructive',
-            });
-            setMessages(prev => prev.filter(msg => msg.id !== assistantId));
-          },
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId
+                    ? { ...msg, content: `Error: ${error.message || 'Failed to search'}`, isStreaming: false }
+                    : msg
+                )
+              );
+            },
+          });
+        } catch (error) {
+          console.error('Search error:', error);
+        }
+      } else if (mode === 'image') {
+        // Image generation - placeholder for now
+        toast({
+          title: 'Image Generation',
+          description: 'Image generation coming soon!',
         });
-      } catch (error) {
-        console.error('Search error:', error);
-      } finally {
-        isSubmittingRef.current = false;
+      } else if (mode === 'video') {
+        // Video generation - placeholder for now
+        toast({
+          title: 'Video Generation',
+          description: 'Video generation coming soon!',
+        });
       }
-    } else if (mode === 'image') {
-      // Image generation - placeholder for now
-      toast({
-        title: 'Image Generation',
-        description: 'Image generation coming soon!',
-      });
-      isSubmittingRef.current = false;
-    } else if (mode === 'video') {
-      // Video generation - placeholder for now
-      toast({
-        title: 'Video Generation',
-        description: 'Video generation coming soon!',
-      });
-      isSubmittingRef.current = false;
-    } else {
+    } finally {
       isSubmittingRef.current = false;
     }
   };

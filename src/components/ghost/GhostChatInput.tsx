@@ -142,6 +142,7 @@ export function GhostChatInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
       if (!disabled && !isLoading && value.trim()) {
         onSubmit();
       }
@@ -359,7 +360,11 @@ export function GhostChatInput({
                   ? 'bg-swiss-navy hover:bg-swiss-navy/90 text-white'
                   : 'bg-muted text-muted-foreground cursor-not-allowed'
               )}
-              onClick={onSubmit}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSubmit();
+              }}
               disabled={!canSubmit}
             >
               {isLoading ? (
