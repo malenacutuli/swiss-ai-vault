@@ -43,14 +43,19 @@ export function useGhostCredits() {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Fetch ghost credits
+      // Fetch ghost credits - use paid_credits_balance + free_credits_remaining (not the unused 'balance' column)
       const { data: creditsData, error: creditsError } = await supabase
         .from('ghost_credits')
-        .select('balance')
+        .select('paid_credits_balance, free_credits_remaining, daily_free_limit, daily_free_used, image_credits_remaining, video_credits_remaining')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (creditsError) throw creditsError;
+      
+      // Calculate total available credits
+      const paidCredits = creditsData?.paid_credits_balance ?? 0;
+      const freeCredits = creditsData?.free_credits_remaining ?? 0;
+      const totalCredits = paidCredits + freeCredits;
 
       // Fetch subscription
       const { data: subData, error: subError } = await supabase
@@ -64,7 +69,7 @@ export function useGhostCredits() {
       if (subError) throw subError;
 
       setState({
-        balance: creditsData?.balance ?? 10000, // Default 10k tokens for new users
+        balance: totalCredits,
         isLoading: false,
         error: null,
       });
@@ -219,6 +224,9 @@ export function useGhostCredits() {
   }, [user]);
 
   const formatTokens = (tokens: number): string => {
+    if (tokens >= 100000000) {
+      return 'Unlimited';
+    }
     if (tokens >= 1000000) {
       return `${(tokens / 1000000).toFixed(1)}M`;
     }
