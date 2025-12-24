@@ -384,6 +384,12 @@ async function callXAI(
   if (!response.ok) {
     const errorText = await response.text();
     console.error('[xAI] Error:', response.status, errorText);
+    
+    // Check for 403 "no credits" or permission errors
+    if (response.status === 403 || errorText.includes('permission') || errorText.includes('credits')) {
+      throw new Error(`xai_credits_required: Your xAI account needs credits. Purchase at console.x.ai`);
+    }
+    
     throw new Error(`xAI error ${response.status}: ${errorText}`);
   }
   
