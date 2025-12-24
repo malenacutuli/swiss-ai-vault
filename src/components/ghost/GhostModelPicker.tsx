@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { SwissBadge, getTagBadgeVariant } from '@/components/ui/swiss';
 import {
   ChevronDown,
@@ -137,104 +136,102 @@ export function GhostModelPicker({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-[320px] bg-popover border-border"
+        className="w-[320px] max-h-[400px] overflow-auto bg-popover border-border z-50"
       >
-        <ScrollArea className="max-h-[400px]">
-          {/* Auto option at top */}
-          {hasAutoOption && (
-            <>
-              {models
-                .filter(m => m.id.startsWith('auto'))
-                .map(model => (
-                  <DropdownMenuItem
-                    key={model.id}
-                    onClick={() => {
+        {/* Auto option at top */}
+        {hasAutoOption && (
+          <>
+            {models
+              .filter(m => m.id.startsWith('auto'))
+              .map(model => (
+                <DropdownMenuItem
+                  key={model.id}
+                  onSelect={() => {
+                    onSelectModel(model.id);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    'flex items-start gap-3 p-3 cursor-pointer',
+                    selectedModel === model.id && 'bg-swiss-navy/10'
+                  )}
+                >
+                  <div className="w-8 h-8 rounded-md bg-gradient-to-br from-swiss-navy to-swiss-sapphire flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{model.name}</span>
+                      <SwissBadge variant="success" size="sm">Recommended</SwissBadge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            <DropdownMenuSeparator />
+          </>
+        )}
+
+        {/* Models grouped by provider */}
+        {Object.entries(groupedModels).map(([provider, providerModels], idx) => {
+          // Skip auto models (already shown)
+          const filteredModels = providerModels.filter(m => !m.id.startsWith('auto'));
+          if (filteredModels.length === 0) return null;
+
+          return (
+            <React.Fragment key={provider}>
+              {idx > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+                {PROVIDER_LABELS[provider] || provider}
+              </DropdownMenuLabel>
+              {filteredModels.map(model => (
+                <DropdownMenuItem
+                  key={model.id}
+                  onSelect={() => {
+                    if (!model.comingSoon) {
                       onSelectModel(model.id);
                       setOpen(false);
-                    }}
-                    className={cn(
-                      'flex items-start gap-3 p-3 cursor-pointer',
-                      selectedModel === model.id && 'bg-swiss-navy/10'
-                    )}
-                  >
-                    <div className="w-8 h-8 rounded-md bg-gradient-to-br from-swiss-navy to-swiss-sapphire flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-white" />
+                    }
+                  }}
+                  disabled={model.comingSoon}
+                  className={cn(
+                    'flex items-start gap-3 p-3 cursor-pointer',
+                    selectedModel === model.id && 'bg-swiss-navy/10',
+                    model.comingSoon && 'opacity-50 cursor-not-allowed'
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">{model.name}</span>
+                      {model.tags.slice(0, 3).map(tag => (
+                        <SwissBadge
+                          key={tag}
+                          variant={getTagBadgeVariant(tag)}
+                          size="sm"
+                          icon={<TagIcon tag={tag} />}
+                        >
+                          {tag.replace(/-/g, ' ')}
+                        </SwissBadge>
+                      ))}
+                      {model.comingSoon && (
+                        <SwissBadge variant="outline" size="sm">Soon</SwissBadge>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{model.name}</span>
-                        <SwissBadge variant="success" size="sm">Recommended</SwissBadge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                      {model.contextWindow && (
+                        <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3" />
+                        {model.creditCost} credits
+                      </span>
                     </div>
-                  </DropdownMenuItem>
-                ))}
-              <DropdownMenuSeparator />
-            </>
-          )}
-
-          {/* Models grouped by provider */}
-          {Object.entries(groupedModels).map(([provider, providerModels], idx) => {
-            // Skip auto models (already shown)
-            const filteredModels = providerModels.filter(m => !m.id.startsWith('auto'));
-            if (filteredModels.length === 0) return null;
-
-            return (
-              <>
-                {idx > 0 && <DropdownMenuSeparator key={`sep-${provider}`} />}
-                <DropdownMenuLabel key={`label-${provider}`} className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {PROVIDER_LABELS[provider] || provider}
-                </DropdownMenuLabel>
-                {filteredModels.map(model => (
-                  <DropdownMenuItem
-                    key={model.id}
-                    onSelect={() => {
-                      if (!model.comingSoon) {
-                        onSelectModel(model.id);
-                        setOpen(false);
-                      }
-                    }}
-                    disabled={model.comingSoon}
-                    className={cn(
-                      'flex items-start gap-3 p-3 cursor-pointer',
-                      selectedModel === model.id && 'bg-swiss-navy/10',
-                      model.comingSoon && 'opacity-50 cursor-not-allowed'
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{model.name}</span>
-                        {model.tags.slice(0, 3).map(tag => (
-                          <SwissBadge
-                            key={tag}
-                            variant={getTagBadgeVariant(tag)}
-                            size="sm"
-                            icon={<TagIcon tag={tag} />}
-                          >
-                            {tag.replace(/-/g, ' ')}
-                          </SwissBadge>
-                        ))}
-                        {model.comingSoon && (
-                          <SwissBadge variant="outline" size="sm">Soon</SwissBadge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
-                      <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                        {model.contextWindow && (
-                          <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Zap className="w-3 h-3" />
-                          {model.creditCost} credits
-                        </span>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </>
-            );
-          })}
-        </ScrollArea>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </React.Fragment>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

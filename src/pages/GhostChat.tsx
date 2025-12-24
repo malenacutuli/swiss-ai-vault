@@ -21,6 +21,7 @@ import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostM
 import { GhostTextView, GhostImageView, GhostVideoView, GhostSearchView } from '@/components/ghost/views';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostSettings } from '@/components/ghost/GhostSettings';
+import { GhostThinkingIndicator } from '@/components/ghost/GhostThinkingIndicator';
 
 import { EyeOff, Shield, Menu, X, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -105,7 +106,7 @@ export default function GhostChat() {
   const { balance, checkCredits, recordUsage, refreshCredits, isLoading: creditsLoading } = useGhostCredits();
 
   // Streaming inference hook
-  const { streamResponse, cancelStream, isStreaming, elapsedTime } = useGhostInference();
+  const { streamResponse, cancelStream, isStreaming, streamStatus, elapsedTime, lastResponseTime, lastTokenCount } = useGhostInference();
 
   // Web search hook
   const webSearch = useGhostSearch();
@@ -822,6 +823,14 @@ export default function GhostChat() {
                         onRegenerate={handleRegenerate}
                       />
                     ))}
+                    {/* Thinking indicator during streaming */}
+                    {isStreaming && mode === 'text' && (
+                      <GhostThinkingIndicator
+                        status={streamStatus}
+                        elapsedTime={elapsedTime}
+                        model={selectedModels.text}
+                      />
+                    )}
                     <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>

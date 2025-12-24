@@ -13,10 +13,14 @@ interface StreamOptions {
   topP?: number;
 }
 
+export type StreamStatus = 'idle' | 'connecting' | 'generating' | 'complete' | 'error';
+
 export function useGhostInference() {
   const [isStreaming, setIsStreaming] = useState(false);
-  const [streamStatus, setStreamStatus] = useState<'idle' | 'connecting' | 'streaming' | 'complete'>('idle');
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
+  const [lastTokenCount, setLastTokenCount] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamStartRef = useRef<number | null>(null);
 
@@ -44,6 +48,8 @@ export function useGhostInference() {
     setIsStreaming(true);
     setStreamStatus('connecting');
     setElapsedTime(0);
+    setLastResponseTime(null);
+    setLastTokenCount(null);
     streamStartRef.current = Date.now();
     
     let fullContent = '';
@@ -80,6 +86,7 @@ export function useGhostInference() {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('[Ghost Inference] HTTP error:', response.status, errorText);
         try {
           const errorJson = JSON.parse(errorText);
           throw new Error(errorJson.error || `HTTP ${response.status}`);
@@ -88,11 +95,77 @@ export function useGhostInference() {
         }
       }
 
+      const contentType = response.headers.get('content-type') || '';
+      console.log('[Ghost Inference] Response content-type:', contentType);
+
+      // ==========================================
+      // HANDLE NON-STREAMING JSON RESPONSE
+      // ==========================================
+      if (contentType.includes('application/json')) {
+        console.log('[Ghost Inference] Detected JSON response (non-streaming)');
+        setStreamStatus('generating');
+        
+        const data = await response.json();
+        console.log('[Ghost Inference] JSON response:', JSON.stringify(data).substring(0, 500));
+        
+        // Extract content from various possible JSON shapes
+        let content = '';
+        
+        // OpenAI format: choices[0].message.content
+        if (data.choices?.[0]?.message?.content) {
+          content = data.choices[0].message.content;
+        }
+        // Delta format: choices[0].delta.content
+        else if (data.choices?.[0]?.delta?.content) {
+          content = data.choices[0].delta.content;
+        }
+        // Direct content field
+        else if (data.content) {
+          content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
+        }
+        // Output field (some models)
+        else if (data.output) {
+          content = data.output;
+        }
+        // Generated text field
+        else if (data.generated_text) {
+          content = data.generated_text;
+        }
+        // Error in response
+        else if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        if (!content) {
+          console.error('[Ghost Inference] Could not extract content from response:', data);
+          throw new Error('No content in response');
+        }
+        
+        // Send all content at once for better UX
+        fullContent = content;
+        callbacks.onToken(content);
+        
+        setStreamStatus('complete');
+        callbacks.onComplete(fullContent);
+        
+        // Store response metadata
+        setLastResponseTime(Date.now() - startTime);
+        if (data.usage?.total_tokens) {
+          setLastTokenCount(data.usage.total_tokens);
+        }
+        
+        console.log(`[Ghost Inference] JSON response complete in ${Date.now() - startTime}ms`);
+        return;
+      }
+
+      // ==========================================
+      // HANDLE SSE STREAMING RESPONSE
+      // ==========================================
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response body');
 
       const decoder = new TextDecoder();
-      setStreamStatus('streaming');
+      setStreamStatus('generating');
       
       let buffer = '';
 
@@ -117,7 +190,8 @@ export function useGhostInference() {
             if (data === '[DONE]') {
               setStreamStatus('complete');
               callbacks.onComplete(fullContent);
-              console.log(`[Ghost Streaming] Complete in ${Date.now() - startTime}ms`);
+              setLastResponseTime(Date.now() - startTime);
+              console.log(`[Ghost Inference] Stream complete in ${Date.now() - startTime}ms`);
               return;
             }
 
@@ -131,7 +205,7 @@ export function useGhostInference() {
               if (content) {
                 if (!firstTokenTime) {
                   firstTokenTime = Date.now();
-                  console.log(`[Ghost Streaming] First token in ${firstTokenTime - startTime}ms`);
+                  console.log(`[Ghost Inference] First token in ${firstTokenTime - startTime}ms`);
                 }
                 
                 fullContent += content;
@@ -142,10 +216,15 @@ export function useGhostInference() {
               if (parsed.error) {
                 throw new Error(parsed.error);
               }
+              
+              // Capture usage if provided
+              if (parsed.usage?.total_tokens) {
+                setLastTokenCount(parsed.usage.total_tokens);
+              }
             } catch (e) {
               // Skip malformed JSON chunks - common in SSE streams
               if (data !== '' && !data.startsWith('{')) {
-                console.debug('[Ghost Streaming] Skipping non-JSON chunk:', data.slice(0, 50));
+                console.debug('[Ghost Inference] Skipping non-JSON chunk:', data.slice(0, 50));
               }
             }
           }
@@ -170,20 +249,23 @@ export function useGhostInference() {
         }
       }
 
+      setStreamStatus('complete');
       callbacks.onComplete(fullContent);
-      console.log(`[Ghost Streaming] Total time: ${Date.now() - startTime}ms`);
+      setLastResponseTime(Date.now() - startTime);
+      console.log(`[Ghost Inference] Total time: ${Date.now() - startTime}ms`);
       
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
-        console.log('[Ghost Streaming] Aborted by user');
+        console.log('[Ghost Inference] Aborted by user');
+        setStreamStatus('complete');
         callbacks.onComplete(fullContent); // Save partial response
       } else {
-        console.error('[Ghost Streaming] Error:', error);
+        console.error('[Ghost Inference] Error:', error);
+        setStreamStatus('error');
         callbacks.onError(error as Error);
       }
     } finally {
       setIsStreaming(false);
-      setStreamStatus('idle');
       abortControllerRef.current = null;
     }
   }, []);
@@ -200,5 +282,7 @@ export function useGhostInference() {
     isStreaming,
     streamStatus,
     elapsedTime,
+    lastResponseTime,
+    lastTokenCount,
   };
 }
