@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 export interface VideoModel {
   id: string;
   name: string;
-  provider: 'runway' | 'google' | 'openai' | 'luma' | 'pika';
+  provider: 'runway' | 'google' | 'openai' | 'luma' | 'pika' | 'replicate';
   description: string;
   creditCost: number;
   tags: Array<'new' | 'premium' | 'fast' | 'audio' | 'coming-soon'>;
@@ -25,7 +25,66 @@ export interface VideoModel {
 }
 
 export const VIDEO_MODELS: VideoModel[] = [
-  // Google Veo
+  // Replicate models - Working alternatives (show first)
+  {
+    id: 'replicate-svd',
+    name: 'Stable Video Diffusion',
+    provider: 'replicate',
+    description: 'High quality image-to-video. Smooth motion.',
+    creditCost: 15,
+    tags: ['fast'],
+    supportsI2V: true,
+    supportsT2V: false,
+    maxDuration: 4,
+  },
+  {
+    id: 'replicate-animatediff',
+    name: 'AnimateDiff Lightning',
+    provider: 'replicate',
+    description: 'Fast text-to-video generation.',
+    creditCost: 10,
+    tags: ['fast', 'new'],
+    supportsI2V: false,
+    supportsT2V: true,
+    maxDuration: 3,
+  },
+  // Runway
+  {
+    id: 'runway-gen3-alpha-turbo',
+    name: 'Gen-3 Alpha Turbo',
+    provider: 'runway',
+    description: 'Fast video generation from Runway. 5-10s.',
+    creditCost: 25,
+    tags: ['fast'],
+    supportsI2V: true,
+    supportsT2V: true,
+    maxDuration: 10,
+  },
+  {
+    id: 'runway-gen3-alpha',
+    name: 'Gen-3 Alpha',
+    provider: 'runway',
+    description: 'Highest quality video from Runway.',
+    creditCost: 50,
+    tags: ['premium'],
+    supportsI2V: true,
+    supportsT2V: true,
+    maxDuration: 10,
+  },
+  // Luma (disabled for now)
+  {
+    id: 'dream-machine-1.5',
+    name: 'Dream Machine 1.5',
+    provider: 'luma',
+    description: 'Cinematic video generation.',
+    creditCost: 35,
+    tags: ['coming-soon'],
+    supportsI2V: true,
+    supportsT2V: true,
+    isComingSoon: true,
+    maxDuration: 5,
+  },
+  // Google Veo (coming soon)
   {
     id: 'veo-3.1',
     name: 'Veo 3.1',
@@ -62,30 +121,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     isComingSoon: true,
     maxDuration: 15,
   },
-  // Runway
-  {
-    id: 'runway-gen3-alpha-turbo',
-    name: 'Gen-3 Alpha Turbo',
-    provider: 'runway',
-    description: 'Fast video generation from Runway. 5-10s.',
-    creditCost: 25,
-    tags: ['fast'],
-    supportsI2V: true,
-    supportsT2V: true,
-    maxDuration: 10,
-  },
-  {
-    id: 'runway-gen3-alpha',
-    name: 'Gen-3 Alpha',
-    provider: 'runway',
-    description: 'Highest quality video from Runway.',
-    creditCost: 50,
-    tags: ['premium'],
-    supportsI2V: true,
-    supportsT2V: true,
-    maxDuration: 10,
-  },
-  // OpenAI Sora
+  // OpenAI Sora (coming soon)
   {
     id: 'sora',
     name: 'Sora',
@@ -110,19 +146,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     isComingSoon: true,
     maxDuration: 10,
   },
-  // Luma
-  {
-    id: 'dream-machine-1.5',
-    name: 'Dream Machine 1.5',
-    provider: 'luma',
-    description: 'Cinematic video generation.',
-    creditCost: 35,
-    tags: [],
-    supportsI2V: true,
-    supportsT2V: true,
-    maxDuration: 5,
-  },
-  // Pika
+  // Pika (coming soon)
   {
     id: 'pika-2.0',
     name: 'Pika 2.0',
@@ -143,6 +167,7 @@ const PROVIDER_ICONS: Record<string, React.ElementType> = {
   openai: Zap,
   luma: Video,
   pika: Video,
+  replicate: Zap,
 };
 
 interface VideoGenModelSelectorProps {

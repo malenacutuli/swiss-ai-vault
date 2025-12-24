@@ -22,7 +22,7 @@ interface VideoGenRequest {
 
 // Model routing configuration
 const VIDEO_MODEL_ROUTES: Record<string, { provider: string; creditCost: number; maxDuration: number }> = {
-  // Google Veo
+  // Google Veo (coming soon)
   'veo-3.1': { provider: 'google', creditCost: 150, maxDuration: 60 },
   'veo-3': { provider: 'google', creditCost: 120, maxDuration: 30 },
   'veo-2': { provider: 'google', creditCost: 80, maxDuration: 15 },
@@ -32,16 +32,19 @@ const VIDEO_MODEL_ROUTES: Record<string, { provider: string; creditCost: number;
   // Legacy aliases
   'runway-gen3-turbo': { provider: 'runway', creditCost: 25, maxDuration: 10 },
   'runway-gen3': { provider: 'runway', creditCost: 50, maxDuration: 10 },
-  // OpenAI Sora
+  // OpenAI Sora (coming soon)
   'sora': { provider: 'openai', creditCost: 100, maxDuration: 20 },
   'sora-turbo': { provider: 'openai', creditCost: 50, maxDuration: 10 },
-  // Luma
+  // Luma (disabled for now)
   'dream-machine-1.5': { provider: 'luma', creditCost: 35, maxDuration: 5 },
-  // Pika
+  // Pika (coming soon)
   'pika-2.0': { provider: 'pika', creditCost: 30, maxDuration: 5 },
+  // Replicate models (working alternatives)
+  'replicate-svd': { provider: 'replicate', creditCost: 15, maxDuration: 4 },
+  'replicate-animatediff': { provider: 'replicate', creditCost: 10, maxDuration: 3 },
 };
 
-// Generate with Runway
+// Generate with Runway - Fixed to handle t2v and i2v properly
 async function generateWithRunway(
   prompt: string,
   model: string,
@@ -58,6 +61,8 @@ async function generateWithRunway(
   
   console.log(`[ghost-video-gen] Generating with Runway ${modelId}, mode: ${mode}`);
 
+  // For text-to-video, Runway still uses the same endpoint but without promptImage
+  // The key fix: only include promptImage for i2v mode, and ensure the body is clean
   const body: Record<string, unknown> = {
     promptText: prompt,
     model: modelId,
@@ -66,10 +71,16 @@ async function generateWithRunway(
     ratio: '16:9',
   };
 
-  if (mode === 'i2v' && inputImage) {
+  // Only add promptImage for image-to-video mode
+  if (mode === 'i2v') {
+    if (!inputImage) {
+      throw new Error('Image required for image-to-video mode');
+    }
     body.promptImage = inputImage;
   }
 
+  // Use the correct endpoint - Runway uses image_to_video for both modes
+  // but for t2v the promptImage field is simply omitted
   const response = await fetch('https://api.dev.runwayml.com/v1/image_to_video', {
     method: 'POST',
     headers: {
@@ -83,7 +94,12 @@ async function generateWithRunway(
   if (!response.ok) {
     const errorText = await response.text();
     console.error('[ghost-video-gen] Runway error:', response.status, errorText);
-    throw new Error(`Runway API error: ${response.status}`);
+    
+    // If Runway fails for t2v, suggest using Replicate models instead
+    if (mode === 't2v') {
+      throw new Error(`Runway text-to-video failed. Try using Replicate AnimateDiff instead.`);
+    }
+    throw new Error(`Runway API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
@@ -210,11 +226,12 @@ async function checkLumaStatus(taskId: string): Promise<{ status: string; videoU
   return { status: 'processing' };
 }
 
-// Generate with Replicate (fallback)
+// Generate with Replicate - Primary video generation for reliability
 async function generateWithReplicate(
   prompt: string,
   mode: 'i2v' | 't2v',
-  inputImage?: string
+  inputImage?: string,
+  modelId?: string
 ): Promise<{ videoUrl: string }> {
   const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
   if (!REPLICATE_API_KEY) {
@@ -224,34 +241,47 @@ async function generateWithReplicate(
   const Replicate = (await import("https://esm.sh/replicate@0.25.2")).default;
   const replicate = new Replicate({ auth: REPLICATE_API_KEY });
 
-  console.log('[ghost-video-gen] Generating with Replicate');
+  console.log(`[ghost-video-gen] Generating with Replicate, mode: ${mode}, model: ${modelId}`);
 
   let output;
   
   if (mode === 'i2v' && inputImage) {
+    // Stable Video Diffusion - Best for image-to-video
+    console.log('[ghost-video-gen] Using Stable Video Diffusion for i2v');
     output = await replicate.run(
       "stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438",
       {
         input: {
           input_image: inputImage,
           motion_bucket_id: 127,
-          fps: 7,
+          fps: 14,
           cond_aug: 0.02,
+          decoding_t: 7,
+          video_length: "14_frames_with_svd",
         }
       }
     );
   } else {
+    // AnimateDiff Lightning - Fast text-to-video
+    console.log('[ghost-video-gen] Using AnimateDiff Lightning for t2v');
     output = await replicate.run(
-      "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+      "bytedance/animatediff-lightning-4-step:cb8b76c636226d66848e498c0f2e86fc4a36a7d10adcf5b3f0e1b68e3a0b7d8f",
       {
         input: {
-          prompt,
-          num_frames: 24,
+          prompt: prompt,
+          n_prompt: "bad quality, blurry, distorted, deformed",
+          steps: 4,
+          guidance_scale: 1.0,
+          video_length: 16,
           fps: 8,
+          width: 512,
+          height: 512,
         }
       }
     );
   }
+
+  console.log('[ghost-video-gen] Replicate output type:', typeof output, Array.isArray(output) ? 'array' : '');
 
   if (typeof output === 'string') {
     return { videoUrl: output };
@@ -261,7 +291,15 @@ async function generateWithReplicate(
     return { videoUrl: output[0] };
   }
 
-  throw new Error('No video URL returned');
+  // Handle object output (some models return {video: url})
+  if (output && typeof output === 'object') {
+    const videoUrl = (output as Record<string, unknown>).video || (output as Record<string, unknown>).output;
+    if (typeof videoUrl === 'string') {
+      return { videoUrl };
+    }
+  }
+
+  throw new Error('No video URL returned from Replicate');
 }
 
 serve(async (req) => {
@@ -393,9 +431,16 @@ serve(async (req) => {
       case 'runway':
         result = await generateWithRunway(fullPrompt, model, mode, inputImage, duration);
         break;
-      case 'luma':
-        result = await generateWithLuma(fullPrompt, mode, inputImage);
+      case 'replicate':
+        // Direct Replicate models - most reliable
+        result = await generateWithReplicate(fullPrompt, mode, inputImage, model);
         break;
+      case 'luma':
+        // Luma disabled until API key is added
+        return new Response(
+          JSON.stringify({ error: 'Luma Dream Machine coming soon. Try Replicate SVD or AnimateDiff instead.' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       case 'google':
       case 'openai':
       case 'pika':
@@ -405,7 +450,8 @@ serve(async (req) => {
           { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       default:
-        result = await generateWithReplicate(fullPrompt, mode, inputImage);
+        // Fallback to Replicate
+        result = await generateWithReplicate(fullPrompt, mode, inputImage, model);
         break;
     }
 
