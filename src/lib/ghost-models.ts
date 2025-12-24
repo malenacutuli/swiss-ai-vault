@@ -1,7 +1,7 @@
 export interface GhostModel {
   id: string;
   name: string;
-  provider: 'modal' | 'openai' | 'anthropic' | 'google' | 'replicate' | 'runway' | 'sora';
+  provider: 'modal' | 'openai' | 'anthropic' | 'google' | 'xai' | 'deepseek' | 'qwen' | 'replicate' | 'runway' | 'luma' | 'pika';
   modality: 'text' | 'image' | 'video';
   
   // Display
@@ -9,7 +9,7 @@ export interface GhostModel {
   description: string;
   
   // Capabilities
-  tags: Array<'private' | 'default' | 'new' | 'pay-per-use' | 'anonymized' | 'beta' | 'vision' | 'reasoning' | 'audio' | 'uncensored' | 'mature'>;
+  tags: Array<'private' | 'default' | 'new' | 'pay-per-use' | 'anonymized' | 'beta' | 'vision' | 'reasoning' | 'audio' | 'uncensored' | 'mature' | 'fast' | 'premium'>;
   contextWindow?: number;
   
   // Pricing
@@ -22,19 +22,19 @@ export interface GhostModel {
 }
 
 // ==============================================
-// TEXT MODELS
+// TEXT MODELS - Updated December 2025
 // ==============================================
 
 export const TEXT_MODELS: GhostModel[] = [
-  // Swiss-Hosted (Modal vLLM) - Private
+  // ========== Swiss-Hosted (Modal vLLM) - Private ==========
   {
     id: 'qwen2.5-3b',
     name: 'Qwen 2.5 3B',
     provider: 'modal',
     modality: 'text',
     description: 'Fast general-purpose model. Swiss-hosted, zero logging.',
-    tags: ['private', 'default'],
-    contextWindow: 4096,
+    tags: ['private', 'default', 'fast'],
+    contextWindow: 32000,
     creditCost: 0.5,
     isPayPerUse: false,
     enabled: true,
@@ -46,7 +46,7 @@ export const TEXT_MODELS: GhostModel[] = [
     modality: 'text',
     description: 'Balanced performance. Swiss-hosted.',
     tags: ['private'],
-    contextWindow: 8192,
+    contextWindow: 128000,
     creditCost: 1,
     isPayPerUse: false,
     enabled: true,
@@ -58,7 +58,7 @@ export const TEXT_MODELS: GhostModel[] = [
     modality: 'text',
     description: 'Meta\'s latest. Excellent reasoning. Swiss-hosted.',
     tags: ['private'],
-    contextWindow: 8192,
+    contextWindow: 128000,
     creditCost: 1.5,
     isPayPerUse: false,
     enabled: true,
@@ -70,7 +70,7 @@ export const TEXT_MODELS: GhostModel[] = [
     modality: 'text',
     description: 'European model. Great all-rounder. Swiss-hosted.',
     tags: ['private'],
-    contextWindow: 8192,
+    contextWindow: 32000,
     creditCost: 1,
     isPayPerUse: false,
     enabled: true,
@@ -82,20 +82,81 @@ export const TEXT_MODELS: GhostModel[] = [
     modality: 'text',
     description: 'Optimized for code generation. Swiss-hosted.',
     tags: ['private'],
-    contextWindow: 8192,
+    contextWindow: 128000,
     creditCost: 1.5,
     isPayPerUse: false,
     enabled: true,
   },
   
-  // Commercial APIs (Pay Per Use, Anonymized)
+  // ========== OpenAI - December 2025 ==========
+  {
+    id: 'gpt-5.2',
+    name: 'GPT-5.2',
+    provider: 'openai',
+    modality: 'text',
+    description: 'Latest GPT. Function calling, reasoning.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'vision', 'reasoning'],
+    contextWindow: 256000,
+    creditCost: 10,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'gpt-5.2-mini',
+    name: 'GPT-5.2 Mini',
+    provider: 'openai',
+    modality: 'text',
+    description: 'Fast version of GPT-5.2.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'vision', 'fast'],
+    contextWindow: 256000,
+    creditCost: 3,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'o3',
+    name: 'O3',
+    provider: 'openai',
+    modality: 'text',
+    description: 'Newest reasoning model.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'reasoning', 'premium'],
+    contextWindow: 200000,
+    creditCost: 15,
+    isPayPerUse: true,
+    enabled: true,
+    comingSoon: true,
+  },
+  {
+    id: 'o1',
+    name: 'O1',
+    provider: 'openai',
+    modality: 'text',
+    description: 'Deep reasoning model.',
+    tags: ['pay-per-use', 'anonymized', 'reasoning'],
+    contextWindow: 200000,
+    creditCost: 12,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'o1-mini',
+    name: 'O1 Mini',
+    provider: 'openai',
+    modality: 'text',
+    description: 'Fast reasoning model.',
+    tags: ['pay-per-use', 'anonymized', 'reasoning', 'fast'],
+    contextWindow: 128000,
+    creditCost: 4,
+    isPayPerUse: true,
+    enabled: true,
+  },
   {
     id: 'gpt-4o',
     name: 'GPT-4o',
     provider: 'openai',
     modality: 'text',
     description: 'OpenAI\'s multimodal flagship.',
-    tags: ['pay-per-use', 'anonymized', 'vision', 'reasoning'],
+    tags: ['pay-per-use', 'anonymized', 'vision', 'audio'],
     contextWindow: 128000,
     creditCost: 5,
     isPayPerUse: true,
@@ -107,21 +168,47 @@ export const TEXT_MODELS: GhostModel[] = [
     provider: 'openai',
     modality: 'text',
     description: 'Fast and affordable multimodal.',
-    tags: ['pay-per-use', 'anonymized', 'vision'],
+    tags: ['pay-per-use', 'anonymized', 'vision', 'fast'],
     contextWindow: 128000,
     creditCost: 1,
     isPayPerUse: true,
     enabled: true,
   },
+  
+  // ========== Anthropic - December 2025 ==========
   {
-    id: 'claude-opus-4',
-    name: 'Claude Opus 4',
+    id: 'claude-opus-4.5',
+    name: 'Claude Opus 4.5',
     provider: 'anthropic',
     modality: 'text',
-    description: 'Anthropic\'s most capable model.',
-    tags: ['beta', 'pay-per-use', 'anonymized', 'vision', 'reasoning'],
+    description: 'Most intelligent Claude model.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'vision', 'reasoning', 'premium'],
     contextWindow: 200000,
-    creditCost: 8,
+    creditCost: 15,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'claude-sonnet-4.5',
+    name: 'Claude Sonnet 4.5',
+    provider: 'anthropic',
+    modality: 'text',
+    description: 'Great balance of speed and intelligence.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'vision'],
+    contextWindow: 200000,
+    creditCost: 5,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'claude-haiku-4.5',
+    name: 'Claude Haiku 4.5',
+    provider: 'anthropic',
+    modality: 'text',
+    description: 'Ultra fast Claude.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'fast'],
+    contextWindow: 200000,
+    creditCost: 1,
     isPayPerUse: true,
     enabled: true,
   },
@@ -130,20 +217,34 @@ export const TEXT_MODELS: GhostModel[] = [
     name: 'Claude Sonnet 4',
     provider: 'anthropic',
     modality: 'text',
-    description: 'Balanced intelligence and speed.',
+    description: 'Vision and code specialist.',
     tags: ['pay-per-use', 'anonymized', 'vision'],
     contextWindow: 200000,
     creditCost: 3,
     isPayPerUse: true,
     enabled: true,
   },
+  
+  // ========== Google - December 2025 ==========
   {
-    id: 'gemini-2.0-pro',
-    name: 'Gemini 2.0 Pro',
+    id: 'gemini-3-pro',
+    name: 'Gemini 3 Pro',
     provider: 'google',
     modality: 'text',
-    description: 'Google\'s latest multimodal.',
-    tags: ['beta', 'pay-per-use', 'anonymized', 'vision', 'reasoning'],
+    description: 'Latest Google model. Vision, reasoning.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'vision', 'reasoning'],
+    contextWindow: 2000000,
+    creditCost: 6,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'google',
+    modality: 'text',
+    description: 'Very capable multimodal.',
+    tags: ['pay-per-use', 'anonymized', 'vision', 'reasoning'],
     contextWindow: 1000000,
     creditCost: 4,
     isPayPerUse: true,
@@ -155,16 +256,142 @@ export const TEXT_MODELS: GhostModel[] = [
     provider: 'google',
     modality: 'text',
     description: 'Ultra-fast Google model.',
-    tags: ['new', 'pay-per-use', 'anonymized', 'vision'],
+    tags: ['pay-per-use', 'anonymized', 'vision', 'fast'],
     contextWindow: 1000000,
     creditCost: 1,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'gemini-2.0-pro',
+    name: 'Gemini 2.0 Pro',
+    provider: 'google',
+    modality: 'text',
+    description: 'High quality multimodal.',
+    tags: ['pay-per-use', 'anonymized', 'vision'],
+    contextWindow: 1000000,
+    creditCost: 5,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  
+  // ========== xAI - December 2025 ==========
+  {
+    id: 'grok-4.1',
+    name: 'Grok 4.1',
+    provider: 'xai',
+    modality: 'text',
+    description: 'Function calling, reasoning, vision.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'vision', 'reasoning'],
+    contextWindow: 128000,
+    creditCost: 3,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'grok-3',
+    name: 'Grok 3',
+    provider: 'xai',
+    modality: 'text',
+    description: 'Very capable xAI model.',
+    tags: ['pay-per-use', 'anonymized', 'vision'],
+    contextWindow: 128000,
+    creditCost: 4,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'grok-2',
+    name: 'Grok 2',
+    provider: 'xai',
+    modality: 'text',
+    description: 'Good balance of quality and speed.',
+    tags: ['pay-per-use', 'anonymized'],
+    contextWindow: 128000,
+    creditCost: 2,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  
+  // ========== DeepSeek - December 2025 ==========
+  {
+    id: 'deepseek-v3.2',
+    name: 'DeepSeek V3.2',
+    provider: 'deepseek',
+    modality: 'text',
+    description: 'Reasoning, very cheap.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'reasoning', 'fast'],
+    contextWindow: 128000,
+    creditCost: 1,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'deepseek-v3',
+    name: 'DeepSeek V3',
+    provider: 'deepseek',
+    modality: 'text',
+    description: 'Previous version, still capable.',
+    tags: ['pay-per-use', 'anonymized', 'reasoning'],
+    contextWindow: 128000,
+    creditCost: 1,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'deepseek-coder-v2',
+    name: 'DeepSeek Coder V2',
+    provider: 'deepseek',
+    modality: 'text',
+    description: 'Code specialist.',
+    tags: ['pay-per-use', 'anonymized'],
+    contextWindow: 128000,
+    creditCost: 0.5,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  
+  // ========== Qwen - December 2025 ==========
+  {
+    id: 'qwen3-235b',
+    name: 'Qwen 3 235B',
+    provider: 'qwen',
+    modality: 'text',
+    description: 'Function calling, very capable.',
+    tags: ['new', 'pay-per-use', 'anonymized'],
+    contextWindow: 128000,
+    creditCost: 2,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'qwen3-235b-thinking',
+    name: 'Qwen 3 235B Thinking',
+    provider: 'qwen',
+    modality: 'text',
+    description: 'Reasoning variant.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'reasoning'],
+    contextWindow: 128000,
+    creditCost: 5,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'qwen3-coder-480b',
+    name: 'Qwen 3 Coder 480B',
+    provider: 'qwen',
+    modality: 'text',
+    description: 'Code specialist.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'premium'],
+    contextWindow: 128000,
+    creditCost: 4,
     isPayPerUse: true,
     enabled: true,
   },
 ];
 
 // ==============================================
-// IMAGE MODELS
+// IMAGE MODELS - Updated December 2025
 // ==============================================
 
 export const IMAGE_MODELS: GhostModel[] = [
@@ -181,14 +408,49 @@ export const IMAGE_MODELS: GhostModel[] = [
     enabled: true,
   },
   
-  // Replicate Models
+  // ========== Google Imagen ==========
+  {
+    id: 'imagen-3',
+    name: 'Imagen 3',
+    provider: 'google',
+    modality: 'image',
+    description: 'Best photorealism from Google.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'premium'],
+    creditCost: 5,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'imagen-3-fast',
+    name: 'Imagen 3 Fast',
+    provider: 'google',
+    modality: 'image',
+    description: 'Faster version of Imagen 3.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'fast'],
+    creditCost: 3,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  
+  // ========== Black Forest Labs (Flux) ==========
+  {
+    id: 'flux-1.1-pro-ultra',
+    name: 'Flux 1.1 Pro Ultra',
+    provider: 'replicate',
+    modality: 'image',
+    description: 'Up to 4K resolution. Best quality.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'premium'],
+    creditCost: 8,
+    isPayPerUse: true,
+    enabled: true,
+  },
   {
     id: 'flux-1.1-pro',
     name: 'Flux 1.1 Pro',
     provider: 'replicate',
     modality: 'image',
-    description: 'Black Forest Labs\' flagship. Best quality.',
-    tags: ['new', 'pay-per-use', 'anonymized'],
+    description: 'Black Forest Labs flagship.',
+    tags: ['pay-per-use', 'anonymized'],
     creditCost: 5,
     isPayPerUse: true,
     enabled: true,
@@ -199,11 +461,26 @@ export const IMAGE_MODELS: GhostModel[] = [
     provider: 'replicate',
     modality: 'image',
     description: 'Fast Flux variant. Great for iteration.',
-    tags: ['private'],
+    tags: ['private', 'fast'],
     creditCost: 1,
     isPayPerUse: false,
     enabled: true,
   },
+  
+  // ========== OpenAI ==========
+  {
+    id: 'dall-e-3',
+    name: 'DALL·E 3',
+    provider: 'openai',
+    modality: 'image',
+    description: 'Great prompt adherence.',
+    tags: ['pay-per-use', 'anonymized'],
+    creditCost: 4,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  
+  // ========== Stability AI ==========
   {
     id: 'sdxl',
     name: 'SDXL',
@@ -226,85 +503,123 @@ export const IMAGE_MODELS: GhostModel[] = [
     isPayPerUse: false,
     enabled: true,
   },
-  
-  // OpenAI
-  {
-    id: 'dall-e-3',
-    name: 'DALL·E 3',
-    provider: 'openai',
-    modality: 'image',
-    description: 'OpenAI\'s image model. Great prompt adherence.',
-    tags: ['pay-per-use', 'anonymized'],
-    creditCost: 4,
-    isPayPerUse: true,
-    enabled: true,
-  },
-  
-  // Google
-  {
-    id: 'imagen-3',
-    name: 'Imagen 3',
-    provider: 'google',
-    modality: 'image',
-    description: 'Google\'s state-of-the-art image model.',
-    tags: ['new', 'pay-per-use', 'anonymized'],
-    creditCost: 5,
-    isPayPerUse: true,
-    enabled: true,
-  },
 ];
 
 // ==============================================
-// VIDEO MODELS
+// VIDEO MODELS - Updated December 2025
 // ==============================================
 
 export const VIDEO_MODELS: GhostModel[] = [
-  // Image to Video
+  // ========== Google Veo ==========
   {
-    id: 'runway-gen3-turbo',
-    name: 'Gen-3 Alpha Turbo',
-    provider: 'runway',
+    id: 'veo-3.1',
+    name: 'Veo 3.1',
+    provider: 'google',
     modality: 'video',
-    description: 'Runway\'s fast video generation.',
-    tags: ['pay-per-use', 'anonymized'],
-    creditCost: 20,
+    description: 'Latest Google video. Up to 60s, audio support.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'audio', 'premium'],
+    creditCost: 150,
     isPayPerUse: true,
     enabled: true,
+    comingSoon: true,
   },
   {
-    id: 'runway-gen3',
-    name: 'Gen-3 Alpha',
-    provider: 'runway',
+    id: 'veo-3',
+    name: 'Veo 3',
+    provider: 'google',
     modality: 'video',
-    description: 'Runway\'s highest quality video.',
-    tags: ['pay-per-use', 'anonymized'],
-    creditCost: 40,
+    description: 'High quality video with audio. Up to 30s.',
+    tags: ['new', 'pay-per-use', 'anonymized', 'audio'],
+    creditCost: 120,
     isPayPerUse: true,
     enabled: true,
+    comingSoon: true,
   },
-  
-  // Google Veo
   {
     id: 'veo-2',
     name: 'Veo 2',
     provider: 'google',
     modality: 'video',
-    description: 'Google\'s video generation model.',
-    tags: ['new', 'pay-per-use', 'anonymized', 'audio'],
+    description: 'Previous Veo version. Up to 15s.',
+    tags: ['pay-per-use', 'anonymized'],
+    creditCost: 80,
+    isPayPerUse: true,
+    enabled: true,
+    comingSoon: true,
+  },
+  
+  // ========== Runway ==========
+  {
+    id: 'runway-gen3-alpha-turbo',
+    name: 'Gen-3 Alpha Turbo',
+    provider: 'runway',
+    modality: 'video',
+    description: 'Fast video generation. 5-10s.',
+    tags: ['pay-per-use', 'anonymized', 'fast'],
+    creditCost: 25,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  {
+    id: 'runway-gen3-alpha',
+    name: 'Gen-3 Alpha',
+    provider: 'runway',
+    modality: 'video',
+    description: 'Highest quality Runway video.',
+    tags: ['pay-per-use', 'anonymized', 'premium'],
     creditCost: 50,
     isPayPerUse: true,
     enabled: true,
   },
   
-  // Sora
+  // ========== OpenAI Sora ==========
   {
     id: 'sora',
     name: 'Sora',
-    provider: 'sora',
+    provider: 'openai',
     modality: 'video',
-    description: 'OpenAI\'s video generation.',
-    tags: ['beta', 'pay-per-use', 'anonymized'],
+    description: 'Text-to-video. Up to 20s.',
+    tags: ['pay-per-use', 'anonymized'],
     creditCost: 100,
+    isPayPerUse: true,
+    enabled: true,
+    comingSoon: true,
+  },
+  {
+    id: 'sora-turbo',
+    name: 'Sora Turbo',
+    provider: 'openai',
+    modality: 'video',
+    description: 'Faster Sora. Up to 10s.',
+    tags: ['pay-per-use', 'anonymized', 'fast'],
+    creditCost: 50,
+    isPayPerUse: true,
+    enabled: true,
+    comingSoon: true,
+  },
+  
+  // ========== Luma ==========
+  {
+    id: 'dream-machine-1.5',
+    name: 'Dream Machine 1.5',
+    provider: 'luma',
+    modality: 'video',
+    description: 'Cinematic video generation.',
+    tags: ['pay-per-use', 'anonymized'],
+    creditCost: 35,
+    isPayPerUse: true,
+    enabled: true,
+  },
+  
+  // ========== Pika ==========
+  {
+    id: 'pika-2.0',
+    name: 'Pika 2.0',
+    provider: 'pika',
+    modality: 'video',
+    description: 'Creative effects and motion.',
+    tags: ['new', 'pay-per-use', 'anonymized'],
+    creditCost: 30,
     isPayPerUse: true,
     enabled: true,
     comingSoon: true,
@@ -372,4 +687,58 @@ export function getPrivateModels(matureFilterEnabled: boolean = true): GhostMode
 
 export function getPayPerUseModels(matureFilterEnabled: boolean = true): GhostModel[] {
   return getAllModels(matureFilterEnabled).filter(m => m.isPayPerUse && m.enabled);
+}
+
+// Model routing configuration for edge functions
+export const MODEL_ROUTES = {
+  // Swiss-Hosted (Modal)
+  modal: {
+    models: ['qwen2.5-3b', 'qwen2.5-7b', 'llama3.1-8b', 'mistral-7b', 'qwen2.5-coder-7b'],
+    endpoint: 'https://swissvault--swissvault-inference-chat-completions.modal.run',
+  },
+  
+  // OpenAI
+  openai: {
+    models: ['gpt-5.2', 'gpt-5.2-mini', 'o3', 'o1', 'o1-mini', 'gpt-4o', 'gpt-4o-mini'],
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+  },
+  
+  // Anthropic
+  anthropic: {
+    models: ['claude-opus-4.5', 'claude-sonnet-4.5', 'claude-haiku-4.5', 'claude-sonnet-4'],
+    endpoint: 'https://api.anthropic.com/v1/messages',
+  },
+  
+  // Google
+  google: {
+    models: ['gemini-3-pro', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-pro'],
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+  },
+  
+  // xAI
+  xai: {
+    models: ['grok-4.1', 'grok-3', 'grok-2'],
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+  },
+  
+  // DeepSeek
+  deepseek: {
+    models: ['deepseek-v3.2', 'deepseek-v3', 'deepseek-coder-v2'],
+    endpoint: 'https://api.deepseek.com/v1/chat/completions',
+  },
+  
+  // Qwen (via API)
+  qwen: {
+    models: ['qwen3-235b', 'qwen3-235b-thinking', 'qwen3-coder-480b'],
+    endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+  },
+};
+
+export function getProviderForModel(modelId: string): string {
+  for (const [provider, config] of Object.entries(MODEL_ROUTES)) {
+    if (config.models.includes(modelId)) {
+      return provider;
+    }
+  }
+  return 'modal'; // Default to Swiss-hosted
 }

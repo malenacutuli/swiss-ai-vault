@@ -20,39 +20,54 @@ interface VideoGenRequest {
   taskId?: string;
 }
 
-// Runway Gen-3 API
+// Model routing configuration
+const VIDEO_MODEL_ROUTES: Record<string, { provider: string; creditCost: number; maxDuration: number }> = {
+  // Google Veo
+  'veo-3.1': { provider: 'google', creditCost: 150, maxDuration: 60 },
+  'veo-3': { provider: 'google', creditCost: 120, maxDuration: 30 },
+  'veo-2': { provider: 'google', creditCost: 80, maxDuration: 15 },
+  // Runway
+  'runway-gen3-alpha-turbo': { provider: 'runway', creditCost: 25, maxDuration: 10 },
+  'runway-gen3-alpha': { provider: 'runway', creditCost: 50, maxDuration: 10 },
+  // Legacy aliases
+  'runway-gen3-turbo': { provider: 'runway', creditCost: 25, maxDuration: 10 },
+  'runway-gen3': { provider: 'runway', creditCost: 50, maxDuration: 10 },
+  // OpenAI Sora
+  'sora': { provider: 'openai', creditCost: 100, maxDuration: 20 },
+  'sora-turbo': { provider: 'openai', creditCost: 50, maxDuration: 10 },
+  // Luma
+  'dream-machine-1.5': { provider: 'luma', creditCost: 35, maxDuration: 5 },
+  // Pika
+  'pika-2.0': { provider: 'pika', creditCost: 30, maxDuration: 5 },
+};
+
+// Generate with Runway
 async function generateWithRunway(
   prompt: string,
   model: string,
   mode: 'i2v' | 't2v',
   inputImage?: string,
   duration: number = 5
-): Promise<{ taskId: string } | { videoUrl: string }> {
+): Promise<{ taskId: string }> {
   const RUNWAY_API_KEY = Deno.env.get('RUNWAY_API_KEY');
   if (!RUNWAY_API_KEY) {
     throw new Error('RUNWAY_API_KEY not configured');
   }
 
-  const modelId = model === 'runway-gen3' ? 'gen3a_turbo' : 'gen3a_turbo';
+  const modelId = model.includes('turbo') ? 'gen3a_turbo' : 'gen3a_turbo';
   
   console.log(`[ghost-video-gen] Generating with Runway ${modelId}, mode: ${mode}`);
 
   const body: Record<string, unknown> = {
     promptText: prompt,
     model: modelId,
-    duration: Math.min(duration, 10), // Runway max is 10s
+    duration: Math.min(duration, 10),
     watermark: false,
     ratio: '16:9',
   };
 
   if (mode === 'i2v' && inputImage) {
-    // For image-to-video, we need to upload the image first or use a URL
-    if (inputImage.startsWith('data:')) {
-      // Base64 image - Runway accepts this
-      body.promptImage = inputImage;
-    } else {
-      body.promptImage = inputImage;
-    }
+    body.promptImage = inputImage;
   }
 
   const response = await fetch('https://api.dev.runwayml.com/v1/image_to_video', {
@@ -74,7 +89,6 @@ async function generateWithRunway(
   const data = await response.json();
   console.log('[ghost-video-gen] Runway response:', data);
 
-  // Runway returns a task ID for async processing
   if (data.id) {
     return { taskId: data.id };
   }
@@ -82,6 +96,7 @@ async function generateWithRunway(
   throw new Error('No task ID returned from Runway');
 }
 
+// Check Runway task status
 async function checkRunwayStatus(taskId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
   const RUNWAY_API_KEY = Deno.env.get('RUNWAY_API_KEY');
   if (!RUNWAY_API_KEY) {
@@ -113,24 +128,89 @@ async function checkRunwayStatus(taskId: string): Promise<{ status: string; vide
   return { status: 'processing' };
 }
 
-// Google Veo via Lovable AI Gateway
-async function generateWithVeo(
+// Generate with Luma
+async function generateWithLuma(
   prompt: string,
-  duration: number
-): Promise<{ videoUrl: string }> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  if (!LOVABLE_API_KEY) {
-    throw new Error('LOVABLE_API_KEY not configured');
+  mode: 'i2v' | 't2v',
+  inputImage?: string
+): Promise<{ taskId: string }> {
+  const LUMA_API_KEY = Deno.env.get('LUMA_API_KEY');
+  if (!LUMA_API_KEY) {
+    throw new Error('LUMA_API_KEY not configured');
   }
 
-  console.log('[ghost-video-gen] Generating with Veo 2');
+  console.log('[ghost-video-gen] Generating with Luma Dream Machine');
 
-  // For now, Veo might not be available through Lovable AI gateway
-  // This is a placeholder for when it becomes available
-  throw new Error('Veo 2 is coming soon');
+  const body: Record<string, unknown> = {
+    prompt,
+    aspect_ratio: '16:9',
+  };
+
+  if (mode === 'i2v' && inputImage) {
+    body.keyframes = {
+      frame0: {
+        type: 'image',
+        url: inputImage,
+      }
+    };
+  }
+
+  const response = await fetch('https://api.lumalabs.ai/dream-machine/v1/generations', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LUMA_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[ghost-video-gen] Luma error:', response.status, errorText);
+    throw new Error(`Luma API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log('[ghost-video-gen] Luma response:', data);
+
+  if (data.id) {
+    return { taskId: `luma:${data.id}` };
+  }
+
+  throw new Error('No task ID returned from Luma');
 }
 
-// Replicate video models as fallback
+// Check Luma status
+async function checkLumaStatus(taskId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
+  const LUMA_API_KEY = Deno.env.get('LUMA_API_KEY');
+  if (!LUMA_API_KEY) {
+    throw new Error('LUMA_API_KEY not configured');
+  }
+
+  const response = await fetch(`https://api.lumalabs.ai/dream-machine/v1/generations/${taskId}`, {
+    headers: {
+      'Authorization': `Bearer ${LUMA_API_KEY}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to check task status: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (data.state === 'completed' && data.assets?.video) {
+    return { status: 'completed', videoUrl: data.assets.video };
+  }
+
+  if (data.state === 'failed') {
+    return { status: 'failed', error: data.failure_reason || 'Generation failed' };
+  }
+
+  return { status: 'processing' };
+}
+
+// Generate with Replicate (fallback)
 async function generateWithReplicate(
   prompt: string,
   mode: 'i2v' | 't2v',
@@ -149,7 +229,6 @@ async function generateWithReplicate(
   let output;
   
   if (mode === 'i2v' && inputImage) {
-    // Image to video using Stable Video Diffusion
     output = await replicate.run(
       "stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438",
       {
@@ -162,7 +241,6 @@ async function generateWithReplicate(
       }
     );
   } else {
-    // Text to video - use a different model
     output = await replicate.run(
       "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
       {
@@ -221,16 +299,25 @@ serve(async (req) => {
 
     // Handle status check
     if (body.checkStatus && body.taskId) {
-      const status = await checkRunwayStatus(body.taskId);
-      return new Response(
-        JSON.stringify(status),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Route to appropriate status checker
+      if (body.taskId.startsWith('luma:')) {
+        const status = await checkLumaStatus(body.taskId.replace('luma:', ''));
+        return new Response(
+          JSON.stringify(status),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const status = await checkRunwayStatus(body.taskId);
+        return new Response(
+          JSON.stringify(status),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const {
       prompt = '',
-      model = 'runway-gen3-turbo',
+      model = 'runway-gen3-alpha-turbo',
       mode = 't2v',
       inputImage,
       duration = 5,
@@ -254,31 +341,41 @@ serve(async (req) => {
       );
     }
 
-    // Calculate credit cost
-    const baseCosts: Record<string, number> = {
-      'runway-gen3-turbo': 20,
-      'runway-gen3': 40,
-      'veo-2': 50,
-    };
-
+    // Get model config
+    const modelConfig = VIDEO_MODEL_ROUTES[model] || VIDEO_MODEL_ROUTES['runway-gen3-alpha-turbo'];
     const durationMultiplier = duration === 5 ? 1 : duration === 10 ? 1.75 : 2.5;
-    const totalCost = Math.round((baseCosts[model] || 20) * durationMultiplier);
+    const totalCost = Math.round(modelConfig.creditCost * durationMultiplier);
 
-    // Check credits
-    const { data: credits, error: creditsError } = await supabase
-      .from('ghost_credits')
-      .select('balance')
-      .eq('user_id', user.id)
-      .single();
+    // Check credits via RPC (includes admin bypass)
+    const { data: usageCheck, error: usageError } = await supabase
+      .rpc('check_user_usage', {
+        p_user_id: user.id,
+        p_usage_type: 'video',
+        p_estimated_cost_cents: totalCost * 100
+      });
 
-    if (creditsError || !credits || credits.balance < totalCost) {
+    if (usageError) {
+      console.error('[ghost-video-gen] Usage check error:', usageError);
+    }
+
+    // Log admin status
+    if (usageCheck?.is_admin) {
+      console.log(`[ghost-video-gen] Admin user detected - bypassing credit limits`);
+    }
+
+    // Only block if explicitly not allowed AND not admin
+    if (usageCheck && usageCheck.allowed === false && !usageCheck.is_admin) {
       return new Response(
-        JSON.stringify({ error: 'Insufficient credits', required: totalCost, available: credits?.balance || 0 }),
+        JSON.stringify({ 
+          error: usageCheck.reason || 'Insufficient credits', 
+          required: totalCost, 
+          available: usageCheck.balance || 0 
+        }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[ghost-video-gen] Generating with model: ${model}, mode: ${mode}, duration: ${duration}s`);
+    console.log(`[ghost-video-gen] Generating with model: ${model} (${modelConfig.provider}), mode: ${mode}, duration: ${duration}s`);
 
     // Build full prompt with style and camera motion
     let fullPrompt = prompt;
@@ -292,34 +389,49 @@ serve(async (req) => {
     let result;
 
     // Route to provider
-    if (model.startsWith('runway')) {
-      result = await generateWithRunway(fullPrompt, model, mode, inputImage, duration);
-    } else if (model === 'veo-2') {
-      result = await generateWithVeo(fullPrompt, duration);
-    } else {
-      // Fallback to Replicate
-      result = await generateWithReplicate(fullPrompt, mode, inputImage);
+    switch (modelConfig.provider) {
+      case 'runway':
+        result = await generateWithRunway(fullPrompt, model, mode, inputImage, duration);
+        break;
+      case 'luma':
+        result = await generateWithLuma(fullPrompt, mode, inputImage);
+        break;
+      case 'google':
+      case 'openai':
+      case 'pika':
+        // These are coming soon
+        return new Response(
+          JSON.stringify({ error: `${modelConfig.provider} video generation coming soon` }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      default:
+        result = await generateWithReplicate(fullPrompt, mode, inputImage);
+        break;
     }
 
-    // Deduct credits immediately
-    await supabase.rpc('deduct_ghost_credits', {
-      p_user_id: user.id,
-      p_amount: totalCost,
-    });
+    // Deduct credits (skip for admin)
+    if (!usageCheck?.is_admin) {
+      await supabase.rpc('deduct_ghost_credits', {
+        p_user_id: user.id,
+        p_amount: totalCost,
+      });
+    }
 
     // Log usage
     await supabase.from('ghost_usage').insert({
       user_id: user.id,
       model_id: model,
+      provider: modelConfig.provider,
       modality: 'video',
       input_tokens: 0,
       output_tokens: 0,
-      credits_used: totalCost,
+      credits_used: usageCheck?.is_admin ? 0 : totalCost,
       duration_seconds: duration,
       resolution,
+      was_free_tier: usageCheck?.is_admin || false,
     });
 
-    console.log(`[ghost-video-gen] Job started, deducted ${totalCost} credits`);
+    console.log(`[ghost-video-gen] Job started, Admin: ${usageCheck?.is_admin}`);
 
     return new Response(
       JSON.stringify(result),

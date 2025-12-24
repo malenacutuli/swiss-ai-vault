@@ -18,6 +18,23 @@ interface ImageGenRequest {
   enhancePrompt?: boolean;
 }
 
+// Model routing configuration
+const IMAGE_MODEL_ROUTES: Record<string, { provider: string; modelId: string; creditCost: number }> = {
+  'auto': { provider: 'replicate', modelId: 'black-forest-labs/flux-schnell', creditCost: 2 },
+  // Google Imagen
+  'imagen-3': { provider: 'google', modelId: 'imagen-3', creditCost: 5 },
+  'imagen-3-fast': { provider: 'google', modelId: 'imagen-3-fast', creditCost: 3 },
+  // Flux
+  'flux-1.1-pro-ultra': { provider: 'replicate', modelId: 'black-forest-labs/flux-1.1-pro-ultra', creditCost: 8 },
+  'flux-1.1-pro': { provider: 'replicate', modelId: 'black-forest-labs/flux-1.1-pro', creditCost: 5 },
+  'flux-schnell': { provider: 'replicate', modelId: 'black-forest-labs/flux-schnell', creditCost: 1 },
+  // OpenAI
+  'dall-e-3': { provider: 'openai', modelId: 'dall-e-3', creditCost: 4 },
+  // Stability
+  'sdxl': { provider: 'replicate', modelId: 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b', creditCost: 1 },
+  'sd3-medium': { provider: 'replicate', modelId: 'stability-ai/stable-diffusion-3', creditCost: 2 },
+};
+
 // Map aspect ratio to provider-specific formats
 function getReplicateAspectRatio(aspectRatio: string): string {
   const map: Record<string, string> = {
@@ -55,10 +72,10 @@ function applyStyle(prompt: string, style?: string): string {
   return `${prompt}, ${styleModifiers[style] || ''}`;
 }
 
-// Route to different providers
+// Generate with Replicate
 async function generateWithReplicate(
   prompt: string,
-  model: string,
+  modelId: string,
   aspectRatio: string,
   negativePrompt?: string,
   seed?: number,
@@ -71,18 +88,7 @@ async function generateWithReplicate(
 
   const replicate = new Replicate({ auth: REPLICATE_API_KEY });
 
-  // Map model ID to Replicate model
-  const modelMap: Record<string, string> = {
-    'flux-1.1-pro': 'black-forest-labs/flux-1.1-pro',
-    'flux-schnell': 'black-forest-labs/flux-schnell',
-    'sdxl': 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
-    'sd3-medium': 'stability-ai/stable-diffusion-3',
-    'auto': 'black-forest-labs/flux-schnell', // Default to fast model
-  };
-
-  const replicateModel = modelMap[model] || modelMap['auto'];
-  
-  console.log(`[ghost-image-gen] Using Replicate model: ${replicateModel}`);
+  console.log(`[ghost-image-gen] Using Replicate model: ${modelId}`);
 
   const input: Record<string, unknown> = {
     prompt,
@@ -100,9 +106,8 @@ async function generateWithReplicate(
     input.seed = seed;
   }
 
-  const output = await replicate.run(replicateModel as `${string}/${string}`, { input });
+  const output = await replicate.run(modelId as `${string}/${string}`, { input });
   
-  // Handle different output formats
   if (Array.isArray(output)) {
     return output.map((url, idx) => ({
       url: typeof url === 'string' ? url : url.url || url,
@@ -113,6 +118,7 @@ async function generateWithReplicate(
   return [{ url: output as string, seed }];
 }
 
+// Generate with OpenAI
 async function generateWithOpenAI(
   prompt: string,
   aspectRatio: string,
@@ -134,7 +140,7 @@ async function generateWithOpenAI(
       prompt,
       size: getDalleSize(aspectRatio),
       quality: 'hd',
-      n: Math.min(count, 1), // DALL-E 3 only supports n=1
+      n: Math.min(count, 1),
     }),
   });
 
@@ -148,39 +154,43 @@ async function generateWithOpenAI(
   return data.data.map((img: { url: string }) => ({ url: img.url }));
 }
 
-async function generateWithLovableAI(
+// Generate with Google Imagen (via Lovable AI or direct)
+async function generateWithGoogle(
   prompt: string
 ): Promise<{ url: string }[]> {
+  // Try Lovable AI gateway first
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  if (!LOVABLE_API_KEY) {
-    throw new Error('LOVABLE_API_KEY not configured');
+  if (LOVABLE_API_KEY) {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image',
+        messages: [{ role: 'user', content: prompt }],
+        modalities: ['image', 'text'],
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const images = data.choices?.[0]?.message?.images || [];
+      
+      return images.map((img: { image_url: { url: string } }) => ({
+        url: img.image_url.url,
+      }));
+    }
   }
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash-image',
-      messages: [{ role: 'user', content: prompt }],
-      modalities: ['image', 'text'],
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('[ghost-image-gen] Lovable AI error:', error);
-    throw new Error('Failed to generate image with Imagen');
+  // Fallback to direct Google API
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
+  if (!GOOGLE_API_KEY) {
+    throw new Error('GOOGLE_API_KEY not configured');
   }
 
-  const data = await response.json();
-  const images = data.choices?.[0]?.message?.images || [];
-  
-  return images.map((img: { image_url: { url: string } }) => ({
-    url: img.image_url.url,
-  }));
+  throw new Error('Direct Imagen API not yet implemented');
 }
 
 serve(async (req) => {
@@ -233,77 +243,88 @@ serve(async (req) => {
       );
     }
 
-    // Calculate credit cost
-    const creditCosts: Record<string, number> = {
-      'auto': 2,
-      'flux-1.1-pro': 5,
-      'flux-schnell': 1,
-      'sdxl': 1,
-      'sd3-medium': 2,
-      'dall-e-3': 4,
-      'imagen-3': 5,
-    };
+    // Get model config
+    const modelConfig = IMAGE_MODEL_ROUTES[model] || IMAGE_MODEL_ROUTES['auto'];
+    const totalCost = modelConfig.creditCost * count;
 
-    const creditPerImage = creditCosts[model] || 2;
-    const totalCost = creditPerImage * count;
+    // Check credits via RPC (includes admin bypass)
+    const { data: usageCheck, error: usageError } = await supabase
+      .rpc('check_user_usage', {
+        p_user_id: user.id,
+        p_usage_type: 'image',
+        p_estimated_cost_cents: totalCost * 100
+      });
 
-    // Check credits
-    const { data: credits, error: creditsError } = await supabase
-      .from('ghost_credits')
-      .select('balance')
-      .eq('user_id', user.id)
-      .single();
+    if (usageError) {
+      console.error('[ghost-image-gen] Usage check error:', usageError);
+    }
 
-    if (creditsError || !credits || credits.balance < totalCost) {
+    // Log admin status
+    if (usageCheck?.is_admin) {
+      console.log(`[ghost-image-gen] Admin user detected - bypassing credit limits`);
+    }
+
+    // Only block if explicitly not allowed AND not admin
+    if (usageCheck && usageCheck.allowed === false && !usageCheck.is_admin) {
       return new Response(
-        JSON.stringify({ error: 'Insufficient credits', required: totalCost, available: credits?.balance || 0 }),
+        JSON.stringify({ 
+          error: usageCheck.reason || 'Insufficient credits', 
+          required: totalCost, 
+          available: usageCheck.balance || 0 
+        }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[ghost-image-gen] Generating with model: ${model}, count: ${count}`);
+    console.log(`[ghost-image-gen] Generating with model: ${model} (${modelConfig.provider}), count: ${count}`);
 
     // Apply style to prompt
     const styledPrompt = applyStyle(prompt, style);
     
     let images: { url: string; seed?: number }[];
-    let actualModel = model;
 
     // Route to appropriate provider
-    if (model === 'dall-e-3') {
-      images = await generateWithOpenAI(styledPrompt, aspectRatio, count);
-      actualModel = 'dall-e-3';
-    } else if (model === 'imagen-3') {
-      images = await generateWithLovableAI(styledPrompt);
-      actualModel = 'imagen-3';
-    } else {
-      images = await generateWithReplicate(styledPrompt, model, aspectRatio, negativePrompt, seed, count);
-      actualModel = model === 'auto' ? 'flux-schnell' : model;
+    switch (modelConfig.provider) {
+      case 'openai':
+        images = await generateWithOpenAI(styledPrompt, aspectRatio, count);
+        break;
+      case 'google':
+        images = await generateWithGoogle(styledPrompt);
+        break;
+      case 'replicate':
+      default:
+        images = await generateWithReplicate(styledPrompt, modelConfig.modelId, aspectRatio, negativePrompt, seed, count);
+        break;
     }
 
-    // Deduct credits
-    await supabase.rpc('deduct_ghost_credits', {
-      p_user_id: user.id,
-      p_amount: totalCost,
-    });
+    // Deduct credits (skip for admin)
+    if (!usageCheck?.is_admin) {
+      await supabase.rpc('deduct_ghost_credits', {
+        p_user_id: user.id,
+        p_amount: totalCost,
+      });
+    }
 
-    // Log usage (no prompt content for privacy)
+    // Log usage
     await supabase.from('ghost_usage').insert({
       user_id: user.id,
-      model_id: actualModel,
+      model_id: model,
+      provider: modelConfig.provider,
       modality: 'image',
       input_tokens: 0,
       output_tokens: 0,
-      credits_used: totalCost,
+      credits_used: usageCheck?.is_admin ? 0 : totalCost,
       resolution: aspectRatio,
+      was_free_tier: usageCheck?.is_admin || false,
     });
 
-    console.log(`[ghost-image-gen] Generated ${images.length} images, deducted ${totalCost} credits`);
+    console.log(`[ghost-image-gen] Generated ${images.length} images, Admin: ${usageCheck?.is_admin}`);
 
     return new Response(
       JSON.stringify({
         images,
-        model: actualModel,
+        model: model,
+        provider: modelConfig.provider,
         enhancedPrompt: enhancePrompt ? styledPrompt : undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

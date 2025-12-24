@@ -1,27 +1,24 @@
-import { useState } from 'react';
-import { Check, ChevronDown, Sparkles, Zap, Crown, Image } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, Sparkles, Zap, Crown, Image as ImageIcon, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
-  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 export interface ImageModel {
   id: string;
   name: string;
-  provider: 'replicate' | 'openai' | 'google' | 'auto';
+  provider: 'auto' | 'replicate' | 'openai' | 'google';
   description: string;
   creditCost: number;
-  tags: string[];
+  tags: Array<'default' | 'new' | 'premium' | 'fast'>;
   isDefault?: boolean;
-  isUncensored?: boolean;  // Models that allow mature content
-  isMature?: boolean;      // Models primarily for mature content
 }
 
 export const IMAGE_MODELS: ImageModel[] = [
@@ -34,13 +31,39 @@ export const IMAGE_MODELS: ImageModel[] = [
     tags: ['default'],
     isDefault: true,
   },
+  // Google Imagen
+  {
+    id: 'imagen-3',
+    name: 'Imagen 3',
+    provider: 'google',
+    description: 'Best photorealism from Google.',
+    creditCost: 5,
+    tags: ['new', 'premium'],
+  },
+  {
+    id: 'imagen-3-fast',
+    name: 'Imagen 3 Fast',
+    provider: 'google',
+    description: 'Faster version of Imagen 3.',
+    creditCost: 3,
+    tags: ['new', 'fast'],
+  },
+  // Black Forest Labs (Flux)
+  {
+    id: 'flux-1.1-pro-ultra',
+    name: 'Flux 1.1 Pro Ultra',
+    provider: 'replicate',
+    description: 'Up to 4K resolution. Best quality.',
+    creditCost: 8,
+    tags: ['new', 'premium'],
+  },
   {
     id: 'flux-1.1-pro',
     name: 'Flux 1.1 Pro',
     provider: 'replicate',
-    description: 'Black Forest Labs flagship. Best quality.',
+    description: 'Black Forest Labs flagship.',
     creditCost: 5,
-    tags: ['new', 'premium'],
+    tags: ['premium'],
   },
   {
     id: 'flux-schnell',
@@ -50,6 +73,16 @@ export const IMAGE_MODELS: ImageModel[] = [
     creditCost: 1,
     tags: ['fast'],
   },
+  // OpenAI
+  {
+    id: 'dall-e-3',
+    name: 'DALL·E 3',
+    provider: 'openai',
+    description: 'OpenAI\'s image model. Great prompt adherence.',
+    creditCost: 4,
+    tags: ['premium'],
+  },
+  // Stability AI
   {
     id: 'sdxl',
     name: 'SDXL',
@@ -66,29 +99,13 @@ export const IMAGE_MODELS: ImageModel[] = [
     creditCost: 2,
     tags: [],
   },
-  {
-    id: 'dall-e-3',
-    name: 'DALL·E 3',
-    provider: 'openai',
-    description: 'OpenAI\'s image model. Great prompt adherence.',
-    creditCost: 4,
-    tags: ['premium'],
-  },
-  {
-    id: 'imagen-3',
-    name: 'Imagen 3',
-    provider: 'google',
-    description: 'Google\'s state-of-the-art image model.',
-    creditCost: 5,
-    tags: ['new', 'premium'],
-  },
 ];
 
-const PROVIDER_ICONS: Record<string, typeof Image> = {
-  replicate: Image,
+const PROVIDER_ICONS: Record<string, React.ElementType> = {
+  auto: Sparkles,
+  replicate: ImageIcon,
   openai: Sparkles,
-  google: Zap,
-  auto: Crown,
+  google: Crown,
 };
 
 interface ImageGenModelSelectorProps {
@@ -97,60 +114,57 @@ interface ImageGenModelSelectorProps {
   matureFilterEnabled?: boolean;
 }
 
-export function ImageGenModelSelector({ selectedModel, onModelChange, matureFilterEnabled = true }: ImageGenModelSelectorProps) {
-  const [open, setOpen] = useState(false);
-  
-  // Filter models based on mature filter setting
-  const availableModels = matureFilterEnabled 
-    ? IMAGE_MODELS.filter(m => !m.isUncensored && !m.isMature)
-    : IMAGE_MODELS;
-  
-  const currentModel = availableModels.find(m => m.id === selectedModel) || availableModels[0];
-  const Icon = PROVIDER_ICONS[currentModel.provider] || Image;
+function getTagBadge(tag: string) {
+  switch (tag) {
+    case 'new':
+      return <Badge variant="secondary" className="text-xs px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-0">New</Badge>;
+    case 'premium':
+      return <Badge variant="secondary" className="text-xs px-1.5 py-0 bg-amber-500/20 text-amber-400 border-0">Premium</Badge>;
+    case 'fast':
+      return <Badge variant="secondary" className="text-xs px-1.5 py-0 bg-blue-500/20 text-blue-400 border-0">Fast</Badge>;
+    default:
+      return null;
+  }
+}
 
-  const getTagBadge = (tag: string) => {
-    switch (tag) {
-      case 'new':
-        return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-swiss-burgundy/30 text-swiss-burgundy">NEW</Badge>;
-      case 'premium':
-        return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/30 text-amber-600">PREMIUM</Badge>;
-      case 'fast':
-        return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-600">FAST</Badge>;
-      case 'default':
-        return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">DEFAULT</Badge>;
-      default:
-        return null;
-    }
-  };
+export function ImageGenModelSelector({
+  selectedModel,
+  onModelChange,
+  matureFilterEnabled = true,
+}: ImageGenModelSelectorProps) {
+  const [open, setOpen] = useState(false);
+
+  const availableModels = IMAGE_MODELS;
+  const currentModel = availableModels.find(m => m.id === selectedModel) || availableModels[0];
+  const ProviderIcon = PROVIDER_ICONS[currentModel.provider] || ImageIcon;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between bg-background/50 hover:bg-muted/50 border-border/50"
+          className="w-full justify-between bg-background/50 border-border/50 hover:bg-background/80"
         >
           <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">{currentModel.name}</span>
-            {currentModel.tags.slice(0, 1).map(tag => (
+            <ProviderIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">{currentModel.name}</span>
+            {currentModel.tags.filter(t => t !== 'default').map(tag => (
               <span key={tag}>{getTagBadge(tag)}</span>
             ))}
           </div>
-          <ChevronDown className="w-4 h-4 opacity-50" />
+          <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      
       <DropdownMenuContent align="start" className="w-[320px]">
-        <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-          Select Model
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          Image Generation Models
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
         {availableModels.map((model) => {
-          const ModelIcon = PROVIDER_ICONS[model.provider] || Image;
+          const Icon = PROVIDER_ICONS[model.provider] || ImageIcon;
+          const isSelected = model.id === selectedModel;
+          
           return (
             <DropdownMenuItem
               key={model.id}
@@ -158,29 +172,28 @@ export function ImageGenModelSelector({ selectedModel, onModelChange, matureFilt
                 onModelChange(model.id);
                 setOpen(false);
               }}
-              className={cn(
-                'flex items-start gap-3 p-3 cursor-pointer',
-                selectedModel === model.id && 'bg-muted/50'
-              )}
+              className="flex items-start gap-3 p-3 cursor-pointer"
             >
-              <ModelIcon className="w-5 h-5 mt-0.5 text-muted-foreground shrink-0" />
+              <Icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{model.name}</span>
-                  {model.tags.map(tag => (
+                  <span className="font-medium text-sm">{model.name}</span>
+                  {model.tags.filter(t => t !== 'default').map(tag => (
                     <span key={tag}>{getTagBadge(tag)}</span>
                   ))}
+                  {isSelected && (
+                    <Check className="h-4 w-4 text-primary ml-auto" />
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                   {model.description}
                 </p>
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  {model.creditCost} credits per image
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-xs px-1.5 py-0">
+                    {model.creditCost} credits
+                  </Badge>
+                </div>
               </div>
-              {selectedModel === model.id && (
-                <Check className="w-4 h-4 text-primary shrink-0" />
-              )}
             </DropdownMenuItem>
           );
         })}
