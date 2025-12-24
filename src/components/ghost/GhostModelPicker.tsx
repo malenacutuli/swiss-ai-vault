@@ -56,13 +56,17 @@ function groupModelsByProvider(models: GhostModel[]) {
 
 // Provider display names
 const PROVIDER_LABELS: Record<string, string> = {
-  modal: 'Swiss-Hosted',
+  modal: 'Swiss-Hosted 🇨🇭',
   openai: 'OpenAI',
   anthropic: 'Anthropic',
   google: 'Google',
+  xai: 'xAI (Grok)',
+  deepseek: 'DeepSeek',
+  qwen: 'Qwen',
   replicate: 'Replicate',
   runway: 'Runway',
-  sora: 'OpenAI',
+  luma: 'Luma',
+  pika: 'Pika',
 };
 
 // Tag icons
@@ -176,15 +180,15 @@ export function GhostModelPicker({
             if (filteredModels.length === 0) return null;
 
             return (
-              <div key={provider}>
-                {idx > 0 && <DropdownMenuSeparator />}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+              <>
+                {idx > 0 && <DropdownMenuSeparator key={`sep-${provider}`} />}
+                <DropdownMenuLabel key={`label-${provider}`} className="text-xs text-muted-foreground uppercase tracking-wider">
                   {PROVIDER_LABELS[provider] || provider}
                 </DropdownMenuLabel>
                 {filteredModels.map(model => (
                   <DropdownMenuItem
                     key={model.id}
-                    onClick={() => {
+                    onSelect={() => {
                       if (!model.comingSoon) {
                         onSelectModel(model.id);
                         setOpen(false);
@@ -227,7 +231,7 @@ export function GhostModelPicker({
                     </div>
                   </DropdownMenuItem>
                 ))}
-              </div>
+              </>
             );
           })}
         </ScrollArea>

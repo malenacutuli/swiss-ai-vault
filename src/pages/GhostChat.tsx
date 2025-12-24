@@ -27,7 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Default models per mode
 const DEFAULT_MODELS: Record<GhostMode, string> = {
-  text: 'qwen2.5-3b',
+  text: 'swissvault-1.0',
   image: 'auto-image',
   video: 'runway-gen3-turbo',
   search: 'sonar',
