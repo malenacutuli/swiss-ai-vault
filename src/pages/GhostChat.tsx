@@ -105,7 +105,7 @@ export default function GhostChat() {
   const { balance, checkCredits, recordUsage, refreshCredits, isLoading: creditsLoading } = useGhostCredits();
 
   // Streaming inference hook
-  const { streamResponse, cancelStream, isStreaming } = useGhostInference();
+  const { streamResponse, cancelStream, isStreaming, elapsedTime } = useGhostInference();
 
   // Web search hook
   const webSearch = useGhostSearch();
@@ -941,6 +941,7 @@ export default function GhostChat() {
                   onSubmit={handleSendMessage}
                   onCancel={mode === 'search' ? webSearch.cancelSearch : cancelStream}
                   isStreaming={isStreaming || webSearch.isSearching}
+                  elapsedTime={elapsedTime}
                   credits={balance}
                   enhancePrompt={enhancePrompt}
                   onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}

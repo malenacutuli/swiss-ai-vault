@@ -25,6 +25,7 @@ import {
   Lightbulb,
   Code,
   Coins,
+  Timer,
 } from 'lucide-react';
 
 type GhostMode = 'text' | 'image' | 'video' | 'search';
@@ -78,6 +79,7 @@ interface GhostChatInputProps {
   onCancel?: () => void;
   isLoading?: boolean;
   isStreaming?: boolean;
+  elapsedTime?: number;
   credits?: number;
   enhancePrompt?: boolean;
   onToggleEnhance?: () => void;
@@ -106,6 +108,7 @@ export function GhostChatInput({
   onCancel,
   isLoading = false,
   isStreaming = false,
+  elapsedTime = 0,
   credits = 0,
   enhancePrompt = false,
   onToggleEnhance,
@@ -315,6 +318,16 @@ export function GhostChatInput({
 
         {/* Bottom action row */}
         <div className="absolute right-3 bottom-3 flex items-center gap-2">
+          {/* Streaming timer */}
+          {isStreaming && elapsedTime > 0 && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-md">
+              <Timer className="w-3.5 h-3.5 text-swiss-navy animate-pulse" />
+              <span className="text-xs text-muted-foreground tabular-nums font-mono">
+                {elapsedTime.toFixed(1)}s
+              </span>
+            </div>
+          )}
+
           {/* Voice input button */}
           {mode === 'text' && (
             <VoiceButton

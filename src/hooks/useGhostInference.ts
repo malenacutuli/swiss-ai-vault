@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface StreamCallbacks {
@@ -16,7 +16,24 @@ interface StreamOptions {
 export function useGhostInference() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamStatus, setStreamStatus] = useState<'idle' | 'connecting' | 'streaming' | 'complete'>('idle');
+  const [elapsedTime, setElapsedTime] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const streamStartRef = useRef<number | null>(null);
+
+  // Timer effect for elapsed time during streaming
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isStreaming && streamStartRef.current) {
+      interval = setInterval(() => {
+        setElapsedTime((Date.now() - streamStartRef.current!) / 1000);
+      }, 100);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isStreaming]);
 
   const streamResponse = useCallback(async (
     messages: Array<{ role: string; content: string }>,
@@ -26,6 +43,8 @@ export function useGhostInference() {
   ) => {
     setIsStreaming(true);
     setStreamStatus('connecting');
+    setElapsedTime(0);
+    streamStartRef.current = Date.now();
     
     let fullContent = '';
     const startTime = Date.now();
@@ -180,5 +199,6 @@ export function useGhostInference() {
     cancelStream,
     isStreaming,
     streamStatus,
+    elapsedTime,
   };
 }
