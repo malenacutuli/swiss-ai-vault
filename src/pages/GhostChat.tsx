@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // Components
 import { GhostSidebar, type GhostConversation } from '@/components/ghost/GhostSidebar';
 import { GhostModeTabs, type GhostMode } from '@/components/ghost/GhostModeTabs';
+import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
 import { GhostChatInput } from '@/components/ghost/GhostChatInput';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
 import { GhostTextView, GhostImageView, GhostVideoView, GhostSearchView } from '@/components/ghost/views';
@@ -23,6 +24,7 @@ import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostSettings } from '@/components/ghost/GhostSettings';
 import { GhostThinkingIndicator } from '@/components/ghost/GhostThinkingIndicator';
 
+import { SwissFlag } from '@/components/icons/SwissFlag';
 import { EyeOff, Shield, Menu, X, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -728,12 +730,13 @@ export default function GhostChat() {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
 
-            {/* Logo */}
+            {/* Brand */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-swiss-navy/20 border border-swiss-navy/30 flex items-center justify-center">
-                <EyeOff className="w-4 h-4 text-swiss-navy" />
-              </div>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider hidden sm:inline font-sans">
+              <SwissFlag className="h-7 w-7 rounded-lg" />
+              <span className="font-semibold text-foreground hidden sm:inline">
+                SwissVault<span className="text-brand-accent">.ai</span>
+              </span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider hidden md:inline font-sans">
                 Ghost Mode
               </span>
             </div>
@@ -746,8 +749,10 @@ export default function GhostChat() {
             />
           </div>
 
-          {/* Right side indicators */}
+          {/* Right side */}
           <div className="flex items-center gap-3">
+            <GhostModeToggle currentMode="ghost" className="hidden md:grid" />
+
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />

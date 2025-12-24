@@ -60,17 +60,28 @@ export function GhostModeToggle({ currentMode, className }: GhostModeToggleProps
     <>
       <div
         className={cn(
-          "relative flex items-center rounded-full p-1 bg-muted/50 border border-border/50",
+          "relative grid grid-cols-2 items-center rounded-full p-1 bg-muted/50 border border-border/50",
           className
         )}
       >
+        {/* Sliding Background */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-1 w-1/2 rounded-full transition-transform duration-300 ease-out",
+            mode === "vault" && "translate-x-full",
+            mode === "vault" ? "bg-primary" : "bg-secondary"
+          )}
+        />
+
         {/* Ghost Option */}
         <button
+          type="button"
           onClick={() => handleToggle("ghost")}
           className={cn(
-            "relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[80px] justify-center",
+            "relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors min-w-[88px] justify-center",
             mode === "ghost"
-              ? "text-white"
+              ? "text-secondary-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -80,34 +91,18 @@ export function GhostModeToggle({ currentMode, className }: GhostModeToggleProps
 
         {/* Vault Option */}
         <button
+          type="button"
           onClick={() => handleToggle("vault")}
           className={cn(
-            "relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 min-w-[80px] justify-center",
+            "relative z-10 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors min-w-[88px] justify-center",
             mode === "vault"
-              ? "text-white"
+              ? "text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
           <Lock className="h-4 w-4" />
           <span>Vault</span>
         </button>
-
-        {/* Sliding Background */}
-        <div
-          className={cn(
-            "absolute rounded-full transition-all duration-300 ease-out",
-            mode === "ghost"
-              ? "bg-gradient-to-r from-purple-600 to-purple-500"
-              : "bg-gradient-to-r from-emerald-600 to-emerald-500"
-          )}
-          style={{
-            top: "4px",
-            bottom: "4px",
-            width: "calc(50% - 4px)",
-            left: mode === "ghost" ? "4px" : "calc(50%)",
-            right: mode === "vault" ? "4px" : "auto",
-          }}
-        />
       </div>
 
       {/* Ghost to Vault Warning Modal */}
@@ -115,30 +110,24 @@ export function GhostModeToggle({ currentMode, className }: GhostModeToggleProps
         <AlertDialogContent className="bg-card border-border shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
-              <Lock className="h-5 w-5 text-emerald-500" />
-              Switch to VaultChat?
+              <Lock className="h-5 w-5 text-foreground" />
+              Switch to Vault Chat?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-muted-foreground">
-                <p>
-                  VaultChat stores your conversations on SwissVault servers (encrypted).
-                </p>
-                <p>
-                  Your Ghost conversations will remain local on this device.
-                </p>
+                <p>Vault Chat stores your conversations on SwissVault servers (encrypted).</p>
+                <p>Your Ghost conversations will remain local on this device.</p>
                 <p className="text-foreground">Do you want to switch?</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary hover:bg-secondary/80 text-foreground border-border">
-              Stay in Ghost
-            </AlertDialogCancel>
+            <AlertDialogCancel>Stay in Ghost</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSwitchToVault}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Switch to VaultChat
+              Switch to Vault Chat
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -149,39 +138,26 @@ export function GhostModeToggle({ currentMode, className }: GhostModeToggleProps
         <AlertDialogContent className="bg-card border-border shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
-              <Ghost className="h-5 w-5 text-purple-500" />
+              <Ghost className="h-5 w-5 text-foreground" />
               Entering Ghost Mode
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4 text-muted-foreground">
-                <p>
-                  Ghost Mode stores nothing on SwissVault servers.
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <span className="text-purple-400">•</span>
-                    Conversations exist only on your device
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-purple-400">•</span>
-                    Swiss-hosted AI models only
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-purple-400">•</span>
-                    Export your data anytime
-                  </li>
+                <p>Ghost Mode stores nothing on SwissVault servers.</p>
+                <ul className="list-disc pl-5 space-y-2 text-sm">
+                  <li>Conversations exist only on your device</li>
+                  <li>Swiss-hosted AI models only</li>
+                  <li>Export your data anytime</li>
                 </ul>
                 <p className="font-medium text-foreground">Ready to go invisible?</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary hover:bg-secondary/80 text-foreground border-border">
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSwitchToGhost}
-              className="bg-purple-600 hover:bg-purple-700 text-white border-0"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Enter Ghost Mode
             </AlertDialogAction>
