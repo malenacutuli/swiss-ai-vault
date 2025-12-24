@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/collapsible';
 import { SwissBadge } from '@/components/ui/swiss';
 import { SwissFlag } from '@/components/icons/SwissFlag';
+import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
 import {
   Search,
   Plus,
@@ -146,6 +147,11 @@ export function GhostSidebar({
               SwissVault<span className="text-brand-accent">.ai</span>
             </span>
           </Link>
+
+          {/* Ghost/Vault Toggle */}
+          <div className="mb-4">
+            <GhostModeToggle currentMode="ghost" />
+          </div>
 
           {/* Search */}
           <div className="relative mb-4">

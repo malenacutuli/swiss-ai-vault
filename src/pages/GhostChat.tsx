@@ -730,29 +730,15 @@ export default function GhostChat() {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
 
-            {/* Brand */}
-            <div className="flex items-center gap-2">
-              <SwissFlag className="h-7 w-7 rounded-lg" />
-              <span className="font-semibold text-foreground hidden sm:inline">
-                SwissVault<span className="text-brand-accent">.ai</span>
-              </span>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider hidden md:inline font-sans">
-                Ghost Mode
-              </span>
-            </div>
-
             {/* Mode Tabs */}
             <GhostModeTabs
               activeMode={mode}
               onModeChange={handleModeChange}
-              className="ml-4"
             />
           </div>
 
           {/* Right side */}
           <div className="flex items-center gap-3">
-            <GhostModeToggle currentMode="ghost" className="hidden md:grid" />
-
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
