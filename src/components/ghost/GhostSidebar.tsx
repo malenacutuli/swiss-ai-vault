@@ -200,23 +200,20 @@ export function GhostSidebar({
           <div className="p-2">
             {/* Folders Section */}
             <Collapsible open={foldersOpen} onOpenChange={setFoldersOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground">
-                <span>Folders</span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCreateFolder();
-                    }}
-                  >
-                    <FolderPlus className="w-3 h-3" />
-                  </Button>
+              <div className="flex items-center justify-between w-full px-2 py-1.5">
+                <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground">
                   {foldersOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                </div>
-              </CollapsibleTrigger>
+                  <span>Folders</span>
+                </CollapsibleTrigger>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={onCreateFolder}
+                >
+                  <FolderPlus className="w-3 h-3" />
+                </Button>
+              </div>
               <CollapsibleContent>
               {folders.length === 0 ? (
                   <p className="px-2 py-3 text-xs text-muted-foreground">No folders yet</p>

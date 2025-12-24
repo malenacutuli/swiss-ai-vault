@@ -29,7 +29,7 @@ export function GhostTextView({ hasMessages, children }: GhostTextViewProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {children}
     </div>
   );

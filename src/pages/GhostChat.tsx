@@ -261,6 +261,9 @@ export default function GhostChat() {
 
     // Handle based on mode
     if (mode === 'text') {
+      // Track stream start time for metrics
+      const streamStartTime = Date.now();
+      
       // Create placeholder for streaming response
       const assistantId = crypto.randomUUID();
       setMessages(prev => [...prev, {
@@ -292,9 +295,35 @@ export default function GhostChat() {
               ));
             },
             onComplete: async (fullResponse) => {
+              // Calculate metrics
+              const responseTime = lastResponseTime || (Date.now() - streamStartTime);
+              const tokens = lastTokenCount || Math.ceil(fullResponse.length / 4);
+              
+              // Calculate context usage percentage
+              const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
+                'swissvault-1.0': 128000,
+                'swissvault-fast': 128000,
+                'swissvault-code': 128000,
+                'gpt-4o-mini': 128000,
+                'gpt-4o': 128000,
+                'gemini-2.0-flash': 1000000,
+                'claude-haiku': 200000,
+                'claude-sonnet': 200000,
+              };
+              const contextWindow = MODEL_CONTEXT_WINDOWS[selectedModels[mode]] || 128000;
+              const totalTokens = messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0) + tokens;
+              const contextUsage = Math.round((totalTokens / contextWindow) * 100);
+              
               setMessages(prev => prev.map(msg =>
                 msg.id === assistantId
-                  ? { ...msg, content: fullResponse, isStreaming: false }
+                  ? { 
+                      ...msg, 
+                      content: fullResponse, 
+                      isStreaming: false,
+                      responseTimeMs: responseTime,
+                      tokenCount: tokens,
+                      contextUsagePercent: contextUsage,
+                    }
                   : msg
               ));
               if (fullResponse) {
@@ -910,12 +939,13 @@ export default function GhostChat() {
         )}
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mode-specific view */}
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {mode === 'text' && (
               <GhostTextView hasMessages={messages.length > 0}>
-                <ScrollArea className="flex-1">
+                <div className="h-0 flex-1 overflow-hidden">
+                  <ScrollArea className="h-full">
                   <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
                     {messages.map((msg) => (
                       <GhostMessageComponent
@@ -967,8 +997,9 @@ export default function GhostChat() {
                     <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
-              </GhostTextView>
-            )}
+              </div>
+            </GhostTextView>
+          )}
             {mode === 'image' && (
               <GhostImageView
                 onNavigateToVideo={(imageUrl) => {
