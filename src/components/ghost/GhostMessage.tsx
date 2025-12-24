@@ -403,9 +403,6 @@ export function GhostMessage({
               onFeedback={onFeedback ? (type) => onFeedback(id, type) : undefined}
               onShare={onShare ? () => onShare(id) : undefined}
               onReport={onReport ? () => onReport(id) : undefined}
-              onSpeak={onSpeak ? () => onSpeak(id, content) : undefined}
-              onStopSpeak={onStopSpeak}
-              isSpeaking={isSpeaking}
               onStopGeneration={onStopGeneration}
             />
           </div>
