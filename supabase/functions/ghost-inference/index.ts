@@ -144,19 +144,16 @@ async function callOpenAI(
   const canStream = supportsStreaming(model) && options.stream;
   
   // Build request body with proper parameters
+  // IMPORTANT: OpenAI now requires max_completion_tokens for ALL models
   const body: any = {
     model,
     messages,
     stream: canStream,
+    max_completion_tokens: options.maxTokens || 4096,  // Always use max_completion_tokens
   };
   
-  // Reasoning models (o1, o3) have different parameter requirements
-  if (isReasoning) {
-    // o1/o3 models: NO temperature, NO top_p, use max_completion_tokens
-    body.max_completion_tokens = options.maxTokens || 4096;
-  } else {
-    // Standard models
-    body.max_tokens = options.maxTokens || 4096;
+  // Reasoning models (o1, o3) don't support temperature or top_p
+  if (!isReasoning) {
     if (options.temperature !== undefined) {
       body.temperature = options.temperature;
     }
@@ -205,15 +202,25 @@ async function callAnthropic(
   const apiKey = getApiKey('anthropic');
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
   
-  // Map display names to API model names
+  // Map display names to API model names - CORRECTED model names
   const modelMap: Record<string, string> = {
+    // Claude 3 family
     'claude-3-haiku': 'claude-3-haiku-20240307',
     'claude-3-sonnet': 'claude-3-sonnet-20240229',
     'claude-3-opus': 'claude-3-opus-20240229',
+    // Claude 3.5 family
+    'claude-3.5-haiku': 'claude-3-5-haiku-20241022',
+    'claude-3.5-sonnet': 'claude-3-5-sonnet-20241022',
+    // Claude 4 family - CORRECT official names
     'claude-sonnet-4': 'claude-sonnet-4-20250514',
-    'claude-sonnet-4.5': 'claude-sonnet-4-5-20250514',
-    'claude-haiku-4.5': 'claude-haiku-4-5-20250514',
-    'claude-opus-4.5': 'claude-opus-4-5-20250514',
+    'claude-opus-4': 'claude-opus-4-20250514',
+    'claude-opus-4.5': 'claude-opus-4-20250514',  // Map to opus-4 until 4.5 exists
+    'claude-sonnet-4.5': 'claude-sonnet-4-20250514',
+    'claude-haiku-4.5': 'claude-3-5-haiku-20241022',  // Fallback to 3.5 haiku
+    // Short aliases
+    'claude-haiku': 'claude-3-5-haiku-20241022',
+    'claude-sonnet': 'claude-3-5-sonnet-20241022',
+    'claude-opus': 'claude-3-opus-20240229',
   };
   
   const apiModel = modelMap[model] || model;
