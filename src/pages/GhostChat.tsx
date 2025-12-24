@@ -89,6 +89,7 @@ export default function GhostChat() {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingRef = useRef(false); // Prevent double submission
 
   // Get mode from URL or default to 'text'
   const mode = (searchParams.get('mode') as GhostMode) || 'text';
@@ -225,7 +226,9 @@ export default function GhostChat() {
   }, [toast]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isStreaming || webSearch.isSearching) return;
+    // Prevent double submission
+    if (!inputValue.trim() || isStreaming || webSearch.isSearching || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     // Determine usage type based on mode
     const usageType = mode as 'text' | 'image' | 'video' | 'search';
@@ -355,6 +358,8 @@ export default function GhostChat() {
         );
       } catch (error) {
         console.error('Stream error:', error);
+      } finally {
+        isSubmittingRef.current = false;
       }
     } else if (mode === 'search') {
       // Web search mode
@@ -406,6 +411,8 @@ export default function GhostChat() {
         });
       } catch (error) {
         console.error('Search error:', error);
+      } finally {
+        isSubmittingRef.current = false;
       }
     } else if (mode === 'image') {
       // Image generation - placeholder for now
@@ -413,12 +420,16 @@ export default function GhostChat() {
         title: 'Image Generation',
         description: 'Image generation coming soon!',
       });
+      isSubmittingRef.current = false;
     } else if (mode === 'video') {
       // Video generation - placeholder for now
       toast({
         title: 'Video Generation',
         description: 'Video generation coming soon!',
       });
+      isSubmittingRef.current = false;
+    } else {
+      isSubmittingRef.current = false;
     }
   };
 
