@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
-import { ReadAloudButton } from './ReadAloudButton';
+import { GhostMessageActions } from './GhostMessageActions';
 import { cn } from '@/lib/utils';
-import { ExternalLink, Pencil, Check, X, RotateCcw, Copy } from 'lucide-react';
+import { ExternalLink, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -25,8 +25,21 @@ interface GhostMessageProps {
   isStreaming?: boolean;
   showDate?: boolean;
   showExternalLinkWarning?: boolean;
+  responseTimeMs?: number;
+  tokenCount?: number;
+  contextUsagePercent?: number;
   onRegenerate?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
+  onDelete?: (messageId: string) => void;
+  onFork?: (messageId: string) => void;
+  onShorten?: (messageId: string) => void;
+  onElaborate?: (messageId: string) => void;
+  onCreateImage?: (content: string) => void;
+  onCreateVideo?: (content: string) => void;
+  onFeedback?: (messageId: string, type: 'good' | 'bad') => void;
+  onShare?: (messageId: string) => void;
+  onReport?: (messageId: string) => void;
+  onStopGeneration?: () => void;
   ttsState?: {
     isPlaying: boolean;
     isPaused: boolean;
@@ -237,8 +250,21 @@ export function GhostMessage({
   isStreaming,
   showDate = true,
   showExternalLinkWarning = false,
+  responseTimeMs,
+  tokenCount,
+  contextUsagePercent,
   onRegenerate,
   onEdit,
+  onDelete,
+  onFork,
+  onShorten,
+  onElaborate,
+  onCreateImage,
+  onCreateVideo,
+  onFeedback,
+  onShare,
+  onReport,
+  onStopGeneration,
   ttsState,
   onSpeak,
   onStopSpeak,
@@ -277,14 +303,8 @@ export function GhostMessage({
     setIsEditing(false);
   };
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(content);
-      toast.success('Copied to clipboard');
-    } catch {
-      toast.error('Failed to copy');
-    }
-  };
+  const isSpeaking = ttsState?.isPlaying && ttsState?.currentMessageId === id;
+
   return (
     <>
       <div className="space-y-3 group relative">
@@ -302,42 +322,31 @@ export function GhostMessage({
           </div>
         )}
 
-        {/* Action buttons for assistant messages */}
-        {role === 'assistant' && !isStreaming && !isEditing && (
-          <div className="absolute -right-24 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-            {onRegenerate && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={() => onRegenerate(id)}
-                title="Regenerate response"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={handleCopy}
-              title="Copy to clipboard"
-            >
-              <Copy className="w-3.5 h-3.5" />
-            </Button>
-            {ttsState && onSpeak && onStopSpeak && (
-              <ReadAloudButton
-                messageId={id}
-                isPlaying={ttsState.isPlaying}
-                isPaused={ttsState.isPaused}
-                isLoading={ttsState.isLoading}
-                progress={ttsState.progress}
-                currentMessageId={ttsState.currentMessageId}
-                onSpeak={() => onSpeak(id, content)}
-                onStop={onStopSpeak}
-              />
-            )}
-          </div>
+        {/* Action bar for assistant messages - replaces old buttons */}
+        {role === 'assistant' && !isEditing && (
+          <GhostMessageActions
+            content={content}
+            messageId={id}
+            responseTimeMs={responseTimeMs}
+            tokenCount={tokenCount}
+            contextUsagePercent={contextUsagePercent}
+            isStreaming={isStreaming}
+            onRegenerate={onRegenerate ? () => onRegenerate(id) : undefined}
+            onEdit={onEdit ? () => handleStartEdit() : undefined}
+            onDelete={onDelete ? () => onDelete(id) : undefined}
+            onFork={onFork ? () => onFork(id) : undefined}
+            onShorten={onShorten ? () => onShorten(id) : undefined}
+            onElaborate={onElaborate ? () => onElaborate(id) : undefined}
+            onCreateImage={onCreateImage ? () => onCreateImage(content) : undefined}
+            onCreateVideo={onCreateVideo ? () => onCreateVideo(content) : undefined}
+            onFeedback={onFeedback ? (type) => onFeedback(id, type) : undefined}
+            onShare={onShare ? () => onShare(id) : undefined}
+            onReport={onReport ? () => onReport(id) : undefined}
+            onSpeak={onSpeak ? () => onSpeak(id, content) : undefined}
+            onStopSpeak={onStopSpeak}
+            isSpeaking={isSpeaking}
+            onStopGeneration={onStopGeneration}
+          />
         )}
         
         {/* Editing UI */}

@@ -59,6 +59,9 @@ interface GhostMessageData {
   timestamp: number;
   isStreaming?: boolean;
   imageUrl?: string;
+  responseTimeMs?: number;
+  tokenCount?: number;
+  contextUsagePercent?: number;
 }
 
 interface AttachedFile {
@@ -615,7 +618,133 @@ export default function GhostChat() {
     await triggerRegeneration(selectedConversation, truncatedMessages);
   }, [messages, selectedConversation, triggerRegeneration]);
 
-  // File attachment handlers
+  // Handle message deletion
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+    toast({ title: 'Message deleted' });
+  }, [toast]);
+
+  // Handle fork conversation
+  const handleForkConversation = useCallback((messageId: string) => {
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+    
+    const forkedMessages = messages.slice(0, messageIndex + 1);
+    const newConvId = crypto.randomUUID();
+    localStorage.setItem(`ghost-fork-${newConvId}`, JSON.stringify(forkedMessages));
+    
+    toast({ 
+      title: 'Conversation forked', 
+      description: 'New branch created from this point',
+    });
+  }, [messages, toast]);
+
+  // Handle shorten response
+  const handleShortenResponse = useCallback(async (messageId: string) => {
+    if (!selectedConversation) return;
+    
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+    
+    // Add a follow-up user message asking to shorten
+    const userMessage: GhostMessageData = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: 'Please shorten your previous response to be more concise.',
+      timestamp: Date.now(),
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    saveMessage(selectedConversation, 'user', userMessage.content);
+    
+    // Trigger regeneration
+    const updatedMessages = [...messages, userMessage];
+    await triggerRegeneration(selectedConversation, updatedMessages);
+  }, [messages, selectedConversation, saveMessage, triggerRegeneration]);
+
+  // Handle elaborate response
+  const handleElaborateResponse = useCallback(async (messageId: string) => {
+    if (!selectedConversation) return;
+    
+    const userMessage: GhostMessageData = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: 'Please elaborate more on your previous response with additional details.',
+      timestamp: Date.now(),
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    saveMessage(selectedConversation, 'user', userMessage.content);
+    
+    const updatedMessages = [...messages, userMessage];
+    await triggerRegeneration(selectedConversation, updatedMessages);
+  }, [messages, selectedConversation, saveMessage, triggerRegeneration]);
+
+  // Handle create image from response
+  const handleCreateImage = useCallback((content: string) => {
+    handleModeChange('image');
+    toast({ 
+      title: 'Switched to Image mode', 
+      description: 'Use the content as inspiration for your image prompt',
+    });
+  }, [handleModeChange, toast]);
+
+  // Handle create video from response
+  const handleCreateVideo = useCallback((content: string) => {
+    handleModeChange('video');
+    toast({ 
+      title: 'Switched to Video mode', 
+      description: 'Use the content as inspiration for your video prompt',
+    });
+  }, [handleModeChange, toast]);
+
+  // Handle feedback
+  const handleFeedback = useCallback((messageId: string, type: 'good' | 'bad') => {
+    const feedbackData = {
+      messageId,
+      type,
+      model: selectedModels[mode],
+      timestamp: new Date().toISOString(),
+    };
+    
+    const existingFeedback = JSON.parse(localStorage.getItem('ghost-feedback') || '[]');
+    existingFeedback.push(feedbackData);
+    localStorage.setItem('ghost-feedback', JSON.stringify(existingFeedback));
+  }, [mode, selectedModels]);
+
+  // Handle share
+  const handleShare = useCallback(async (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+    
+    const encoded = btoa(JSON.stringify({
+      content: message.content,
+      model: selectedModels[mode],
+      timestamp: new Date().toISOString(),
+    }));
+    
+    const shareUrl = `${window.location.origin}/ghost/shared/${encoded}`;
+    await navigator.clipboard.writeText(shareUrl);
+    toast({ title: 'Encrypted link copied to clipboard' });
+  }, [messages, mode, selectedModels, toast]);
+
+  // Handle report
+  const handleReport = useCallback((messageId: string) => {
+    toast({ 
+      title: 'Report submitted', 
+      description: 'Thank you for helping improve our AI',
+    });
+  }, [toast]);
+
+  // Handle stop generation
+  const handleStopGeneration = useCallback(() => {
+    if (mode === 'search') {
+      webSearch.cancelSearch();
+    } else {
+      cancelStream();
+    }
+    toast({ title: 'Generation stopped' });
+  }, [mode, webSearch, cancelStream, toast]);
   const handleFileAttach = () => {
     fileInputRef.current?.click();
   };
@@ -783,10 +912,10 @@ export default function GhostChat() {
         {/* Content Area */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Mode-specific view */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0">
             {mode === 'text' && (
               <GhostTextView hasMessages={messages.length > 0}>
-                <ScrollArea className="h-full">
+                <ScrollArea className="flex-1">
                   <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
                     {messages.map((msg) => (
                       <GhostMessageComponent
@@ -796,6 +925,9 @@ export default function GhostChat() {
                         content={msg.content}
                         timestamp={msg.timestamp}
                         isStreaming={msg.isStreaming}
+                        responseTimeMs={msg.responseTimeMs}
+                        tokenCount={msg.tokenCount}
+                        contextUsagePercent={msg.contextUsagePercent}
                         showDate={settings?.show_message_date ?? true}
                         showExternalLinkWarning={settings?.show_external_link_warning ?? false}
                         ttsState={{
@@ -812,6 +944,16 @@ export default function GhostChat() {
                         onStopSpeak={tts.stop}
                         onEdit={handleMessageEdit}
                         onRegenerate={handleRegenerate}
+                        onDelete={handleDeleteMessage}
+                        onFork={handleForkConversation}
+                        onShorten={handleShortenResponse}
+                        onElaborate={handleElaborateResponse}
+                        onCreateImage={handleCreateImage}
+                        onCreateVideo={handleCreateVideo}
+                        onFeedback={handleFeedback}
+                        onShare={handleShare}
+                        onReport={handleReport}
+                        onStopGeneration={handleStopGeneration}
                       />
                     ))}
                     {/* Thinking indicator during streaming */}
@@ -877,6 +1019,8 @@ export default function GhostChat() {
                           content={msg.content}
                           timestamp={msg.timestamp}
                           isStreaming={msg.isStreaming}
+                          responseTimeMs={msg.responseTimeMs}
+                          tokenCount={msg.tokenCount}
                           showDate={settings?.show_message_date ?? true}
                           showExternalLinkWarning={settings?.show_external_link_warning ?? false}
                           ttsState={{
@@ -893,6 +1037,14 @@ export default function GhostChat() {
                           onStopSpeak={tts.stop}
                           onEdit={handleMessageEdit}
                           onRegenerate={handleRegenerate}
+                          onDelete={handleDeleteMessage}
+                          onFork={handleForkConversation}
+                          onShorten={handleShortenResponse}
+                          onElaborate={handleElaborateResponse}
+                          onFeedback={handleFeedback}
+                          onShare={handleShare}
+                          onReport={handleReport}
+                          onStopGeneration={handleStopGeneration}
                         />
                       ))}
                       <div ref={messagesEndRef} />

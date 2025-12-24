@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { 
-  RefreshCw, Copy, Volume2, 
-  MoreHorizontal, Minus, Plus, ThumbsUp, 
-  ThumbsDown, Share2, Flag, Trash2 
+  RefreshCw, Copy, Volume2, Pencil, Image, Video,
+  MoreHorizontal, Minus, Plus, ThumbsUp, ThumbsDown,
+  Share2, Flag, Trash2, GitFork, Timer, Hash,
+  StopCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,34 +13,66 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface GhostMessageActionsProps {
   content: string;
   messageId: string;
-  onRegenerate?: () => void;
-  onShorten?: () => void;
-  onElaborate?: () => void;
-  onSpeak?: () => void;
-  onDelete?: () => void;
   responseTimeMs?: number;
   tokenCount?: number;
+  contextUsagePercent?: number;
+  isStreaming?: boolean;
+  onRegenerate?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onFork?: () => void;
+  onShorten?: () => void;
+  onElaborate?: () => void;
+  onCreateImage?: () => void;
+  onCreateVideo?: () => void;
+  onFeedback?: (type: 'good' | 'bad') => void;
+  onShare?: () => void;
+  onReport?: () => void;
+  onSpeak?: () => void;
+  onStopSpeak?: () => void;
+  isSpeaking?: boolean;
+  onStopGeneration?: () => void;
   className?: string;
 }
 
 export function GhostMessageActions({
   content,
   messageId,
-  onRegenerate,
-  onShorten,
-  onElaborate,
-  onSpeak,
-  onDelete,
   responseTimeMs,
   tokenCount,
+  contextUsagePercent,
+  isStreaming,
+  onRegenerate,
+  onEdit,
+  onDelete,
+  onFork,
+  onShorten,
+  onElaborate,
+  onCreateImage,
+  onCreateVideo,
+  onFeedback,
+  onShare,
+  onReport,
+  onSpeak,
+  onStopSpeak,
+  isSpeaking,
+  onStopGeneration,
   className,
 }: GhostMessageActionsProps) {
+  const [feedbackGiven, setFeedbackGiven] = useState<'good' | 'bad' | null>(null);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(content);
@@ -49,7 +83,9 @@ export function GhostMessageActions({
   };
 
   const handleSpeak = () => {
-    if (onSpeak) {
+    if (isSpeaking && onStopSpeak) {
+      onStopSpeak();
+    } else if (onSpeak) {
       onSpeak();
     } else {
       // Fallback to browser speech synthesis
@@ -58,114 +94,289 @@ export function GhostMessageActions({
     }
   };
 
-  return (
-    <div className={cn(
-      'flex items-center gap-1 pt-2 opacity-0 group-hover:opacity-100 transition-opacity',
-      className
-    )}>
-      {/* Primary Actions */}
-      {onRegenerate && (
+  const handleFeedback = (type: 'good' | 'bad') => {
+    setFeedbackGiven(type);
+    onFeedback?.(type);
+    toast.success(type === 'good' ? 'Thanks for the feedback!' : 'Feedback recorded');
+  };
+
+  // Show stop button while streaming
+  if (isStreaming && onStopGeneration) {
+    return (
+      <div className={cn('flex items-center gap-2 pt-2', className)}>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-7 px-2 text-muted-foreground hover:text-foreground"
-          onClick={onRegenerate}
-          title="Regenerate"
+          onClick={onStopGeneration}
+          className="h-7 gap-1.5 text-destructive border-destructive/50 hover:bg-destructive/10"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <StopCircle className="w-3.5 h-3.5" />
+          Stop generating
         </Button>
-      )}
-      
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-7 px-2 text-muted-foreground hover:text-foreground"
-        onClick={handleCopy}
-        title="Copy"
-      >
-        <Copy className="w-3.5 h-3.5" />
-      </Button>
-      
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-7 px-2 text-muted-foreground hover:text-foreground"
-        onClick={handleSpeak}
-        title="Read aloud"
-      >
-        <Volume2 className="w-3.5 h-3.5" />
-      </Button>
-      
-      {/* Token count */}
-      {tokenCount && (
-        <span className="text-xs text-muted-foreground px-2 tabular-nums">
-          {tokenCount} tokens
-        </span>
-      )}
-      
-      {/* Response time */}
-      {responseTimeMs && (
-        <span className="text-xs text-muted-foreground px-2 tabular-nums">
-          {(responseTimeMs / 1000).toFixed(1)}s
-        </span>
-      )}
-      
-      {/* More menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-muted-foreground hover:text-foreground"
-          >
-            <MoreHorizontal className="w-3.5 h-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {onShorten && (
-            <DropdownMenuItem onClick={onShorten} className="gap-2 cursor-pointer">
-              <Minus className="w-4 h-4" />
-              Shorten
-            </DropdownMenuItem>
+      </div>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <div className={cn('flex flex-wrap items-center gap-1 pt-2', className)}>
+        {/* Primary Actions Row */}
+        <div className="flex items-center gap-0.5">
+          {onRegenerate && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRegenerate}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Regenerate</TooltipContent>
+            </Tooltip>
           )}
-          {onElaborate && (
-            <DropdownMenuItem onClick={onElaborate} className="gap-2 cursor-pointer">
-              <Plus className="w-4 h-4" />
-              Elaborate
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="gap-2 cursor-pointer">
-            <ThumbsUp className="w-4 h-4" />
-            Good response
-          </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 cursor-pointer">
-            <ThumbsDown className="w-4 h-4" />
-            Bad response
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="gap-2 cursor-pointer">
-            <Share2 className="w-4 h-4" />
-            Share conversation
-          </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 cursor-pointer">
-            <Flag className="w-4 h-4" />
-            Report issue
-          </DropdownMenuItem>
-          {onDelete && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={onDelete} 
-                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                className="h-7 px-2 text-muted-foreground hover:text-foreground"
               >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </DropdownMenuItem>
-            </>
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Copy</TooltipContent>
+          </Tooltip>
+
+          {onEdit && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onEdit}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
           )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+
+          {onFork && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onFork}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <GitFork className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Fork conversation</TooltipContent>
+            </Tooltip>
+          )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSpeak}
+                className={cn(
+                  "h-7 px-2 text-muted-foreground hover:text-foreground",
+                  isSpeaking && "text-swiss-sapphire"
+                )}
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isSpeaking ? 'Stop' : 'Listen'}</TooltipContent>
+          </Tooltip>
+
+          {/* Create Image */}
+          {onCreateImage && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCreateImage}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground relative"
+                >
+                  <Image className="w-3.5 h-3.5" />
+                  <span className="absolute -top-0.5 -right-0.5 text-[8px] bg-swiss-sapphire text-white px-1 rounded">
+                    New
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Create image from this</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Create Video */}
+          {onCreateVideo && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCreateVideo}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground relative"
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  <span className="absolute -top-0.5 -right-0.5 text-[8px] bg-swiss-sapphire text-white px-1 rounded">
+                    New
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Create video from this</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-4 bg-border mx-1" />
+
+        {/* Feedback Buttons */}
+        <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleFeedback('good')}
+                disabled={feedbackGiven !== null}
+                className={cn(
+                  "h-7 px-2 text-muted-foreground hover:text-foreground",
+                  feedbackGiven === 'good' && "text-success"
+                )}
+              >
+                <ThumbsUp className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Good response</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleFeedback('bad')}
+                disabled={feedbackGiven !== null}
+                className={cn(
+                  "h-7 px-2 text-muted-foreground hover:text-foreground",
+                  feedbackGiven === 'bad' && "text-destructive"
+                )}
+              >
+                <ThumbsDown className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Bad response</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-4 bg-border mx-1" />
+
+        {/* Metrics Display */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {tokenCount !== undefined && tokenCount > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 tabular-nums">
+                  <Hash className="w-3 h-3" />
+                  {tokenCount}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{tokenCount} tokens</TooltipContent>
+            </Tooltip>
+          )}
+
+          {contextUsagePercent !== undefined && contextUsagePercent > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="tabular-nums px-1.5 py-0.5 rounded bg-muted/50">
+                  {contextUsagePercent}%
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Context window usage</TooltipContent>
+            </Tooltip>
+          )}
+
+          {responseTimeMs !== undefined && responseTimeMs > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 tabular-nums">
+                  <Timer className="w-3 h-3" />
+                  {(responseTimeMs / 1000).toFixed(1)}s
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Response time</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* More Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+            >
+              <MoreHorizontal className="w-3.5 h-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {onShorten && (
+              <DropdownMenuItem onClick={onShorten} className="gap-2 cursor-pointer">
+                <Minus className="w-4 h-4" />
+                Shorten response
+              </DropdownMenuItem>
+            )}
+            {onElaborate && (
+              <DropdownMenuItem onClick={onElaborate} className="gap-2 cursor-pointer">
+                <Plus className="w-4 h-4" />
+                Elaborate more
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            {onShare && (
+              <DropdownMenuItem onClick={onShare} className="gap-2 cursor-pointer">
+                <Share2 className="w-4 h-4" />
+                Encrypt & share
+              </DropdownMenuItem>
+            )}
+            {onReport && (
+              <DropdownMenuItem onClick={onReport} className="gap-2 cursor-pointer">
+                <Flag className="w-4 h-4" />
+                Report conversation
+              </DropdownMenuItem>
+            )}
+            {onDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={onDelete} 
+                  className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete message
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </TooltipProvider>
   );
 }
