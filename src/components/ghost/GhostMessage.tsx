@@ -307,46 +307,20 @@ export function GhostMessage({
 
   return (
     <>
-      <div className="space-y-3 group relative">
+      <div className="space-y-3 group">
         {/* Edit button for user messages */}
         {role === 'user' && !isStreaming && onEdit && !isEditing && (
-          <div className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex justify-end mb-1">
             <Button
               variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              size="sm"
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={handleStartEdit}
             >
-              <Pencil className="w-3.5 h-3.5" />
+              <Pencil className="w-3 h-3 mr-1" />
+              Edit
             </Button>
           </div>
-        )}
-
-        {/* Action bar for assistant messages - replaces old buttons */}
-        {role === 'assistant' && !isEditing && (
-          <GhostMessageActions
-            content={content}
-            messageId={id}
-            responseTimeMs={responseTimeMs}
-            tokenCount={tokenCount}
-            contextUsagePercent={contextUsagePercent}
-            isStreaming={isStreaming}
-            onRegenerate={onRegenerate ? () => onRegenerate(id) : undefined}
-            onEdit={onEdit ? () => handleStartEdit() : undefined}
-            onDelete={onDelete ? () => onDelete(id) : undefined}
-            onFork={onFork ? () => onFork(id) : undefined}
-            onShorten={onShorten ? () => onShorten(id) : undefined}
-            onElaborate={onElaborate ? () => onElaborate(id) : undefined}
-            onCreateImage={onCreateImage ? () => onCreateImage(content) : undefined}
-            onCreateVideo={onCreateVideo ? () => onCreateVideo(content) : undefined}
-            onFeedback={onFeedback ? (type) => onFeedback(id, type) : undefined}
-            onShare={onShare ? () => onShare(id) : undefined}
-            onReport={onReport ? () => onReport(id) : undefined}
-            onSpeak={onSpeak ? () => onSpeak(id, content) : undefined}
-            onStopSpeak={onStopSpeak}
-            isSpeaking={isSpeaking}
-            onStopGeneration={onStopGeneration}
-          />
         )}
         
         {/* Editing UI */}
@@ -403,9 +377,50 @@ export function GhostMessage({
 
         {/* Timestamp */}
         {showDate && timestamp && !isStreaming && !isEditing && (
-          <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="text-xs text-muted-foreground mt-2">
             {formatMessageTime(timestamp)}
-          </span>
+          </div>
+        )}
+        
+        {/* Action bar for assistant messages - ALWAYS visible, not just on hover */}
+        {role === 'assistant' && !isEditing && !isStreaming && (
+          <div className="mt-3 pt-2 border-t border-border/50">
+            <GhostMessageActions
+              content={content}
+              messageId={id}
+              responseTimeMs={responseTimeMs}
+              tokenCount={tokenCount}
+              contextUsagePercent={contextUsagePercent}
+              isStreaming={isStreaming}
+              onRegenerate={onRegenerate ? () => onRegenerate(id) : undefined}
+              onEdit={onEdit ? () => handleStartEdit() : undefined}
+              onDelete={onDelete ? () => onDelete(id) : undefined}
+              onFork={onFork ? () => onFork(id) : undefined}
+              onShorten={onShorten ? () => onShorten(id) : undefined}
+              onElaborate={onElaborate ? () => onElaborate(id) : undefined}
+              onCreateImage={onCreateImage ? () => onCreateImage(content) : undefined}
+              onCreateVideo={onCreateVideo ? () => onCreateVideo(content) : undefined}
+              onFeedback={onFeedback ? (type) => onFeedback(id, type) : undefined}
+              onShare={onShare ? () => onShare(id) : undefined}
+              onReport={onReport ? () => onReport(id) : undefined}
+              onSpeak={onSpeak ? () => onSpeak(id, content) : undefined}
+              onStopSpeak={onStopSpeak}
+              isSpeaking={isSpeaking}
+              onStopGeneration={onStopGeneration}
+            />
+          </div>
+        )}
+        
+        {/* Stop button during streaming */}
+        {role === 'assistant' && isStreaming && onStopGeneration && (
+          <div className="mt-3">
+            <GhostMessageActions
+              content={content}
+              messageId={id}
+              isStreaming={true}
+              onStopGeneration={onStopGeneration}
+            />
+          </div>
         )}
       </div>
 

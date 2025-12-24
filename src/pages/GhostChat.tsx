@@ -254,7 +254,14 @@ export default function GhostChat() {
       timestamp: Date.now(),
     };
 
-    // Save user message
+    // Build message history BEFORE saving (to avoid duplicate)
+    const messageHistory = messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+    messageHistory.push({ role: 'user', content: userMessage.content });
+
+    // Save user message and update UI
     saveMessage(convId, 'user', userMessage.content);
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
@@ -274,13 +281,7 @@ export default function GhostChat() {
         isStreaming: true,
       }]);
 
-      // Build message history
-      const conv = getConversation(convId);
-      const messageHistory = conv?.messages.map(m => ({
-        role: m.role,
-        content: m.content
-      })) || [];
-      messageHistory.push({ role: 'user', content: userMessage.content });
+      console.log('[Ghost] Sending message, history length:', messageHistory.length);
 
       try {
         await streamResponse(
@@ -942,49 +943,55 @@ export default function GhostChat() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mode-specific view */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {mode === 'text' && (
+          {mode === 'text' && (
               <GhostTextView hasMessages={messages.length > 0}>
-                <div className="h-0 flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                  <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+                {/* Native scroll - more reliable than ScrollArea */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
                     {messages.map((msg) => (
-                      <GhostMessageComponent
+                      <div 
                         key={msg.id}
-                        id={msg.id}
-                        role={msg.role}
-                        content={msg.content}
-                        timestamp={msg.timestamp}
-                        isStreaming={msg.isStreaming}
-                        responseTimeMs={msg.responseTimeMs}
-                        tokenCount={msg.tokenCount}
-                        contextUsagePercent={msg.contextUsagePercent}
-                        showDate={settings?.show_message_date ?? true}
-                        showExternalLinkWarning={settings?.show_external_link_warning ?? false}
-                        ttsState={{
-                          isPlaying: tts.isPlaying,
-                          isPaused: tts.isPaused,
-                          isLoading: tts.isLoading,
-                          progress: tts.progress,
-                          currentMessageId: tts.currentMessageId,
-                        }}
-                        onSpeak={(messageId, content) => tts.speak(content, messageId, {
-                          voice: settings?.voice_id as any,
-                          speed: settings?.voice_speed,
-                        })}
-                        onStopSpeak={tts.stop}
-                        onEdit={handleMessageEdit}
-                        onRegenerate={handleRegenerate}
-                        onDelete={handleDeleteMessage}
-                        onFork={handleForkConversation}
-                        onShorten={handleShortenResponse}
-                        onElaborate={handleElaborateResponse}
-                        onCreateImage={handleCreateImage}
-                        onCreateVideo={handleCreateVideo}
-                        onFeedback={handleFeedback}
-                        onShare={handleShare}
-                        onReport={handleReport}
-                        onStopGeneration={handleStopGeneration}
-                      />
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-swiss-navy/10 rounded-2xl px-4 py-3' : ''}`}>
+                          <GhostMessageComponent
+                            id={msg.id}
+                            role={msg.role}
+                            content={msg.content}
+                            timestamp={msg.timestamp}
+                            isStreaming={msg.isStreaming}
+                            responseTimeMs={msg.responseTimeMs}
+                            tokenCount={msg.tokenCount}
+                            contextUsagePercent={msg.contextUsagePercent}
+                            showDate={settings?.show_message_date ?? true}
+                            showExternalLinkWarning={settings?.show_external_link_warning ?? false}
+                            ttsState={{
+                              isPlaying: tts.isPlaying,
+                              isPaused: tts.isPaused,
+                              isLoading: tts.isLoading,
+                              progress: tts.progress,
+                              currentMessageId: tts.currentMessageId,
+                            }}
+                            onSpeak={(messageId, content) => tts.speak(content, messageId, {
+                              voice: settings?.voice_id as any,
+                              speed: settings?.voice_speed,
+                            })}
+                            onStopSpeak={tts.stop}
+                            onEdit={handleMessageEdit}
+                            onRegenerate={handleRegenerate}
+                            onDelete={handleDeleteMessage}
+                            onFork={handleForkConversation}
+                            onShorten={handleShortenResponse}
+                            onElaborate={handleElaborateResponse}
+                            onCreateImage={handleCreateImage}
+                            onCreateVideo={handleCreateVideo}
+                            onFeedback={handleFeedback}
+                            onShare={handleShare}
+                            onReport={handleReport}
+                            onStopGeneration={handleStopGeneration}
+                          />
+                        </div>
+                      </div>
                     ))}
                     {/* Thinking indicator during streaming */}
                     {isStreaming && mode === 'text' && (
@@ -994,10 +1001,9 @@ export default function GhostChat() {
                         model={selectedModels.text}
                       />
                     )}
-                    <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} className="h-32" />
                   </div>
-                </ScrollArea>
-              </div>
+                </div>
             </GhostTextView>
           )}
             {mode === 'image' && (
