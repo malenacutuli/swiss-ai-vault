@@ -11,7 +11,7 @@ const corsHeaders = {
 // ============================================
 
 const SWISS_ENDPOINTS: Record<string, string> = {
-  'swissvault-1.0': 'https://axessible-labs--swissvault-main-main-chat.modal.run',
+  // SwissVault 1.0 now routes to GPT-4o-mini for faster responses
   'swissvault-fast': 'https://axessible-labs--swissvault-fast-fast-chat.modal.run',
   'swissvault-code': 'https://axessible-labs--swissvault-code-code-chat.modal.run',
   'llama3.1-8b': 'https://axessible-labs--swissvault-llama8b-llama8b-chat.modal.run',
@@ -20,6 +20,11 @@ const SWISS_ENDPOINTS: Record<string, string> = {
   'qwen2.5-3b': 'https://axessible-labs--swissvault-main-main-chat.modal.run',
   'qwen2.5-0.5b': 'https://axessible-labs--swissvault-fast-fast-chat.modal.run',
   'qwen2.5-coder-7b': 'https://axessible-labs--swissvault-code-code-chat.modal.run',
+};
+
+// SwissVault branded models that route to OpenAI for performance
+const SWISSVAULT_OPENAI_ALIASES: Record<string, string> = {
+  'swissvault-1.0': 'gpt-4o-mini',
 };
 
 const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o1-preview', 'gpt-5.2', 'gpt-5.2-mini', 'o3'];
@@ -40,6 +45,8 @@ const REASONING_MODELS = ['o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini'];
 // ============================================
 
 function getProvider(model: string): 'modal' | 'openai' | 'anthropic' | 'google' | 'xai' | 'deepseek' | 'qwen' {
+  // SwissVault branded models that route to OpenAI
+  if (SWISSVAULT_OPENAI_ALIASES[model]) return 'openai';
   if (SWISS_ENDPOINTS[model]) return 'modal';
   if (OPENAI_MODELS.some(m => model.includes(m))) return 'openai';
   if (ANTHROPIC_MODELS.some(m => model.includes(m))) return 'anthropic';
@@ -688,8 +695,11 @@ serve(async (req) => {
     // ==========================================
     if (provider === 'openai') {
       try {
-        const canStream = supportsStreaming(model) && stream;
-        const result = await callOpenAI(model, finalMessages, { ...options, stream: canStream });
+        // Resolve SwissVault aliases to actual OpenAI model
+        const actualModel = SWISSVAULT_OPENAI_ALIASES[model] || model;
+        const canStream = supportsStreaming(actualModel) && stream;
+        console.log(`[OpenAI] Routing ${model} -> ${actualModel}, stream: ${canStream}`);
+        const result = await callOpenAI(actualModel, finalMessages, { ...options, stream: canStream });
         
         if (result instanceof ReadableStream) {
           return new Response(result, {
