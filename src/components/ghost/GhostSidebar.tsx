@@ -35,6 +35,8 @@ import {
   X,
   Menu,
   Image as ImageIcon,
+  Lock,
+  EyeOff,
 } from 'lucide-react';
 
 export interface GhostConversation {
@@ -357,7 +359,7 @@ export function GhostSidebar({
             </Collapsible>
 
             {/* Library Link */}
-            <div className="mt-4 px-2">
+            <div className="mt-4 px-2 space-y-1">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
@@ -365,6 +367,16 @@ export function GhostSidebar({
               >
                 <ImageIcon className="w-4 h-4" />
                 <span className="text-sm">Library</span>
+              </Button>
+              
+              {/* Vault Chat Link */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/chat')}
+              >
+                <Lock className="w-4 h-4" />
+                <span className="text-sm">Vault Chat</span>
               </Button>
             </div>
           </div>
