@@ -1,304 +1,533 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
-/**
- * Ghost Inference - Zero-Retention AI Inference
- * 
- * Supports multiple providers:
- * - Modal (Swiss-hosted) - Private models
- * - OpenAI (GPT-5.2, O3, O1, GPT-4o)
- * - Anthropic (Claude Opus/Sonnet/Haiku)
- * - Google (Gemini 3/2.5/2.0)
- * - xAI (Grok)
- * - DeepSeek (V3.2, Coder)
- * - Qwen (via DashScope)
- */
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface GhostRequest {
-  model: string;
-  messages: { role: string; content: string }[];
-  stream?: boolean;
-  temperature?: number;
-  top_p?: number;
-  max_tokens?: number;
-  system_prompt?: string;
-}
+// ============================================
+// ENDPOINT CONFIGURATION
+// ============================================
 
-interface Message {
-  role: string;
-  content: string;
-}
-
-// Swiss-hosted Modal endpoints (axessible-labs)
 const SWISS_ENDPOINTS: Record<string, string> = {
   'swissvault-1.0': 'https://axessible-labs--swissvault-main-main-chat.modal.run',
   'swissvault-fast': 'https://axessible-labs--swissvault-fast-fast-chat.modal.run',
   'swissvault-code': 'https://axessible-labs--swissvault-code-code-chat.modal.run',
   'llama3.1-8b': 'https://axessible-labs--swissvault-llama8b-llama8b-chat.modal.run',
   'mistral-7b': 'https://axessible-labs--swissvault-mistral-mistral-chat.modal.run',
+  // Aliases
+  'qwen2.5-3b': 'https://axessible-labs--swissvault-main-main-chat.modal.run',
+  'qwen2.5-0.5b': 'https://axessible-labs--swissvault-fast-fast-chat.modal.run',
+  'qwen2.5-coder-7b': 'https://axessible-labs--swissvault-code-code-chat.modal.run',
 };
 
-// Default Swiss model
-const DEFAULT_SWISS_MODEL = 'swissvault-1.0';
+const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o1-preview', 'gpt-5.2', 'gpt-5.2-mini', 'o3'];
+const ANTHROPIC_MODELS = ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'claude-sonnet-4', 'claude-opus-4.5', 'claude-sonnet-4.5', 'claude-haiku-4.5'];
+const GOOGLE_MODELS = ['gemini-2.0-flash', 'gemini-2.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-3-pro'];
+const XAI_MODELS = ['grok-4.1', 'grok-3', 'grok-2'];
+const DEEPSEEK_MODELS = ['deepseek-v3.2', 'deepseek-v3', 'deepseek-coder-v2'];
+const QWEN_MODELS = ['qwen3-235b', 'qwen3-235b-thinking', 'qwen3-coder-480b'];
 
-// Model routing configuration
-const MODEL_ROUTES: Record<string, { provider: string; endpoint: string; modelName: string }> = {
-  // Swiss-Hosted (Modal vLLM) - axessible-labs endpoints
-  'auto': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-1.0'], modelName: 'swissvault-1.0' },
-  'swissvault-1.0': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-1.0'], modelName: 'swissvault-1.0' },
-  'swissvault-fast': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-fast'], modelName: 'swissvault-fast' },
-  'swissvault-code': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-code'], modelName: 'swissvault-code' },
-  'llama3.1-8b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['llama3.1-8b'], modelName: 'llama3.1-8b' },
-  'mistral-7b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['mistral-7b'], modelName: 'mistral-7b' },
-  
-  // Legacy aliases for backwards compatibility
-  'qwen2.5-3b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-fast'], modelName: 'swissvault-fast' },
-  'qwen2.5-7b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-1.0'], modelName: 'swissvault-1.0' },
-  'qwen2.5-coder-7b': { provider: 'modal', endpoint: SWISS_ENDPOINTS['swissvault-code'], modelName: 'swissvault-code' },
-  
-  // OpenAI
-  'gpt-5.2': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'gpt-5.2' },
-  'gpt-5.2-mini': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'gpt-5.2-mini' },
-  'o3': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'o3' },
-  'o1': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'o1' },
-  'o1-mini': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'o1-mini' },
-  'gpt-4o': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'gpt-4o' },
-  'gpt-4o-mini': { provider: 'openai', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'gpt-4o-mini' },
-  
-  // Anthropic
-  'claude-opus-4.5': { provider: 'anthropic', endpoint: 'https://api.anthropic.com/v1/messages', modelName: 'claude-opus-4-5-20250514' },
-  'claude-sonnet-4.5': { provider: 'anthropic', endpoint: 'https://api.anthropic.com/v1/messages', modelName: 'claude-sonnet-4-5-20250514' },
-  'claude-haiku-4.5': { provider: 'anthropic', endpoint: 'https://api.anthropic.com/v1/messages', modelName: 'claude-haiku-4-5-20250514' },
-  'claude-sonnet-4': { provider: 'anthropic', endpoint: 'https://api.anthropic.com/v1/messages', modelName: 'claude-sonnet-4-20250514' },
-  
-  // Google
-  'gemini-3-pro': { provider: 'google', endpoint: 'https://generativelanguage.googleapis.com/v1beta', modelName: 'gemini-3-pro-preview' },
-  'gemini-2.5-pro': { provider: 'google', endpoint: 'https://generativelanguage.googleapis.com/v1beta', modelName: 'gemini-2.5-pro' },
-  'gemini-2.0-flash': { provider: 'google', endpoint: 'https://generativelanguage.googleapis.com/v1beta', modelName: 'gemini-2.0-flash' },
-  'gemini-2.0-pro': { provider: 'google', endpoint: 'https://generativelanguage.googleapis.com/v1beta', modelName: 'gemini-2.0-pro' },
-  
-  // xAI
-  'grok-4.1': { provider: 'xai', endpoint: 'https://api.x.ai/v1/chat/completions', modelName: 'grok-41-fast' },
-  'grok-3': { provider: 'xai', endpoint: 'https://api.x.ai/v1/chat/completions', modelName: 'grok-3' },
-  'grok-2': { provider: 'xai', endpoint: 'https://api.x.ai/v1/chat/completions', modelName: 'grok-2' },
-  
-  // DeepSeek
-  'deepseek-v3.2': { provider: 'deepseek', endpoint: 'https://api.deepseek.com/v1/chat/completions', modelName: 'deepseek-v3.2' },
-  'deepseek-v3': { provider: 'deepseek', endpoint: 'https://api.deepseek.com/v1/chat/completions', modelName: 'deepseek-v3' },
-  'deepseek-coder-v2': { provider: 'deepseek', endpoint: 'https://api.deepseek.com/v1/chat/completions', modelName: 'deepseek-coder-v2' },
-  
-  // Qwen (via DashScope)
-  'qwen3-235b': { provider: 'qwen', endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', modelName: 'qwen3-235b-a22b-instruct' },
-  'qwen3-235b-thinking': { provider: 'qwen', endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', modelName: 'qwen3-235b-a22b-thinking' },
-  'qwen3-coder-480b': { provider: 'qwen', endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', modelName: 'qwen3-coder-480b' },
-};
+// Models that don't support streaming
+const NON_STREAMING_MODELS = ['o1', 'o1-mini', 'o1-preview'];
 
-// Get Modal endpoint for a specific model
-function getModalEndpoint(model: string): string {
-  return SWISS_ENDPOINTS[model] || SWISS_ENDPOINTS[DEFAULT_SWISS_MODEL];
+// Models that need special parameter handling (no temperature/top_p)
+const REASONING_MODELS = ['o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini'];
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function getProvider(model: string): 'modal' | 'openai' | 'anthropic' | 'google' | 'xai' | 'deepseek' | 'qwen' {
+  if (SWISS_ENDPOINTS[model]) return 'modal';
+  if (OPENAI_MODELS.some(m => model.includes(m))) return 'openai';
+  if (ANTHROPIC_MODELS.some(m => model.includes(m))) return 'anthropic';
+  if (GOOGLE_MODELS.some(m => model.includes(m))) return 'google';
+  if (XAI_MODELS.some(m => model.includes(m))) return 'xai';
+  if (DEEPSEEK_MODELS.some(m => model.includes(m))) return 'deepseek';
+  if (QWEN_MODELS.some(m => model.includes(m))) return 'qwen';
+  // Default to modal for unknown models (assume Swiss-hosted)
+  return 'modal';
 }
 
-// Get API key for provider
 function getApiKey(provider: string): string | undefined {
   switch (provider) {
     case 'openai': return Deno.env.get('OPENAI_API_KEY');
     case 'anthropic': return Deno.env.get('ANTHROPIC_API_KEY');
-    case 'google': return Deno.env.get('GOOGLE_API_KEY');
+    case 'google': return Deno.env.get('GOOGLE_API_KEY') || Deno.env.get('GOOGLE_GEMINI_API_KEY');
     case 'xai': return Deno.env.get('XAI_API_KEY');
     case 'deepseek': return Deno.env.get('DEEPSEEK_API_KEY');
     case 'qwen': return Deno.env.get('QWEN_API_KEY') || Deno.env.get('DASHSCOPE_API_KEY');
-    case 'modal': return Deno.env.get('MODAL_API_KEY');
     default: return undefined;
   }
 }
 
-/**
- * Estimate token count from messages
- */
-function estimateTokens(messages: Message[]): number {
-  const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
+function isReasoningModel(model: string): boolean {
+  return REASONING_MODELS.some(m => model.includes(m));
+}
+
+function supportsStreaming(model: string): boolean {
+  return !NON_STREAMING_MODELS.some(m => model.includes(m));
+}
+
+function estimateTokens(messages: any[]): number {
+  const totalChars = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0);
   return Math.ceil(totalChars / 4);
 }
 
-/**
- * Estimate tokens from response text
- */
-function estimateOutputTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+// ============================================
+// MODAL (SWISS) HANDLER - NON-STREAMING JSON
+// ============================================
+
+async function callModal(
+  endpoint: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number; topP?: number }
+): Promise<{ content: string; usage?: any; responseTimeMs?: number }> {
+  console.log('[Modal] Calling endpoint:', endpoint);
+  
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+  
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages,
+        max_tokens: options.maxTokens || 1024,
+        temperature: options.temperature || 0.7,
+        top_p: options.topP || 0.9,
+      }),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Modal] Error response:', response.status, errorText);
+      throw new Error(`Modal error ${response.status}: ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('[Modal] Response received, content length:', data.choices?.[0]?.message?.content?.length);
+    
+    return {
+      content: data.choices?.[0]?.message?.content || '',
+      usage: data.usage,
+      responseTimeMs: data.response_time_ms,
+    };
+  } catch (error: unknown) {
+    clearTimeout(timeout);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Modal request timed out after 120 seconds');
+    }
+    throw error;
+  }
 }
 
-/**
- * Call OpenAI-compatible API (OpenAI, xAI, DeepSeek, Qwen)
- */
-async function callOpenAICompatible(
-  endpoint: string,
-  apiKey: string,
-  modelName: string,
-  messages: Message[],
-  stream: boolean,
-  temperature: number,
-  topP: number,
-  maxTokens: number
-): Promise<Response> {
-  const body: Record<string, unknown> = {
-    model: modelName,
+// ============================================
+// OPENAI HANDLER
+// ============================================
+
+async function callOpenAI(
+  model: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number; topP?: number; stream?: boolean }
+): Promise<{ content: string; usage?: any } | ReadableStream> {
+  const apiKey = getApiKey('openai');
+  if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
+  
+  const isReasoning = isReasoningModel(model);
+  const canStream = supportsStreaming(model) && options.stream;
+  
+  // Build request body with proper parameters
+  const body: any = {
+    model,
     messages,
-    stream,
-    temperature,
-    top_p: topP,
-    max_tokens: maxTokens,
+    stream: canStream,
   };
-
-  // O1/O3 models don't support temperature
-  if (modelName.startsWith('o1') || modelName.startsWith('o3')) {
-    delete body.temperature;
-    body.max_completion_tokens = maxTokens;
-    delete body.max_tokens;
+  
+  // Reasoning models (o1, o3) have different parameter requirements
+  if (isReasoning) {
+    // o1/o3 models: NO temperature, NO top_p, use max_completion_tokens
+    body.max_completion_tokens = options.maxTokens || 4096;
+  } else {
+    // Standard models
+    body.max_tokens = options.maxTokens || 4096;
+    if (options.temperature !== undefined) {
+      body.temperature = options.temperature;
+    }
+    if (options.topP !== undefined) {
+      body.top_p = options.topP;
+    }
   }
-
-  return fetch(endpoint, {
+  
+  console.log('[OpenAI] Request:', { model, isReasoning, canStream, messageCount: messages.length });
+  
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
   });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[OpenAI] Error:', response.status, errorText);
+    throw new Error(`OpenAI error ${response.status}: ${errorText}`);
+  }
+  
+  if (canStream && response.body) {
+    return response.body;
+  }
+  
+  const data = await response.json();
+  return {
+    content: data.choices?.[0]?.message?.content || '',
+    usage: data.usage,
+  };
 }
 
-/**
- * Call Anthropic API
- */
-async function callAnthropic(
-  apiKey: string,
-  modelName: string,
-  messages: Message[],
-  stream: boolean,
-  temperature: number,
-  maxTokens: number
-): Promise<Response> {
-  // Separate system message from others
-  const systemMessages = messages.filter(m => m.role === 'system');
-  const otherMessages = messages.filter(m => m.role !== 'system');
+// ============================================
+// ANTHROPIC HANDLER
+// ============================================
 
-  return fetch('https://api.anthropic.com/v1/messages', {
+async function callAnthropic(
+  model: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number; stream?: boolean }
+): Promise<{ content: string; usage?: any } | ReadableStream> {
+  const apiKey = getApiKey('anthropic');
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  
+  // Map display names to API model names
+  const modelMap: Record<string, string> = {
+    'claude-3-haiku': 'claude-3-haiku-20240307',
+    'claude-3-sonnet': 'claude-3-sonnet-20240229',
+    'claude-3-opus': 'claude-3-opus-20240229',
+    'claude-sonnet-4': 'claude-sonnet-4-20250514',
+    'claude-sonnet-4.5': 'claude-sonnet-4-5-20250514',
+    'claude-haiku-4.5': 'claude-haiku-4-5-20250514',
+    'claude-opus-4.5': 'claude-opus-4-5-20250514',
+  };
+  
+  const apiModel = modelMap[model] || model;
+  
+  // Extract system message
+  let systemPrompt = '';
+  const anthropicMessages = messages.filter(m => {
+    if (m.role === 'system') {
+      systemPrompt = m.content;
+      return false;
+    }
+    return true;
+  }).map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.content,
+  }));
+  
+  const body: any = {
+    model: apiModel,
+    max_tokens: options.maxTokens || 4096,
+    messages: anthropicMessages,
+    stream: options.stream || false,
+  };
+  
+  if (systemPrompt) body.system = systemPrompt;
+  if (options.temperature !== undefined) body.temperature = options.temperature;
+  
+  console.log('[Anthropic] Request:', { model: apiModel, messageCount: anthropicMessages.length });
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: modelName,
-      max_tokens: maxTokens,
-      system: systemMessages.map(m => m.content).join('\n'),
-      messages: otherMessages.map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      })),
-      stream,
-      temperature,
-    }),
+    body: JSON.stringify(body),
   });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[Anthropic] Error:', response.status, errorText);
+    throw new Error(`Anthropic error ${response.status}: ${errorText}`);
+  }
+  
+  if (options.stream && response.body) {
+    return response.body;
+  }
+  
+  const data = await response.json();
+  return {
+    content: data.content?.[0]?.text || '',
+    usage: {
+      prompt_tokens: data.usage?.input_tokens,
+      completion_tokens: data.usage?.output_tokens,
+      total_tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
+    },
+  };
 }
 
-/**
- * Call Google Gemini API
- */
-async function callGemini(
-  apiKey: string,
-  modelName: string,
-  messages: Message[],
-  stream: boolean,
-  temperature: number,
-  maxTokens: number
-): Promise<Response> {
-  const endpoint = stream
-    ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?key=${apiKey}`
-    : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+// ============================================
+// GOOGLE HANDLER
+// ============================================
 
-  // Convert messages to Gemini format
+async function callGoogle(
+  model: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number }
+): Promise<{ content: string; usage?: any }> {
+  const apiKey = getApiKey('google');
+  if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
+  
+  const modelMap: Record<string, string> = {
+    'gemini-2.0-flash': 'gemini-2.0-flash-exp',
+    'gemini-2.0-pro': 'gemini-2.0-pro-exp',
+    'gemini-1.5-pro': 'gemini-1.5-pro',
+    'gemini-1.5-flash': 'gemini-1.5-flash',
+    'gemini-2.5-pro': 'gemini-2.5-pro',
+    'gemini-3-pro': 'gemini-3-pro-preview',
+  };
+  
+  const googleModel = modelMap[model] || model;
+  
+  // Convert to Gemini format
   const contents = messages.filter(m => m.role !== 'system').map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }));
-
+  
   const systemInstruction = messages.find(m => m.role === 'system');
+  
+  const body: any = {
+    contents,
+    generationConfig: {
+      maxOutputTokens: options.maxTokens || 4096,
+      temperature: options.temperature || 0.7,
+    },
+  };
+  
+  if (systemInstruction) {
+    body.systemInstruction = { parts: [{ text: systemInstruction.content }] };
+  }
+  
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${googleModel}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  );
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[Google] Error:', response.status, errorText);
+    throw new Error(`Google error ${response.status}: ${errorText}`);
+  }
+  
+  const data = await response.json();
+  return {
+    content: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+  };
+}
 
-  return fetch(endpoint, {
+// ============================================
+// XAI HANDLER
+// ============================================
+
+async function callXAI(
+  model: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number; topP?: number; stream?: boolean }
+): Promise<{ content: string; usage?: any } | ReadableStream> {
+  const apiKey = getApiKey('xai');
+  if (!apiKey) throw new Error('XAI_API_KEY not configured');
+  
+  const modelMap: Record<string, string> = {
+    'grok-4.1': 'grok-41-fast',
+    'grok-3': 'grok-3',
+    'grok-2': 'grok-2',
+  };
+  
+  const xaiModel = modelMap[model] || model;
+  
+  const response = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      contents,
-      ...(systemInstruction && {
-        systemInstruction: { parts: [{ text: systemInstruction.content }] },
-      }),
-      generationConfig: {
-        temperature,
-        maxOutputTokens: maxTokens,
-      },
-    }),
-  });
-}
-
-/**
- * Call Modal (Swiss-hosted) API - axessible-labs endpoints
- */
-async function callModal(
-  modelId: string,
-  endpoint: string,
-  messages: Message[],
-  stream: boolean,
-  temperature: number,
-  topP: number,
-  maxTokens: number
-): Promise<Response> {
-  const apiKey = getApiKey('modal');
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
-
-  console.log(`[Ghost Inference] Calling Modal endpoint: ${endpoint}`);
-
-  return fetch(endpoint, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: modelId,
+      model: xaiModel,
       messages,
-      stream,
-      temperature,
-      top_p: topP,
-      max_tokens: maxTokens,
+      stream: options.stream || false,
+      max_tokens: options.maxTokens || 4096,
+      temperature: options.temperature || 0.7,
+      top_p: options.topP || 0.9,
     }),
   });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[xAI] Error:', response.status, errorText);
+    throw new Error(`xAI error ${response.status}: ${errorText}`);
+  }
+  
+  if (options.stream && response.body) {
+    return response.body;
+  }
+  
+  const data = await response.json();
+  return {
+    content: data.choices?.[0]?.message?.content || '',
+    usage: data.usage,
+  };
 }
+
+// ============================================
+// DEEPSEEK HANDLER
+// ============================================
+
+async function callDeepSeek(
+  model: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number; topP?: number; stream?: boolean }
+): Promise<{ content: string; usage?: any } | ReadableStream> {
+  const apiKey = getApiKey('deepseek');
+  if (!apiKey) throw new Error('DEEPSEEK_API_KEY not configured');
+  
+  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: options.stream || false,
+      max_tokens: options.maxTokens || 4096,
+      temperature: options.temperature || 0.7,
+      top_p: options.topP || 0.9,
+    }),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[DeepSeek] Error:', response.status, errorText);
+    throw new Error(`DeepSeek error ${response.status}: ${errorText}`);
+  }
+  
+  if (options.stream && response.body) {
+    return response.body;
+  }
+  
+  const data = await response.json();
+  return {
+    content: data.choices?.[0]?.message?.content || '',
+    usage: data.usage,
+  };
+}
+
+// ============================================
+// QWEN HANDLER
+// ============================================
+
+async function callQwen(
+  model: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number; topP?: number; stream?: boolean }
+): Promise<{ content: string; usage?: any } | ReadableStream> {
+  const apiKey = getApiKey('qwen');
+  if (!apiKey) throw new Error('QWEN_API_KEY not configured');
+  
+  const modelMap: Record<string, string> = {
+    'qwen3-235b': 'qwen3-235b-a22b-instruct',
+    'qwen3-235b-thinking': 'qwen3-235b-a22b-thinking',
+    'qwen3-coder-480b': 'qwen3-coder-480b',
+  };
+  
+  const qwenModel = modelMap[model] || model;
+  
+  const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: qwenModel,
+      messages,
+      stream: options.stream || false,
+      max_tokens: options.maxTokens || 4096,
+      temperature: options.temperature || 0.7,
+      top_p: options.topP || 0.9,
+    }),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[Qwen] Error:', response.status, errorText);
+    throw new Error(`Qwen error ${response.status}: ${errorText}`);
+  }
+  
+  if (options.stream && response.body) {
+    return response.body;
+  }
+  
+  const data = await response.json();
+  return {
+    content: data.choices?.[0]?.message?.content || '',
+    usage: data.usage,
+  };
+}
+
+// ============================================
+// AUTO MODEL SELECTION
+// ============================================
+
+function selectAutoModel(messages: any[]): string {
+  const fullText = messages.map(m => m.content || '').join(' ').toLowerCase();
+  const wordCount = fullText.split(/\s+/).length;
+  
+  // Code detection
+  const codeKeywords = ['code', 'debug', 'function', 'error', 'programming', 'javascript', 'python', 'typescript'];
+  if (codeKeywords.some(kw => fullText.includes(kw))) {
+    return 'swissvault-code';
+  }
+  
+  // Simple/fast queries
+  if (wordCount < 30) {
+    return 'swissvault-fast';
+  }
+  
+  // Default
+  return 'swissvault-1.0';
+}
+
+// ============================================
+// MAIN HANDLER
+// ============================================
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
-
+  
   const startTime = Date.now();
-
+  
   try {
     // 1. Verify user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.log('[Ghost Inference] No authorization header');
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -335,12 +564,6 @@ serve(async (req) => {
 
     if (usageError) {
       console.error('[Ghost Inference] Usage check error:', usageError);
-      // Don't block on RPC error - allow request to proceed
-    }
-
-    // Log admin status if detected
-    if (usageCheck?.is_admin) {
-      console.log(`[Ghost Inference] Admin user detected - bypassing credit limits`);
     }
 
     // Only block if explicitly not allowed AND not admin
@@ -350,255 +573,351 @@ serve(async (req) => {
         JSON.stringify({ 
           error: usageCheck.reason || 'Insufficient credits',
           balance: usageCheck.balance || 0,
-          daily_remaining: usageCheck.daily_remaining || 0,
         }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[Ghost Inference] Credits OK - balance: ${usageCheck?.balance}, is_admin: ${usageCheck?.is_admin}`);
-
-    // 3. Parse and validate request
-    const body = await req.json() as GhostRequest;
-    const { model, messages, stream = false, temperature = 0.7, top_p = 0.9, max_tokens = 4096, system_prompt } = body;
-
+    // 3. Parse request
+    const { model: requestedModel, messages, max_tokens, temperature, top_p, stream, system_prompt } = await req.json();
+    
+    // Handle auto model selection
+    let model = requestedModel || 'swissvault-1.0';
+    if (model === 'auto') {
+      model = selectAutoModel(messages);
+      console.log('[Ghost Inference] Auto selected model:', model);
+    }
+    
     // Prepend system prompt if provided
     const finalMessages = system_prompt 
       ? [{ role: 'system', content: system_prompt }, ...messages]
       : messages;
-
-    if (!model || !messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid request: model and messages required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // 4. Get model configuration
-    const modelConfig = MODEL_ROUTES[model];
-    if (!modelConfig) {
-      console.log(`[Ghost Inference] Unknown model: ${model}, defaulting to ${DEFAULT_SWISS_MODEL}`);
-    }
-
-    const config = modelConfig || MODEL_ROUTES[DEFAULT_SWISS_MODEL];
-    const { provider, modelName } = config;
-
-    // Check if provider API key is available
-    if (provider !== 'modal') {
-      const apiKey = getApiKey(provider);
-      if (!apiKey) {
-        console.log(`[Ghost Inference] API key not configured for ${provider}`);
-        return new Response(
-          JSON.stringify({ error: `${provider} API key not configured` }),
-          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-
-    // Calculate input tokens
-    const inputTokens = estimateTokens(messages);
-    console.log(`[Ghost Inference] Model: ${model} (${provider}/${modelName}), Input tokens: ~${inputTokens}, Stream: ${stream}`);
-
-    // 5. Route to appropriate provider
-    let providerResponse: Response;
-
-    switch (provider) {
-      case 'modal':
-        providerResponse = await callModal(model, config.endpoint, finalMessages, stream, temperature, top_p, max_tokens);
-        break;
+    
+    const provider = getProvider(model);
+    console.log('[Ghost Inference] Request:', { model, provider, stream, messageCount: messages?.length });
+    
+    const options = { maxTokens: max_tokens, temperature, topP: top_p, stream };
+    
+    // ==========================================
+    // MODAL (SWISS-HOSTED) - Always non-streaming JSON
+    // ==========================================
+    if (provider === 'modal') {
+      const endpoint = SWISS_ENDPOINTS[model] || SWISS_ENDPOINTS['swissvault-1.0'];
       
-      case 'openai':
-      case 'xai':
-      case 'deepseek':
-      case 'qwen':
-        providerResponse = await callOpenAICompatible(
-          config.endpoint,
-          getApiKey(provider)!,
-          modelName,
-          finalMessages,
-          stream,
-          temperature,
-          top_p,
-          max_tokens
+      try {
+        const result = await callModal(endpoint, finalMessages, options);
+        const inputTokens = estimateTokens(finalMessages);
+        const outputTokens = Math.ceil((result.content?.length || 0) / 4);
+        
+        // Log usage
+        const serviceClient = createClient(
+          supabaseUrl,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
         );
-        break;
-      
-      case 'anthropic':
-        providerResponse = await callAnthropic(
-          getApiKey('anthropic')!,
-          modelName,
-          finalMessages,
-          stream,
-          temperature,
-          max_tokens
-        );
-        break;
-      
-      case 'google':
-        providerResponse = await callGemini(
-          getApiKey('google')!,
-          modelName,
-          finalMessages,
-          stream,
-          temperature,
-          max_tokens
-        );
-        break;
-      
-      default:
-        return new Response(
-          JSON.stringify({ error: 'Unknown provider' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-    }
-
-    if (!providerResponse.ok) {
-      const errorText = await providerResponse.text();
-      console.error(`[Ghost Inference] ${provider} error: ${providerResponse.status} - ${errorText.slice(0, 200)}`);
-      return new Response(
-        JSON.stringify({ error: 'Inference failed', details: `${provider} service error` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // 6. Handle streaming response
-    if (stream) {
-      let outputTokenEstimate = 0;
-      
-      const transformStream = new TransformStream({
-        transform(chunk, controller) {
-          controller.enqueue(chunk);
-          const text = new TextDecoder().decode(chunk);
-          outputTokenEstimate += Math.ceil(text.length / 4);
-        },
-        async flush() {
-          const totalTokens = inputTokens + outputTokenEstimate;
-          
-          const serviceClient = createClient(
-            supabaseUrl,
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-          );
-          
-          // Skip credit deduction for admin users
+        
+        try {
           if (!usageCheck?.is_admin) {
             await serviceClient.rpc('deduct_ghost_credits', {
               p_user_id: userId,
-              p_amount: totalTokens
+              p_amount: inputTokens + outputTokens
             });
           }
-          
+        } catch (creditErr) {
+          console.error('[Ghost Inference] Credit deduction error:', creditErr);
+        }
+        
+        try {
           await serviceClient.from('ghost_usage').insert({
             user_id: userId,
             model_id: model,
-            provider: provider,
             input_tokens: inputTokens,
-            output_tokens: outputTokenEstimate,
-            was_free_tier: usageCheck?.is_admin || false
+            output_tokens: outputTokens,
+            provider: 'modal',
+            modality: 'text',
+            generation_time_ms: result.responseTimeMs || (Date.now() - startTime),
           });
-          
-          console.log(`[Ghost Inference] Stream complete. Tokens: ${inputTokens}+${outputTokenEstimate}=${totalTokens}, Admin: ${usageCheck?.is_admin}`);
+        } catch (usageErr) {
+          console.error('[Ghost Inference] Usage log error:', usageErr);
         }
-      });
-
-      const responseStream = providerResponse.body?.pipeThrough(transformStream);
-      
-      return new Response(responseStream, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
-        }
-      });
-    }
-
-    // 7. Handle non-streaming response
-    const responseData = await providerResponse.json();
-    
-    // Calculate output tokens from response
-    let outputTokens = 0;
-    if (responseData.usage?.completion_tokens) {
-      outputTokens = responseData.usage.completion_tokens;
-    } else if (responseData.choices?.[0]?.message?.content) {
-      outputTokens = estimateOutputTokens(responseData.choices[0].message.content);
-    } else if (responseData.content?.[0]?.text) {
-      // Anthropic format
-      outputTokens = estimateOutputTokens(responseData.content[0].text);
-    } else if (responseData.candidates?.[0]?.content?.parts?.[0]?.text) {
-      // Gemini format
-      outputTokens = estimateOutputTokens(responseData.candidates[0].content.parts[0].text);
-    }
-    
-    const totalTokens = inputTokens + outputTokens;
-    const processingTime = Date.now() - startTime;
-    
-    const serviceClient = createClient(
-      supabaseUrl,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-    // Skip credit deduction for admin users
-    if (!usageCheck?.is_admin) {
-      const { error: deductError } = await serviceClient.rpc('deduct_ghost_credits', {
-        p_user_id: userId,
-        p_amount: totalTokens
-      });
-      
-      if (deductError) {
-        console.error('[Ghost Inference] Credit deduction failed:', deductError);
+        
+        // Return as JSON (NOT SSE) - this is the key fix!
+        return new Response(
+          JSON.stringify({
+            id: `chatcmpl-swiss-${Date.now()}`,
+            object: 'chat.completion',
+            model,
+            choices: [{
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: 'stop',
+            }],
+            usage: result.usage || { prompt_tokens: inputTokens, completion_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
+            response_time_ms: result.responseTimeMs || (Date.now() - startTime),
+          }),
+          {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json', // NOT text/event-stream!
+            },
+          }
+        );
+      } catch (error: unknown) {
+        console.error('[Modal] Call failed:', error);
+        return new Response(
+          JSON.stringify({ error: 'Swiss inference failed', details: error instanceof Error ? error.message : String(error) }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
-
-    // Log usage
-    await serviceClient.from('ghost_usage').insert({
-      user_id: userId,
-      model_id: model,
-      provider: provider,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      was_free_tier: usageCheck?.is_admin || false
-    });
-
-    console.log(`[Ghost Inference] Complete. Tokens: ${inputTokens}+${outputTokens}=${totalTokens}, Time: ${processingTime}ms, Admin: ${usageCheck?.is_admin}`);
-
-    // Normalize response format for non-OpenAI providers
-    let normalizedResponse = responseData;
     
-    // Convert Anthropic format to OpenAI format
-    if (provider === 'anthropic' && responseData.content) {
-      normalizedResponse = {
-        choices: [{
-          message: {
-            role: 'assistant',
-            content: responseData.content[0]?.text || ''
-          },
-          finish_reason: responseData.stop_reason
-        }],
-        usage: responseData.usage
-      };
+    // ==========================================
+    // OPENAI
+    // ==========================================
+    if (provider === 'openai') {
+      try {
+        const canStream = supportsStreaming(model) && stream;
+        const result = await callOpenAI(model, finalMessages, { ...options, stream: canStream });
+        
+        if (result instanceof ReadableStream) {
+          return new Response(result, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({
+            id: `chatcmpl-openai-${Date.now()}`,
+            object: 'chat.completion',
+            model,
+            choices: [{
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: 'stop',
+            }],
+            usage: result.usage,
+            response_time_ms: Date.now() - startTime,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: unknown) {
+        console.error('[OpenAI] Call failed:', error);
+        return new Response(
+          JSON.stringify({ error: 'OpenAI inference failed', details: error instanceof Error ? error.message : String(error) }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
     
-    // Convert Gemini format to OpenAI format
-    if (provider === 'google' && responseData.candidates) {
-      normalizedResponse = {
-        choices: [{
-          message: {
-            role: 'assistant',
-            content: responseData.candidates[0]?.content?.parts?.[0]?.text || ''
-          },
-          finish_reason: responseData.candidates[0]?.finishReason
-        }]
-      };
+    // ==========================================
+    // ANTHROPIC
+    // ==========================================
+    if (provider === 'anthropic') {
+      try {
+        const result = await callAnthropic(model, finalMessages, options);
+        
+        if (result instanceof ReadableStream) {
+          return new Response(result, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+            },
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({
+            id: `chatcmpl-anthropic-${Date.now()}`,
+            object: 'chat.completion',
+            model,
+            choices: [{
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: 'stop',
+            }],
+            usage: result.usage,
+            response_time_ms: Date.now() - startTime,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: unknown) {
+        console.error('[Anthropic] Call failed:', error);
+        return new Response(
+          JSON.stringify({ error: 'Anthropic inference failed', details: error instanceof Error ? error.message : String(error) }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
-
-    return new Response(JSON.stringify(normalizedResponse), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error('[Ghost Inference] Error:', error);
+    
+    // ==========================================
+    // GOOGLE
+    // ==========================================
+    if (provider === 'google') {
+      try {
+        const result = await callGoogle(model, finalMessages, options);
+        
+        return new Response(
+          JSON.stringify({
+            id: `chatcmpl-google-${Date.now()}`,
+            object: 'chat.completion',
+            model,
+            choices: [{
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: 'stop',
+            }],
+            usage: result.usage,
+            response_time_ms: Date.now() - startTime,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: unknown) {
+        console.error('[Google] Call failed:', error);
+        return new Response(
+          JSON.stringify({ error: 'Google inference failed', details: error instanceof Error ? error.message : String(error) }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    // ==========================================
+    // XAI
+    // ==========================================
+    if (provider === 'xai') {
+      try {
+        const result = await callXAI(model, finalMessages, options);
+        
+        if (result instanceof ReadableStream) {
+          return new Response(result, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+            },
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({
+            id: `chatcmpl-xai-${Date.now()}`,
+            object: 'chat.completion',
+            model,
+            choices: [{
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: 'stop',
+            }],
+            usage: result.usage,
+            response_time_ms: Date.now() - startTime,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: unknown) {
+        console.error('[xAI] Call failed:', error);
+        return new Response(
+          JSON.stringify({ error: 'xAI inference failed', details: error instanceof Error ? error.message : String(error) }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    // ==========================================
+    // DEEPSEEK
+    // ==========================================
+    if (provider === 'deepseek') {
+      try {
+        const result = await callDeepSeek(model, finalMessages, options);
+        
+        if (result instanceof ReadableStream) {
+          return new Response(result, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+            },
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({
+            id: `chatcmpl-deepseek-${Date.now()}`,
+            object: 'chat.completion',
+            model,
+            choices: [{
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: 'stop',
+            }],
+            usage: result.usage,
+            response_time_ms: Date.now() - startTime,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: unknown) {
+        console.error('[DeepSeek] Call failed:', error);
+        return new Response(
+          JSON.stringify({ error: 'DeepSeek inference failed', details: error instanceof Error ? error.message : String(error) }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    // ==========================================
+    // QWEN
+    // ==========================================
+    if (provider === 'qwen') {
+      try {
+        const result = await callQwen(model, finalMessages, options);
+        
+        if (result instanceof ReadableStream) {
+          return new Response(result, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+            },
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({
+            id: `chatcmpl-qwen-${Date.now()}`,
+            object: 'chat.completion',
+            model,
+            choices: [{
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: 'stop',
+            }],
+            usage: result.usage,
+            response_time_ms: Date.now() - startTime,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: unknown) {
+        console.error('[Qwen] Call failed:', error);
+        return new Response(
+          JSON.stringify({ error: 'Qwen inference failed', details: error instanceof Error ? error.message : String(error) }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    // Unknown provider
     return new Response(
-      JSON.stringify({ error: 'Internal server error', message: (error as Error).message }),
+      JSON.stringify({ error: 'Unknown model provider', model }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+    
+  } catch (error: unknown) {
+    console.error('[Ghost Inference] Fatal error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Inference failed', details: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
