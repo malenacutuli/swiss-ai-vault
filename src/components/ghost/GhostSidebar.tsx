@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { SwissBadge } from '@/components/ui/swiss';
+import { SwissFlag } from '@/components/icons/SwissFlag';
 import {
   Search,
   Plus,
@@ -35,8 +36,6 @@ import {
   X,
   Menu,
   Image as ImageIcon,
-  Lock,
-  EyeOff,
 } from 'lucide-react';
 
 export interface GhostConversation {
@@ -136,6 +135,18 @@ export function GhostSidebar({
       >
         {/* Header */}
         <div className="flex-shrink-0 p-4 border-b border-border">
+          {/* Brand */}
+          <Link
+            to="/ghost"
+            className="flex items-center gap-2 mb-4"
+            onClick={() => isOpen && onToggle()}
+          >
+            <SwissFlag className="h-7 w-7 rounded-lg" />
+            <span className="text-sm font-semibold text-foreground">
+              SwissVault<span className="text-brand-accent">.ai</span>
+            </span>
+          </Link>
+
           {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -151,7 +162,7 @@ export function GhostSidebar({
           {/* New Chat Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="w-full justify-between bg-swiss-navy hover:bg-swiss-navy/90 text-white">
+              <Button className="w-full justify-between">
                 <span className="flex items-center gap-2">
                   <Plus className="w-4 h-4" />
                   New Chat
@@ -367,16 +378,6 @@ export function GhostSidebar({
               >
                 <ImageIcon className="w-4 h-4" />
                 <span className="text-sm">Library</span>
-              </Button>
-              
-              {/* Vault Chat Link */}
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/chat')}
-              >
-                <Lock className="w-4 h-4" />
-                <span className="text-sm">Vault Chat</span>
               </Button>
             </div>
           </div>
