@@ -9,7 +9,7 @@ export interface GhostModel {
   description: string;
   
   // Capabilities
-  tags: Array<'private' | 'default' | 'new' | 'pay-per-use' | 'anonymized' | 'beta' | 'vision' | 'reasoning' | 'audio' | 'uncensored' | 'mature' | 'fast' | 'premium'>;
+  tags: Array<'private' | 'default' | 'new' | 'pay-per-use' | 'anonymized' | 'beta' | 'vision' | 'reasoning' | 'audio' | 'uncensored' | 'mature' | 'fast' | 'premium' | 'swiss' | 'code'>;
   contextWindow?: number;
   
   // Pricing
@@ -26,28 +26,40 @@ export interface GhostModel {
 // ==============================================
 
 export const TEXT_MODELS: GhostModel[] = [
-  // ========== Swiss-Hosted (Modal vLLM) - Private ==========
+  // ========== SwissVault Branded Models (Swiss-Hosted, Zero Logging) ==========
   {
-    id: 'qwen2.5-3b',
-    name: 'Qwen 2.5 3B',
+    id: 'swissvault-1.0',
+    name: 'SwissVault 1.0',
     provider: 'modal',
     modality: 'text',
-    description: 'Fast general-purpose model. Swiss-hosted, zero logging.',
-    tags: ['private', 'default', 'fast'],
+    description: 'Balanced performance. Swiss-hosted, zero logging.',
+    tags: ['private', 'default', 'swiss'],
+    contextWindow: 128000,
+    creditCost: 1,
+    isPayPerUse: false,
+    enabled: true,
+  },
+  {
+    id: 'swissvault-fast',
+    name: 'SwissVault Fast',
+    provider: 'modal',
+    modality: 'text',
+    description: 'Ultra-fast responses. Swiss-hosted.',
+    tags: ['private', 'fast', 'swiss'],
     contextWindow: 32000,
     creditCost: 0.5,
     isPayPerUse: false,
     enabled: true,
   },
   {
-    id: 'qwen2.5-7b',
-    name: 'Qwen 2.5 7B',
+    id: 'swissvault-code',
+    name: 'SwissVault Code',
     provider: 'modal',
     modality: 'text',
-    description: 'Balanced performance. Swiss-hosted.',
-    tags: ['private'],
+    description: 'Optimized for coding. Swiss-hosted.',
+    tags: ['private', 'code', 'swiss'],
     contextWindow: 128000,
-    creditCost: 1,
+    creditCost: 1.5,
     isPayPerUse: false,
     enabled: true,
   },
@@ -56,10 +68,10 @@ export const TEXT_MODELS: GhostModel[] = [
     name: 'Llama 3.1 8B',
     provider: 'modal',
     modality: 'text',
-    description: 'Meta\'s latest. Excellent reasoning. Swiss-hosted.',
-    tags: ['private'],
+    description: "Meta's flagship 8B model. Swiss-hosted.",
+    tags: ['private', 'swiss'],
     contextWindow: 128000,
-    creditCost: 1.5,
+    creditCost: 2,
     isPayPerUse: false,
     enabled: true,
   },
@@ -68,21 +80,9 @@ export const TEXT_MODELS: GhostModel[] = [
     name: 'Mistral 7B',
     provider: 'modal',
     modality: 'text',
-    description: 'European model. Great all-rounder. Swiss-hosted.',
-    tags: ['private'],
+    description: 'European model, multilingual. Swiss-hosted.',
+    tags: ['private', 'swiss'],
     contextWindow: 32000,
-    creditCost: 1,
-    isPayPerUse: false,
-    enabled: true,
-  },
-  {
-    id: 'qwen2.5-coder-7b',
-    name: 'Qwen Coder 7B',
-    provider: 'modal',
-    modality: 'text',
-    description: 'Optimized for code generation. Swiss-hosted.',
-    tags: ['private'],
-    contextWindow: 128000,
     creditCost: 1.5,
     isPayPerUse: false,
     enabled: true,
