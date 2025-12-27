@@ -288,10 +288,11 @@ export class GhostStorageManager {
 
     conversation.title = title;
     conversation.updatedAt = Date.now();
-    
+
     // Only persist if not temporary
     if (!conversation.isTemporary) {
-      this.schedulePersist(convId);
+      // Title changes are small but important; persist immediately to survive rapid refreshes.
+      this.persistNow(convId);
     }
     return true;
   }
@@ -323,7 +324,7 @@ export class GhostStorageManager {
    */
   listConversations(): { id: string; title: string; updatedAt: number; messageCount: number; folderId?: string }[] {
     const conversations = Array.from(this.hotStore.values());
-    
+
     return conversations
       .map(conv => ({
         id: conv.id,
@@ -347,10 +348,11 @@ export class GhostStorageManager {
 
     conversation.folderId = folderId || undefined;
     conversation.updatedAt = Date.now();
-    
+
     // Only persist if not temporary
     if (!conversation.isTemporary) {
-      this.schedulePersist(convId);
+      // Folder moves should persist immediately to survive rapid refreshes.
+      this.persistNow(convId);
     }
     return true;
   }
@@ -482,6 +484,21 @@ export class GhostStorageManager {
     }, DEBOUNCE_MS);
 
     this.saveTimeouts.set(convId, timeout);
+  }
+
+  /**
+   * Persist immediately (best-effort) to survive rapid refreshes.
+   * Cancels any pending debounced write for this conversation.
+   */
+  private persistNow(convId: string): void {
+    const existingTimeout = this.saveTimeouts.get(convId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      this.saveTimeouts.delete(convId);
+    }
+
+    // Fire-and-forget: IndexedDB put is async but usually completes quickly.
+    void this.persistToIndexedDB(convId);
   }
 
   /**
