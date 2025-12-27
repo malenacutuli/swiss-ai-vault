@@ -1,7 +1,23 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+interface GhostTierData {
+  tier: 'ghost_free' | 'ghost_pro' | 'swissvault_pro';
+  features: {
+    prompts_per_day: number;
+    images_per_day: number;
+    videos_per_day: number;
+    files_per_day: number;
+    searches_per_day: number;
+    models: string[];
+    commercial_models?: boolean;
+    vault_chat?: boolean;
+    fine_tuning?: boolean;
+    api_access?: boolean;
+  };
+}
 
 interface GhostUsage {
   prompts_used: number;
@@ -11,63 +27,40 @@ interface GhostUsage {
   web_searches: number;
 }
 
-interface GhostSubscription {
-  tier: 'free' | 'pro';
-  current_period_end: string | null;
+interface UsageCheckResult {
+  allowed: boolean;
+  current?: number;
+  limit?: number;
+  remaining?: number;
+  unlimited?: boolean;
+  tier?: string;
+  resets_at?: string;
+  error?: string;
 }
-
-interface UsageLimits {
-  prompts: number;
-  images: number;
-  videos: number;
-  files: number;
-  searches: number;
-}
-
-const FREE_LIMITS: UsageLimits = {
-  prompts: 15,
-  images: 3,
-  videos: 3,
-  files: 5,
-  searches: 5,
-};
-
-const PRO_LIMITS: UsageLimits = {
-  prompts: 999999, // Unlimited
-  images: 50,
-  videos: 20,
-  files: 50,
-  searches: 999999, // Unlimited
-};
 
 export function useGhostUsage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  // Fetch subscription
-  const { data: subscription } = useQuery({
-    queryKey: ['ghost-subscription', user?.id],
+  // Fetch tier info using database function
+  const { data: tierData, isLoading: tierLoading } = useQuery({
+    queryKey: ['ghost-tier', user?.id],
     queryFn: async () => {
       if (!user) return null;
       
-      const { data, error } = await supabase
-        .from('ghost_subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_ghost_tier', {
+        p_user_id: user.id,
+      });
       
       if (error) throw error;
-      
-      // Extract tier from data, defaulting to 'free'
-      const tier = (data as Record<string, unknown>)?.tier as 'free' | 'pro' || 'free';
-      const current_period_end = (data as Record<string, unknown>)?.current_period_end as string | null || null;
-      
-      return { tier, current_period_end } as GhostSubscription;
+      return data as unknown as GhostTierData;
     },
     enabled: !!user,
+    staleTime: 60000, // Cache for 1 minute
   });
 
   // Fetch today's usage
-  const { data: usage, refetch: refetchUsage } = useQuery({
+  const { data: usage, refetch: refetchUsage, isLoading: usageLoading } = useQuery({
     queryKey: ['ghost-usage', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -83,33 +76,38 @@ export function useGhostUsage() {
       
       if (error) throw error;
       
-      // Return data or default empty usage
-      return (data as GhostUsage) || { 
-        prompts_used: 0, 
-        images_generated: 0, 
-        videos_generated: 0, 
-        files_uploaded: 0, 
-        web_searches: 0 
-      };
+      return (data || {
+        prompts_used: 0,
+        images_generated: 0,
+        videos_generated: 0,
+        files_uploaded: 0,
+        web_searches: 0,
+      }) as GhostUsage;
     },
     enabled: !!user,
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Get limits based on tier
-  const limits = subscription?.tier === 'pro' ? PRO_LIMITS : FREE_LIMITS;
-  const isPro = subscription?.tier === 'pro';
-
-  // Calculate remaining
-  const remaining = {
-    prompts: Math.max(0, limits.prompts - (usage?.prompts_used || 0)),
-    images: Math.max(0, limits.images - (usage?.images_generated || 0)),
-    videos: Math.max(0, limits.videos - (usage?.videos_generated || 0)),
-    files: Math.max(0, limits.files - (usage?.files_uploaded || 0)),
-    searches: Math.max(0, limits.searches - (usage?.web_searches || 0)),
+  // Parse tier from database response
+  const tier = tierData?.tier || 'ghost_free';
+  const features = tierData?.features || {
+    prompts_per_day: 15,
+    images_per_day: 3,
+    videos_per_day: 3,
+    files_per_day: 5,
+    searches_per_day: 5,
+    models: ['swissvault-1.0'],
   };
 
-  // Check if can use feature
+  // Calculate remaining (-1 means unlimited)
+  const remaining = {
+    prompts: features.prompts_per_day === -1 ? Infinity : Math.max(0, features.prompts_per_day - (usage?.prompts_used || 0)),
+    images: features.images_per_day === -1 ? Infinity : Math.max(0, features.images_per_day - (usage?.images_generated || 0)),
+    videos: features.videos_per_day === -1 ? Infinity : Math.max(0, features.videos_per_day - (usage?.videos_generated || 0)),
+    files: features.files_per_day === -1 ? Infinity : Math.max(0, features.files_per_day - (usage?.files_uploaded || 0)),
+    searches: features.searches_per_day === -1 ? Infinity : Math.max(0, features.searches_per_day - (usage?.web_searches || 0)),
+  };
+
   const canUse = {
     prompt: remaining.prompts > 0,
     image: remaining.images > 0,
@@ -118,34 +116,27 @@ export function useGhostUsage() {
     search: remaining.searches > 0,
   };
 
-  // Increment usage mutation
-  const incrementUsage = useMutation({
-    mutationFn: async (type: 'prompt' | 'image' | 'video' | 'file' | 'search') => {
-      if (!user) throw new Error('Not authenticated');
-      
-      const { data, error } = await supabase.rpc('increment_ghost_usage', {
+  // Check and increment usage using database function
+  const useFeature = useCallback(async (type: 'prompt' | 'image' | 'video' | 'file' | 'search'): Promise<UsageCheckResult> => {
+    if (!user) return { allowed: false, error: 'Not authenticated' };
+    
+    try {
+      const { data, error } = await supabase.rpc('check_ghost_usage', {
         p_user_id: user.id,
         p_type: type,
       });
       
       if (error) throw error;
-      return data as { allowed: boolean; current: number; limit: number; remaining?: number; type: string; resets_at?: string };
-    },
-    onSuccess: () => {
-      refetchUsage();
-    },
-  });
-
-  // Check and increment (returns false if limit reached)
-  const useFeature = useCallback(async (type: 'prompt' | 'image' | 'video' | 'file' | 'search') => {
-    try {
-      const result = await incrementUsage.mutateAsync(type);
-      return result.allowed;
+      
+      // Refresh usage data
+      queryClient.invalidateQueries({ queryKey: ['ghost-usage', user.id] });
+      
+      return data as unknown as UsageCheckResult;
     } catch (error) {
-      console.error('Failed to increment usage:', error);
-      return false;
+      console.error('Usage check failed:', error);
+      return { allowed: false, error: 'Failed to check usage' };
     }
-  }, [incrementUsage]);
+  }, [user, queryClient]);
 
   // Time until reset (midnight UTC)
   const getResetTime = () => {
@@ -156,16 +147,34 @@ export function useGhostUsage() {
     return tomorrow;
   };
 
+  const isPro = tier === 'ghost_pro' || tier === 'swissvault_pro';
+  const isSwissVaultPro = tier === 'swissvault_pro';
+  const hasCommercialModels = features.commercial_models === true;
+
   return {
-    // Subscription info
-    tier: subscription?.tier || 'free',
+    // Tier info
+    tier,
+    features,
     isPro,
+    isSwissVaultPro,
+    hasCommercialModels,
+    
+    // Loading states
+    isLoading: tierLoading || usageLoading,
     
     // Usage info
     usage: usage || { prompts_used: 0, images_generated: 0, videos_generated: 0, files_uploaded: 0, web_searches: 0 },
-    limits,
     remaining,
     canUse,
+    
+    // Limits (for display)
+    limits: {
+      prompts: features.prompts_per_day,
+      images: features.images_per_day,
+      videos: features.videos_per_day,
+      files: features.files_per_day,
+      searches: features.searches_per_day,
+    },
     
     // Actions
     useFeature,

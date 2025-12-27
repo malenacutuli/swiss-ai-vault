@@ -4,7 +4,7 @@ import { Zap, Image, Crown, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GhostUsageDisplayProps {
-  tier: 'free' | 'pro';
+  tier: 'ghost_free' | 'ghost_pro' | 'swissvault_pro' | 'free' | 'pro';
   remaining: {
     prompts: number;
     images: number;
@@ -30,7 +30,8 @@ export function GhostUsageDisplay({
   resetTime,
   className,
 }: GhostUsageDisplayProps) {
-  const isPro = tier === 'pro';
+  const isPro = tier === 'pro' || tier === 'ghost_pro' || tier === 'swissvault_pro';
+  const isSwissVaultPro = tier === 'swissvault_pro';
 
   const getTimeUntilReset = () => {
     const now = new Date();
@@ -46,7 +47,7 @@ export function GhostUsageDisplay({
     return (
       <Badge variant="outline" className={cn('bg-primary/10 text-primary border-primary/20', className)}>
         <Crown className="w-3 h-3 mr-1" />
-        PRO
+        {isSwissVaultPro ? 'SWISSVAULT PRO' : 'PRO'}
       </Badge>
     );
   }
