@@ -1561,9 +1561,8 @@ function GhostChat() {
       <GhostUpgradeModal
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
-        reason={upgradeReason}
-        remaining={remaining}
-        resetTime={resetTime}
+        limitType={upgradeReason === 'prompts' ? 'prompt' : upgradeReason === 'images' ? 'image' : upgradeReason === 'videos' ? 'video' : upgradeReason === 'files' ? 'file' : upgradeReason === 'searches' ? 'search' : 'prompt'}
+        currentTier={tier}
       />
     </GhostDropZone>
   );

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -9,168 +10,216 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Sparkles, 
   Zap, 
-  Image, 
-  Video, 
-  Search, 
-  FileUp, 
-  Clock, 
+  Crown, 
   Check,
-  Crown
+  Clock,
+  Loader2
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface GhostUpgradeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reason?: 'prompts' | 'images' | 'videos' | 'files' | 'searches' | 'model';
-  remaining?: {
-    prompts: number;
-    images: number;
-    videos: number;
-    files: number;
-    searches: number;
-  };
-  resetTime?: Date;
+  limitType?: 'prompt' | 'image' | 'video' | 'file' | 'search';
+  currentTier?: string;
 }
 
-const LIMIT_MESSAGES: Record<string, { icon: React.ElementType; title: string; description: string }> = {
-  prompts: {
+const PLANS = [
+  {
+    id: 'ghost_pro',
+    name: 'Ghost Pro',
+    price: 15,
     icon: Zap,
-    title: 'Daily Prompt Limit Reached',
-    description: "You've used all your free prompts for today.",
+    features: [
+      'Unlimited prompts',
+      '50 images per day',
+      '20 videos per day',
+      'GPT-4o, Claude, Gemini access',
+      'Unlimited file uploads',
+      'Priority support',
+    ],
+    highlight: true,
   },
-  images: {
-    icon: Image,
-    title: 'Daily Image Limit Reached',
-    description: "You've used all your free image generations for today.",
-  },
-  videos: {
-    icon: Video,
-    title: 'Daily Video Limit Reached',
-    description: "You've used all your free video generations for today.",
-  },
-  files: {
-    icon: FileUp,
-    title: 'Daily File Upload Limit Reached',
-    description: "You've used all your free file uploads for today.",
-  },
-  searches: {
-    icon: Search,
-    title: 'Daily Search Limit Reached',
-    description: "You've used all your free web searches for today.",
-  },
-  model: {
+  {
+    id: 'swissvault_pro',
+    name: 'SwissVault Pro',
+    price: 49,
     icon: Crown,
-    title: 'Pro Model Access Required',
-    description: 'This model requires Ghost Pro subscription.',
+    features: [
+      'Everything in Ghost Pro',
+      '100 images per day',
+      '50 videos per day',
+      'Vault Chat (RAG)',
+      'Fine-tuning access',
+      'API access',
+      'Team features',
+    ],
+    highlight: false,
   },
-};
-
-const PRO_FEATURES = [
-  { icon: Zap, text: 'Unlimited prompts' },
-  { icon: Image, text: '50 images per day' },
-  { icon: Video, text: '20 videos per day' },
-  { icon: FileUp, text: '50 file uploads per day' },
-  { icon: Search, text: 'Unlimited web searches' },
-  { icon: Crown, text: 'GPT-4o, Claude, Gemini access' },
 ];
+
+const LIMIT_MESSAGES: Record<string, string> = {
+  prompt: "You've used all your prompts for today",
+  image: "You've used all your image generations for today",
+  video: "You've used all your video generations for today",
+  file: "You've reached your file upload limit for today",
+  search: "You've used all your web searches for today",
+};
 
 export function GhostUpgradeModal({
   open,
   onOpenChange,
-  reason = 'prompts',
-  remaining,
-  resetTime,
+  limitType = 'prompt',
+  currentTier = 'ghost_free',
 }: GhostUpgradeModalProps) {
   const navigate = useNavigate();
-  const limitInfo = LIMIT_MESSAGES[reason] || LIMIT_MESSAGES.prompts;
-  const LimitIcon = limitInfo.icon;
+  const [loading, setLoading] = useState<string | null>(null);
 
-  const getTimeUntilReset = () => {
-    if (!resetTime) return null;
-    const now = new Date();
-    const diff = resetTime.getTime() - now.getTime();
-    if (diff <= 0) return null;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
+  const handleUpgrade = async (planId: string) => {
+    setLoading(planId);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to upgrade');
+        onOpenChange(false);
+        navigate('/auth');
+        return;
+      }
+
+      // Call create-checkout function with Ghost tier
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          productId: planId,
+          productType: 'ghost_subscription',
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to create checkout');
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe checkout in new tab
+        window.open(data.url, '_blank');
+        onOpenChange(false);
+      } else {
+        throw new Error('No checkout URL received');
+      }
+      
+    } catch (error) {
+      console.error('Upgrade error:', error);
+      toast.error('Failed to start checkout. Please try again.');
+    } finally {
+      setLoading(null);
+    }
   };
 
-  const timeUntilReset = getTimeUntilReset();
-
-  const handleUpgrade = () => {
-    onOpenChange(false);
-    navigate('/pricing?plan=ghost_pro');
-  };
+  const limitMessage = LIMIT_MESSAGES[limitType] || LIMIT_MESSAGES.prompt;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader className="text-center pb-2">
           <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-            <LimitIcon className="w-6 h-6 text-primary" />
+            <Zap className="w-6 h-6 text-primary" />
           </div>
           <DialogTitle className="text-xl font-semibold">
-            {limitInfo.title}
+            Daily Limit Reached
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            {limitInfo.description}
+            {limitMessage}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
-          {/* Pro Card */}
-          <div className="relative p-4 rounded-xl border-2 border-primary/30 bg-primary/5">
-            <Badge className="absolute -top-2.5 left-4 bg-primary text-primary-foreground">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Recommended
-            </Badge>
-            
-            <div className="pt-2">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                Ghost Pro
-                <span className="text-sm font-normal text-muted-foreground">$15/month</span>
-              </h3>
-              
-              <ul className="mt-3 space-y-2">
-                {PRO_FEATURES.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-3 h-3 text-primary" />
-                    </div>
-                    <span>{feature.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+        <p className="text-sm text-muted-foreground text-center">
+          Upgrade to continue using Ghost Chat without limits.
+        </p>
 
-          {/* Actions */}
-          <div className="space-y-2">
-            <Button onClick={handleUpgrade} className="w-full" size="lg">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Upgrade to Pro
-            </Button>
+        <div className="grid gap-4 pt-4">
+          {PLANS.map((plan) => {
+            const Icon = plan.icon;
+            const isCurrentPlan = currentTier === plan.id;
             
-            {timeUntilReset && (
-              <p className="text-center text-sm text-muted-foreground flex items-center justify-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                Or come back in {timeUntilReset} for free credits
-              </p>
-            )}
-          </div>
-
-          {/* Current remaining (if any) */}
-          {remaining && (remaining.prompts > 0 || remaining.images > 0 || remaining.videos > 0) && (
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs text-muted-foreground text-center">
-                Today's remaining: {remaining.prompts} prompts, {remaining.images} images, {remaining.videos} videos
-              </p>
-            </div>
-          )}
+            return (
+              <div
+                key={plan.id}
+                className={cn(
+                  "relative p-4 rounded-xl border transition-all",
+                  plan.highlight 
+                    ? "border-primary/50 bg-primary/5" 
+                    : "border-border bg-card",
+                  isCurrentPlan && "opacity-60"
+                )}
+              >
+                {plan.highlight && (
+                  <Badge className="absolute -top-2.5 left-4 bg-primary text-primary-foreground">
+                    RECOMMENDED
+                  </Badge>
+                )}
+                
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center",
+                    plan.highlight ? "bg-primary/20" : "bg-muted"
+                  )}>
+                    <Icon className={cn(
+                      "w-5 h-5",
+                      plan.highlight ? "text-primary" : "text-muted-foreground"
+                    )} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="text-lg font-bold text-foreground">${plan.price}</span>
+                      /month
+                    </p>
+                  </div>
+                </div>
+                
+                <ul className="space-y-1.5 mb-4">
+                  {plan.features.slice(0, 4).map((feature) => (
+                    <li key={feature} className="flex items-center gap-2 text-sm">
+                      <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
+                  {plan.features.length > 4 && (
+                    <li className="text-xs text-muted-foreground pl-6">
+                      +{plan.features.length - 4} more features
+                    </li>
+                  )}
+                </ul>
+                
+                <Button
+                  className="w-full"
+                  variant={plan.highlight ? "default" : "outline"}
+                  onClick={() => handleUpgrade(plan.id)}
+                  disabled={loading !== null || isCurrentPlan}
+                >
+                  {loading === plan.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : isCurrentPlan ? (
+                    'Current Plan'
+                  ) : (
+                    'Upgrade'
+                  )}
+                </Button>
+              </div>
+            );
+          })}
         </div>
+
+        <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5 pt-2">
+          <Clock className="w-3.5 h-3.5" />
+          Or come back tomorrow for more free usage
+        </p>
       </DialogContent>
     </Dialog>
   );
