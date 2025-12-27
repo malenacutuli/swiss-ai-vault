@@ -7,6 +7,13 @@ interface StreamCallbacks {
   onError: (error: Error) => void;
 }
 
+// Content part types for multimodal messages
+export type MessageContentPart = 
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } };
+
+export type MessageContent = string | MessageContentPart[];
+
 interface StreamOptions {
   systemPrompt?: string;
   temperature?: number;
@@ -43,7 +50,7 @@ export function useGhostInference() {
 
   const streamResponse = useCallback(
     async (
-      messages: Array<{ role: string; content: string }>,
+      messages: Array<{ role: string; content: MessageContent }>,
       model: string,
       callbacks: StreamCallbacks,
       options?: StreamOptions,

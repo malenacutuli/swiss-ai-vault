@@ -64,6 +64,7 @@ interface GhostMessageData {
   responseTimeMs?: number;
   tokenCount?: number;
   contextUsagePercent?: number;
+  attachments?: Array<{ name: string; type: string; size: number }>;
 }
 
 // Attached file for context - supports multiple files
@@ -254,8 +255,8 @@ function GhostChat() {
   }, [toast]);
 
   const handleSendMessage = async () => {
-    // Prevent double submission
-    if (!inputValue.trim() || isStreaming || webSearch.isSearching || isSubmittingRef.current) return;
+    // Prevent double submission - allow if we have attachments even without text
+    if ((!inputValue.trim() && attachedFiles.length === 0) || isStreaming || webSearch.isSearching || isSubmittingRef.current) return;
     isSubmittingRef.current = true;
 
     try {
@@ -281,24 +282,91 @@ function GhostChat() {
       }
       if (!convId) return;
 
+      // Build multimodal content if we have attachments
+      const hasImages = attachedFiles.some(f => f.type === 'image' && f.base64);
+      const hasDocuments = attachedFiles.some(f => f.type === 'document');
+      
+      // Warn if using images with non-vision model
+      const selectedModel = selectedModels[mode];
+      if (hasImages) {
+        const { isVisionModel } = await import('@/lib/ghost-models');
+        if (!isVisionModel(selectedModel)) {
+          toast({
+            title: 'This model cannot analyze images',
+            description: 'Switch to GPT-4o, Claude 3.5, or Gemini for image analysis.',
+          });
+        }
+      }
+
+      // Build content - either string or array of content parts
+      let messageContent: string | Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }>;
+      
+      if (hasImages || hasDocuments) {
+        // Build multimodal content array
+        const contentParts: Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }> = [];
+        
+        // Add images first (vision models expect this order)
+        const imageFiles = attachedFiles.filter(f => f.type === 'image' && f.base64);
+        for (const img of imageFiles) {
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: img.base64!,
+              detail: 'auto',
+            }
+          });
+        }
+        
+        // Add document content as text context
+        const docFiles = attachedFiles.filter(f => f.type === 'document');
+        let docContext = '';
+        for (const doc of docFiles) {
+          if (doc.text) {
+            docContext += `\n\n📄 **${doc.name}**:\n\`\`\`\n${doc.text.slice(0, 30000)}\n\`\`\``;
+          } else if (doc.base64) {
+            // PDF as image for vision models
+            contentParts.push({
+              type: 'image_url',
+              image_url: { url: doc.base64, detail: 'auto' }
+            });
+          }
+        }
+        
+        // Add user text + document context
+        const fullText = (inputValue.trim() + docContext).trim();
+        if (fullText) {
+          contentParts.push({ type: 'text', text: fullText });
+        }
+        
+        messageContent = contentParts;
+      } else {
+        messageContent = inputValue.trim();
+      }
+
+      // Create display message (always show text for UI)
+      const displayContent = inputValue.trim() || `[${attachedFiles.length} file(s) attached]`;
       const userMessage: GhostMessageData = {
         id: crypto.randomUUID(),
         role: 'user',
-        content: inputValue.trim(),
+        content: displayContent,
         timestamp: Date.now(),
+        attachments: attachedFiles.map(f => ({ name: f.name, type: f.type, size: f.size })),
       };
 
       // Build message history BEFORE saving (to avoid duplicate)
-      const messageHistory = messages.map((m) => ({
+      // Build message history BEFORE saving (to avoid duplicate)
+      // Note: messageContent can be string or array for multimodal
+      const messageHistory: Array<{ role: string; content: any }> = messages.map((m) => ({
         role: m.role,
         content: m.content,
       }));
-      messageHistory.push({ role: 'user', content: userMessage.content });
+      messageHistory.push({ role: 'user', content: messageContent });
 
       // Save user message and update UI
-      saveMessage(convId, 'user', userMessage.content);
+      saveMessage(convId, 'user', displayContent);
       setMessages((prev) => [...prev, userMessage]);
       setInputValue('');
+      setAttachedFiles([]); // Clear attachments after sending
 
       // Handle based on mode
       if (mode === 'text') {
@@ -1193,6 +1261,7 @@ function GhostChat() {
                             responseTimeMs={msg.responseTimeMs}
                             tokenCount={msg.tokenCount}
                             contextUsagePercent={msg.contextUsagePercent}
+                            attachments={msg.attachments}
                             showDate={settings?.show_message_date ?? true}
                             showExternalLinkWarning={settings?.show_external_link_warning ?? false}
                             onEdit={handleMessageEdit}

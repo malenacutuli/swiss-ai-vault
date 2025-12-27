@@ -21,6 +21,13 @@ export interface GhostModel {
   comingSoon?: boolean;
 }
 
+// Helper to check if a model supports vision
+export function isVisionModel(modelId: string): boolean {
+  const allModels = [...TEXT_MODELS, ...IMAGE_MODELS, ...VIDEO_MODELS];
+  const model = allModels.find(m => m.id === modelId);
+  return model?.tags.includes('vision') ?? false;
+}
+
 // ==============================================
 // TEXT MODELS - Updated December 2025
 // ==============================================

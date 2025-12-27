@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { GhostMessageActions } from './GhostMessageActions';
 import { cn } from '@/lib/utils';
-import { ExternalLink, Pencil, Check, X } from 'lucide-react';
+import { ExternalLink, Pencil, Check, X, FileText, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ interface GhostMessageProps {
   responseTimeMs?: number;
   tokenCount?: number;
   contextUsagePercent?: number;
+  attachments?: Array<{ name: string; type: string; size: number }>;
   onRegenerate?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
@@ -244,6 +245,7 @@ export function GhostMessage({
   responseTimeMs,
   tokenCount,
   contextUsagePercent,
+  attachments,
   onRegenerate,
   onEdit,
   onDelete,
@@ -333,6 +335,22 @@ export function GhostMessage({
           </div>
         ) : (
           <>
+            {/* Attachment indicators for user messages */}
+            {role === 'user' && attachments && attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {attachments.map((att, idx) => (
+                  <div key={idx} className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+                    {att.type === 'image' ? (
+                      <ImageIcon className="w-3 h-3" />
+                    ) : (
+                      <FileText className="w-3 h-3" />
+                    )}
+                    <span className="truncate max-w-[100px]">{att.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
             {segments.map((segment, index) => {
               if (segment.type === 'code') {
                 return (
