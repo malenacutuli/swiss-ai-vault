@@ -375,6 +375,11 @@ export function GhostChatInput({
         Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Enter</kbd> to send,{' '}
         <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Shift+Enter</kbd> for new line
       </p>
+      
+      {/* AI Disclaimer */}
+      <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
+        AI can make mistakes. Always check the accuracy of the responses. Swiss Vault.ai doesn't use any user data to train models.
+      </p>
     </div>
   );
 }
