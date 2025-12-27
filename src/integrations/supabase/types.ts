@@ -2879,6 +2879,36 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      get_ghost_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string | null
+          credits_used: number | null
+          duration_seconds: number | null
+          files_uploaded: number | null
+          generation_time_ms: number | null
+          id: string
+          images_generated: number | null
+          input_tokens: number
+          modality: string | null
+          model_id: string
+          output_tokens: number
+          prompts_used: number | null
+          provider: string | null
+          resolution: string | null
+          usage_date: string | null
+          user_id: string
+          videos_generated: number | null
+          was_free_tier: boolean | null
+          web_searches: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ghost_usage"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_next_sequence_number: {
         Args: { p_conversation_id: string }
         Returns: number
@@ -2898,6 +2928,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_ghost_usage: {
+        Args: { p_type: string; p_user_id: string }
+        Returns: Json
       }
       increment_usage: {
         Args: {
