@@ -62,6 +62,7 @@ import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
 import GhostSignup from "./pages/auth/GhostSignup";
+import GhostLanding from "./pages/GhostLanding";
 
 const queryClient = new QueryClient();
 
@@ -108,7 +109,7 @@ const App = () => {
                 </Route>
                 
                 {/* Ghost Chat routes */}
-                <Route path="/ghost" element={<ProtectedRoute><GhostChat /></ProtectedRoute>} />
+                <Route path="/ghost" element={<GhostLanding />} />
                 <Route path="/ghost/chat" element={<GhostChat />} />
                 <Route path="/ghost/library" element={<ProtectedRoute><GhostLibrary /></ProtectedRoute>} />
                 
