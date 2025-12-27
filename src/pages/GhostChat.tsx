@@ -10,6 +10,7 @@ import { useGhostInference } from '@/hooks/useGhostInference';
 import { useGhostSearch, type SearchResult } from '@/hooks/useGhostSearch';
 import { useGhostSettings } from '@/hooks/useGhostSettings';
 import { useGhostFolders } from '@/hooks/useGhostFolders';
+import { useGhostUsage } from '@/hooks/useGhostUsage';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Components
@@ -25,10 +26,13 @@ import { GhostThinkingIndicator } from '@/components/ghost/GhostThinkingIndicato
 import { GhostErrorBoundary } from '@/components/ghost/GhostErrorBoundary';
 import { ExportMarkdownDialog } from '@/components/ghost/ExportMarkdownDialog';
 import { GhostDropZone } from '@/components/ghost/GhostDropZone';
+import { GhostUpgradeModal } from '@/components/ghost/GhostUpgradeModal';
+import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { EyeOff, Shield, Menu, X, AlertTriangle, FileText } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { TEXT_MODELS } from '@/lib/ghost-models';
 
 // Default models per mode
 const DEFAULT_MODELS: Record<GhostMode, string> = {
@@ -37,6 +41,14 @@ const DEFAULT_MODELS: Record<GhostMode, string> = {
   video: 'runway-gen3-turbo',
   search: 'sonar',
 };
+
+// Swiss models (free tier)
+const SWISS_MODEL_IDS = ['swissvault-1.0', 'swissvault-fast', 'swissvault-code', 'llama3.1-8b', 'mistral-7b'];
+
+// Commercial models (Pro tier only)
+const COMMERCIAL_MODEL_IDS = TEXT_MODELS
+  .filter(m => m.isPayPerUse && !SWISS_MODEL_IDS.includes(m.id))
+  .map(m => m.id);
 
 // Accent color definitions
 const ACCENT_COLORS: Record<string, { primary: string; hover: string; hsl: string }> = {
@@ -168,6 +180,21 @@ function GhostChat() {
   const [searchCitations, setSearchCitations] = useState<SearchResult[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
 
+  // Usage tracking hook
+  const { 
+    tier, 
+    isPro, 
+    remaining, 
+    limits, 
+    canUse, 
+    useFeature,
+    resetTime 
+  } = useGhostUsage();
+
+  // Upgrade modal state
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<'prompts' | 'images' | 'videos' | 'files' | 'searches' | 'model'>('prompts');
+
   // Model state per mode (persisted to localStorage)
   const [selectedModels, setSelectedModels] = useState<Record<GhostMode, string>>(() => {
     const saved = localStorage.getItem('ghost-selected-models');
@@ -193,6 +220,16 @@ function GhostChat() {
 
   // Handle model change for current mode
   const handleModelChange = (modelId: string) => {
+    // Check if commercial model and not Pro
+    if (!isPro && COMMERCIAL_MODEL_IDS.includes(modelId)) {
+      toast({
+        title: 'Pro Model',
+        description: 'Upgrade to Pro for GPT-4o, Claude, and Gemini access',
+      });
+      setUpgradeReason('model');
+      setShowUpgradeModal(true);
+      return;
+    }
     setSelectedModels(prev => ({ ...prev, [mode]: modelId }));
   };
 
@@ -264,8 +301,36 @@ function GhostChat() {
 
       // Determine usage type based on mode
       const usageType = mode as 'text' | 'image' | 'video' | 'search';
+      const usageTypeMap: Record<string, 'prompt' | 'image' | 'video' | 'file' | 'search'> = {
+        text: 'prompt',
+        image: 'image',
+        video: 'video',
+        search: 'search',
+      };
 
-      // Check credits before proceeding
+      // Check usage limit before proceeding (free tier enforcement)
+      const featureType = usageTypeMap[mode] || 'prompt';
+      if (!canUse[featureType]) {
+        setUpgradeReason(featureType === 'prompt' ? 'prompts' : 
+                         featureType === 'image' ? 'images' :
+                         featureType === 'video' ? 'videos' :
+                         featureType === 'search' ? 'searches' : 'prompts');
+        setShowUpgradeModal(true);
+        return;
+      }
+
+      // Increment usage
+      const allowed = await useFeature(featureType);
+      if (!allowed) {
+        setUpgradeReason(featureType === 'prompt' ? 'prompts' : 
+                         featureType === 'image' ? 'images' :
+                         featureType === 'video' ? 'videos' :
+                         featureType === 'search' ? 'searches' : 'prompts');
+        setShowUpgradeModal(true);
+        return;
+      }
+
+      // Check credits before proceeding (for Pro users)
       const creditCheck = await checkCredits(usageType);
       if (!creditCheck.allowed) {
         handleInsufficientCredits(creditCheck.reason);
@@ -990,6 +1055,13 @@ function GhostChat() {
     // Reset input for re-selection
     e.target.value = '';
 
+    // Check usage limit for file uploads
+    if (!canUse.file) {
+      setUpgradeReason('files');
+      setShowUpgradeModal(true);
+      return;
+    }
+
     // Check total count
     const totalFiles = attachedFiles.length + selectedFiles.length;
     if (totalFiles > MAX_FILES) {
@@ -1039,7 +1111,7 @@ function GhostChat() {
         description: newAttachments.length === 1 ? newAttachments[0].name : undefined,
       });
     }
-  }, [attachedFiles, toast]);
+  }, [attachedFiles, toast, canUse.file]);
 
   const removeAttachment = useCallback((id: string) => {
     setAttachedFiles(prev => prev.filter(f => f.id !== id));
@@ -1051,6 +1123,13 @@ function GhostChat() {
 
   // Handle files dropped via drag-and-drop
   const handleFilesDropped = useCallback(async (files: File[]) => {
+    // Check usage limit for file uploads
+    if (!canUse.file) {
+      setUpgradeReason('files');
+      setShowUpgradeModal(true);
+      return;
+    }
+
     const totalFiles = attachedFiles.length + files.length;
     if (totalFiles > MAX_FILES) {
       toast({
@@ -1098,7 +1177,7 @@ function GhostChat() {
         description: newAttachments.length === 1 ? newAttachments[0].name : undefined,
       });
     }
-  }, [attachedFiles, toast]);
+  }, [attachedFiles, toast, canUse.file]);
 
   // Handle paste for images from clipboard
   useEffect(() => {
@@ -1160,7 +1239,7 @@ function GhostChat() {
         onDeleteFolder={deleteFolder}
         userName={user.email?.split('@')[0] || 'User'}
         userCredits={balance}
-        isPro={false}
+        isPro={isPro}
         onOpenSettings={() => setShowSettings(true)}
       />
 
@@ -1196,18 +1275,27 @@ function GhostChat() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            {/* Usage Display */}
+            <GhostUsageDisplay
+              tier={tier}
+              remaining={remaining}
+              limits={limits}
+              resetTime={resetTime}
+              className="hidden sm:flex"
+            />
+
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
               </span>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider hidden sm:inline">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider hidden md:inline">
                 Local Only
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground hidden sm:flex">
               <Shield className="w-3.5 h-3.5 text-success" />
-              <span className="hidden sm:inline">Zero Retention</span>
+              <span className="hidden md:inline">Zero Retention</span>
             </div>
           </div>
         </header>
@@ -1469,6 +1557,13 @@ function GhostChat() {
       <GhostSettings
         open={showSettings}
         onOpenChange={setShowSettings}
+      />
+      <GhostUpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        reason={upgradeReason}
+        remaining={remaining}
+        resetTime={resetTime}
       />
     </GhostDropZone>
   );
