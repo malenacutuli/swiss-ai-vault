@@ -166,10 +166,8 @@ export function GhostSidebar({
 
   const handleSaveFolderName = async (folderId: string) => {
     if (onRenameFolder && editingFolderName.trim()) {
-      const success = await onRenameFolder(folderId, editingFolderName.trim());
-      if (success) {
-        toast.success('Folder renamed');
-      }
+      await onRenameFolder(folderId, editingFolderName.trim());
+      // Toast handled by useGhostFolders hook
     }
     setEditingFolderId(null);
   };
@@ -440,10 +438,8 @@ export function GhostSidebar({
                 className="h-6 w-6 text-destructive hover:text-destructive"
                 onClick={async () => {
                   if (onDeleteFolder) {
-                    const success = await onDeleteFolder(folder.id);
-                    if (success) {
-                      toast.success('Folder deleted');
-                    }
+                    await onDeleteFolder(folder.id);
+                    // Toast handled by useGhostFolders hook
                   }
                 }}
               >
@@ -557,7 +553,7 @@ export function GhostSidebar({
                   className="h-5 w-5"
                   onClick={() => {
                     onCreateFolder();
-                    toast.success('Folder created');
+                    // Toast handled by useGhostFolders hook
                   }}
                 >
                   <FolderPlus className="w-3 h-3" />

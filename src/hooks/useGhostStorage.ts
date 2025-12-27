@@ -189,18 +189,26 @@ export function useGhostStorage() {
     return id;
   }, [isInitialized, refreshConversations]);
 
-  const updateConversationTitle = useCallback((convId: string, title: string) => {
-    if (!isInitialized) return;
+  const updateConversationTitle = useCallback((convId: string, title: string): boolean => {
+    if (!isInitialized) {
+      console.warn('[useGhostStorage] Cannot updateTitle - not initialized');
+      return false;
+    }
     const storage = getGhostStorage();
-    storage.updateTitle(convId, title);
-    refreshConversations();
+    const success = storage.updateTitle(convId, title);
+    if (success) refreshConversations();
+    return success;
   }, [isInitialized, refreshConversations]);
 
-  const moveToFolder = useCallback((convId: string, folderId: string | null) => {
-    if (!isInitialized) return;
+  const moveToFolder = useCallback((convId: string, folderId: string | null): boolean => {
+    if (!isInitialized) {
+      console.warn('[useGhostStorage] Cannot moveToFolder - not initialized');
+      return false;
+    }
     const storage = getGhostStorage();
-    storage.moveToFolder(convId, folderId);
-    refreshConversations();
+    const success = storage.moveToFolder(convId, folderId);
+    if (success) refreshConversations();
+    return success;
   }, [isInitialized, refreshConversations]);
 
   const clearAllConversations = useCallback(async () => {

@@ -279,10 +279,11 @@ export class GhostStorageManager {
   /**
    * Update conversation title
    */
-  updateTitle(convId: string, title: string): void {
+  updateTitle(convId: string, title: string): boolean {
     const conversation = this.hotStore.get(convId);
     if (!conversation) {
-      throw new Error(`Conversation ${convId} not found`);
+      console.warn(`[GhostStorage] updateTitle: Conversation ${convId} not found`);
+      return false;
     }
 
     conversation.title = title;
@@ -292,6 +293,7 @@ export class GhostStorageManager {
     if (!conversation.isTemporary) {
       this.schedulePersist(convId);
     }
+    return true;
   }
 
   /**
@@ -336,10 +338,11 @@ export class GhostStorageManager {
   /**
    * Move a conversation to a folder (or remove from folder if folderId is null)
    */
-  moveToFolder(convId: string, folderId: string | null): void {
+  moveToFolder(convId: string, folderId: string | null): boolean {
     const conversation = this.hotStore.get(convId);
     if (!conversation) {
-      throw new Error(`Conversation ${convId} not found`);
+      console.warn(`[GhostStorage] moveToFolder: Conversation ${convId} not found`);
+      return false;
     }
 
     conversation.folderId = folderId || undefined;
@@ -349,6 +352,7 @@ export class GhostStorageManager {
     if (!conversation.isTemporary) {
       this.schedulePersist(convId);
     }
+    return true;
   }
 
   /**
