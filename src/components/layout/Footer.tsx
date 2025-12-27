@@ -2,11 +2,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 
 const footerLinks = {
-  Product: [
-    { label: "Features", href: "/#features" },
-    { label: "Solutions", href: "/#solutions" },
+  Products: [
+    { label: "Ghost Chat", href: "/ghost" },
+    { label: "Vault Chat", href: "/features/vault-chat" },
+    { label: "Vault Labs", href: "/features/vault-labs" },
     { label: "Pricing", href: "/#pricing" },
-    { label: "Documentation", href: "/docs/api" },
     { label: "API Reference", href: "/docs/api" },
   ],
   Company: [
