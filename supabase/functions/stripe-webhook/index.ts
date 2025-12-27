@@ -108,7 +108,59 @@ serve(async (req) => {
           break;
         }
 
-        // SUBSCRIPTION SIGNUP
+        // ============================================
+        // GHOST SUBSCRIPTION HANDLING
+        // ============================================
+        const productType = session.metadata?.product_type;
+        const tier = session.metadata?.tier;
+
+        if (productType === "ghost_subscription" && tier) {
+          logStep("Processing Ghost subscription", { tier, subscriptionId: session.subscription });
+
+          // Update ghost_subscriptions table
+          const { error: ghostSubError } = await supabase
+            .from("ghost_subscriptions")
+            .upsert({
+              user_id: userId,
+              tier: tier,
+              plan: tier,
+              started_at: new Date().toISOString(),
+              expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            }, { onConflict: "user_id" });
+
+          if (ghostSubError) {
+            logStep("ERROR: Failed to update ghost_subscriptions", { error: ghostSubError.message });
+          } else {
+            logStep("Ghost subscription updated successfully", { tier });
+          }
+
+          // Also update billing_customers for consistency
+          await supabase
+            .from("billing_customers")
+            .upsert({
+              user_id: userId,
+              email: session.customer_email || "",
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: session.subscription as string,
+              subscription_status: "active",
+              tier: tier,
+              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            }, { onConflict: "user_id" });
+
+          // Create welcome notification
+          const tierName = tier === "ghost_pro" ? "Ghost Pro" : tier === "swissvault_pro" ? "SwissVault Pro" : tier;
+          await supabase.from("notifications").insert({
+            user_id: userId,
+            type: "success",
+            title: "Subscription Activated",
+            message: `Welcome to ${tierName}! Your subscription is now active.`,
+            metadata: { link: "/ghost/chat" },
+          });
+
+          break;
+        }
+
+        // SUBSCRIPTION SIGNUP (existing logic)
         if (session.mode === "subscription") {
           logStep("Processing subscription signup", { subscriptionId: session.subscription });
           
@@ -264,9 +316,50 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         logStep("Processing subscription update", { 
           subscriptionId: subscription.id,
-          status: subscription.status 
+          status: subscription.status,
+          metadata: subscription.metadata
         });
 
+        // Check for Ghost subscription via metadata
+        const ghostTier = subscription.metadata?.tier;
+        const metaUserId = subscription.metadata?.user_id;
+
+        if (ghostTier && metaUserId) {
+          logStep("Processing Ghost subscription update", { tier: ghostTier, userId: metaUserId });
+
+          // Update ghost_subscriptions
+          await supabase
+            .from("ghost_subscriptions")
+            .update({
+              tier: ghostTier,
+              plan: ghostTier,
+              expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+            })
+            .eq("user_id", metaUserId);
+
+          // Also update billing_customers
+          await supabase
+            .from("billing_customers")
+            .update({
+              tier: ghostTier,
+              subscription_status: subscription.status === "active" ? "active" : subscription.status,
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            })
+            .eq("user_id", metaUserId);
+
+          const tierName = ghostTier === "ghost_pro" ? "Ghost Pro" : ghostTier === "swissvault_pro" ? "SwissVault Pro" : ghostTier;
+          await supabase.from("notifications").insert({
+            user_id: metaUserId,
+            type: "info",
+            title: "Subscription Updated",
+            message: `Your ${tierName} subscription has been updated.`,
+            metadata: { link: "/ghost/chat" },
+          });
+
+          break;
+        }
+
+        // Standard subscription update (existing logic)
         const customerId = subscription.customer as string;
         const userId = await getUserIdFromCustomer(customerId);
 
@@ -318,9 +411,49 @@ serve(async (req) => {
       // ============================================
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        logStep("Processing subscription cancellation", { subscriptionId: subscription.id });
+        logStep("Processing subscription cancellation", { 
+          subscriptionId: subscription.id,
+          metadata: subscription.metadata
+        });
 
-        // Downgrade to free
+        // Check for Ghost subscription via metadata
+        const ghostUserId = subscription.metadata?.user_id;
+        const ghostTier = subscription.metadata?.tier;
+
+        if (ghostUserId && (ghostTier === "ghost_pro" || ghostTier === "swissvault_pro")) {
+          logStep("Processing Ghost subscription cancellation", { userId: ghostUserId, tier: ghostTier });
+
+          // Downgrade to ghost_free
+          await supabase
+            .from("ghost_subscriptions")
+            .update({
+              tier: "free",
+              plan: "free",
+            })
+            .eq("user_id", ghostUserId);
+
+          // Update billing_customers
+          await supabase
+            .from("billing_customers")
+            .update({
+              tier: "ghost_free",
+              stripe_subscription_id: null,
+              subscription_status: "canceled",
+            })
+            .eq("user_id", ghostUserId);
+
+          await supabase.from("notifications").insert({
+            user_id: ghostUserId,
+            type: "info",
+            title: "Subscription Canceled",
+            message: "Your subscription has been canceled. You've been moved to Ghost Free.",
+            metadata: { link: "/ghost/chat" },
+          });
+
+          break;
+        }
+
+        // Standard subscription cancellation (existing logic)
         const { error: updateError } = await supabase
           .from("billing_customers")
           .update({
