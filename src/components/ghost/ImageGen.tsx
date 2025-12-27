@@ -255,6 +255,28 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
     onNavigateToVideo?.(image.url);
   }, [onNavigateToVideo]);
 
+  const handleDelete = useCallback(async (image: GeneratedImage) => {
+    try {
+      // Remove from database if saved
+      if (image.isSaved && user) {
+        const { error } = await supabase
+          .from('ghost_library')
+          .delete()
+          .eq('storage_key', image.url)
+          .eq('user_id', user.id);
+        
+        if (error) console.warn('Failed to delete from library:', error);
+      }
+
+      // Remove from local state
+      setGeneratedImages(prev => prev.filter(img => img.id !== image.id));
+      toast.success('Image deleted');
+    } catch (error) {
+      console.error('[ImageGen] Delete error:', error);
+      toast.error('Failed to delete image');
+    }
+  }, [user]);
+
   return (
     <div className="flex flex-col h-full">
       {/* Results area */}
@@ -281,6 +303,7 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
             onSave={handleSave}
             onRegenerate={handleRegenerate}
             onUseForVideo={handleUseForVideo}
+            onDelete={handleDelete}
           />
         )}
       </div>
