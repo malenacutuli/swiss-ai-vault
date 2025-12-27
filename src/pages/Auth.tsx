@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Shield, Lock, Mail, User, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, ArrowLeft } from 'lucide-react';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -332,8 +332,7 @@ export default function Auth() {
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
             <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              <span className="font-semibold">SwissVault.ai</span>
+              <SwissFlag className="h-8" />
             </div>
           </div>
         </div>
@@ -344,8 +343,8 @@ export default function Auth() {
         <div className="w-full max-w-md">
           {/* Logo section */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 mb-4">
-              <SwissFlag className="w-8 h-8" />
+            <div className="inline-flex items-center justify-center mb-4">
+              <SwissFlag className="h-16" />
             </div>
             <h1 className="text-2xl font-bold mb-2">{t('auth.welcomeTitle')}</h1>
             <p className="text-muted-foreground text-sm">
