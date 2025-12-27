@@ -1,5 +1,6 @@
 import { SwissHeading } from '@/components/ui/swiss';
-import { MessageSquare, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import swissVaultLogo from '@/assets/swissvault-logo.png';
 
 interface GhostTextViewProps {
   hasMessages: boolean;
@@ -10,8 +11,8 @@ export function GhostTextView({ hasMessages, children }: GhostTextViewProps) {
   if (!hasMessages) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="w-16 h-16 rounded-2xl bg-swiss-navy/10 border border-swiss-navy/20 flex items-center justify-center mb-6">
-          <MessageSquare className="w-8 h-8 text-swiss-navy" />
+        <div className="w-16 h-16 rounded-2xl bg-swiss-navy/10 border border-swiss-navy/20 flex items-center justify-center mb-6 overflow-hidden">
+          <img src={swissVaultLogo} alt="SwissVault" className="w-12 h-12" />
         </div>
         <h2 className="text-xs text-muted-foreground uppercase tracking-wider font-sans text-center mb-3">
           Private AI Chat
