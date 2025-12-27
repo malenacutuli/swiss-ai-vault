@@ -1699,6 +1699,7 @@ export type Database = {
           id: string
           plan: string
           started_at: string | null
+          tier: string | null
           user_id: string
         }
         Insert: {
@@ -1708,6 +1709,7 @@ export type Database = {
           id?: string
           plan: string
           started_at?: string | null
+          tier?: string | null
           user_id: string
         }
         Update: {
@@ -1717,6 +1719,7 @@ export type Database = {
           id?: string
           plan?: string
           started_at?: string | null
+          tier?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2278,6 +2281,39 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_tiers: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          features_json: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price_monthly_cents: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          features_json?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price_monthly_cents?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          features_json?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price_monthly_cents?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       traces: {
         Row: {
           api_key_id: string | null
@@ -2831,6 +2867,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      check_ghost_usage: {
+        Args: { p_type: string; p_user_id: string }
+        Returns: Json
+      }
       check_user_usage: {
         Args: {
           p_estimated_cost_cents?: number
@@ -2879,6 +2919,7 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      get_ghost_tier: { Args: { p_user_id: string }; Returns: Json }
       get_ghost_usage: {
         Args: { p_user_id: string }
         Returns: {
