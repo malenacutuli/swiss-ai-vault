@@ -52,10 +52,18 @@ export function useGhostStorage() {
   // Initialize storage with stable encryption key derived from user ID
   // IMPORTANT: Depend on user?.id (string) not user (object) to prevent re-init on object identity changes
   const userId = user?.id;
-  
+
   useEffect(() => {
+    console.log('[Ghost Storage Hook] effect', {
+      userId: userId ? userId.slice(0, 8) : null,
+      isInitialized,
+      lastUserId: lastUserIdRef.current ? lastUserIdRef.current.slice(0, 8) : null,
+      initializing: initializingRef.current,
+    });
+
     const initStorage = async () => {
       if (!userId) {
+        console.log('[Ghost Storage Hook] No userId; stop loading');
         setIsLoading(false);
         return;
       }
@@ -65,6 +73,7 @@ export function useGhostStorage() {
         console.log('[Ghost Storage] Already initialized for user, refreshing list only');
         const storage = getGhostStorage();
         const convList = storage.listConversations();
+        console.log('[Ghost Storage Hook] refreshOnly convList', convList.length);
         setConversations(convList);
         setIsLoading(false);
         return;
@@ -75,32 +84,32 @@ export function useGhostStorage() {
         console.log('[Ghost Storage] Already initializing, skipping...');
         return;
       }
-      
+
       // If user changed, reset
       if (lastUserIdRef.current && lastUserIdRef.current !== userId) {
         console.log('[Ghost Storage] User changed, resetting...');
         resetGhostStorage();
         setIsInitialized(false);
       }
-      
+
       initializingRef.current = true;
       lastUserIdRef.current = userId;
 
       try {
         setIsLoading(true);
         const storage = getGhostStorage();
-        
+
         // Derive stable master key from user ID (same key every time for same user)
         const masterKey = await deriveKeyFromUserId(userId);
-        
+
         console.log('[Ghost Storage] Initializing for user:', userId.slice(0, 8));
         await storage.init(masterKey);
         setIsInitialized(true);
-        
+
         // Check for corrupted (undecryptable) conversations
         const corrupted = storage.getCorruptedCount();
         setCorruptedCount(corrupted);
-        
+
         // Get conversation list
         const convList = storage.listConversations();
         console.log('[Ghost Storage] Loaded conversations:', convList.length);
@@ -114,9 +123,10 @@ export function useGhostStorage() {
     };
 
     initStorage();
-    
+
     // Cleanup on unmount to allow proper re-init on remount
     return () => {
+      console.log('[Ghost Storage Hook] cleanup');
       initializingRef.current = false;
     };
   }, [userId, isInitialized]);

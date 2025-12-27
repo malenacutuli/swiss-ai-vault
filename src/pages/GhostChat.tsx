@@ -119,6 +119,15 @@ function GhostChat() {
     clearAllData,
   } = useGhostStorage();
 
+  // Debug: track mode changes and storage state (helps diagnose UI "snap back")
+  useEffect(() => {
+    console.log('[GhostChat] mode changed', {
+      mode,
+      isInitialized,
+      conversations: conversations.length,
+    });
+  }, [mode, isInitialized, conversations.length]);
+
 
   // Ghost credits hook
   const { balance, checkCredits, recordUsage, refreshCredits, isLoading: creditsLoading } = useGhostCredits();
