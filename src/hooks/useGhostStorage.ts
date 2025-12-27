@@ -40,7 +40,7 @@ const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
 
 export function useGhostStorage() {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number; messageCount: number; folderId?: string }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number; messageCount: number; folderId?: string; isTemporary?: boolean }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [corruptedCount, setCorruptedCount] = useState(0);

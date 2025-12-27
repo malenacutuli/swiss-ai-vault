@@ -321,17 +321,20 @@ export class GhostStorageManager {
 
   /**
    * List all conversations (metadata only, from hot storage)
+   * @param includeTemporary - If false (default), filters out temporary conversations
    */
-  listConversations(): { id: string; title: string; updatedAt: number; messageCount: number; folderId?: string }[] {
+  listConversations(includeTemporary: boolean = false): { id: string; title: string; updatedAt: number; messageCount: number; folderId?: string; isTemporary?: boolean }[] {
     const conversations = Array.from(this.hotStore.values());
 
     return conversations
+      .filter(conv => includeTemporary || !conv.isTemporary)
       .map(conv => ({
         id: conv.id,
         title: conv.title,
         updatedAt: conv.updatedAt,
         messageCount: conv.messages.length,
-        folderId: conv.folderId
+        folderId: conv.folderId,
+        isTemporary: conv.isTemporary
       }))
       .sort((a, b) => b.updatedAt - a.updatedAt);
   }

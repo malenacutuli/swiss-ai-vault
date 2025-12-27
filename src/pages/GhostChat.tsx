@@ -205,19 +205,21 @@ function GhostChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Convert conversations for sidebar
+  // Convert conversations for sidebar (temporary chats are already filtered out by listConversations)
   const sidebarConversations: GhostConversation[] = conversations.map(c => ({
     id: c.id,
     title: c.title,
     updatedAt: c.updatedAt,
     messageCount: c.messageCount || 0,
-    isTemporary: false,
+    isTemporary: c.isTemporary ?? false,
     folderId: c.folderId,
   }));
 
-  const handleNewChat = useCallback(() => {
-    const isTemporary = settings?.start_temporary ?? false;
-    const id = createConversation('New Chat', isTemporary);
+  // Handle new chat creation - accepts optional isTemporary parameter from sidebar
+  const handleNewChat = useCallback((isTemporary?: boolean) => {
+    // Use passed parameter, or fall back to settings preference
+    const shouldBeTemporary = isTemporary ?? (settings?.start_temporary ?? false);
+    const id = createConversation('New Chat', shouldBeTemporary);
     if (id) {
       setSelectedConversation(id);
       setMessages([]);
