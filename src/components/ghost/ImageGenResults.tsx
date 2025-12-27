@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Heart, RefreshCw, Video, X, Maximize2 } from 'lucide-react';
+import { Download, Heart, RefreshCw, Video, X, Maximize2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { SwissCard } from '@/components/ui/swiss';
@@ -24,6 +24,7 @@ interface ImageGenResultsProps {
   onSave: (image: GeneratedImage) => void;
   onRegenerate: (image: GeneratedImage) => void;
   onUseForVideo: (image: GeneratedImage) => void;
+  onDelete: (image: GeneratedImage) => void;
 }
 
 export function ImageGenResults({
@@ -34,6 +35,7 @@ export function ImageGenResults({
   onSave,
   onRegenerate,
   onUseForVideo,
+  onDelete,
 }: ImageGenResultsProps) {
   const [lightboxImage, setLightboxImage] = useState<GeneratedImage | null>(null);
 
@@ -117,17 +119,30 @@ export function ImageGenResults({
                       <RefreshCw className="w-4 h-4" />
                     </Button>
                   </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="w-8 h-8 bg-white/10 hover:bg-white/20 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onUseForVideo(image);
-                    }}
-                  >
-                    <Video className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="w-8 h-8 bg-white/10 hover:bg-white/20 text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUseForVideo(image);
+                      }}
+                    >
+                      <Video className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="w-8 h-8 bg-white/10 hover:bg-red-500/80 text-white hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(image);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               
@@ -196,6 +211,18 @@ export function ImageGenResults({
                   >
                     <Video className="w-4 h-4 mr-2" />
                     Use for Video
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="bg-white/10 border-white/20 text-white hover:bg-red-500/80 hover:border-red-500/80"
+                    onClick={() => {
+                      onDelete(lightboxImage);
+                      setLightboxImage(null);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
                   </Button>
                 </div>
                 <p className="text-white/50 text-xs mt-3">
