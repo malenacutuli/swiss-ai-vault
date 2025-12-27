@@ -50,37 +50,50 @@ export function useGhostStorage() {
   const lastUserIdRef = useRef<string | null>(null);
 
   // Initialize storage with stable encryption key derived from user ID
+  // IMPORTANT: Depend on user?.id (string) not user (object) to prevent re-init on object identity changes
+  const userId = user?.id;
+  
   useEffect(() => {
     const initStorage = async () => {
-      if (!user) {
+      if (!userId) {
         setIsLoading(false);
         return;
       }
 
-      // Prevent double initialization for same user
-      if (initializingRef.current && lastUserIdRef.current === user.id) {
+      // If already initialized for this user, just refresh conversations (don't re-init)
+      if (isInitialized && lastUserIdRef.current === userId) {
+        console.log('[Ghost Storage] Already initialized for user, refreshing list only');
+        const storage = getGhostStorage();
+        const convList = storage.listConversations();
+        setConversations(convList);
+        setIsLoading(false);
+        return;
+      }
+
+      // Prevent double initialization while in progress
+      if (initializingRef.current && lastUserIdRef.current === userId) {
         console.log('[Ghost Storage] Already initializing, skipping...');
         return;
       }
       
       // If user changed, reset
-      if (lastUserIdRef.current && lastUserIdRef.current !== user.id) {
+      if (lastUserIdRef.current && lastUserIdRef.current !== userId) {
         console.log('[Ghost Storage] User changed, resetting...');
         resetGhostStorage();
         setIsInitialized(false);
       }
       
       initializingRef.current = true;
-      lastUserIdRef.current = user.id;
+      lastUserIdRef.current = userId;
 
       try {
         setIsLoading(true);
         const storage = getGhostStorage();
         
         // Derive stable master key from user ID (same key every time for same user)
-        const masterKey = await deriveKeyFromUserId(user.id);
+        const masterKey = await deriveKeyFromUserId(userId);
         
-        console.log('[Ghost Storage] Initializing for user:', user.id.slice(0, 8));
+        console.log('[Ghost Storage] Initializing for user:', userId.slice(0, 8));
         await storage.init(masterKey);
         setIsInitialized(true);
         
@@ -101,7 +114,12 @@ export function useGhostStorage() {
     };
 
     initStorage();
-  }, [user]);
+    
+    // Cleanup on unmount to allow proper re-init on remount
+    return () => {
+      initializingRef.current = false;
+    };
+  }, [userId, isInitialized]);
 
   const refreshConversations = useCallback(() => {
     if (!isInitialized) return;
