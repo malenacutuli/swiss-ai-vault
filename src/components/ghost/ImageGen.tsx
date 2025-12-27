@@ -29,8 +29,38 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
   const [enhancePrompt, setEnhancePrompt] = useState(globalSettings?.image_enhance_prompts ?? false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  
-  // Validate aspect ratio from global settings
+
+  // Persist generated images locally per user so they survive tab switches
+  const localKey = user?.id ? `ghost:imagegen:recent:${user.id}` : null;
+  useEffect(() => {
+    if (!localKey) return;
+    try {
+      const raw = localStorage.getItem(localKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Array<Omit<GeneratedImage, 'createdAt'> & { createdAt: string }>;
+      const restored: GeneratedImage[] = parsed.map((img) => ({
+        ...img,
+        createdAt: new Date(img.createdAt),
+      }));
+      setGeneratedImages(restored);
+    } catch (e) {
+      console.warn('[ImageGen] Failed to restore recent images');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localKey]);
+
+  useEffect(() => {
+    if (!localKey) return;
+    try {
+      const compact = generatedImages.slice(0, 50).map((img) => ({
+        ...img,
+        createdAt: img.createdAt.toISOString(),
+      }));
+      localStorage.setItem(localKey, JSON.stringify(compact));
+    } catch {
+      // ignore
+    }
+  }, [localKey, generatedImages]);
   const getValidAspectRatio = (ratio?: string): AspectRatio => {
     const validRatios: AspectRatio[] = ['1:1', '3:4', '4:3', '16:9', '9:16'];
     return validRatios.includes(ratio as AspectRatio) ? (ratio as AspectRatio) : '1:1';
@@ -96,6 +126,7 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
         throw new Error(data.error);
       }
 
+      const now = new Date();
       const newImages: GeneratedImage[] = data.images.map((img: { url: string; seed?: number }, idx: number) => ({
         id: `${Date.now()}-${idx}`,
         url: img.url,
@@ -103,13 +134,33 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
         model: data.model || selectedModel,
         aspectRatio: settings.aspectRatio,
         seed: img.seed,
-        createdAt: new Date(),
+        createdAt: now,
         isSaved: false,
       }));
 
+      // Show results immediately
       setGeneratedImages(prev => [...newImages, ...prev]);
       refreshCredits();
       toast.success(`Generated ${newImages.length} image${newImages.length > 1 ? 's' : ''}`);
+
+      // Auto-save to Library (fix: storage_type must be 'cloud' per schema)
+      const payload = newImages.map((image) => ({
+        user_id: user.id,
+        content_type: 'image',
+        storage_type: 'cloud',
+        storage_key: image.url,
+        prompt: image.prompt,
+        model_id: image.model,
+        format: globalSettings?.image_format ?? 'png',
+        title: image.prompt.slice(0, 100),
+      }));
+
+      const { error: saveError } = await supabase.from('ghost_library').insert(payload);
+      if (saveError) throw saveError;
+
+      setGeneratedImages(prev =>
+        prev.map((img) => (newImages.some((ni) => ni.id === img.id) ? { ...img, isSaved: true } : img))
+      );
     } catch (error) {
       console.error('[ImageGen] Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to generate image');
@@ -140,11 +191,11 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
     if (!user) return;
 
     try {
-      // Save to ghost_library
+      // Save to ghost_library (storage_type is constrained to 'local' | 'cloud')
       const { error } = await supabase.from('ghost_library').insert({
         user_id: user.id,
         content_type: 'image',
-        storage_type: 'url',
+        storage_type: 'cloud',
         storage_key: image.url,
         prompt: image.prompt,
         model_id: image.model,
@@ -155,9 +206,7 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
       if (error) throw error;
 
       setGeneratedImages(prev =>
-        prev.map(img =>
-          img.id === image.id ? { ...img, isSaved: true } : img
-        )
+        prev.map(img => (img.id === image.id ? { ...img, isSaved: true } : img))
       );
       toast.success('Saved to library');
     } catch (error) {
