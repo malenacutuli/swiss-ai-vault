@@ -24,6 +24,7 @@ import { GhostSettings } from '@/components/ghost/GhostSettings';
 import { GhostThinkingIndicator } from '@/components/ghost/GhostThinkingIndicator';
 import { GhostErrorBoundary } from '@/components/ghost/GhostErrorBoundary';
 import { ExportMarkdownDialog } from '@/components/ghost/ExportMarkdownDialog';
+import { GhostDropZone } from '@/components/ghost/GhostDropZone';
 
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { EyeOff, Shield, Menu, X, AlertTriangle, FileText } from 'lucide-react';
@@ -980,6 +981,82 @@ function GhostChat() {
     setAttachedFiles([]);
   }, []);
 
+  // Handle files dropped via drag-and-drop
+  const handleFilesDropped = useCallback(async (files: File[]) => {
+    const totalFiles = attachedFiles.length + files.length;
+    if (totalFiles > MAX_FILES) {
+      toast({
+        title: `Maximum ${MAX_FILES} files allowed`,
+        description: `You have ${attachedFiles.length} files attached. Can add ${MAX_FILES - attachedFiles.length} more.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const newAttachments: AttachedFile[] = [];
+    const errors: string[] = [];
+
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: exceeds 10MB limit`);
+        continue;
+      }
+
+      try {
+        const attachment = await processFile(file);
+        if (attachment) {
+          newAttachments.push(attachment);
+        } else {
+          errors.push(`${file.name}: unsupported type`);
+        }
+      } catch (error) {
+        console.error(`[GhostChat] Failed to process ${file.name}:`, error);
+        errors.push(`${file.name}: failed to process`);
+      }
+    }
+
+    if (errors.length > 0) {
+      toast({
+        title: 'Some files could not be added',
+        description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? ` +${errors.length - 3} more` : ''),
+        variant: 'destructive',
+      });
+    }
+
+    if (newAttachments.length > 0) {
+      setAttachedFiles(prev => [...prev, ...newAttachments]);
+      toast({
+        title: `${newAttachments.length} file(s) dropped`,
+        description: newAttachments.length === 1 ? newAttachments[0].name : undefined,
+      });
+    }
+  }, [attachedFiles, toast]);
+
+  // Handle paste for images from clipboard
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItems = items.filter(item => item.type.startsWith('image/'));
+      
+      if (imageItems.length === 0) return;
+      
+      e.preventDefault();
+      
+      const files: File[] = [];
+      for (const item of imageItems) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+      
+      if (files.length > 0) {
+        await handleFilesDropped(files);
+      }
+    };
+    
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [handleFilesDropped]);
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -989,6 +1066,13 @@ function GhostChat() {
   }
 
   return (
+    <GhostDropZone
+      onFilesDropped={handleFilesDropped}
+      disabled={isStreaming || webSearch.isSearching}
+      maxFiles={MAX_FILES}
+      maxFileSize={MAX_FILE_SIZE}
+      className="h-screen"
+    >
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
       <GhostSidebar
@@ -1296,6 +1380,7 @@ function GhostChat() {
           )}
         </div>
       </main>
+    </div>
 
       {/* Hidden file input */}
       <input
@@ -1316,6 +1401,6 @@ function GhostChat() {
         open={showSettings}
         onOpenChange={setShowSettings}
       />
-    </div>
+    </GhostDropZone>
   );
 }
