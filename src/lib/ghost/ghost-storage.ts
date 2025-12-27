@@ -66,9 +66,83 @@ interface ExportedGhostFile {
 // ==========================================
 
 const DB_NAME = 'ghost-chat-storage';
-const DB_VERSION = 2; // Incremented to trigger migration for stable key derivation
+const DB_VERSION = 3; // Incremented for settings store
 const STORE_NAME = 'conversations';
+const SETTINGS_STORE = 'settings';
 const DEBOUNCE_MS = 500;
+
+// ==========================================
+// SETTINGS TYPES
+// ==========================================
+
+export interface GhostSettings {
+  // General
+  mature_filter_enabled: boolean;
+  start_temporary: boolean;
+  show_message_date: boolean;
+  enter_submits: boolean;
+  arrow_key_nav: boolean;
+  enter_after_edit: 'regenerate' | 'fork';
+  
+  // Privacy
+  show_external_link_warning: boolean;
+  disable_telemetry: boolean;
+  hide_personal_info: boolean;
+  
+  // Theme
+  theme: 'light' | 'dark' | 'system';
+  accent_color: 'swiss-navy' | 'sapphire' | 'burgundy' | 'teal';
+  
+  // Text settings
+  web_enabled: boolean;
+  url_scraping: boolean;
+  system_prompt: string | null;
+  disable_system_prompt: boolean;
+  default_temperature: number;
+  default_top_p: number;
+  
+  // Voice
+  voice_read_responses: boolean;
+  voice_language: string;
+  voice_id: string;
+  voice_speed: number;
+  
+  // Image settings
+  image_aspect_ratio: string;
+  image_hide_watermark: boolean;
+  image_enhance_prompts: boolean;
+  image_format: string;
+  image_embed_exif: boolean;
+}
+
+export const DEFAULT_GHOST_SETTINGS: GhostSettings = {
+  mature_filter_enabled: true,
+  start_temporary: false,
+  show_message_date: true,
+  enter_submits: true,
+  arrow_key_nav: false,
+  enter_after_edit: 'regenerate',
+  show_external_link_warning: true,
+  disable_telemetry: false,
+  hide_personal_info: false,
+  theme: 'dark',
+  accent_color: 'swiss-navy',
+  web_enabled: true,
+  url_scraping: true,
+  system_prompt: null,
+  disable_system_prompt: false,
+  default_temperature: 0.7,
+  default_top_p: 0.9,
+  voice_read_responses: false,
+  voice_language: 'en',
+  voice_id: 'alloy',
+  voice_speed: 1.0,
+  image_aspect_ratio: '1:1',
+  image_hide_watermark: false,
+  image_enhance_prompts: true,
+  image_format: 'png',
+  image_embed_exif: false,
+};
 
 // ==========================================
 // GHOST STORAGE MANAGER
@@ -81,6 +155,7 @@ export class GhostStorageManager {
   private saveTimeouts: Map<string, NodeJS.Timeout> = new Map();
   private initialized = false;
   private corruptedCount = 0; // Track conversations that failed to decrypt
+  private cachedSettings: GhostSettings | null = null;
 
   /**
    * Initialize the storage manager with user's master key
@@ -121,6 +196,11 @@ export class GhostStorageManager {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
           store.createIndex('updatedAt', 'updatedAt', { unique: false });
+        }
+        
+        // Add settings store (new in v3)
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+          db.createObjectStore(SETTINGS_STORE, { keyPath: 'id' });
         }
       };
     });
@@ -617,6 +697,84 @@ export class GhostStorageManager {
    */
   hasConversation(convId: string): boolean {
     return this.hotStore.has(convId);
+  }
+
+  // ==========================================
+  // SETTINGS METHODS (Local-first privacy)
+  // ==========================================
+
+  /**
+   * Get settings from local storage (encrypted in IndexedDB)
+   */
+  async getSettings(): Promise<GhostSettings> {
+    if (this.cachedSettings) return this.cachedSettings;
+    
+    try {
+      const record = await this.getSettingsFromIndexedDB();
+      if (record && this.masterKey) {
+        const decrypted = await decrypt(record.encryptedData, this.masterKey);
+        this.cachedSettings = { ...DEFAULT_GHOST_SETTINGS, ...JSON.parse(decrypted) };
+        return this.cachedSettings;
+      }
+    } catch (e) {
+      console.warn('[GhostStorage] Failed to load settings:', e);
+    }
+    
+    return { ...DEFAULT_GHOST_SETTINGS };
+  }
+
+  /**
+   * Save settings to local IndexedDB (encrypted)
+   */
+  async saveSettings(updates: Partial<GhostSettings>): Promise<void> {
+    if (!this.masterKey || !this.db) {
+      console.warn('[GhostStorage] Cannot save settings: not initialized');
+      return;
+    }
+
+    this.cachedSettings = { ...DEFAULT_GHOST_SETTINGS, ...this.cachedSettings, ...updates };
+    
+    const payload = JSON.stringify(this.cachedSettings);
+    const encryptedData = await encrypt(payload, this.masterKey);
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(SETTINGS_STORE, 'readwrite');
+      const store = transaction.objectStore(SETTINGS_STORE);
+      const request = store.put({ id: 'user-settings', encryptedData, updatedAt: Date.now() });
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        console.log('[GhostStorage] Settings saved locally');
+        resolve();
+      };
+    });
+  }
+
+  /**
+   * Get encrypted settings record from IndexedDB
+   */
+  private getSettingsFromIndexedDB(): Promise<{ encryptedData: EncryptedData; updatedAt: number } | null> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        resolve(null);
+        return;
+      }
+
+      const transaction = this.db.transaction(SETTINGS_STORE, 'readonly');
+      const store = transaction.objectStore(SETTINGS_STORE);
+      const request = store.get('user-settings');
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result || null);
+    });
+  }
+
+  /**
+   * Reset settings to defaults
+   */
+  async resetSettings(): Promise<void> {
+    this.cachedSettings = { ...DEFAULT_GHOST_SETTINGS };
+    await this.saveSettings(this.cachedSettings);
   }
 }
 
