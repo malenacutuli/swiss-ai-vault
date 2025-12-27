@@ -38,6 +38,7 @@ export interface GhostConversation {
   createdAt: number;
   updatedAt: number;
   isTemporary?: boolean; // If true, won't be persisted to IndexedDB
+  folderId?: string; // Optional folder assignment
 }
 
 interface EncryptedConversation {
@@ -186,7 +187,8 @@ export class GhostStorageManager {
       title: parsed.title,
       messages: parsed.messages,
       createdAt: encrypted.createdAt,
-      updatedAt: encrypted.updatedAt
+      updatedAt: encrypted.updatedAt,
+      folderId: parsed.folderId
     };
   }
 
@@ -198,7 +200,8 @@ export class GhostStorageManager {
 
     const payload = JSON.stringify({
       title: conversation.title,
-      messages: conversation.messages
+      messages: conversation.messages,
+      folderId: conversation.folderId
     });
 
     const encryptedData = await encrypt(payload, this.masterKey);
@@ -316,7 +319,7 @@ export class GhostStorageManager {
   /**
    * List all conversations (metadata only, from hot storage)
    */
-  listConversations(): { id: string; title: string; updatedAt: number; messageCount: number }[] {
+  listConversations(): { id: string; title: string; updatedAt: number; messageCount: number; folderId?: string }[] {
     const conversations = Array.from(this.hotStore.values());
     
     return conversations
@@ -324,9 +327,28 @@ export class GhostStorageManager {
         id: conv.id,
         title: conv.title,
         updatedAt: conv.updatedAt,
-        messageCount: conv.messages.length
+        messageCount: conv.messages.length,
+        folderId: conv.folderId
       }))
       .sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  /**
+   * Move a conversation to a folder (or remove from folder if folderId is null)
+   */
+  moveToFolder(convId: string, folderId: string | null): void {
+    const conversation = this.hotStore.get(convId);
+    if (!conversation) {
+      throw new Error(`Conversation ${convId} not found`);
+    }
+
+    conversation.folderId = folderId || undefined;
+    conversation.updatedAt = Date.now();
+    
+    // Only persist if not temporary
+    if (!conversation.isTemporary) {
+      this.schedulePersist(convId);
+    }
   }
 
   /**

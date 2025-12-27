@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Collapsible,
@@ -18,6 +22,7 @@ import {
 import { SwissBadge } from '@/components/ui/swiss';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
+import { toast } from 'sonner';
 import {
   Search,
   Plus,
@@ -37,6 +42,8 @@ import {
   X,
   Menu,
   Image as ImageIcon,
+  Check,
+  FolderInput,
 } from 'lucide-react';
 
 export interface GhostConversation {
@@ -67,6 +74,8 @@ interface GhostSidebarProps {
   onNewChat: (isTemporary?: boolean) => void;
   onDeleteConversation: (id: string) => void;
   onExportConversation: (id: string) => void;
+  onRenameConversation?: (id: string, title: string) => void;
+  onMoveToFolder?: (convId: string, folderId: string | null) => void;
   onCreateFolder: () => void;
   onRenameFolder?: (id: string, name: string) => Promise<boolean>;
   onDeleteFolder?: (id: string) => Promise<boolean>;
@@ -86,6 +95,8 @@ export function GhostSidebar({
   onNewChat,
   onDeleteConversation,
   onExportConversation,
+  onRenameConversation,
+  onMoveToFolder,
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
@@ -98,12 +109,48 @@ export function GhostSidebar({
   const [searchQuery, setSearchQuery] = useState('');
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [chatsOpen, setChatsOpen] = useState(true);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  
+  // Editing states
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState('');
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingChatTitle, setEditingChatTitle] = useState('');
 
   const filteredConversations = conversations.filter(c =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Group conversations by folder
+  const { folderedChats, unfolderedChats } = useMemo(() => {
+    const foldered: Record<string, GhostConversation[]> = {};
+    const unfoldered: GhostConversation[] = [];
+
+    for (const conv of filteredConversations) {
+      if (conv.folderId) {
+        if (!foldered[conv.folderId]) {
+          foldered[conv.folderId] = [];
+        }
+        foldered[conv.folderId].push(conv);
+      } else {
+        unfoldered.push(conv);
+      }
+    }
+
+    return { folderedChats: foldered, unfolderedChats: unfoldered };
+  }, [filteredConversations]);
+
+  const toggleFolderExpanded = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  };
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -115,6 +162,305 @@ export function GhostSidebar({
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
     if (diff < 604800000) return `${Math.floor(diff / 86400000)}d`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const handleSaveFolderName = async (folderId: string) => {
+    if (onRenameFolder && editingFolderName.trim()) {
+      const success = await onRenameFolder(folderId, editingFolderName.trim());
+      if (success) {
+        toast.success('Folder renamed');
+      }
+    }
+    setEditingFolderId(null);
+  };
+
+  const handleSaveChatTitle = (chatId: string) => {
+    if (onRenameConversation && editingChatTitle.trim()) {
+      onRenameConversation(chatId, editingChatTitle.trim());
+      toast.success('Chat renamed');
+    }
+    setEditingChatId(null);
+  };
+
+  const handleMoveToFolder = (convId: string, folderId: string | null) => {
+    if (onMoveToFolder) {
+      onMoveToFolder(convId, folderId);
+      const folderName = folderId 
+        ? folders.find(f => f.id === folderId)?.name || 'folder'
+        : 'Chats';
+      toast.success(`Moved to ${folderName}`);
+    }
+  };
+
+  const renderChatItem = (conv: GhostConversation, isNested = false) => (
+    <div
+      key={conv.id}
+      onClick={() => onSelectConversation(conv.id)}
+      className={cn(
+        'group flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-colors',
+        isNested && 'ml-4',
+        selectedConversation === conv.id
+          ? 'bg-primary/10 text-foreground'
+          : 'text-foreground/80 hover:bg-muted/50'
+      )}
+    >
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {conv.isTemporary ? (
+          <Clock className="w-3.5 h-3.5 text-warning flex-shrink-0" />
+        ) : (
+          <MessageSquare className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        )}
+        
+        {editingChatId === conv.id ? (
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <Input
+              value={editingChatTitle}
+              onChange={(e) => setEditingChatTitle(e.target.value)}
+              onBlur={() => handleSaveChatTitle(conv.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveChatTitle(conv.id);
+                if (e.key === 'Escape') setEditingChatId(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              autoFocus
+              className="h-5 text-xs px-1 py-0"
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-5 w-5 flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveChatTitle(conv.id);
+              }}
+            >
+              <Check className="w-3 h-3" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-5 w-5 flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingChatId(null);
+              }}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        ) : (
+          <span className="text-sm truncate">{conv.title}</span>
+        )}
+      </div>
+
+      {editingChatId !== conv.id && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Edit */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingChatId(conv.id);
+              setEditingChatTitle(conv.title);
+            }}
+          >
+            <Edit3 className="w-3 h-3" />
+          </Button>
+          
+          {/* Export */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExportConversation(conv.id);
+            }}
+          >
+            <Download className="w-3 h-3" />
+          </Button>
+
+          {/* More options */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 bg-popover border-border">
+              {/* Move to Folder */}
+              {folders.length > 0 && onMoveToFolder && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
+                    <FolderInput className="w-3 h-3" />
+                    Move to Folder
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-popover border-border">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMoveToFolder(conv.id, null);
+                      }}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                      No Folder
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {folders.map(folder => (
+                      <DropdownMenuItem
+                        key={folder.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveToFolder(conv.id, folder.id);
+                        }}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Folder className="w-3 h-3" />
+                        {folder.name}
+                        {conv.folderId === folder.id && (
+                          <Check className="w-3 h-3 ml-auto" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteConversation(conv.id);
+                }}
+                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-3 h-3" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderFolderItem = (folder: GhostFolder) => {
+    const folderChats = folderedChats[folder.id] || [];
+    const isExpanded = expandedFolders.has(folder.id);
+
+    return (
+      <div key={folder.id}>
+        <div
+          className="group flex items-center justify-between px-2 py-1.5 rounded-md text-foreground/80 hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* Expand/Collapse Arrow */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 p-0"
+              onClick={() => toggleFolderExpanded(folder.id)}
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-3 h-3" />
+              ) : (
+                <ChevronRight className="w-3 h-3" />
+              )}
+            </Button>
+            
+            <Folder className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            
+            {editingFolderId === folder.id ? (
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <Input
+                  value={editingFolderName}
+                  onChange={(e) => setEditingFolderName(e.target.value)}
+                  onBlur={() => handleSaveFolderName(folder.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveFolderName(folder.id);
+                    if (e.key === 'Escape') setEditingFolderId(null);
+                  }}
+                  autoFocus
+                  className="h-5 text-xs px-1 py-0"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-5 w-5 flex-shrink-0"
+                  onClick={() => handleSaveFolderName(folder.id)}
+                >
+                  <Check className="w-3 h-3" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-5 w-5 flex-shrink-0"
+                  onClick={() => setEditingFolderId(null)}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            ) : (
+              <span className="text-sm truncate">{folder.name}</span>
+            )}
+            
+            {folderChats.length > 0 && !editingFolderId && (
+              <span className="text-xs text-muted-foreground">({folderChats.length})</span>
+            )}
+          </div>
+
+          {editingFolderId !== folder.id && (
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Edit */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => {
+                  setEditingFolderId(folder.id);
+                  setEditingFolderName(folder.name);
+                }}
+              >
+                <Edit3 className="w-3 h-3" />
+              </Button>
+              
+              {/* Delete */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-destructive hover:text-destructive"
+                onClick={async () => {
+                  if (onDeleteFolder) {
+                    const success = await onDeleteFolder(folder.id);
+                    if (success) {
+                      toast.success('Folder deleted');
+                    }
+                  }
+                }}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Nested chats */}
+        {isExpanded && folderChats.length > 0 && (
+          <div className="space-y-0.5 mt-0.5">
+            {folderChats.map(conv => renderChatItem(conv, true))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -209,164 +555,41 @@ export function GhostSidebar({
                   variant="ghost"
                   size="icon"
                   className="h-5 w-5"
-                  onClick={onCreateFolder}
+                  onClick={() => {
+                    onCreateFolder();
+                    toast.success('Folder created');
+                  }}
                 >
                   <FolderPlus className="w-3 h-3" />
                 </Button>
               </div>
               <CollapsibleContent>
-              {folders.length === 0 ? (
+                {folders.length === 0 ? (
                   <p className="px-2 py-3 text-xs text-muted-foreground">No folders yet</p>
                 ) : (
                   <div className="space-y-0.5 mt-1">
-                    {folders.map(folder => (
-                      <div
-                        key={folder.id}
-                        className="group flex items-center justify-between px-2 py-2 rounded-md text-sm text-foreground/80 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <Folder className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          {editingFolderId === folder.id ? (
-                            <Input
-                              value={editingFolderName}
-                              onChange={(e) => setEditingFolderName(e.target.value)}
-                              onBlur={async () => {
-                                if (onRenameFolder && editingFolderName.trim()) {
-                                  await onRenameFolder(folder.id, editingFolderName.trim());
-                                }
-                                setEditingFolderId(null);
-                              }}
-                              onKeyDown={async (e) => {
-                                if (e.key === 'Enter' && onRenameFolder && editingFolderName.trim()) {
-                                  await onRenameFolder(folder.id, editingFolderName.trim());
-                                  setEditingFolderId(null);
-                                }
-                                if (e.key === 'Escape') {
-                                  setEditingFolderId(null);
-                                }
-                              }}
-                              autoFocus
-                              className="h-6 text-sm px-1"
-                            />
-                          ) : (
-                            <span className="truncate">{folder.name}</span>
-                          )}
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className="w-3 h-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-32 bg-popover border-border">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingFolderId(folder.id);
-                                setEditingFolderName(folder.name);
-                              }}
-                              className="gap-2 cursor-pointer"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={async () => {
-                                if (onDeleteFolder) {
-                                  await onDeleteFolder(folder.id);
-                                }
-                              }}
-                              className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    ))}
+                    {folders.map(folder => renderFolderItem(folder))}
                   </div>
                 )}
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Chats Section */}
+            {/* Chats Section (unfolderd only) */}
             <Collapsible open={chatsOpen} onOpenChange={setChatsOpen} className="mt-4">
               <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground">
-                <span>Chats</span>
-                {chatsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                <div className="flex items-center gap-2">
+                  {chatsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                  <span>Chats</span>
+                </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {filteredConversations.length === 0 ? (
+                {unfolderedChats.length === 0 ? (
                   <p className="px-2 py-3 text-xs text-muted-foreground">
                     {searchQuery ? 'No matching chats' : 'No chats yet'}
                   </p>
                 ) : (
                   <div className="space-y-0.5 mt-1">
-                    {filteredConversations.map(conv => (
-                      <div
-                        key={conv.id}
-                        onClick={() => onSelectConversation(conv.id)}
-                        className={cn(
-                          'group flex items-center justify-between px-2 py-2 rounded-md cursor-pointer transition-colors',
-                          selectedConversation === conv.id
-                            ? 'bg-swiss-navy/10 text-foreground'
-                            : 'text-foreground/80 hover:bg-muted/50'
-                        )}
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {conv.isTemporary ? (
-                            <Clock className="w-4 h-4 text-warning flex-shrink-0" />
-                          ) : (
-                            <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          )}
-                          <span className="text-sm truncate">{conv.title}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                            {formatTime(conv.updatedAt)}
-                          </span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreHorizontal className="w-3 h-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40 bg-popover border-border">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onExportConversation(conv.id);
-                                }}
-                                className="gap-2 cursor-pointer"
-                              >
-                                <Download className="w-3 h-3" />
-                                Export
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteConversation(conv.id);
-                                }}
-                                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))}
+                    {unfolderedChats.map(conv => renderChatItem(conv))}
                   </div>
                 )}
               </CollapsibleContent>
@@ -390,8 +613,8 @@ export function GhostSidebar({
         <div className="flex-shrink-0 p-3 border-t border-border">
           <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-swiss-navy/20 flex items-center justify-center">
-                <User className="w-4 h-4 text-swiss-navy" />
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <User className="w-4 h-4 text-primary" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

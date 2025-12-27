@@ -40,7 +40,7 @@ const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
 
 export function useGhostStorage() {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number; messageCount: number }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string; title: string; updatedAt: number; messageCount: number; folderId?: string }[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [corruptedCount, setCorruptedCount] = useState(0); // Track failed decryptions
@@ -171,6 +171,13 @@ export function useGhostStorage() {
     refreshConversations();
   }, [isInitialized, refreshConversations]);
 
+  const moveToFolder = useCallback((convId: string, folderId: string | null) => {
+    if (!isInitialized) return;
+    const storage = getGhostStorage();
+    storage.moveToFolder(convId, folderId);
+    refreshConversations();
+  }, [isInitialized, refreshConversations]);
+
   const clearAllConversations = useCallback(async () => {
     if (!isInitialized) return;
     const storage = getGhostStorage();
@@ -190,7 +197,7 @@ export function useGhostStorage() {
     conversations,
     isInitialized,
     isLoading,
-    corruptedCount, // Expose corrupted count for UI recovery
+    corruptedCount,
     createConversation,
     getConversation,
     saveMessage,
@@ -199,8 +206,9 @@ export function useGhostStorage() {
     exportAllConversations,
     importConversation,
     updateConversationTitle,
+    moveToFolder,
     makeConversationPersistent,
-    clearAllConversations, // New method for recovery
+    clearAllConversations,
     clearAllData,
     refreshConversations,
   };

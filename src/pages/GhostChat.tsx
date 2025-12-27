@@ -23,6 +23,7 @@ import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostSettings } from '@/components/ghost/GhostSettings';
 import { GhostThinkingIndicator } from '@/components/ghost/GhostThinkingIndicator';
 import { GhostErrorBoundary } from '@/components/ghost/GhostErrorBoundary';
+import { ExportMarkdownDialog } from '@/components/ghost/ExportMarkdownDialog';
 
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { EyeOff, Shield, Menu, X, AlertTriangle } from 'lucide-react';
@@ -113,6 +114,8 @@ function GhostChat() {
     saveMessage,
     deleteConversation,
     exportConversation,
+    updateConversationTitle,
+    moveToFolder,
     clearAllData,
   } = useGhostStorage();
 
@@ -200,6 +203,7 @@ function GhostChat() {
     updatedAt: c.updatedAt,
     messageCount: c.messageCount || 0,
     isTemporary: false,
+    folderId: c.folderId,
   }));
 
   const handleNewChat = useCallback(() => {
@@ -466,16 +470,37 @@ function GhostChat() {
     }
   };
 
-  const handleExportConversation = async (id: string) => {
-    const blob = await exportConversation(id);
+  // Export - open dialog with options
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportingConversation, setExportingConversation] = useState<{
+    id: string;
+    title: string;
+    messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: number }>;
+  } | null>(null);
+
+  const handleExportConversation = (id: string) => {
+    const conv = getConversation(id);
+    if (conv) {
+      setExportingConversation({
+        id: conv.id,
+        title: conv.title,
+        messages: conv.messages,
+      });
+      setExportDialogOpen(true);
+    }
+  };
+
+  const handleExportEncrypted = async () => {
+    if (!exportingConversation) return;
+    const blob = await exportConversation(exportingConversation.id);
     if (blob) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ghost-chat-${id.slice(0, 8)}.svghost`;
+      a.download = `ghost-chat-${exportingConversation.id.slice(0, 8)}.svghost`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: 'Exported', description: 'Chat exported successfully' });
+      toast({ title: 'Exported', description: 'Chat exported as encrypted backup' });
     }
   };
 
@@ -486,6 +511,14 @@ function GhostChat() {
       setMessages([]);
     }
     toast({ title: 'Deleted', description: 'Chat deleted' });
+  };
+
+  const handleRenameConversation = (id: string, title: string) => {
+    updateConversationTitle(id, title);
+  };
+
+  const handleMoveToFolder = (convId: string, folderId: string | null) => {
+    moveToFolder(convId, folderId);
   };
 
   const handleCreateFolder = async () => {
@@ -909,6 +942,8 @@ function GhostChat() {
         onNewChat={handleNewChat}
         onDeleteConversation={handleDeleteConversation}
         onExportConversation={handleExportConversation}
+        onRenameConversation={handleRenameConversation}
+        onMoveToFolder={handleMoveToFolder}
         onCreateFolder={handleCreateFolder}
         onRenameFolder={renameFolder}
         onDeleteFolder={deleteFolder}
@@ -916,6 +951,14 @@ function GhostChat() {
         userCredits={balance}
         isPro={false}
         onOpenSettings={() => setShowSettings(true)}
+      />
+
+      {/* Export Dialog */}
+      <ExportMarkdownDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        conversation={exportingConversation}
+        onExportEncrypted={handleExportEncrypted}
       />
 
       {/* Main Content */}
