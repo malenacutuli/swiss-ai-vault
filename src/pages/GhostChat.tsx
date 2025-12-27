@@ -1300,6 +1300,24 @@ function GhostChat() {
           </div>
         </header>
 
+        {/* Upgrade banner for free users */}
+        {tier === 'ghost_free' && (
+          <div className="flex-shrink-0 flex items-center justify-between gap-3 px-4 py-2 bg-primary/5 border-b border-primary/10">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="text-primary">✨</span>
+              <span>Upgrade to <span className="font-medium text-foreground">Ghost Pro</span> for unlimited prompts & commercial models</span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => setShowUpgradeModal(true)}
+            >
+              Upgrade
+            </Button>
+          </div>
+        )}
+
         {/* Corrupted Data Recovery Alert */}
         {corruptedCount > 0 && (
           <Alert variant="destructive" className="m-4 border-destructive/50 bg-destructive/10">
