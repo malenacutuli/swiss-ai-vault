@@ -16,6 +16,7 @@ interface ImageGenRequest {
   seed?: number;
   count?: number;
   enhancePrompt?: boolean;
+  referenceImage?: string; // base64 data URL for image-to-image
 }
 
 // Model routing configuration
@@ -79,7 +80,8 @@ async function generateWithReplicate(
   aspectRatio: string,
   negativePrompt?: string,
   seed?: number,
-  count: number = 1
+  count: number = 1,
+  referenceImage?: string
 ): Promise<{ url: string; seed?: number }[]> {
   const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
   if (!REPLICATE_API_KEY) {
@@ -87,6 +89,36 @@ async function generateWithReplicate(
   }
 
   const replicate = new Replicate({ auth: REPLICATE_API_KEY });
+
+  // If reference image provided, use flux-redux for image-to-image
+  if (referenceImage) {
+    console.log(`[ghost-image-gen] Using image-to-image with reference`);
+    
+    const input: Record<string, unknown> = {
+      prompt,
+      image: referenceImage,
+      prompt_strength: 0.8,
+      num_outputs: count,
+      output_format: 'webp',
+      output_quality: 90,
+    };
+
+    if (seed) {
+      input.seed = seed;
+    }
+
+    // Use flux-dev for image-to-image as it supports it well
+    const output = await replicate.run('black-forest-labs/flux-dev' as `${string}/${string}`, { input });
+    
+    if (Array.isArray(output)) {
+      return output.map((url, idx) => ({
+        url: typeof url === 'string' ? url : url.url || url,
+        seed: seed ? seed + idx : undefined,
+      }));
+    }
+    
+    return [{ url: output as string, seed }];
+  }
 
   console.log(`[ghost-image-gen] Using Replicate model: ${modelId}`);
 
@@ -224,7 +256,7 @@ serve(async (req) => {
 
     console.log(`[ghost-image-gen] User ${user.id.substring(0, 8)}... authenticated`);
 
-    const body: ImageGenRequest = await req.json();
+  const body: ImageGenRequest = await req.json();
     const {
       prompt,
       model = 'auto',
@@ -234,6 +266,7 @@ serve(async (req) => {
       seed,
       count = 1,
       enhancePrompt,
+      referenceImage,
     } = body;
 
     if (!prompt) {
@@ -276,7 +309,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[ghost-image-gen] Generating with model: ${model} (${modelConfig.provider}), count: ${count}`);
+    console.log(`[ghost-image-gen] Generating with model: ${model} (${modelConfig.provider}), count: ${count}, hasReference: ${!!referenceImage}`);
 
     // Apply style to prompt
     const styledPrompt = applyStyle(prompt, style);
@@ -293,7 +326,7 @@ serve(async (req) => {
         break;
       case 'replicate':
       default:
-        images = await generateWithReplicate(styledPrompt, modelConfig.modelId, aspectRatio, negativePrompt, seed, count);
+        images = await generateWithReplicate(styledPrompt, modelConfig.modelId, aspectRatio, negativePrompt, seed, count, referenceImage);
         break;
     }
 

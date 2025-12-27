@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Image, Wand2, Coins, Loader2 } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Image, Wand2, Coins, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -29,6 +29,8 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
   const [enhancePrompt, setEnhancePrompt] = useState(globalSettings?.image_enhance_prompts ?? false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Persist generated images locally per user so they survive tab switches
   const localKey = user?.id ? `ghost:imagegen:recent:${user.id}` : null;
@@ -89,6 +91,34 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
   const totalCost = currentModel.creditCost * settings.count;
   const hasEnoughCredits = balance >= totalCost;
 
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be less than 10MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setReferenceImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const clearReferenceImage = useCallback(() => {
+    setReferenceImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
   const generateImages = useCallback(async () => {
     if (!prompt.trim() || !user) {
       toast.error('Please enter a prompt');
@@ -113,6 +143,7 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
           seed: settings.seed ? parseInt(settings.seed) : undefined,
           count: settings.count,
           enhancePrompt,
+          referenceImage: referenceImage || undefined,
           // Pass global settings to API
           hideWatermark: globalSettings?.image_hide_watermark ?? false,
           format: globalSettings?.image_format ?? 'png',
@@ -167,7 +198,7 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, user, selectedModel, settings, enhancePrompt, hasEnoughCredits, refreshCredits, globalSettings]);
+  }, [prompt, user, selectedModel, settings, enhancePrompt, hasEnoughCredits, refreshCredits, globalSettings, referenceImage]);
 
   const handleDownload = useCallback(async (image: GeneratedImage) => {
     try {
@@ -268,10 +299,37 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
             />
 
             <SwissCard className="p-0 overflow-hidden">
+              {/* Reference Image Preview */}
+              {referenceImage && (
+                <div className="p-3 border-b border-border/30 bg-muted/20">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img
+                        src={referenceImage}
+                        alt="Reference"
+                        className="w-16 h-16 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        onClick={clearReferenceImage}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">Reference Image</p>
+                      <p className="text-xs text-muted-foreground">
+                        Your prompt will be applied to edit this image
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the image you want to generate..."
+                placeholder={referenceImage ? "Describe how to edit this image..." : "Describe the image you want to generate..."}
                 className="min-h-[100px] border-0 bg-transparent resize-none focus-visible:ring-0 text-base"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -283,6 +341,22 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
 
               <div className="flex items-center justify-between p-3 border-t border-border/30 bg-muted/30">
                 <div className="flex items-center gap-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Upload className="w-4 h-4 mr-1.5" />
+                    {referenceImage ? 'Change' : 'Reference'}
+                  </Button>
                   <div className="flex items-center gap-2">
                     <Switch
                       id="enhance-prompt"
