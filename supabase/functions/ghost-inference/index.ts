@@ -79,8 +79,65 @@ function supportsStreaming(model: string): boolean {
 }
 
 function estimateTokens(messages: any[]): number {
-  const totalChars = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0);
+  let totalChars = 0;
+  for (const msg of messages) {
+    if (typeof msg.content === 'string') {
+      totalChars += msg.content.length;
+    } else if (Array.isArray(msg.content)) {
+      // Multimodal: count text parts, estimate images
+      for (const part of msg.content) {
+        if (part.type === 'text') {
+          totalChars += part.text?.length || 0;
+        } else if (part.type === 'image_url') {
+          // Images are roughly 1000 tokens
+          totalChars += 4000; // ~1000 tokens
+        }
+      }
+    }
+  }
   return Math.ceil(totalChars / 4);
+}
+
+// Convert OpenAI multimodal format to Anthropic format
+function convertToAnthropicFormat(content: any): any {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return content;
+  }
+  
+  return content.map((part: any) => {
+    if (part.type === 'text') {
+      return { type: 'text', text: part.text };
+    }
+    if (part.type === 'image_url') {
+      const url = part.image_url?.url || '';
+      // Extract base64 data from data URL
+      if (url.startsWith('data:')) {
+        const matches = url.match(/data:([^;]+);base64,(.+)/);
+        if (matches) {
+          return {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: matches[1],
+              data: matches[2],
+            },
+          };
+        }
+      }
+      // For regular URLs, use URL type
+      return {
+        type: 'image',
+        source: {
+          type: 'url',
+          url: url,
+        },
+      };
+    }
+    return part;
+  });
 }
 
 // ============================================
@@ -232,17 +289,17 @@ async function callAnthropic(
   
   const apiModel = modelMap[model] || model;
   
-  // Extract system message
+  // Extract system message and convert multimodal content
   let systemPrompt = '';
   const anthropicMessages = messages.filter(m => {
     if (m.role === 'system') {
-      systemPrompt = m.content;
+      systemPrompt = typeof m.content === 'string' ? m.content : '';
       return false;
     }
     return true;
   }).map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
-    content: m.content,
+    content: convertToAnthropicFormat(m.content),
   }));
   
   const body: any = {
