@@ -61,6 +61,7 @@ import OAuthCallback from "./pages/OAuthCallback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
+import GhostSignup from "./pages/auth/GhostSignup";
 
 const queryClient = new QueryClient();
 
@@ -108,7 +109,11 @@ const App = () => {
                 
                 {/* Ghost Chat routes */}
                 <Route path="/ghost" element={<ProtectedRoute><GhostChat /></ProtectedRoute>} />
+                <Route path="/ghost/chat" element={<GhostChat />} />
                 <Route path="/ghost/library" element={<ProtectedRoute><GhostLibrary /></ProtectedRoute>} />
+                
+                {/* Ghost Auth routes */}
+                <Route path="/auth/ghost-signup" element={<GhostSignup />} />
 
                 {/* Legacy chat routes - redirect to new paths with toast */}
                 <Route path="/vault-chat" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
