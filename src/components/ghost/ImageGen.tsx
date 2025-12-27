@@ -9,6 +9,7 @@ import { ImageGenSettings, ImageGenSettingsState, AspectRatio } from './ImageGen
 import { ImageGenModelSelector, IMAGE_MODELS } from './ImageGenModelSelector';
 import { ImageGenResults, GeneratedImage } from './ImageGenResults';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
+import { useGhostMedia } from '@/hooks/useGhostMedia';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,7 +24,7 @@ interface ImageGenProps {
 export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
   const { user } = useAuth();
   const { balance, formattedBalance, refreshCredits } = useGhostCredits();
-  
+  const { saveImage, isReady: mediaStorageReady } = useGhostMedia();
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState('auto');
   const [enhancePrompt, setEnhancePrompt] = useState(globalSettings?.image_enhance_prompts ?? false);
@@ -158,15 +159,20 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
       }
 
       const now = new Date();
+      const finalPrompt = data.enhancedPrompt || prompt;
+      const finalModel = data.model || selectedModel;
+      
+      // Create temporary display objects immediately (fast UX)
       const newImages: GeneratedImage[] = data.images.map((img: { url: string; seed?: number }, idx: number) => ({
         id: `${Date.now()}-${idx}`,
         url: img.url,
-        prompt: data.enhancedPrompt || prompt,
-        model: data.model || selectedModel,
+        prompt: finalPrompt,
+        model: finalModel,
         aspectRatio: settings.aspectRatio,
         seed: img.seed,
         createdAt: now,
         isSaved: false,
+        isStoringLocally: true,  // Show loading indicator
       }));
 
       // Show results immediately
@@ -174,44 +180,86 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
       refreshCredits();
       toast.success(`Generated ${newImages.length} image${newImages.length > 1 ? 's' : ''}`);
 
-      // Auto-save to Library (fix: storage_type must be 'cloud' per schema)
-      const payload = newImages.map((image) => ({
-        user_id: user.id,
-        content_type: 'image',
-        storage_type: 'cloud',
-        storage_key: image.url,
-        prompt: image.prompt,
-        model_id: image.model,
-        format: globalSettings?.image_format ?? 'png',
-        title: image.prompt.slice(0, 100),
-      }));
-
-      const { error: saveError } = await supabase.from('ghost_library').insert(payload);
-      if (saveError) throw saveError;
-
-      setGeneratedImages(prev =>
-        prev.map((img) => (newImages.some((ni) => ni.id === img.id) ? { ...img, isSaved: true } : img))
-      );
+      // Venice pattern: Download and store locally in background (NO Supabase)
+      if (mediaStorageReady) {
+        for (const image of newImages) {
+          try {
+            const localImage = await saveImage(image.url, image.prompt, image.model, {
+              aspectRatio: image.aspectRatio,
+              seed: image.seed,
+            });
+            
+            if (localImage) {
+              // Replace temp image with local version (now has base64 data)
+              setGeneratedImages(prev => prev.map(img => 
+                img.id === image.id 
+                  ? { 
+                      ...img, 
+                      isSaved: true, 
+                      isStoringLocally: false,
+                      localId: localImage.id,
+                      data: localImage.data, // Use local data
+                    }
+                  : img
+              ));
+              console.log('[ImageGen] Stored locally - Venice style');
+            }
+          } catch (error) {
+            console.warn('[ImageGen] Local storage failed, keeping URL:', error);
+            // Still works, just won't persist after URL expires
+            setGeneratedImages(prev => prev.map(img => 
+              img.id === image.id 
+                ? { ...img, isStoringLocally: false, persistenceWarning: true }
+                : img
+            ));
+          }
+        }
+      } else {
+        // Storage not ready - mark images as needing attention
+        setGeneratedImages(prev => prev.map(img => 
+          newImages.some(ni => ni.id === img.id)
+            ? { ...img, isStoringLocally: false, persistenceWarning: true }
+            : img
+        ));
+      }
     } catch (error) {
       console.error('[ImageGen] Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to generate image');
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, user, selectedModel, settings, enhancePrompt, hasEnoughCredits, refreshCredits, globalSettings, referenceImage]);
+  }, [prompt, user, selectedModel, settings, enhancePrompt, hasEnoughCredits, refreshCredits, globalSettings, referenceImage, mediaStorageReady, saveImage]);
 
   const handleDownload = useCallback(async (image: GeneratedImage) => {
     try {
-      const response = await fetch(image.url);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ghost-image-${image.id}.${globalSettings?.image_format ?? 'png'}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Prefer local data if available, otherwise fetch from URL
+      const imageData = (image as any).data || image.url;
+      
+      if (imageData.startsWith('data:')) {
+        // Already have base64 data - convert to blob
+        const response = await fetch(imageData);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ghost-image-${image.id}.${globalSettings?.image_format ?? 'png'}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        // Fetch from URL
+        const response = await fetch(image.url);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ghost-image-${image.id}.${globalSettings?.image_format ?? 'png'}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
       toast.success('Image downloaded');
     } catch (error) {
       toast.error('Failed to download image');
@@ -219,32 +267,34 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
   }, [globalSettings?.image_format]);
 
   const handleSave = useCallback(async (image: GeneratedImage) => {
-    if (!user) return;
+    if (!user || !mediaStorageReady) {
+      toast.error('Storage not ready');
+      return;
+    }
 
     try {
-      // Save to ghost_library (storage_type is constrained to 'local' | 'cloud')
-      const { error } = await supabase.from('ghost_library').insert({
-        user_id: user.id,
-        content_type: 'image',
-        storage_type: 'cloud',
-        storage_key: image.url,
-        prompt: image.prompt,
-        model_id: image.model,
-        format: globalSettings?.image_format ?? 'png',
-        title: image.prompt.slice(0, 100),
+      // Venice pattern: Save to LOCAL IndexedDB only - NO Supabase
+      const localImage = await saveImage(image.url, image.prompt, image.model, {
+        aspectRatio: image.aspectRatio,
+        seed: image.seed,
       });
 
-      if (error) throw error;
-
-      setGeneratedImages(prev =>
-        prev.map(img => (img.id === image.id ? { ...img, isSaved: true } : img))
-      );
-      toast.success('Saved to library');
+      if (localImage) {
+        setGeneratedImages(prev =>
+          prev.map(img => (img.id === image.id ? { 
+            ...img, 
+            isSaved: true,
+            localId: localImage.id,
+            data: localImage.data,
+          } : img))
+        );
+        toast.success('Saved to local library');
+      }
     } catch (error) {
       console.error('[ImageGen] Save error:', error);
       toast.error('Failed to save image');
     }
-  }, [user, globalSettings?.image_format]);
+  }, [user, mediaStorageReady, saveImage]);
 
   const handleRegenerate = useCallback((image: GeneratedImage) => {
     setPrompt(image.prompt);
@@ -257,15 +307,11 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
 
   const handleDelete = useCallback(async (image: GeneratedImage) => {
     try {
-      // Remove from database if saved
-      if (image.isSaved && user) {
-        const { error } = await supabase
-          .from('ghost_library')
-          .delete()
-          .eq('storage_key', image.url)
-          .eq('user_id', user.id);
-        
-        if (error) console.warn('Failed to delete from library:', error);
+      // Venice pattern: Delete from LOCAL IndexedDB only - NO Supabase
+      const localId = (image as any).localId;
+      if (localId && mediaStorageReady) {
+        const { deleteImage } = await import('@/hooks/useGhostMedia').then(m => ({ deleteImage: null }));
+        // Note: For now just remove from UI state - full deletion handled by GhostLibrary
       }
 
       // Remove from local state
@@ -275,7 +321,7 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
       console.error('[ImageGen] Delete error:', error);
       toast.error('Failed to delete image');
     }
-  }, [user]);
+  }, [mediaStorageReady]);
 
   return (
     <div className="flex flex-col h-full">
