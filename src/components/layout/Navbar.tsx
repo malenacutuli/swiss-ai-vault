@@ -35,10 +35,15 @@ export const Navbar = () => {
             <div className="hidden md:flex items-center gap-8">
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  {t('nav.features')}
+                  {t('nav.products')}
                   <ChevronDown className="h-3.5 w-3.5" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuItem asChild>
+                    <Link to="/ghost">
+                      Ghost Chat
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/features/vault-chat">
                       Vault Chat
@@ -87,6 +92,9 @@ export const Navbar = () => {
           {isOpen && (
             <div className="md:hidden py-4 border-t border-border/50">
               <div className="flex flex-col gap-4">
+                <Link to="/ghost" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
+                  Ghost Chat
+                </Link>
                 <Link to="/features/vault-chat" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   Vault Chat
                 </Link>
