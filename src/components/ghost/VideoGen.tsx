@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Video, Film, Sparkles, Upload, Image as ImageIcon, Coins, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,6 +34,38 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
   const [inputImageFile, setInputImageFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>([]);
+
+  // Persist generated videos locally per user so they survive tab switches
+  const localKey = user?.id ? `ghost:videogen:recent:${user.id}` : null;
+  useEffect(() => {
+    if (!localKey) return;
+    try {
+      const raw = localStorage.getItem(localKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Array<Omit<GeneratedVideo, 'createdAt'> & { createdAt: string }>;
+      const restored: GeneratedVideo[] = parsed.map((v) => ({
+        ...v,
+        createdAt: new Date(v.createdAt),
+      }));
+      setGeneratedVideos(restored);
+    } catch {
+      console.warn('[VideoGen] Failed to restore recent videos');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localKey]);
+
+  useEffect(() => {
+    if (!localKey) return;
+    try {
+      const compact = generatedVideos.slice(0, 50).map((v) => ({
+        ...v,
+        createdAt: v.createdAt.toISOString(),
+      }));
+      localStorage.setItem(localKey, JSON.stringify(compact));
+    } catch {
+      // ignore
+    }
+  }, [localKey, generatedVideos]);
   
   const [settings, setSettings] = useState<VideoGenSettingsState>({
     resolution: '720p',
@@ -149,12 +181,30 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
           duration: settings.duration,
           resolution: settings.resolution,
           createdAt: new Date(),
+          isSaved: false,
         };
 
         updateJob(jobId, { status: 'completed', progress: 100, videoUrl: data.videoUrl });
         setGeneratedVideos(prev => [newVideo, ...prev]);
         refreshCredits();
         toast.success('Video generated!');
+
+        // Auto-save to Library (fix: storage_type must be 'cloud' per schema)
+        const { error: saveError } = await supabase.from('ghost_library').insert({
+          user_id: user.id,
+          content_type: 'video',
+          storage_type: 'cloud',
+          storage_key: newVideo.url,
+          prompt: newVideo.prompt,
+          model_id: newVideo.model,
+          format: 'mp4',
+          duration_seconds: newVideo.duration,
+          title: newVideo.prompt.slice(0, 100),
+        });
+
+        if (!saveError) {
+          setGeneratedVideos(prev => prev.map(v => (v.id === newVideo.id ? { ...v, isSaved: true } : v)));
+        }
       }
     } catch (error) {
       console.error('[VideoGen] Error:', error);
@@ -191,12 +241,30 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
             duration: settings.duration,
             resolution: settings.resolution,
             createdAt: new Date(),
+            isSaved: false,
           };
 
           updateJob(jobId, { status: 'completed', progress: 100, videoUrl: data.videoUrl });
           setGeneratedVideos(prev => [newVideo, ...prev]);
           refreshCredits();
           toast.success('Video generated!');
+
+          // Auto-save to Library (best-effort)
+          const { error: saveError } = await supabase.from('ghost_library').insert({
+            user_id: user.id,
+            content_type: 'video',
+            storage_type: 'cloud',
+            storage_key: newVideo.url,
+            prompt: newVideo.prompt,
+            model_id: newVideo.model,
+            format: 'mp4',
+            duration_seconds: newVideo.duration,
+            title: newVideo.prompt.slice(0, 100),
+          });
+
+          if (!saveError) {
+            setGeneratedVideos(prev => prev.map(v => (v.id === newVideo.id ? { ...v, isSaved: true } : v)));
+          }
           return;
         }
 
@@ -249,7 +317,7 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
       await supabase.from('ghost_library').insert({
         user_id: user.id,
         content_type: 'video',
-        storage_type: 'url',
+        storage_type: 'cloud',
         storage_key: video.url,
         prompt: video.prompt,
         model_id: video.model,
@@ -259,7 +327,7 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
       });
 
       setGeneratedVideos(prev =>
-        prev.map(v => v.id === video.id ? { ...v, isSaved: true } : v)
+        prev.map(v => (v.id === video.id ? { ...v, isSaved: true } : v))
       );
       toast.success('Saved to library');
     } catch (error) {
