@@ -26,7 +26,7 @@ import { GhostErrorBoundary } from '@/components/ghost/GhostErrorBoundary';
 import { ExportMarkdownDialog } from '@/components/ghost/ExportMarkdownDialog';
 
 import { SwissFlag } from '@/components/icons/SwissFlag';
-import { EyeOff, Shield, Menu, X, AlertTriangle } from 'lucide-react';
+import { EyeOff, Shield, Menu, X, AlertTriangle, FileText } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Default models per mode
@@ -65,13 +65,19 @@ interface GhostMessageData {
   contextUsagePercent?: number;
 }
 
+// Attached file for context - supports multiple files
 interface AttachedFile {
+  id: string;
   file: File;
   base64?: string;
   text?: string;
   name: string;
   type: 'image' | 'document';
+  size: number;
 }
+
+const MAX_FILES = 10;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
 
 // Helper to convert file to base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -158,7 +164,7 @@ function GhostChat() {
   // Ghost folders hook (persistent)
   const { folders, createFolder, renameFolder, deleteFolder } = useGhostFolders();
   const [searchCitations, setSearchCitations] = useState<SearchResult[]>([]);
-  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
 
   // Model state per mode (persisted to localStorage)
   const [selectedModels, setSelectedModels] = useState<Record<GhostMode, string>>(() => {
@@ -867,70 +873,112 @@ function GhostChat() {
     fileInputRef.current?.click();
   };
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Process a single file into AttachedFile
+  const processFile = async (file: File): Promise<AttachedFile | null> => {
+    const id = crypto.randomUUID();
 
-    // Reset input so same file can be selected again
-    e.target.value = '';
-
-    // For images, convert to base64 for vision models
+    // Image files
     if (file.type.startsWith('image/')) {
       try {
         const base64 = await fileToBase64(file);
-        setAttachedFile({ file, base64, name: file.name, type: 'image' });
-        toast({
-          title: 'Image attached',
-          description: 'The image will be included with your next message.',
-        });
+        return { id, file, base64, name: file.name, type: 'image', size: file.size };
       } catch {
-        toast({
-          title: 'Error',
-          description: 'Failed to read image file.',
-          variant: 'destructive',
-        });
+        return null;
       }
-      return;
     }
 
-    // For text files, read content
-    if (file.type === 'text/plain' || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
+    // Text-based documents
+    if (file.type === 'text/plain' || 
+        file.name.endsWith('.md') || 
+        file.name.endsWith('.txt') ||
+        file.name.endsWith('.csv') ||
+        file.name.endsWith('.json')) {
       try {
         const text = await file.text();
-        setAttachedFile({ file, text, name: file.name, type: 'document' });
-        toast({
-          title: 'Document attached',
-          description: `${file.name} will be included as context.`,
-        });
+        return { id, file, text, name: file.name, type: 'document', size: file.size };
       } catch {
-        toast({
-          title: 'Error',
-          description: 'Failed to read document.',
-          variant: 'destructive',
-        });
+        return null;
       }
-      return;
     }
 
-    // PDF support would need a library - show coming soon for now
-    if (file.type === 'application/pdf') {
+    // PDF files - send as base64 for vision models
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      try {
+        const base64 = await fileToBase64(file);
+        return { id, file, base64, name: file.name, type: 'document', size: file.size };
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  };
+
+  const handleFilesSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    // Reset input for re-selection
+    e.target.value = '';
+
+    // Check total count
+    const totalFiles = attachedFiles.length + selectedFiles.length;
+    if (totalFiles > MAX_FILES) {
       toast({
-        title: 'PDF Support',
-        description: 'PDF parsing coming soon! Try .txt or .md files.',
+        title: `Maximum ${MAX_FILES} files allowed`,
+        description: `You have ${attachedFiles.length} files attached. Can add ${MAX_FILES - attachedFiles.length} more.`,
+        variant: 'destructive',
       });
       return;
     }
 
-    toast({
-      title: 'Unsupported file',
-      description: 'Please attach an image, .txt, or .md file.',
-      variant: 'destructive',
-    });
-  };
+    const newAttachments: AttachedFile[] = [];
+    const errors: string[] = [];
 
-  const clearAttachment = () => {
-    setAttachedFile(null);
-  };
+    for (const file of selectedFiles) {
+      // Size check
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: exceeds 10MB limit`);
+        continue;
+      }
+
+      try {
+        const attachment = await processFile(file);
+        if (attachment) {
+          newAttachments.push(attachment);
+        } else {
+          errors.push(`${file.name}: unsupported type`);
+        }
+      } catch (error) {
+        console.error(`[GhostChat] Failed to process ${file.name}:`, error);
+        errors.push(`${file.name}: failed to process`);
+      }
+    }
+
+    if (errors.length > 0) {
+      toast({
+        title: 'Some files could not be added',
+        description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? ` +${errors.length - 3} more` : ''),
+        variant: 'destructive',
+      });
+    }
+
+    if (newAttachments.length > 0) {
+      setAttachedFiles(prev => [...prev, ...newAttachments]);
+      toast({
+        title: `${newAttachments.length} file(s) attached`,
+        description: newAttachments.length === 1 ? newAttachments[0].name : undefined,
+      });
+    }
+  }, [attachedFiles, toast]);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachedFiles(prev => prev.filter(f => f.id !== id));
+  }, []);
+
+  const clearAllAttachments = useCallback(() => {
+    setAttachedFiles([]);
+  }, []);
 
   if (!user) {
     return (
@@ -1172,27 +1220,57 @@ function GhostChat() {
           {(mode === 'text' || mode === 'search') && (
             <div className="flex-shrink-0 p-4 lg:p-6">
               <div className="max-w-3xl mx-auto">
-                {/* Attachment preview */}
-                {attachedFile && (
-                  <div className="mb-2 flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border/50">
-                    {attachedFile.type === 'image' && attachedFile.base64 && (
-                      <img 
-                        src={attachedFile.base64} 
-                        alt="Attached" 
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                    )}
-                    <span className="text-sm text-muted-foreground flex-1 truncate">
-                      {attachedFile.name}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={clearAttachment}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                {/* Multi-file attachment preview */}
+                {attachedFiles.length > 0 && (
+                  <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground">
+                        {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
+                        {attachedFiles.length < MAX_FILES && ` (${MAX_FILES - attachedFiles.length} more allowed)`}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={clearAllAttachments}
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {attachedFiles.map((attachment) => (
+                        <div
+                          key={attachment.id}
+                          className="group relative flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border/50 hover:border-border transition-colors"
+                        >
+                          {attachment.type === 'image' && attachment.base64 ? (
+                            <img
+                              src={attachment.base64}
+                              alt={attachment.name}
+                              className="w-8 h-8 object-cover rounded"
+                            />
+                          ) : (
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm truncate max-w-[120px]" title={attachment.name}>
+                              {attachment.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {(attachment.size / 1024).toFixed(1)} KB
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-1.5 -right-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full"
+                            onClick={() => removeAttachment(attachment.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <GhostChatInput
@@ -1224,8 +1302,9 @@ function GhostChat() {
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept="image/*,.pdf,.txt,.md"
-        onChange={handleFileSelected}
+        accept="image/*,.pdf,.txt,.md,.csv,.json"
+        multiple
+        onChange={handleFilesSelected}
       />
 
       {/* Modals */}
