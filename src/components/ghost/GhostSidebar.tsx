@@ -354,31 +354,31 @@ export function GhostSidebar({
   const renderFolderItem = (folder: GhostFolder) => {
     const folderChats = folderedChats[folder.id] || [];
     const isExpanded = expandedFolders.has(folder.id);
+    const folderColor = folder.color || '#6366f1';
 
     return (
-      <div key={folder.id}>
+      <div key={folder.id} className="ml-1">
         <div
-          className="group flex items-center justify-between px-2 py-1.5 rounded-md text-foreground/80 hover:bg-muted/50 transition-colors"
+          className="group flex items-center justify-between px-2 py-1.5 rounded-md text-foreground/80 hover:bg-muted/50 transition-colors cursor-pointer"
+          onClick={() => toggleFolderExpanded(folder.id)}
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {/* Expand/Collapse Arrow */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-4 w-4 p-0"
-              onClick={() => toggleFolderExpanded(folder.id)}
-            >
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
               {isExpanded ? (
-                <ChevronDown className="w-3 h-3" />
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
               ) : (
-                <ChevronRight className="w-3 h-3" />
+                <ChevronRight className="w-3 h-3 text-muted-foreground" />
               )}
-            </Button>
+            </span>
             
-            <Folder className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <Folder 
+              className="w-4 h-4 flex-shrink-0" 
+              style={{ color: folderColor }}
+            />
             
             {editingFolderId === folder.id ? (
-              <div className="flex items-center gap-1 flex-1 min-w-0">
+              <div className="flex items-center gap-1 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
                 <Input
                   value={editingFolderName}
                   onChange={(e) => setEditingFolderName(e.target.value)}
@@ -388,7 +388,7 @@ export function GhostSidebar({
                     if (e.key === 'Escape') setEditingFolderId(null);
                   }}
                   autoFocus
-                  className="h-5 text-xs px-1 py-0"
+                  className="h-6 text-xs px-2 py-0"
                 />
                 <Button
                   size="icon"
@@ -408,16 +408,17 @@ export function GhostSidebar({
                 </Button>
               </div>
             ) : (
-              <span className="text-sm truncate">{folder.name}</span>
-            )}
-            
-            {folderChats.length > 0 && !editingFolderId && (
-              <span className="text-xs text-muted-foreground">({folderChats.length})</span>
+              <>
+                <span className="text-sm truncate font-medium">{folder.name}</span>
+                <span className="text-xs text-muted-foreground ml-auto pr-1">
+                  {folderChats.length}
+                </span>
+              </>
             )}
           </div>
 
           {editingFolderId !== folder.id && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
               {/* Edit */}
               <Button
                 variant="ghost"
@@ -439,7 +440,6 @@ export function GhostSidebar({
                 onClick={async () => {
                   if (onDeleteFolder) {
                     await onDeleteFolder(folder.id);
-                    // Toast handled by useGhostFolders hook
                   }
                 }}
               >
@@ -450,9 +450,13 @@ export function GhostSidebar({
         </div>
 
         {/* Nested chats */}
-        {isExpanded && folderChats.length > 0 && (
-          <div className="space-y-0.5 mt-0.5">
-            {folderChats.map(conv => renderChatItem(conv, true))}
+        {isExpanded && (
+          <div className="space-y-0.5 mt-0.5 ml-4 pl-2 border-l border-border/50">
+            {folderChats.length > 0 ? (
+              folderChats.map(conv => renderChatItem(conv, true))
+            ) : (
+              <p className="text-xs text-muted-foreground italic py-1 px-2">Empty folder</p>
+            )}
           </div>
         )}
       </div>
@@ -541,29 +545,36 @@ export function GhostSidebar({
         <ScrollArea className="flex-1">
           <div className="p-2">
             {/* Folders Section */}
-            <Collapsible open={foldersOpen} onOpenChange={setFoldersOpen}>
-              <div className="flex items-center justify-between w-full px-2 py-1.5">
-                <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground">
+            <Collapsible open={foldersOpen} onOpenChange={setFoldersOpen} className="mb-2">
+              <div className="flex items-center justify-between w-full px-2 py-1.5 bg-muted/30 rounded-md">
+                <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
                   {foldersOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                  <Folder className="w-3 h-3" />
                   <span>Folders</span>
+                  {folders.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground/70">({folders.length})</span>
+                  )}
                 </CollapsibleTrigger>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-5 w-5"
-                  onClick={() => {
+                  className="h-6 w-6 hover:bg-muted"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onCreateFolder();
-                    // Toast handled by useGhostFolders hook
                   }}
+                  title="Create new folder"
                 >
-                  <FolderPlus className="w-3 h-3" />
+                  <FolderPlus className="w-3.5 h-3.5" />
                 </Button>
               </div>
-              <CollapsibleContent>
+              <CollapsibleContent className="pt-1">
                 {folders.length === 0 ? (
-                  <p className="px-2 py-3 text-xs text-muted-foreground">No folders yet</p>
+                  <p className="px-4 py-2 text-xs text-muted-foreground italic">
+                    No folders yet. Click + to create one.
+                  </p>
                 ) : (
-                  <div className="space-y-0.5 mt-1">
+                  <div className="space-y-0.5">
                     {folders.map(folder => renderFolderItem(folder))}
                   </div>
                 )}
