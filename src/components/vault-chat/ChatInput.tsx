@@ -227,6 +227,11 @@ export function ChatInput({
           onConnect={onConnectIntegration}
         />
       </div>
+      
+      {/* AI Disclaimer */}
+      <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
+        AI can make mistakes. Always check the accuracy of the responses. Swiss Vault.ai doesn't use any user data to train models.
+      </p>
     </div>
   );
 }
