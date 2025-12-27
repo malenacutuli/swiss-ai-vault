@@ -1726,46 +1726,64 @@ export type Database = {
           created_at: string | null
           credits_used: number | null
           duration_seconds: number | null
+          files_uploaded: number | null
           generation_time_ms: number | null
           id: string
+          images_generated: number | null
           input_tokens: number
           modality: string | null
           model_id: string
           output_tokens: number
+          prompts_used: number | null
           provider: string | null
           resolution: string | null
+          usage_date: string | null
           user_id: string
+          videos_generated: number | null
           was_free_tier: boolean | null
+          web_searches: number | null
         }
         Insert: {
           created_at?: string | null
           credits_used?: number | null
           duration_seconds?: number | null
+          files_uploaded?: number | null
           generation_time_ms?: number | null
           id?: string
+          images_generated?: number | null
           input_tokens: number
           modality?: string | null
           model_id: string
           output_tokens: number
+          prompts_used?: number | null
           provider?: string | null
           resolution?: string | null
+          usage_date?: string | null
           user_id: string
+          videos_generated?: number | null
           was_free_tier?: boolean | null
+          web_searches?: number | null
         }
         Update: {
           created_at?: string | null
           credits_used?: number | null
           duration_seconds?: number | null
+          files_uploaded?: number | null
           generation_time_ms?: number | null
           id?: string
+          images_generated?: number | null
           input_tokens?: number
           modality?: string | null
           model_id?: string
           output_tokens?: number
+          prompts_used?: number | null
           provider?: string | null
           resolution?: string | null
+          usage_date?: string | null
           user_id?: string
+          videos_generated?: number | null
           was_free_tier?: boolean | null
+          web_searches?: number | null
         }
         Relationships: []
       }
