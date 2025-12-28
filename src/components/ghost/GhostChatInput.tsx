@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,11 +38,19 @@ interface GhostChatInputProps {
   className?: string;
 }
 
-const PLACEHOLDERS: Record<GhostMode, string> = {
-  text: 'Ask anything privately...',
-  image: 'Describe the image you want to create...',
-  video: 'Describe the video you want to generate...',
-  search: 'Search the web privately...',
+const getPlaceholder = (mode: GhostMode, t: (key: string, fallback: string) => string): string => {
+  switch (mode) {
+    case 'text':
+      return t('ghost.input.textPlaceholder', 'Ask anything privately...');
+    case 'image':
+      return t('ghost.input.imagePlaceholder', 'Describe the image you want to create...');
+    case 'video':
+      return t('ghost.input.videoPlaceholder', 'Describe the video you want to generate...');
+    case 'search':
+      return t('ghost.input.searchPlaceholder', 'Search the web privately...');
+    default:
+      return t('ghost.input.textPlaceholder', 'Ask anything privately...');
+  }
 };
 
 export function GhostChatInput({
@@ -62,6 +71,7 @@ export function GhostChatInput({
   matureFilterEnabled = true,
   className,
 }: GhostChatInputProps) {
+  const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleVoiceTranscript = (text: string) => {
@@ -114,7 +124,7 @@ export function GhostChatInput({
                     <Paperclip className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Attach</TooltipContent>
+                <TooltipContent>{t('ghost.input.attach', 'Attach')}</TooltipContent>
               </Tooltip>
             )}
 
@@ -136,7 +146,7 @@ export function GhostChatInput({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {enhancePrompt ? 'Enhanced' : 'Enhance prompt'}
+                  {enhancePrompt ? t('ghost.input.enhanced', 'Enhanced') : t('ghost.input.enhancePrompt', 'Enhance prompt')}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -148,7 +158,7 @@ export function GhostChatInput({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={PLACEHOLDERS[mode]}
+            placeholder={getPlaceholder(mode, t)}
             disabled={disabled || isLoading}
             className="flex-1 min-h-[36px] max-h-[160px] resize-none border-0 bg-transparent p-0 py-1.5 text-[15px] leading-relaxed focus-visible:ring-0 placeholder:text-muted-foreground/60"
             rows={1}
@@ -198,7 +208,7 @@ export function GhostChatInput({
 
         {/* Minimal hint */}
         <p className="mt-2 text-center text-[11px] text-muted-foreground/50">
-          <kbd className="px-1 py-0.5 bg-muted/40 rounded text-[10px]">↵</kbd> send · <kbd className="px-1 py-0.5 bg-muted/40 rounded text-[10px]">⇧↵</kbd> new line
+          <kbd className="px-1 py-0.5 bg-muted/40 rounded text-[10px]">↵</kbd> {t('ghost.input.send', 'send')} · <kbd className="px-1 py-0.5 bg-muted/40 rounded text-[10px]">⇧↵</kbd> {t('ghost.input.newLine', 'new line')}
         </p>
       </div>
     </TooltipProvider>

@@ -999,6 +999,17 @@
       "video": "Video",
       "search": "Search"
     },
+    "input": {
+      "textPlaceholder": "Ask anything privately...",
+      "imagePlaceholder": "Describe the image you want to create...",
+      "videoPlaceholder": "Describe the video you want to generate...",
+      "searchPlaceholder": "Search the web privately...",
+      "attach": "Attach",
+      "enhancePrompt": "Enhance prompt",
+      "enhanced": "Enhanced",
+      "send": "send",
+      "newLine": "new line"
+    },
     "chat": {
       "placeholder": "Type your message...",
       "send": "Send",

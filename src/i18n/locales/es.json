@@ -1000,6 +1000,17 @@
       "video": "Vídeo",
       "search": "Búsqueda"
     },
+    "input": {
+      "textPlaceholder": "Pregunta cualquier cosa en privado...",
+      "imagePlaceholder": "Describe la imagen que quieres crear...",
+      "videoPlaceholder": "Describe el video que quieres generar...",
+      "searchPlaceholder": "Busca en la web en privado...",
+      "attach": "Adjuntar",
+      "enhancePrompt": "Mejorar prompt",
+      "enhanced": "Mejorado",
+      "send": "enviar",
+      "newLine": "nueva línea"
+    },
     "chat": {
       "placeholder": "Escribe tu mensaje...",
       "send": "Enviar",

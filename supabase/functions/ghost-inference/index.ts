@@ -34,6 +34,8 @@ const SWISS_ENDPOINTS: Record<string, string> = {
 const SWISSVAULT_OPENAI_ALIASES: Record<string, string> = {
   'swissvault-1.0': 'gpt-4o-mini',
   'swissvault-pro': 'gpt-4o',
+  'swissvault-code': 'gpt-4o-mini',
+  'swissvault-fast': 'gpt-4o-mini',
 };
 
 // Commercial API models
