@@ -8,6 +8,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface DiscoverLayoutProps {
   children: React.ReactNode;
@@ -15,11 +16,19 @@ interface DiscoverLayoutProps {
 }
 
 export function DiscoverLayout({ children, activeModule }: DiscoverLayoutProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const moduleLabels: Record<string, string> = {
+    finance: t('ghost.modules.finance.title'),
+    legal: t('ghost.modules.legal.title'),
+    patents: t('ghost.modules.patents.title'),
+    research: t('ghost.modules.research.title'),
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
@@ -118,7 +127,7 @@ export function DiscoverLayout({ children, activeModule }: DiscoverLayoutProps) 
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
-            <span className="text-sm font-medium text-muted-foreground capitalize">{activeModule}</span>
+            <span className="text-sm font-medium text-muted-foreground">{moduleLabels[activeModule] || activeModule}</span>
           </div>
           
           <div className="flex items-center gap-2">

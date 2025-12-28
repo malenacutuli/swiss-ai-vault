@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +51,7 @@ const SUGGESTIONS: Record<ActionType, string[]> = {
 };
 
 export default function GhostPatents() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -58,7 +60,28 @@ export default function GhostPatents() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const searchCardRef = useRef<HTMLDivElement>(null);
 
-  const suggestions = useMemo(() => SUGGESTIONS[activeAction], [activeAction]);
+  const getSuggestions = (action: ActionType): string[] => {
+    const suggestions: Record<ActionType, string[]> = {
+      patentability: [
+        t('ghost.modules.patents.suggestions.similar'),
+        t('ghost.modules.patents.suggestions.cpc'),
+        t('ghost.modules.patents.suggestions.priorArt'),
+      ],
+      landscape: [
+        t('ghost.modules.patents.suggestions.landscape'),
+        t('ghost.modules.patents.suggestions.trends'),
+        t('ghost.modules.patents.suggestions.rndInvestment'),
+      ],
+      rnd: [
+        t('ghost.modules.patents.suggestions.rndInvestment'),
+        t('ghost.modules.patents.suggestions.trends'),
+        t('ghost.modules.patents.suggestions.landscape'),
+      ],
+    };
+    return suggestions[action];
+  };
+
+  const suggestions = useMemo(() => getSuggestions(activeAction), [activeAction, t]);
 
   // Click outside to close suggestions
   useEffect(() => {
@@ -107,7 +130,7 @@ export default function GhostPatents() {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center mb-4 shadow-sm">
             <IconBulb className="w-8 h-8 text-amber-600" stroke={1.5} />
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">Patents</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">{t('ghost.modules.patents.title')}</h1>
         </div>
 
         {/* Search Card */}
@@ -129,7 +152,7 @@ export default function GhostPatents() {
               }}
               onFocus={() => !query && setShowSuggestions(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Ask any question about patents..."
+              placeholder={t('ghost.modules.patents.placeholder')}
               className="h-14 text-base pl-12 pr-14 rounded-xl border-slate-200/60 bg-white shadow-sm text-slate-900 placeholder:text-slate-400"
             />
             <button
@@ -148,7 +171,7 @@ export default function GhostPatents() {
             {showSuggestions && !query && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
                 <p className="text-xs font-medium text-slate-500 px-4 py-2 border-b border-slate-100">
-                  Get started with {activeAction === 'patentability' ? 'Patentability' : activeAction === 'landscape' ? 'Technology Landscape' : 'R&D'}
+                  {t('ghost.search.getStarted')} {activeAction === 'patentability' ? t('ghost.modules.patents.actions.patentability') : activeAction === 'landscape' ? t('ghost.modules.patents.actions.landscape') : t('ghost.modules.patents.actions.rnd')}
                 </p>
                 {suggestions.map((suggestion, i) => (
                   <button
