@@ -54,19 +54,24 @@ function groupModelsByProvider(models: GhostModel[]) {
   return groups;
 }
 
-// Provider display names
+// Provider display names (must match provider values in ghost-models.ts exactly)
 const PROVIDER_LABELS: Record<string, string> = {
-  modal: 'Swiss-Hosted 🇨🇭',
-  openai: 'OpenAI',
-  anthropic: 'Anthropic',
-  google: 'Google',
-  xai: 'xAI (Grok)',
-  deepseek: 'DeepSeek',
-  qwen: 'Qwen',
-  replicate: 'Replicate',
-  runway: 'Runway',
-  luma: 'Luma',
-  pika: 'Pika',
+  // Text model providers
+  'SwissVault': 'SwissVault 🇨🇭',
+  'Open Source': 'Open Source 🇨🇭',
+  'OpenAI': 'OpenAI',
+  'Anthropic': 'Anthropic',
+  'Google': 'Google',
+  'xAI': 'xAI (Grok)',
+  'DeepSeek': 'DeepSeek',
+  // Image model providers
+  'Black Forest Labs': 'Black Forest Labs',
+  'Stability AI': 'Stability AI',
+  // Video model providers
+  'Replicate': 'Replicate',
+  'Runway': 'Runway',
+  'Luma': 'Luma',
+  'Pika': 'Pika',
 };
 
 // Tag icons
