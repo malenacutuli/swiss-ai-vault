@@ -58,16 +58,19 @@ const NON_STREAMING_MODELS = ['o1', 'o1-mini', 'o1-preview'];
 const REASONING_MODELS = ['o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini', 'o4-mini'];
 
 // OpenAI model ID mapping (UI model → API model)
+// NOTE: o1/o1-mini/o1-preview have been deprecated by OpenAI and replaced with o3/o4-mini
 const OPENAI_MODEL_MAP: Record<string, string> = {
   'gpt-5.2': 'gpt-4.1',
   'gpt-5.2-mini': 'gpt-4.1-mini',
-  'o4-mini': 'o4-mini',
-  'o3': 'o3',
-  'o3-mini': 'o3-mini',
+  'o4-mini': 'o4-mini-2025-04-16',
+  'o3': 'o3-2025-04-16',
+  'o3-mini': 'o3-mini-2025-01-31',
   'gpt-4o': 'gpt-4o',
   'gpt-4o-mini': 'gpt-4o-mini',
-  'o1': 'o1',
-  'o1-mini': 'o1-mini',
+  // Legacy o1 models redirected to o3/o4-mini (o1 is deprecated)
+  'o1': 'o3-2025-04-16',
+  'o1-mini': 'o4-mini-2025-04-16',
+  'o1-preview': 'o3-2025-04-16',
 };
 
 // DeepSeek model ID mapping (UI model → API model)
