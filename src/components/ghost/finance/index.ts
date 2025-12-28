@@ -3,3 +3,8 @@ export { EarningsCalendarView } from './EarningsCalendarView';
 export { PredictionMarketsView } from './PredictionMarketsView';
 export { StockScreenerView } from './StockScreenerView';
 export { WatchlistView } from './WatchlistView';
+export { EuropeanMarketsView } from './EuropeanMarketsView';
+export { SwissMarketsView } from './SwissMarketsView';
+export { LatamMarketsView } from './LatamMarketsView';
+export { AsiaMarketsView } from './AsiaMarketsView';
+export { MENAMarketsView } from './MENAMarketsView';

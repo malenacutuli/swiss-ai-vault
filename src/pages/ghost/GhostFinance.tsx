@@ -12,12 +12,21 @@ import {
   EarningsCalendarView, 
   PredictionMarketsView, 
   StockScreenerView, 
-  WatchlistView 
+  WatchlistView,
+  EuropeanMarketsView,
+  SwissMarketsView,
+  LatamMarketsView,
+  AsiaMarketsView,
+  MENAMarketsView
 } from '@/components/ghost/finance';
 import { 
-  TrendingUp, Search, Bell, ArrowRight, 
-  Loader2, ExternalLink
-} from 'lucide-react';
+  IconTrendingUp,
+  IconSearch,
+  IconBell,
+  IconArrowRight,
+  IconLoader2,
+  IconExternalLink
+} from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
 
 interface MarketTicker {
@@ -42,6 +51,11 @@ interface SearchResult {
 
 const MARKET_TABS = [
   { id: 'us', label: 'US Markets' },
+  { id: 'european', label: 'European' },
+  { id: 'swiss', label: 'Swiss' },
+  { id: 'latam', label: 'LatAm' },
+  { id: 'asia', label: 'Asia' },
+  { id: 'mena', label: 'MENA' },
   { id: 'crypto', label: 'Crypto' },
   { id: 'earnings', label: 'Earnings' },
   { id: 'predictions', label: 'Predictions' },
@@ -81,6 +95,16 @@ export default function GhostFinance() {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'european':
+        return <EuropeanMarketsView />;
+      case 'swiss':
+        return <SwissMarketsView />;
+      case 'latam':
+        return <LatamMarketsView />;
+      case 'asia':
+        return <AsiaMarketsView />;
+      case 'mena':
+        return <MENAMarketsView />;
       case 'crypto':
         return <CryptoMarketView />;
       case 'earnings':
@@ -125,7 +149,7 @@ export default function GhostFinance() {
                       <a key={c.index} href={c.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 rounded-full text-xs text-slate-600">
                         <span className="text-[#2A8C86] font-medium">[{c.index}]</span>
                         <span className="truncate max-w-[120px]">{c.domain}</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <IconExternalLink className="w-3 h-3" stroke={1.5} />
                       </a>
                     ))}
                   </div>
@@ -147,29 +171,29 @@ export default function GhostFinance() {
           <div className="mb-8 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-slate-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center shadow-sm">
+                  <IconTrendingUp className="w-5 h-5 text-green-600" stroke={1.5} />
                 </div>
                 <h1 className="text-xl font-semibold text-slate-900">Finance</h1>
               </div>
               <Button variant="outline" size="sm" className="gap-2 text-slate-500 border-slate-200">
-                <Bell className="w-4 h-4" />Price Alert
+                <IconBell className="w-4 h-4" stroke={1.5} />Price Alert
               </Button>
             </div>
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <IconSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" stroke={1.5} />
               <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} placeholder="Search for stocks, crypto, and more..." className="pl-12 pr-12 h-12 text-base rounded-xl border-slate-200/60 bg-white shadow-sm" />
               <button onClick={handleSearch} disabled={isSearching} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-slate-100">
-                {isSearching ? <Loader2 className="w-5 h-5 text-[#2A8C86] animate-spin" /> : <ArrowRight className="w-5 h-5 text-[#2A8C86]" />}
+                {isSearching ? <IconLoader2 className="w-5 h-5 text-[#2A8C86] animate-spin" stroke={1.5} /> : <IconArrowRight className="w-5 h-5 text-[#2A8C86]" stroke={1.5} />}
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 border-b border-slate-200/60">
+            <div className="flex items-center gap-1 border-b border-slate-200/60 overflow-x-auto pb-px">
               {MARKET_TABS.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("px-4 py-2.5 text-sm font-medium transition-colors relative", activeTab === tab.id ? "text-slate-900" : "text-slate-500 hover:text-slate-700")}>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap", activeTab === tab.id ? "text-slate-900" : "text-slate-500 hover:text-slate-700")}>
                   {tab.label}
                   {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2A8C86]" />}
                 </button>

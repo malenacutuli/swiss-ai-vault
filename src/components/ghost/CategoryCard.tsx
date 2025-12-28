@@ -69,7 +69,7 @@ export const LEGAL_CATEGORIES = [
 
 export const RESEARCH_CATEGORIES = [
   { name: 'Life Sciences', gradientFrom: '#1a4d4d', gradientTo: '#2a7a7a' },
-  { name: 'Technology', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
-  { name: 'Economics', gradientFrom: '#5a4a3d', gradientTo: '#7a6a5a' },
-  { name: 'Environmental', gradientFrom: '#2d4a3d', gradientTo: '#4a7a5a' },
+  { name: 'Computer Science', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
+  { name: 'Physics & Mathematics', gradientFrom: '#3d3d5c', gradientTo: '#5a5a7a' },
+  { name: 'Social Sciences', gradientFrom: '#5a4a3d', gradientTo: '#7a6a5a' },
 ];
