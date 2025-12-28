@@ -989,5 +989,286 @@
       "deleteModel": "Delete Model",
       "deleteModelDesc": "Delete a fine-tuned model. This also removes the model checkpoint from storage."
     }
+  },
+  "ghost": {
+    "title": "Ghost Chat",
+    "subtitle": "Your private AI assistant",
+    "modes": {
+      "text": "Text",
+      "image": "Image",
+      "video": "Video",
+      "search": "Search"
+    },
+    "chat": {
+      "placeholder": "Type your message...",
+      "send": "Send",
+      "stop": "Stop",
+      "newChat": "New chat",
+      "clearChat": "Clear chat",
+      "regenerate": "Regenerate",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "edit": "Edit",
+      "delete": "Delete",
+      "rename": "Rename",
+      "download": "Download",
+      "export": "Export",
+      "import": "Import",
+      "thinking": "Thinking...",
+      "generating": "Generating...",
+      "searching": "Searching...",
+      "typing": "Typing...",
+      "noMessages": "No messages yet",
+      "startConversation": "Start a conversation",
+      "enterMessage": "Type a message to begin"
+    },
+    "sidebar": {
+      "chats": "Chats",
+      "folders": "Folders",
+      "discover": "Discover",
+      "library": "Library",
+      "settings": "Settings",
+      "newFolder": "New folder",
+      "allChats": "All chats",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "older": "Older",
+      "noChats": "No conversations",
+      "startNewChat": "Start a new chat"
+    },
+    "modules": {
+      "finance": {
+        "title": "Finance",
+        "description": "Markets, crypto, wealth",
+        "placeholder": "Ask about financial markets...",
+        "tabs": {
+          "us": "US Markets",
+          "european": "European",
+          "swiss": "Swiss",
+          "latam": "LatAm",
+          "asia": "Asia",
+          "mena": "MENA",
+          "crypto": "Crypto",
+          "earnings": "Earnings",
+          "predictions": "Predictions",
+          "screener": "Screener",
+          "watchlist": "Watchlist"
+        },
+        "suggestions": {
+          "markets": "How are US markets doing today?",
+          "crypto": "Give me a crypto market summary",
+          "stocks": "Analyze the most active tech stocks",
+          "earnings": "What companies are reporting earnings this week?"
+        }
+      },
+      "legal": {
+        "title": "Legal & Compliance",
+        "description": "Compliance, regulations",
+        "placeholder": "Ask about legal and compliance topics...",
+        "jurisdictions": {
+          "eu": "EU",
+          "us": "US",
+          "ch": "CH",
+          "uk": "UK"
+        },
+        "actions": {
+          "regulatory": "Regulatory Search",
+          "caselaw": "Case Law",
+          "compliance": "Compliance Check"
+        },
+        "suggestions": {
+          "regulatory": "Latest {{jurisdiction}} regulatory updates for financial services",
+          "dataProtection": "{{jurisdiction}} data protection compliance requirements 2024",
+          "crossBorder": "Cross-border regulatory frameworks involving {{jurisdiction}}",
+          "courtDecisions": "Recent {{jurisdiction}} court decisions on data privacy",
+          "antitrust": "Landmark {{jurisdiction}} antitrust and competition cases",
+          "gdpr": "GDPR compliance checklist for {{jurisdiction}} operations",
+          "aml": "{{jurisdiction}} AML/KYC requirements for fintech"
+        }
+      },
+      "patents": {
+        "title": "Patents",
+        "description": "IP search, prior art",
+        "placeholder": "Ask about patents and intellectual property...",
+        "actions": {
+          "patentability": "Patentability",
+          "landscape": "Technology Landscape",
+          "rnd": "R&D"
+        },
+        "suggestions": {
+          "similar": "Find me patents similar to my invention of wireless earbuds that monitor heart rate",
+          "cpc": "Find me patents grouped by CPC subclass most similar to patent number US 10245367",
+          "priorArt": "Find me patents that could qualify as prior art for my idea of a self-cleaning water bottle",
+          "landscape": "Show patent landscape for solid-state battery technology",
+          "trends": "Technology trends in autonomous vehicle patents 2020-2024",
+          "rndInvestment": "R&D investment trends in semiconductor industry"
+        }
+      },
+      "research": {
+        "title": "Academic Research",
+        "description": "Academic, clinical",
+        "placeholder": "Search academic research and clinical studies...",
+        "actions": {
+          "academic": "Academic Papers",
+          "clinical": "Clinical Trials",
+          "preprints": "Preprints"
+        },
+        "filters": {
+          "all": "All",
+          "peerReviewed": "Peer Reviewed",
+          "openAccess": "Open Access",
+          "highImpact": "High Impact"
+        },
+        "suggestions": {
+          "longevity": "Find papers on longevity and aging interventions",
+          "aiMedical": "Latest research on AI in medical diagnostics",
+          "climate": "Studies on climate change mitigation technologies",
+          "glp1": "Recent clinical trials on GLP-1 receptor agonists for obesity",
+          "alzheimers": "Phase 3 trials for Alzheimer's disease treatments in 2024",
+          "llm": "Latest arXiv preprints on large language models"
+        }
+      },
+      "security": {
+        "title": "Security",
+        "description": "Cyber, privacy tools"
+      },
+      "health": {
+        "title": "Health",
+        "description": "Longevity, clinical"
+      },
+      "travel": {
+        "title": "Travel",
+        "description": "Private, exclusive"
+      },
+      "realestate": {
+        "title": "Real Estate",
+        "description": "Luxury properties"
+      }
+    },
+    "search": {
+      "placeholder": "Search the web...",
+      "getStarted": "Get started with",
+      "exploreCategories": "Explore by Category",
+      "sources": "Sources",
+      "citations": "Citations",
+      "viewSource": "View source",
+      "modes": {
+        "search": "Search",
+        "research": "Research",
+        "analyze": "Analyze"
+      }
+    },
+    "image": {
+      "title": "Image Generation",
+      "placeholder": "Describe the image you want to create...",
+      "generate": "Generate",
+      "generating": "Generating image...",
+      "download": "Download",
+      "regenerate": "Regenerate",
+      "settings": {
+        "aspectRatio": "Aspect ratio",
+        "style": "Style",
+        "quality": "Quality"
+      },
+      "aspectRatios": {
+        "square": "Square (1:1)",
+        "landscape": "Landscape (16:9)",
+        "portrait": "Portrait (9:16)",
+        "wide": "Wide (21:9)"
+      }
+    },
+    "video": {
+      "title": "Video Generation",
+      "placeholder": "Describe the video you want to create...",
+      "generate": "Generate",
+      "generating": "Generating video...",
+      "download": "Download",
+      "settings": {
+        "duration": "Duration",
+        "resolution": "Resolution",
+        "style": "Style"
+      }
+    },
+    "models": {
+      "title": "Models",
+      "free": "Free",
+      "pro": "Pro",
+      "selectModel": "Select model",
+      "swissHosted": "Swiss-hosted",
+      "commercial": "Commercial",
+      "categories": {
+        "swiss": "Swiss Models",
+        "commercial": "Commercial Models",
+        "opensource": "Open Source"
+      }
+    },
+    "settings": {
+      "title": "Ghost Settings",
+      "general": "General",
+      "appearance": "Appearance",
+      "privacy": "Privacy",
+      "voice": "Voice",
+      "systemPrompt": "System Prompt",
+      "systemPromptPlaceholder": "Custom instructions for the AI...",
+      "temperature": "Temperature",
+      "topP": "Top P",
+      "enterSubmits": "Enter submits message",
+      "showDates": "Show message dates",
+      "webEnabled": "Web search enabled",
+      "voiceEnabled": "Voice responses enabled",
+      "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
+    },
+    "library": {
+      "title": "Library",
+      "images": "Images",
+      "videos": "Videos",
+      "all": "All",
+      "favorites": "Favorites",
+      "noItems": "No items in library",
+      "generateFirst": "Generate your first image or video"
+    },
+    "upgrade": {
+      "title": "Upgrade to Pro",
+      "description": "Unlock access to GPT-4o, Claude, and Gemini",
+      "features": {
+        "unlimitedChats": "Unlimited chats",
+        "commercialModels": "Commercial models",
+        "priorityAccess": "Priority access",
+        "advancedFeatures": "Advanced features"
+      },
+      "cta": "Upgrade now"
+    },
+    "credits": {
+      "title": "Credits",
+      "remaining": "Remaining",
+      "daily": "Daily credits",
+      "paid": "Paid credits",
+      "buyMore": "Buy more",
+      "unlimited": "Unlimited"
+    },
+    "errors": {
+      "failed": "Failed to process request",
+      "rateLimit": "Rate limit reached. Please try again later.",
+      "noCredits": "No credits remaining",
+      "modelUnavailable": "Model currently unavailable",
+      "networkError": "Network error. Check your connection."
+    },
+    "actions": {
+      "copyCode": "Copy code",
+      "readAloud": "Read aloud",
+      "stopReading": "Stop reading",
+      "shareChat": "Share chat",
+      "exportMarkdown": "Export as Markdown",
+      "exportJson": "Export as JSON"
+    },
+    "proFeature": "Pro Feature",
+    "upgradeToAccess": "Upgrade to access this feature"
   }
 }

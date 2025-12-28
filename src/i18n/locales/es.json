@@ -990,5 +990,286 @@
       "deleteModel": "Eliminar Modelo",
       "deleteModelDesc": "Elimina un modelo fine-tuned. Esto también elimina el checkpoint del modelo del almacenamiento."
     }
+  },
+  "ghost": {
+    "title": "Ghost Chat",
+    "subtitle": "Tu asistente de IA privado",
+    "modes": {
+      "text": "Texto",
+      "image": "Imagen",
+      "video": "Vídeo",
+      "search": "Búsqueda"
+    },
+    "chat": {
+      "placeholder": "Escribe tu mensaje...",
+      "send": "Enviar",
+      "stop": "Detener",
+      "newChat": "Nuevo chat",
+      "clearChat": "Limpiar chat",
+      "regenerate": "Regenerar",
+      "copy": "Copiar",
+      "copied": "¡Copiado!",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "rename": "Renombrar",
+      "download": "Descargar",
+      "export": "Exportar",
+      "import": "Importar",
+      "thinking": "Pensando...",
+      "generating": "Generando...",
+      "searching": "Buscando...",
+      "typing": "Escribiendo...",
+      "noMessages": "Sin mensajes aún",
+      "startConversation": "Inicia una conversación",
+      "enterMessage": "Escribe un mensaje para comenzar"
+    },
+    "sidebar": {
+      "chats": "Chats",
+      "folders": "Carpetas",
+      "discover": "Descubrir",
+      "library": "Biblioteca",
+      "settings": "Configuración",
+      "newFolder": "Nueva carpeta",
+      "allChats": "Todos los chats",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "thisWeek": "Esta semana",
+      "thisMonth": "Este mes",
+      "older": "Más antiguos",
+      "noChats": "Sin conversaciones",
+      "startNewChat": "Inicia un nuevo chat"
+    },
+    "modules": {
+      "finance": {
+        "title": "Finanzas",
+        "description": "Mercados, cripto, patrimonio",
+        "placeholder": "Pregunta sobre mercados financieros...",
+        "tabs": {
+          "us": "Mercados EE.UU.",
+          "european": "Europeo",
+          "swiss": "Suizo",
+          "latam": "Latam",
+          "asia": "Asia",
+          "mena": "MENA",
+          "crypto": "Cripto",
+          "earnings": "Ganancias",
+          "predictions": "Predicciones",
+          "screener": "Screener",
+          "watchlist": "Lista de seguimiento"
+        },
+        "suggestions": {
+          "markets": "¿Cómo están los mercados estadounidenses hoy?",
+          "crypto": "Dame un resumen del mercado cripto",
+          "stocks": "Analiza las acciones tecnológicas más activas",
+          "earnings": "¿Qué empresas reportan ganancias esta semana?"
+        }
+      },
+      "legal": {
+        "title": "Legal y Cumplimiento",
+        "description": "Cumplimiento, regulaciones",
+        "placeholder": "Pregunta sobre temas legales y de cumplimiento...",
+        "jurisdictions": {
+          "eu": "UE",
+          "us": "EE.UU.",
+          "ch": "CH",
+          "uk": "RU"
+        },
+        "actions": {
+          "regulatory": "Búsqueda Regulatoria",
+          "caselaw": "Jurisprudencia",
+          "compliance": "Verificación de Cumplimiento"
+        },
+        "suggestions": {
+          "regulatory": "Últimas actualizaciones regulatorias de {{jurisdiction}} para servicios financieros",
+          "dataProtection": "Requisitos de cumplimiento de protección de datos de {{jurisdiction}} 2024",
+          "crossBorder": "Marcos regulatorios transfronterizos que involucran {{jurisdiction}}",
+          "courtDecisions": "Decisiones judiciales recientes de {{jurisdiction}} sobre privacidad de datos",
+          "antitrust": "Casos emblemáticos de antimonopolio y competencia de {{jurisdiction}}",
+          "gdpr": "Lista de verificación de cumplimiento GDPR para operaciones en {{jurisdiction}}",
+          "aml": "Requisitos AML/KYC de {{jurisdiction}} para fintech"
+        }
+      },
+      "patents": {
+        "title": "Patentes",
+        "description": "Búsqueda de PI, arte previo",
+        "placeholder": "Pregunta sobre patentes y propiedad intelectual...",
+        "actions": {
+          "patentability": "Patentabilidad",
+          "landscape": "Panorama Tecnológico",
+          "rnd": "I+D"
+        },
+        "suggestions": {
+          "similar": "Encuentra patentes similares a mi invención de auriculares inalámbricos que monitorean el ritmo cardíaco",
+          "cpc": "Encuentra patentes agrupadas por subclase CPC más similares al número de patente US 10245367",
+          "priorArt": "Encuentra patentes que podrían calificar como arte previo para mi idea de una botella de agua autolimpiante",
+          "landscape": "Muestra el panorama de patentes para tecnología de baterías de estado sólido",
+          "trends": "Tendencias tecnológicas en patentes de vehículos autónomos 2020-2024",
+          "rndInvestment": "Tendencias de inversión en I+D en la industria de semiconductores"
+        }
+      },
+      "research": {
+        "title": "Investigación Académica",
+        "description": "Académico, clínico",
+        "placeholder": "Busca investigación académica y estudios clínicos...",
+        "actions": {
+          "academic": "Artículos Académicos",
+          "clinical": "Ensayos Clínicos",
+          "preprints": "Preprints"
+        },
+        "filters": {
+          "all": "Todos",
+          "peerReviewed": "Revisado por pares",
+          "openAccess": "Acceso abierto",
+          "highImpact": "Alto impacto"
+        },
+        "suggestions": {
+          "longevity": "Encuentra artículos sobre longevidad e intervenciones de envejecimiento",
+          "aiMedical": "Últimas investigaciones sobre IA en diagnósticos médicos",
+          "climate": "Estudios sobre tecnologías de mitigación del cambio climático",
+          "glp1": "Ensayos clínicos recientes sobre agonistas del receptor GLP-1 para obesidad",
+          "alzheimers": "Ensayos fase 3 para tratamientos del Alzheimer en 2024",
+          "llm": "Últimos preprints de arXiv sobre modelos de lenguaje grandes"
+        }
+      },
+      "security": {
+        "title": "Seguridad",
+        "description": "Ciber, herramientas de privacidad"
+      },
+      "health": {
+        "title": "Salud",
+        "description": "Longevidad, clínico"
+      },
+      "travel": {
+        "title": "Viajes",
+        "description": "Privado, exclusivo"
+      },
+      "realestate": {
+        "title": "Bienes Raíces",
+        "description": "Propiedades de lujo"
+      }
+    },
+    "search": {
+      "placeholder": "Buscar en la web...",
+      "getStarted": "Comenzar con",
+      "exploreCategories": "Explorar por Categoría",
+      "sources": "Fuentes",
+      "citations": "Citas",
+      "viewSource": "Ver fuente",
+      "modes": {
+        "search": "Buscar",
+        "research": "Investigar",
+        "analyze": "Analizar"
+      }
+    },
+    "image": {
+      "title": "Generación de Imágenes",
+      "placeholder": "Describe la imagen que quieres crear...",
+      "generate": "Generar",
+      "generating": "Generando imagen...",
+      "download": "Descargar",
+      "regenerate": "Regenerar",
+      "settings": {
+        "aspectRatio": "Relación de aspecto",
+        "style": "Estilo",
+        "quality": "Calidad"
+      },
+      "aspectRatios": {
+        "square": "Cuadrado (1:1)",
+        "landscape": "Paisaje (16:9)",
+        "portrait": "Retrato (9:16)",
+        "wide": "Panorámico (21:9)"
+      }
+    },
+    "video": {
+      "title": "Generación de Vídeo",
+      "placeholder": "Describe el vídeo que quieres crear...",
+      "generate": "Generar",
+      "generating": "Generando vídeo...",
+      "download": "Descargar",
+      "settings": {
+        "duration": "Duración",
+        "resolution": "Resolución",
+        "style": "Estilo"
+      }
+    },
+    "models": {
+      "title": "Modelos",
+      "free": "Gratis",
+      "pro": "Pro",
+      "selectModel": "Seleccionar modelo",
+      "swissHosted": "Alojado en Suiza",
+      "commercial": "Comercial",
+      "categories": {
+        "swiss": "Modelos Suizos",
+        "commercial": "Modelos Comerciales",
+        "opensource": "Código Abierto"
+      }
+    },
+    "settings": {
+      "title": "Configuración de Ghost",
+      "general": "General",
+      "appearance": "Apariencia",
+      "privacy": "Privacidad",
+      "voice": "Voz",
+      "systemPrompt": "Prompt del Sistema",
+      "systemPromptPlaceholder": "Instrucciones personalizadas para la IA...",
+      "temperature": "Temperatura",
+      "topP": "Top P",
+      "enterSubmits": "Enter envía mensaje",
+      "showDates": "Mostrar fechas de mensajes",
+      "webEnabled": "Búsqueda web habilitada",
+      "voiceEnabled": "Respuestas de voz habilitadas",
+      "theme": {
+        "title": "Tema",
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema"
+      }
+    },
+    "library": {
+      "title": "Biblioteca",
+      "images": "Imágenes",
+      "videos": "Vídeos",
+      "all": "Todo",
+      "favorites": "Favoritos",
+      "noItems": "Sin elementos en la biblioteca",
+      "generateFirst": "Genera tu primera imagen o vídeo"
+    },
+    "upgrade": {
+      "title": "Mejorar a Pro",
+      "description": "Desbloquea acceso a GPT-4o, Claude y Gemini",
+      "features": {
+        "unlimitedChats": "Chats ilimitados",
+        "commercialModels": "Modelos comerciales",
+        "priorityAccess": "Acceso prioritario",
+        "advancedFeatures": "Funciones avanzadas"
+      },
+      "cta": "Mejorar ahora"
+    },
+    "credits": {
+      "title": "Créditos",
+      "remaining": "Restantes",
+      "daily": "Créditos diarios",
+      "paid": "Créditos pagados",
+      "buyMore": "Comprar más",
+      "unlimited": "Ilimitado"
+    },
+    "errors": {
+      "failed": "Error al procesar la solicitud",
+      "rateLimit": "Límite de velocidad alcanzado. Inténtalo de nuevo más tarde.",
+      "noCredits": "Sin créditos restantes",
+      "modelUnavailable": "Modelo no disponible actualmente",
+      "networkError": "Error de red. Comprueba tu conexión."
+    },
+    "actions": {
+      "copyCode": "Copiar código",
+      "readAloud": "Leer en voz alta",
+      "stopReading": "Dejar de leer",
+      "shareChat": "Compartir chat",
+      "exportMarkdown": "Exportar como Markdown",
+      "exportJson": "Exportar como JSON"
+    },
+    "proFeature": "Función Pro",
+    "upgradeToAccess": "Mejora para acceder a esta función"
   }
 }
