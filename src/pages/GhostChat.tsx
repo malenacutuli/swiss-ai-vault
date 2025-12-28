@@ -171,7 +171,7 @@ function GhostChat() {
   const { balance, checkCredits, recordUsage, refreshCredits, isLoading: creditsLoading } = useGhostCredits();
 
   // Streaming inference hook
-  const { streamResponse, cancelStream, isStreaming, streamStatus, elapsedTime, lastResponseTime, lastTokenCount } = useGhostInference();
+  const { streamResponse, cancelStream, resetStreamState, isStreaming, streamStatus, elapsedTime, lastResponseTime, lastTokenCount } = useGhostInference();
 
   // Web search hook
   const webSearch = useGhostSearch();
@@ -267,6 +267,44 @@ function GhostChat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Stuck message recovery - detect and fix messages stuck in streaming state
+  useEffect(() => {
+    const STUCK_MESSAGE_TIMEOUT_MS = 120000; // 2 minutes
+    
+    const checkForStuckMessages = () => {
+      const now = Date.now();
+      const stuckMessages = messages.filter(
+        m => m.role === 'assistant' && m.isStreaming && m.timestamp && (now - m.timestamp > STUCK_MESSAGE_TIMEOUT_MS)
+      );
+      
+      if (stuckMessages.length > 0) {
+        console.warn('[GhostChat] Found stuck streaming messages:', stuckMessages.map(m => m.id));
+        
+        setMessages(prev => prev.map(msg => {
+          if (msg.isStreaming && msg.role === 'assistant' && msg.timestamp && (now - msg.timestamp > STUCK_MESSAGE_TIMEOUT_MS)) {
+            return {
+              ...msg,
+              isStreaming: false,
+              content: msg.content.trim() || 'Response timed out. Please try again.',
+            };
+          }
+          return msg;
+        }));
+        
+        // Also reset the stream state in the hook
+        resetStreamState();
+      }
+    };
+    
+    // Check every 30 seconds
+    const interval = setInterval(checkForStuckMessages, 30000);
+    
+    // Also check immediately when messages change
+    checkForStuckMessages();
+    
+    return () => clearInterval(interval);
+  }, [messages, resetStreamState]);
 
   // Convert conversations for sidebar (temporary chats are already filtered out by listConversations)
   const sidebarConversations: GhostConversation[] = conversations.map(c => ({
@@ -1458,6 +1496,7 @@ function GhostChat() {
                         status={streamStatus}
                         elapsedTime={elapsedTime}
                         model={selectedModels.text}
+                        onCancel={cancelStream}
                       />
                     )}
                     <div ref={messagesEndRef} className="h-32" />
