@@ -7,6 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Product price IDs for different tiers
+const TIER_PRICES: Record<string, { priceId: string; name: string }> = {
+  'vault_pro': { priceId: 'price_1Sd2izCAKg7jOuBKAeTfXgcp', name: 'Vault Chat Private Edition' },
+  'ghost_pro': { priceId: 'price_ghost_pro_monthly', name: 'Ghost Pro' },
+  'swissvault_pro': { priceId: 'price_swissvault_pro_monthly', name: 'SwissVault Pro' },
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +31,20 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
+    // Parse request body to get tier (defaults to vault_pro for backward compatibility)
+    let tier = 'vault_pro';
+    try {
+      const body = await req.json();
+      if (body.tier && TIER_PRICES[body.tier]) {
+        tier = body.tier;
+      }
+    } catch {
+      // No body or invalid JSON, use default tier
+    }
+
+    const tierConfig = TIER_PRICES[tier];
+    console.log(`[create-pro-checkout] Creating checkout for tier: ${tier}`);
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -34,21 +55,35 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
+    // Determine success/cancel URLs based on tier
+    const successUrl = tier.startsWith('ghost') || tier === 'swissvault_pro'
+      ? `${req.headers.get("origin")}/ghost?subscription=success`
+      : `${req.headers.get("origin")}/dashboard?subscription=success`;
+    
+    const cancelUrl = tier.startsWith('ghost') || tier === 'swissvault_pro'
+      ? `${req.headers.get("origin")}/ghost?subscription=cancelled`
+      : `${req.headers.get("origin")}/#pricing`;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1Sd2izCAKg7jOuBKAeTfXgcp", // Vault Chat Private Edition - $200/month
+          price: tierConfig.priceId,
           quantity: 1,
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/dashboard?subscription=success`,
-      cancel_url: `${req.headers.get("origin")}/#pricing`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        user_id: user.id,
+        tier: tier,
+        type: 'pro_subscription',
+      },
     });
 
-    console.log("Created checkout session:", session.id);
+    console.log("[create-pro-checkout] Created checkout session:", session.id);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -56,7 +91,7 @@ serve(async (req) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Checkout error:", errorMessage);
+    console.error("[create-pro-checkout] Checkout error:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
