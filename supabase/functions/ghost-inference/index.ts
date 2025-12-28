@@ -652,16 +652,19 @@ async function callGoogle(
   const apiKey = getApiKey('google');
   if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
   
+  // Map display names to actual Google API model names
+  // NOTE: gemini-3-* models don't exist yet, redirecting to 2.5-pro
   const modelMap: Record<string, string> = {
     'gemini-2.0-flash': 'gemini-2.0-flash-exp',
     'gemini-2.0-pro': 'gemini-2.0-pro-exp',
     'gemini-1.5-pro': 'gemini-1.5-pro',
     'gemini-1.5-flash': 'gemini-1.5-flash',
-    'gemini-2.5-pro': 'gemini-2.5-pro',
-    'gemini-2.5-flash': 'gemini-2.5-flash',
-    'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite-preview',
-    'gemini-3-pro': 'gemini-3-pro',
-    'gemini-3-flash': 'gemini-3-flash-preview',
+    'gemini-2.5-pro': 'gemini-2.5-pro-preview-06-05',
+    'gemini-2.5-flash': 'gemini-2.5-flash-preview-05-20',
+    'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite-preview-06-17',
+    // gemini-3 models don't exist - redirect to best available
+    'gemini-3-pro': 'gemini-2.5-pro-preview-06-05',
+    'gemini-3-flash': 'gemini-2.5-flash-preview-05-20',
   };
   
   const googleModel = modelMap[model] || model;
