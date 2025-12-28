@@ -42,7 +42,7 @@ i18n
       ca: { translation: ca },
       nl: { translation: nl },
       ja: { translation: ja },
-      ru: { translation: ru },
+      ru: { translation: ru }
     },
     fallbackLng: 'en',
     interpolation: {
