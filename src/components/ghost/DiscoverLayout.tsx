@@ -4,6 +4,10 @@ import { useGhostStorage } from '@/hooks/useGhostStorage';
 import { useGhostFolders } from '@/hooks/useGhostFolders';
 import { useNavigate } from 'react-router-dom';
 import { GhostSettings } from './GhostSettings';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Button } from '@/components/ui/button';
+import { Menu, X, Sun, Moon } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface DiscoverLayoutProps {
   children: React.ReactNode;
@@ -15,6 +19,22 @@ export function DiscoverLayout({ children, activeModule }: DiscoverLayoutProps) 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    setTheme(initialTheme);
+    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
   
   const {
     conversations,
@@ -65,7 +85,7 @@ export function DiscoverLayout({ children, activeModule }: DiscoverLayoutProps) 
   };
 
   return (
-    <div className="flex min-h-screen bg-[#FAFAFB]">
+    <div className="flex min-h-screen bg-[#FAFAFB] dark:bg-background">
       <GhostSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -85,7 +105,37 @@ export function DiscoverLayout({ children, activeModule }: DiscoverLayoutProps) 
         activeModule={activeModule}
       />
       
-      {children}
+      <div className="flex-1 flex flex-col">
+        {/* Consistent Header */}
+        <header className="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 py-3 border-b border-border/60 bg-background">
+          <div className="flex items-center gap-4">
+            {/* Mobile menu toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+            <span className="text-sm font-medium text-muted-foreground capitalize">{activeModule}</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </Button>
+          </div>
+        </header>
+
+        {children}
+      </div>
 
       <GhostSettings
         open={showSettings}
