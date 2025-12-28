@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,15 @@ import {
   Check,
   Home,
   MoreHorizontal,
+  TrendingUp,
+  Scale,
+  Lightbulb,
+  BookOpen,
+  Shield,
+  Plane,
+  Activity,
+  Compass,
+  LucideIcon,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -41,6 +50,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { GhostModeToggle } from './GhostModeToggle';
+import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
+
+// Discover module definitions
+interface DiscoverModule {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  description: string;
+  route: string;
+  isPro?: boolean;
+}
+
+const ALL_DISCOVER_MODULES: DiscoverModule[] = [
+  { id: 'finance', name: 'Finance', icon: TrendingUp, description: 'Markets, crypto, wealth', route: '/ghost/finance' },
+  { id: 'legal', name: 'Legal', icon: Scale, description: 'Compliance, regulations', route: '/ghost/legal' },
+  { id: 'patents', name: 'Patents', icon: Lightbulb, description: 'IP search, prior art', route: '/ghost/patents' },
+  { id: 'research', name: 'Research', icon: BookOpen, description: 'Academic, clinical', route: '/ghost/research' },
+  { id: 'security', name: 'Security', icon: Shield, description: 'Cyber, privacy tools', route: '/ghost/security' },
+  { id: 'health', name: 'Health', icon: Activity, description: 'Longevity, clinical', route: '/ghost/health', isPro: true },
+  { id: 'travel', name: 'Travel', icon: Plane, description: 'Private, exclusive', route: '/ghost/travel', isPro: true },
+  { id: 'realestate', name: 'Real Estate', icon: Home, description: 'Luxury properties', route: '/ghost/realestate', isPro: true },
+];
+
+const DEFAULT_ENABLED_MODULES = ['finance', 'legal', 'patents', 'research'];
 
 export interface GhostConversation {
   id: string;
@@ -104,6 +137,7 @@ export function GhostSidebar({
   onOpenSettings,
 }: GhostSidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [isHovered, setIsHovered] = useState(false);
@@ -117,6 +151,24 @@ export function GhostSidebar({
   const [editingFolderName, setEditingFolderName] = useState('');
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatTitle, setEditingChatTitle] = useState('');
+
+  // Discover modules state
+  const [enabledModules, setEnabledModules] = useState<string[]>(DEFAULT_ENABLED_MODULES);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+
+  // Load enabled modules from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('ghost-discover-modules');
+    if (saved) {
+      try {
+        setEnabledModules(JSON.parse(saved));
+      } catch {}
+    }
+  }, []);
+
+  const visibleModules = ALL_DISCOVER_MODULES.filter(m => enabledModules.includes(m.id));
+  const hiddenModules = ALL_DISCOVER_MODULES.filter(m => !enabledModules.includes(m.id));
 
   // Expanded state = sidebar open OR hovered
   const isExpanded = isOpen || isHovered;
@@ -565,6 +617,113 @@ export function GhostSidebar({
           )}
         </ScrollArea>
 
+        {/* Discover Section */}
+        <div className="border-t border-border/40 p-2">
+          {isExpanded && (
+            <div className="flex items-center justify-between px-2 py-1 mb-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+                <Compass className="w-3 h-3" />
+                Discover
+              </span>
+            </div>
+          )}
+          
+          <div className="space-y-0.5">
+            {visibleModules.map((module) => {
+              const isActive = location.pathname === module.route;
+              const Icon = module.icon;
+              
+              return (
+                <Tooltip key={module.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navigate(module.route)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-all",
+                        isActive
+                          ? "bg-primary/15 text-primary font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      {isExpanded && (
+                        <>
+                          <span className="truncate flex-1 text-left text-[13px]">{module.name}</span>
+                          {module.isPro && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                              PRO
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {!isExpanded && (
+                    <TooltipContent side="right" sideOffset={8}>
+                      <div>
+                        <div className="font-medium">{module.name}</div>
+                        <div className="text-xs text-muted-foreground">{module.description}</div>
+                      </div>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              );
+            })}
+            
+            {/* More Menu */}
+            {hiddenModules.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                >
+                  <MoreHorizontal className="w-4 h-4 shrink-0" />
+                  {isExpanded && <span className="text-[13px]">More</span>}
+                </button>
+                
+                {showMoreMenu && isExpanded && (
+                  <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-lg shadow-lg p-1 z-50">
+                    {hiddenModules.map((module) => {
+                      const Icon = module.icon;
+                      return (
+                        <button
+                          key={module.id}
+                          onClick={() => {
+                            navigate(module.route);
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span>{module.name}</span>
+                          {module.isPro && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium ml-auto">
+                              PRO
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    
+                    <div className="border-t border-border/60 mt-1 pt-1">
+                      <button
+                        onClick={() => {
+                          setShowCustomizeModal(true);
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded"
+                      >
+                        <Settings className="w-4 h-4 shrink-0" />
+                        <span>Customize Sidebar</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Bottom navigation */}
         <div className="flex flex-col gap-1 p-2 border-t border-border/60">
           <IconButton 
@@ -579,6 +738,17 @@ export function GhostSidebar({
           />
         </div>
       </aside>
+
+      {/* Customize Modal */}
+      <GhostCustomizeSidebar
+        open={showCustomizeModal}
+        onOpenChange={setShowCustomizeModal}
+        enabledModules={enabledModules}
+        onSave={(modules) => {
+          setEnabledModules(modules);
+          localStorage.setItem('ghost-discover-modules', JSON.stringify(modules));
+        }}
+      />
 
       {/* Mobile toggle button */}
       {!isOpen && (
