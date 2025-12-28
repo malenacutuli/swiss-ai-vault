@@ -1133,7 +1133,8 @@
       "text": "Texto",
       "image": "Imagen",
       "video": "Vídeo",
-      "search": "Búsqueda"
+      "search": "Búsqueda",
+      "new": "Nuevo"
     },
     "input": {
       "textPlaceholder": "Pregunta cualquier cosa en privado...",

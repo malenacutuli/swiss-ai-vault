@@ -1131,7 +1131,8 @@
       "text": "Text",
       "image": "Image",
       "video": "Video",
-      "search": "Search"
+      "search": "Search",
+      "new": "New"
     },
     "input": {
       "textPlaceholder": "Ask anything privately...",
