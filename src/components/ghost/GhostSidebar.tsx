@@ -113,6 +113,7 @@ interface GhostSidebarProps {
   userCredits?: number;
   isPro?: boolean;
   onOpenSettings: () => void;
+  activeModule?: 'chat' | 'finance' | 'legal' | 'patents' | 'research';
 }
 
 export function GhostSidebar({
@@ -135,6 +136,7 @@ export function GhostSidebar({
   userCredits = 0,
   isPro = false,
   onOpenSettings,
+  activeModule = 'chat',
 }: GhostSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -591,27 +593,24 @@ export function GhostSidebar({
               </div>
             </div>
           ) : (
-            // Collapsed: show recent chat icons
-            <div className="flex flex-col gap-1 py-2">
+            // Collapsed: show icons with stacked labels (professional style)
+            <div className="flex flex-col gap-2 py-2">
               {unfolderedChats.slice(0, 5).map(conv => (
-                <Tooltip key={conv.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => onSelectConversation(conv.id)}
-                      className={cn(
-                        'flex items-center justify-center w-full p-2 rounded-lg transition-colors duration-150',
-                        selectedConversation === conv.id
-                          ? 'bg-muted text-foreground'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                      )}
-                    >
-                      {conv.isTemporary ? <Clock className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}>
-                    {conv.title}
-                  </TooltipContent>
-                </Tooltip>
+                <button
+                  key={conv.id}
+                  onClick={() => onSelectConversation(conv.id)}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-0.5 w-full py-2 rounded-lg transition-colors duration-150',
+                    selectedConversation === conv.id
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                  )}
+                >
+                  {conv.isTemporary ? <Clock className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                  <span className="text-[9px] font-medium truncate max-w-[48px] leading-tight">
+                    {conv.title.slice(0, 8)}
+                  </span>
+                </button>
               ))}
             </div>
           )}
@@ -630,7 +629,7 @@ export function GhostSidebar({
           
           <div className="space-y-0.5">
             {visibleModules.map((module) => {
-              const isActive = location.pathname === module.route;
+              const isActive = activeModule === module.id || location.pathname === module.route;
               const Icon = module.icon;
               
               return (

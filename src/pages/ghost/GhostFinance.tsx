@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { SimpleSidebar } from '@/components/layout/SimpleSidebar';
+import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
+import { MarketSparkline } from '@/components/ghost/MarketSparkline';
+import { MarketSummary } from '@/components/ghost/MarketSummary';
+import { WatchlistSidebar } from '@/components/ghost/WatchlistSidebar';
 import { 
-  TrendingUp, Search, Star, Bell, ArrowRight, 
-  Loader2, ExternalLink, RefreshCw, ArrowLeft
+  TrendingUp, Search, Bell, ArrowRight, 
+  Loader2, ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,13 +33,20 @@ interface SearchResult {
   moduleName: string;
 }
 
+const MARKET_TABS = [
+  { id: 'us', label: 'US Markets' },
+  { id: 'crypto', label: 'Crypto' },
+  { id: 'earnings', label: 'Earnings' },
+  { id: 'predictions', label: 'Predictions' },
+  { id: 'screener', label: 'Screener' },
+  { id: 'watchlist', label: 'Watchlist' },
+];
+
 export default function GhostFinance() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
-  const [activeTab, setActiveTab] = useState('markets');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState('us');
   
   // Sample market data - in production, fetch from API
   const marketData: MarketTicker[] = [
@@ -45,13 +54,6 @@ export default function GhostFinance() {
     { symbol: 'QQQ', name: 'NASDAQ', price: 21543.20, change: 45.67, changePercent: 0.21 },
     { symbol: 'DIA', name: 'Dow Jones', price: 43789.50, change: -89.12, changePercent: -0.20 },
     { symbol: 'VIX', name: 'VIX', price: 13.45, change: 0.34, changePercent: 2.59 },
-  ];
-
-  const watchlist = [
-    { symbol: 'TSLA', name: 'Tesla, Inc.', price: 475.19, change: -2.10 },
-    { symbol: 'NVDA', name: 'NVIDIA Corp', price: 134.50, change: 1.23 },
-    { symbol: 'META', name: 'Meta Platforms', price: 612.30, change: -0.64 },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 198.45, change: -0.22 },
   ];
 
   const suggestions = [
@@ -83,15 +85,8 @@ export default function GhostFinance() {
     }
   };
 
-  const tabs = ['Markets', 'Crypto', 'Earnings', 'Predictions', 'Watchlist'];
-
   return (
-    <div className="flex min-h-screen bg-[#FEFEFB]">
-      <SimpleSidebar 
-        collapsed={sidebarCollapsed} 
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
-      />
-      
+    <DiscoverLayout activeModule="finance">
       <div className="flex-1 flex">
         {/* Main Content */}
         <div className="flex-1 max-w-4xl mx-auto px-6 py-8">
@@ -101,14 +96,14 @@ export default function GhostFinance() {
               {/* Title Row */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#2A8C86]/10 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-[#2A8C86]" />
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-slate-500" />
                   </div>
-                  <h1 className="text-2xl font-semibold text-foreground">Finance</h1>
+                  <h1 className="text-xl font-semibold text-slate-900">Finance</h1>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="gap-2 text-muted-foreground">
+                  <Button variant="outline" size="sm" className="gap-2 text-slate-500 border-slate-200">
                     <Bell className="w-4 h-4" />
                     Price Alert
                   </Button>
@@ -117,18 +112,18 @@ export default function GhostFinance() {
 
               {/* Search Bar */}
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   placeholder="Search for stocks, crypto, and more..."
-                  className="pl-12 pr-12 h-12 text-base rounded-xl border-border/50 bg-white shadow-sm"
+                  className="pl-12 pr-12 h-12 text-base rounded-xl border-slate-200/60 bg-white shadow-sm text-slate-900 placeholder:text-slate-400"
                 />
                 <button
                   onClick={handleSearch}
                   disabled={isSearching}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-muted transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   {isSearching ? (
                     <Loader2 className="w-5 h-5 text-[#2A8C86] animate-spin" />
@@ -138,21 +133,21 @@ export default function GhostFinance() {
                 </button>
               </div>
 
-              {/* Tabs */}
-              <div className="flex items-center gap-1 border-b border-border/30">
-                {tabs.map((tab) => (
+              {/* Tabs - Professional text-only style */}
+              <div className="flex items-center gap-1 border-b border-slate-200/60">
+                {MARKET_TABS.map(tab => (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab.toLowerCase())}
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
                     className={cn(
                       "px-4 py-2.5 text-sm font-medium transition-colors relative",
-                      activeTab === tab.toLowerCase()
-                        ? "text-[#2A8C86]"
-                        : "text-muted-foreground hover:text-foreground"
+                      activeTab === tab.id 
+                        ? "text-slate-900" 
+                        : "text-slate-500 hover:text-slate-700"
                     )}
                   >
-                    {tab}
-                    {activeTab === tab.toLowerCase() && (
+                    {tab.label}
+                    {activeTab === tab.id && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2A8C86]" />
                     )}
                   </button>
@@ -162,42 +157,53 @@ export default function GhostFinance() {
           </div>
 
           {/* Content */}
-          <div className="space-y-6">
-            {/* Market Tickers */}
+          <div className="space-y-8">
+            {/* Market Tickers with Sparklines */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {marketData.map((ticker) => (
-                <Card key={ticker.symbol} className="p-4 bg-white border-border/40 hover:shadow-md transition-shadow cursor-pointer">
+                <Card 
+                  key={ticker.symbol} 
+                  className="p-4 bg-white border-slate-200/60 hover:shadow-md transition-shadow cursor-pointer"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">{ticker.name}</span>
+                    <span className="text-sm text-slate-500">{ticker.name}</span>
                     <span className={cn(
                       "text-xs font-medium px-1.5 py-0.5 rounded",
                       ticker.changePercent >= 0 
-                        ? "bg-green-100 text-green-700" 
-                        : "bg-red-100 text-red-700"
+                        ? "bg-green-50 text-green-700" 
+                        : "bg-red-50 text-red-700"
                     )}>
-                      {ticker.changePercent >= 0 ? '↗' : '↘'} {Math.abs(ticker.changePercent).toFixed(2)}%
+                      {ticker.changePercent >= 0 ? '↑' : '↓'} {Math.abs(ticker.changePercent).toFixed(2)}%
                     </span>
                   </div>
-                  <div className="text-xl font-semibold text-foreground">
-                    {ticker.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  
+                  {/* Sparkline */}
+                  <div className="my-2">
+                    <MarketSparkline changePercent={ticker.changePercent} />
                   </div>
-                  <p className={cn(
-                    "text-sm",
-                    ticker.change >= 0 ? "text-green-600" : "text-red-600"
-                  )}>
-                    {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(2)}
-                  </p>
+                  
+                  <div className="flex items-end justify-between">
+                    <div className="text-xl font-semibold text-slate-900">
+                      {ticker.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                    <p className={cn(
+                      "text-sm font-medium",
+                      ticker.change >= 0 ? "text-green-600" : "text-red-600"
+                    )}>
+                      {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(2)}
+                    </p>
+                  </div>
                 </Card>
               ))}
             </div>
 
             {/* Search Result */}
             {result && (
-              <Card className="p-6 bg-white border-border/40">
-                <div className="prose prose-sm max-w-none text-foreground">
+              <Card className="p-6 bg-white border-slate-200/60">
+                <div className="prose prose-sm max-w-none text-slate-700">
                   {result.content.split('\n').map((paragraph, i) => (
                     paragraph.trim() && (
-                      <p key={i} className="mb-3 text-foreground/90 leading-relaxed">
+                      <p key={i} className="mb-3 leading-relaxed">
                         {paragraph}
                       </p>
                     )
@@ -205,7 +211,7 @@ export default function GhostFinance() {
                 </div>
                 
                 {result.citations && result.citations.length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-border/30">
+                  <div className="mt-6 pt-4 border-t border-slate-100">
                     <div className="flex flex-wrap gap-2">
                       {result.citations.map((citation) => (
                         <a
@@ -213,7 +219,7 @@ export default function GhostFinance() {
                           href={citation.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/50 hover:bg-muted rounded-full text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 rounded-full text-xs text-slate-600 hover:text-slate-900 transition-colors"
                         >
                           <span className="text-[#2A8C86] font-medium">[{citation.index}]</span>
                           <span className="truncate max-w-[120px]">
@@ -228,10 +234,13 @@ export default function GhostFinance() {
               </Card>
             )}
 
+            {/* Market Summary */}
+            {!result && <MarketSummary />}
+
             {/* Suggestions */}
             {!result && (
               <div className="space-y-4">
-                <h3 className="text-sm font-medium text-muted-foreground">Get started</h3>
+                <h3 className="text-sm font-medium text-slate-500">Get started</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {suggestions.map((suggestion, i) => (
                     <button
@@ -240,7 +249,7 @@ export default function GhostFinance() {
                         setQuery(suggestion);
                         setTimeout(handleSearch, 100);
                       }}
-                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-border/40 text-left text-sm transition-all text-foreground"
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200/60 text-left text-sm transition-all text-slate-700"
                     >
                       <ArrowRight className="w-4 h-4 text-[#2A8C86] flex-shrink-0" />
                       {suggestion}
@@ -253,89 +262,10 @@ export default function GhostFinance() {
         </div>
 
         {/* Right Sidebar */}
-        <div className="hidden lg:block w-80 border-l border-border/30 bg-white/50 p-6">
-          {/* Date & Sentiment */}
-          <div className="mb-6">
-            <p className="text-xs text-muted-foreground mb-3">Dec 28, 2025, EST • Pre-market</p>
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-0.5">
-                {[...Array(8)].map((_, i) => (
-                  <div 
-                    key={i}
-                    className="w-2 h-8 rounded-full bg-[#2A8C86]" 
-                    style={{ opacity: 0.3 + (i * 0.1) }}
-                  />
-                ))}
-              </div>
-              <span className="text-sm text-muted-foreground">Bullish Sentiment</span>
-            </div>
-          </div>
-
-          {/* Watchlist */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-foreground">Watchlist</h3>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Star className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {watchlist.map((item) => (
-                <div 
-                  key={item.symbol}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                      {item.symbol.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.symbol}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">${item.price.toFixed(2)}</p>
-                    <p className={cn(
-                      "text-xs",
-                      item.change >= 0 ? "text-green-600" : "text-red-600"
-                    )}>
-                      {item.change >= 0 ? '↗' : '↘'} {Math.abs(item.change).toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Prediction Markets */}
-          <div>
-            <h3 className="font-medium text-foreground mb-4">Prediction Markets</h3>
-            <Card className="p-4 bg-white border-border/40">
-              <p className="text-sm font-medium text-foreground mb-3">Fed decision in January?</p>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">No change</span>
-                  <span className="font-medium text-foreground">86.0% <span className="text-green-600">↗2.0%</span></span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">25 bps decrease</span>
-                  <span className="font-medium text-foreground">13.0% <span className="text-red-600">↘1.0%</span></span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">50+ bps decrease</span>
-                  <span className="font-medium text-foreground">1.0%</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-                <RefreshCw className="w-3 h-3" />
-                $72M vol. • via Polymarket
-              </p>
-            </Card>
-          </div>
+        <div className="hidden lg:block">
+          <WatchlistSidebar />
         </div>
       </div>
-    </div>
+    </DiscoverLayout>
   );
 }
