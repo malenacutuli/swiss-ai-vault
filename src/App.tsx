@@ -65,6 +65,7 @@ import APIPricing from "./pages/APIPricing";
 import GhostSignup from "./pages/auth/GhostSignup";
 import GhostFinance from "./pages/ghost/GhostFinance";
 import GhostPatents from "./pages/ghost/GhostPatents";
+import GhostLegal from "./pages/ghost/GhostLegal";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,7 @@ const App = () => {
                 <Route path="/ghost/library" element={<ProtectedRoute><GhostLibrary /></ProtectedRoute>} />
                 <Route path="/ghost/finance" element={<GhostFinance />} />
                 <Route path="/ghost/patents" element={<GhostPatents />} />
+                <Route path="/ghost/legal" element={<GhostLegal />} />
                 
                 {/* Ghost Auth routes */}
                 <Route path="/auth/ghost-signup" element={<GhostSignup />} />
