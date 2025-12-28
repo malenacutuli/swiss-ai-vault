@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.ghost-discover]
 verify_jwt = true
+
+[functions.ghost-finance-data]
+verify_jwt = true

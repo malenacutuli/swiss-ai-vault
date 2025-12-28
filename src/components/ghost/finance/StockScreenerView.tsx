@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Filter, ChevronDown } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Filter, ChevronDown, RefreshCw, AlertCircle } from 'lucide-react';
+import { useFinanceData, StockData } from '@/hooks/useFinanceData';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -12,37 +14,63 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface Stock {
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  marketCap: string;
-  pe: number;
-  dividend: number;
-  sectorKey: string;
-}
-
-const stocks: Stock[] = [
-  { symbol: 'AAPL', name: 'Apple Inc.', price: 190.53, change: 1.02, marketCap: '$2.95T', pe: 28.4, dividend: 0.52, sectorKey: 'technology' },
-  { symbol: 'MSFT', name: 'Microsoft Corp.', price: 378.91, change: -0.34, marketCap: '$2.81T', pe: 35.2, dividend: 0.75, sectorKey: 'technology' },
-  { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 134.50, change: 2.15, marketCap: '$3.31T', pe: 62.8, dividend: 0.04, sectorKey: 'technology' },
-  { symbol: 'JNJ', name: 'Johnson & Johnson', price: 145.20, change: -0.89, marketCap: '$349B', pe: 14.2, dividend: 3.12, sectorKey: 'healthcare' },
-  { symbol: 'JPM', name: 'JPMorgan Chase', price: 198.75, change: 1.45, marketCap: '$570B', pe: 11.8, dividend: 2.35, sectorKey: 'finance' },
-  { symbol: 'V', name: 'Visa Inc.', price: 289.40, change: 0.78, marketCap: '$571B', pe: 29.6, dividend: 0.72, sectorKey: 'finance' },
-];
-
 const sectorKeys = ['all', 'technology', 'healthcare', 'finance', 'consumer', 'energy'];
 const sortOptionKeys = ['marketCap', 'price', 'change', 'pe', 'dividend'];
 
 export function StockScreenerView() {
   const { t } = useTranslation();
+  const { data, isLoading, error, refresh, lastUpdated } = useFinanceData<StockData[]>('screener');
   const [selectedSector, setSelectedSector] = useState('all');
   const [sortBy, setSortBy] = useState('marketCap');
   const [searchQuery, setSearchQuery] = useState('');
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-9 w-40" />
+        </div>
+        <Card className="overflow-hidden bg-white border-slate-200/60">
+          <div className="p-4 space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between py-2">
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-5 w-12" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-8 bg-white border-slate-200/60 text-center">
+        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+        <h4 className="text-base font-medium text-slate-900 mb-1">
+          {t('ghost.modules.finance.views.screener.errorTitle')}
+        </h4>
+        <p className="text-sm text-slate-500 mb-4">{error}</p>
+        <Button variant="outline" onClick={refresh} className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          {t('common.retry')}
+        </Button>
+      </Card>
+    );
+  }
+
+  const stocks = data || [];
+  
   const filteredStocks = stocks.filter(stock => {
-    const matchesSector = selectedSector === 'all' || stock.sectorKey === selectedSector;
+    const matchesSector = selectedSector === 'all' || stock.sector === selectedSector;
     const matchesSearch = stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           stock.symbol.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSector && matchesSearch;
@@ -51,7 +79,7 @@ export function StockScreenerView() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-xs">
           <Input
             placeholder={t('ghost.modules.finance.views.screener.searchPlaceholder')}
@@ -93,6 +121,17 @@ export function StockScreenerView() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <Button variant="ghost" size="sm" onClick={refresh} className="gap-2 h-9">
+          <RefreshCw className="w-3.5 h-3.5" />
+          {t('common.refresh')}
+        </Button>
+
+        <div className="text-xs text-slate-500">
+          {lastUpdated && t('ghost.modules.finance.views.screener.lastUpdated', { 
+            time: new Date(lastUpdated).toLocaleTimeString() 
+          })}
+        </div>
       </div>
 
       {/* Results Table */}

@@ -1,19 +1,58 @@
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { MarketSparkline } from '@/components/ghost/MarketSparkline';
+import { useFinanceData, RegionalMarketData } from '@/hooks/useFinanceData';
 import { cn } from '@/lib/utils';
 
-const swissMarkets = [
-  { symbol: 'SMI', name: 'Swiss Market Index', price: 11892.45, change: 78.30, changePercent: 0.66 },
-  { symbol: 'NESN', name: 'Nestlé', price: 87.42, change: 0.85, changePercent: 0.98 },
-  { symbol: 'NOVN', name: 'Novartis', price: 92.18, change: -0.42, changePercent: -0.45 },
-  { symbol: 'UBSG', name: 'UBS Group', price: 28.45, change: 0.32, changePercent: 1.14 },
-];
-
 export function SwissMarketsView() {
+  const { t } = useTranslation();
+  const { data, isLoading, error, refresh } = useFinanceData<RegionalMarketData>('markets', 'swiss');
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="p-4 bg-white border-slate-200/60">
+              <Skeleton className="h-4 w-20 mb-2" />
+              <Skeleton className="h-12 w-full my-2" />
+              <Skeleton className="h-6 w-24" />
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-8 bg-white border-slate-200/60 text-center">
+        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+        <p className="text-sm text-slate-500 mb-4">{error}</p>
+        <Button variant="outline" onClick={refresh} className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          {t('common.retry')}
+        </Button>
+      </Card>
+    );
+  }
+
+  const markets = data?.markets || [];
+  const summary = data?.summary || '';
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" onClick={refresh} className="gap-2 h-8">
+          <RefreshCw className="w-3.5 h-3.5" />
+          {t('common.refresh')}
+        </Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {swissMarkets.map((ticker) => (
+        {markets.map((ticker) => (
           <Card key={ticker.symbol} className="p-4 bg-white border-slate-200/60 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-slate-500">{ticker.name}</span>
@@ -39,14 +78,12 @@ export function SwissMarketsView() {
         ))}
       </div>
       
-      <Card className="p-6 bg-white border-slate-200/60">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Swiss Market Summary</h3>
-        <p className="text-slate-600 text-sm leading-relaxed">
-          The SMI continues its steady climb with defensive stocks leading. UBS shows strength following 
-          positive earnings outlook. Nestlé benefits from stable consumer demand while Novartis faces 
-          pressure from patent expiration concerns.
-        </p>
-      </Card>
+      {summary && (
+        <Card className="p-6 bg-white border-slate-200/60">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('ghost.modules.finance.views.markets.summary')}</h3>
+          <p className="text-slate-600 text-sm leading-relaxed">{summary}</p>
+        </Card>
+      )}
     </div>
   );
 }

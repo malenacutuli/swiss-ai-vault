@@ -1230,9 +1230,14 @@
           }
         },
         "views": {
+          "markets": {
+            "summary": "Market Summary"
+          },
           "crypto": {
             "mcap": "MCap",
-            "topMovers": "Top Movers (24h)"
+            "topMovers": "Top Movers (24h)",
+            "lastUpdated": "Updated at {{time}}",
+            "errorTitle": "Unable to load crypto data"
           },
           "earnings": {
             "upcoming": "Upcoming Earnings",
@@ -1243,10 +1248,16 @@
             "estimate": "Estimate",
             "actual": "Actual",
             "beat": "Beat",
-            "miss": "Miss"
+            "miss": "Miss",
+            "lastUpdated": "Updated at {{time}}",
+            "errorTitle": "Unable to load earnings data",
+            "noUpcoming": "No upcoming earnings in the next 2 weeks"
           },
           "predictions": {
             "volume": "Volume",
+            "lastUpdated": "Updated at {{time}}",
+            "errorTitle": "Unable to load predictions",
+            "sources": "Sources",
             "categories": {
               "economics": "Economics",
               "crypto": "Crypto",
@@ -1268,6 +1279,8 @@
           "screener": {
             "searchPlaceholder": "Search stocks...",
             "sortBy": "Sort",
+            "lastUpdated": "Updated at {{time}}",
+            "errorTitle": "Unable to load stock data",
             "sectors": {
               "all": "All Sectors",
               "technology": "Technology",
@@ -1297,6 +1310,8 @@
             "title": "Your Watchlist",
             "addStock": "Add Stock",
             "alertAt": "Alert at",
+            "lastUpdated": "Updated at {{time}}",
+            "errorTitle": "Unable to load watchlist",
             "emptyTitle": "No stocks in your watchlist",
             "emptyDescription": "Add stocks to track their performance",
             "addFirstStock": "Add Your First Stock"
