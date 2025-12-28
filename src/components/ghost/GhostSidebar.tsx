@@ -71,7 +71,7 @@ const ALL_DISCOVER_MODULES: DiscoverModule[] = [
   { id: 'security', nameKey: 'ghost.modules.security.title', icon: IconShield, descriptionKey: 'ghost.modules.security.description', route: '/ghost/security' },
   { id: 'health', nameKey: 'ghost.modules.health.title', icon: IconActivity, descriptionKey: 'ghost.modules.health.description', route: '/ghost/health', isPro: true },
   { id: 'travel', nameKey: 'ghost.modules.travel.title', icon: IconPlane, descriptionKey: 'ghost.modules.travel.description', route: '/ghost/travel', isPro: true },
-  { id: 'realestate', nameKey: 'ghost.modules.realEstate.title', icon: IconHome, descriptionKey: 'ghost.modules.realEstate.description', route: '/ghost/realestate', isPro: true },
+  { id: 'realestate', nameKey: 'ghost.modules.realestate.title', icon: IconHome, descriptionKey: 'ghost.modules.realestate.description', route: '/ghost/realestate', isPro: true },
 ];
 
 const DEFAULT_ENABLED_MODULES = ['finance', 'legal', 'patents', 'research'];

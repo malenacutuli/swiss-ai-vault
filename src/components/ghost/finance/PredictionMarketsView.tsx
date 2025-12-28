@@ -1,65 +1,71 @@
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, TrendingDown } from 'lucide-react';
-
-interface PredictionMarket {
-  questionKey: string;
-  categoryKey: string;
-  volume: string;
-  options: { labelKey: string; probability: number }[];
-  source: string;
-}
-
-const predictionMarkets: PredictionMarket[] = [
-  {
-    questionKey: 'ghost.modules.finance.views.predictions.questions.fedRates',
-    categoryKey: 'ghost.modules.finance.views.predictions.categories.economics',
-    volume: '$72M',
-    options: [
-      { labelKey: 'ghost.modules.finance.views.predictions.options.noChange', probability: 86 },
-      { labelKey: 'ghost.modules.finance.views.predictions.options.cut25', probability: 13 },
-      { labelKey: 'ghost.modules.finance.views.predictions.options.cut50', probability: 1 },
-    ],
-    source: 'Polymarket',
-  },
-  {
-    questionKey: 'ghost.modules.finance.views.predictions.questions.btc100k',
-    categoryKey: 'ghost.modules.finance.views.predictions.categories.crypto',
-    volume: '$45M',
-    options: [
-      { labelKey: 'common.yes', probability: 42 },
-      { labelKey: 'common.no', probability: 58 },
-    ],
-    source: 'Polymarket',
-  },
-  {
-    questionKey: 'ghost.modules.finance.views.predictions.questions.sp6200',
-    categoryKey: 'ghost.modules.finance.views.predictions.categories.markets',
-    volume: '$28M',
-    options: [
-      { labelKey: 'common.yes', probability: 35 },
-      { labelKey: 'common.no', probability: 65 },
-    ],
-    source: 'Kalshi',
-  },
-  {
-    questionKey: 'ghost.modules.finance.views.predictions.questions.nvidiaEarnings',
-    categoryKey: 'ghost.modules.finance.views.predictions.categories.earnings',
-    volume: '$18M',
-    options: [
-      { labelKey: 'ghost.modules.finance.views.earnings.beat', probability: 72 },
-      { labelKey: 'ghost.modules.finance.views.earnings.miss', probability: 28 },
-    ],
-    source: 'Polymarket',
-  },
-];
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react';
+import { useFinanceData, PredictionMarket } from '@/hooks/useFinanceData';
+import { cn } from '@/lib/utils';
 
 export function PredictionMarketsView() {
   const { t } = useTranslation();
+  const { data, citations, isLoading, error, refresh, lastUpdated } = useFinanceData<PredictionMarket[]>('predictions');
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="p-5 bg-white border-slate-200/60">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <Skeleton className="h-5 w-24 mb-2" />
+                <Skeleton className="h-6 w-3/4" />
+              </div>
+              <Skeleton className="h-10 w-16" />
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-8 bg-white border-slate-200/60 text-center">
+        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+        <h4 className="text-base font-medium text-slate-900 mb-1">
+          {t('ghost.modules.finance.views.predictions.errorTitle')}
+        </h4>
+        <p className="text-sm text-slate-500 mb-4">{error}</p>
+        <Button variant="outline" onClick={refresh} className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          {t('common.retry')}
+        </Button>
+      </Card>
+    );
+  }
+
+  const markets = data || [];
 
   return (
     <div className="space-y-4">
-      {predictionMarkets.map((market, index) => (
+      {/* Header with refresh */}
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-slate-500">
+          {lastUpdated && t('ghost.modules.finance.views.predictions.lastUpdated', { 
+            time: new Date(lastUpdated).toLocaleTimeString() 
+          })}
+        </div>
+        <Button variant="ghost" size="sm" onClick={refresh} className="gap-2 h-8">
+          <RefreshCw className="w-3.5 h-3.5" />
+          {t('common.refresh')}
+        </Button>
+      </div>
+
+      {markets.map((market, index) => (
         <Card
           key={index}
           className="p-5 bg-white border-slate-200/60 hover:shadow-md transition-shadow cursor-pointer"
@@ -67,9 +73,9 @@ export function PredictionMarketsView() {
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <span className="text-xs font-medium text-[#2A8C86] bg-[#2A8C86]/10 px-2 py-0.5 rounded-full">
-                {t(market.categoryKey)}
+                {market.category}
               </span>
-              <h4 className="text-base font-medium text-slate-900 mt-2">{t(market.questionKey)}</h4>
+              <h4 className="text-base font-medium text-slate-900 mt-2">{market.question}</h4>
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-500">{t('ghost.modules.finance.views.predictions.volume')}</p>
@@ -82,7 +88,7 @@ export function PredictionMarketsView() {
               <div key={i} className="flex items-center gap-3">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-slate-700">{t(option.labelKey)}</span>
+                    <span className="text-sm text-slate-700">{option.label}</span>
                     <span className="text-sm font-semibold text-slate-900">{option.probability}%</span>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -107,6 +113,26 @@ export function PredictionMarketsView() {
           </div>
         </Card>
       ))}
+
+      {/* Citations */}
+      {citations && citations.length > 0 && (
+        <div className="pt-4 border-t border-slate-100">
+          <p className="text-xs text-slate-500 mb-2">{t('ghost.modules.finance.views.predictions.sources')}</p>
+          <div className="flex flex-wrap gap-2">
+            {citations.slice(0, 3).map((citation, i) => (
+              <a
+                key={i}
+                href={citation}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#2A8C86] hover:underline truncate max-w-xs"
+              >
+                {new URL(citation).hostname}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
