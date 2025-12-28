@@ -154,6 +154,11 @@
     }
   },
   "ghost": {
+    "welcome": {
+      "title": "Chat de IA Privado",
+      "description": "Tus conversaciones están cifradas localmente y nunca salen de tu dispositivo. Comienza a escribir para iniciar una conversación privada.",
+      "poweredBy": "Impulsado por modelos de IA alojados en Suiza"
+    },
     "status": {
       "localOnly": "Solo Local",
       "zeroRetention": "Sin Retención"

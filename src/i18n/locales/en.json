@@ -153,6 +153,11 @@
     }
   },
   "ghost": {
+    "welcome": {
+      "title": "Private AI Chat",
+      "description": "Your conversations are encrypted locally and never leave your device. Start typing to begin a private conversation.",
+      "poweredBy": "Powered by Swiss-hosted AI models"
+    },
     "status": {
       "localOnly": "Local Only",
       "zeroRetention": "Zero Retention"
