@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { GhostMessageActions } from './GhostMessageActions';
 import { cn } from '@/lib/utils';
-import { ExternalLink, Pencil, Check, X, FileText, ImageIcon } from 'lucide-react';
+import { ExternalLink, Pencil, Check, X, FileText, ImageIcon, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -373,11 +374,44 @@ export function GhostMessage({
                 </div>
               );
             })}
+            
+            {/* Empty content during streaming - show loading skeleton */}
+            {role === 'assistant' && isStreaming && !content.trim() && (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Generating response...</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Empty content after streaming completed - show error state */}
+            {role === 'assistant' && !isStreaming && !content.trim() && (
+              <div className="flex flex-col gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>No response received</span>
+                </div>
+                {onRegenerate && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onRegenerate(id)}
+                    className="w-fit gap-2"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Retry
+                  </Button>
+                )}
+              </div>
+            )}
           </>
         )}
         
-        {/* Streaming cursor */}
-        {isStreaming && (
+        {/* Streaming cursor - only show when we have content */}
+        {isStreaming && content.trim() && (
           <span className="inline-block w-0.5 h-4 bg-primary animate-pulse ml-0.5" />
         )}
 

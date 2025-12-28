@@ -798,6 +798,8 @@ serve(async (req) => {
   }
   
   const startTime = Date.now();
+  const requestId = req.headers.get('X-Request-ID') || crypto.randomUUID().slice(0, 8);
+  console.log(`[Ghost Inference] [${requestId}] Request started`);
   
   try {
     // 1. Verify user is authenticated
@@ -1175,7 +1177,7 @@ serve(async (req) => {
     }
     
   } catch (error: unknown) {
-    console.error('[Ghost Inference] Fatal error:', error);
+    console.error(`[Ghost Inference] [${requestId}] Fatal error:`, error);
     return new Response(
       JSON.stringify({ error: 'Internal error', details: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
