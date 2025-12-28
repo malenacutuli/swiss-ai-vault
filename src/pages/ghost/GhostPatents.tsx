@@ -51,7 +51,7 @@ const SUGGESTIONS: Record<ActionType, string[]> = {
 };
 
 export default function GhostPatents() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -103,7 +103,7 @@ export default function GhostPatents() {
     
     try {
       const { data, error } = await supabase.functions.invoke('ghost-discover', {
-        body: { module: 'patents', query, mode: searchMode, action: activeAction },
+        body: { module: 'patents', query, mode: searchMode, action: activeAction, language: i18n.language },
       });
       
       if (error) throw error;

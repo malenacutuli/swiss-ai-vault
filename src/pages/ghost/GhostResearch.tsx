@@ -60,7 +60,7 @@ const getSuggestions = (action: ActionType, t: (key: string) => string): string[
 };
 
 export default function GhostResearch() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -102,7 +102,8 @@ export default function GhostResearch() {
           module: 'research', 
           query: `${query} (Filter: ${selectedFilter})`,
           mode: searchMode,
-          action: activeAction
+          action: activeAction,
+          language: i18n.language
         },
       });
       

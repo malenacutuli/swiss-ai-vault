@@ -56,7 +56,7 @@ const getSuggestionKeys = (action: ActionType): string[] => {
 };
 
 export default function GhostLegal() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -95,7 +95,8 @@ export default function GhostLegal() {
           module: 'legal', 
           query: `${query} (Jurisdiction: ${selectedJurisdiction})`,
           mode: searchMode,
-          action: activeAction
+          action: activeAction,
+          language: i18n.language
         },
       });
       
