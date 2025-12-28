@@ -6,8 +6,13 @@ import { Card } from '@/components/ui/card';
 import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { CategoryCard, LEGAL_CATEGORIES } from '@/components/ghost/CategoryCard';
 import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { 
   Scale, Search, ArrowRight, Loader2, 
-  FileSearch, BookOpen, ShieldCheck, ExternalLink, Globe, Sparkles
+  FileSearch, BookOpen, ShieldCheck, ExternalLink, Globe, Sparkles, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,38 +36,13 @@ export default function GhostLegal() {
   const [searchMode, setSearchMode] = useState<'search' | 'pro'>('search');
   const [selectedJurisdiction, setSelectedJurisdiction] = useState('EU');
 
-  // Dynamic suggestions based on input prefix
-  const getSuggestions = (input: string): string[] => {
-    const lower = input.toLowerCase();
-    
-    if (lower.startsWith('show') || lower.startsWith('find')) {
-      return [
-        'Show me the latest GDPR enforcement actions in 2024',
-        'Find case law related to AI liability in the EU',
-        'Show Swiss banking secrecy regulations after CRS implementation',
-      ];
-    }
-    if (lower.startsWith('what') || lower.startsWith('how')) {
-      return [
-        'What are the key differences between GDPR and CCPA?',
-        'How do Swiss anti-money laundering regulations compare to EU directives?',
-        'What are the compliance requirements for cryptocurrency exchanges in the UK?',
-      ];
-    }
-    if (lower.startsWith('explain') || lower.startsWith('analyze')) {
-      return [
-        'Explain the implications of the EU AI Act for financial services',
-        'Analyze cross-border data transfer mechanisms post-Schrems II',
-        'Explain fiduciary duties under Swiss corporate law',
-      ];
-    }
-    // Default suggestions
-    return [
-      'Latest GDPR enforcement actions and fines',
-      'Swiss financial market regulations overview',
-      'Cross-border M&A compliance requirements',
-    ];
-  };
+  const suggestions = [
+    'Latest GDPR enforcement actions and fines',
+    'Swiss financial market regulations overview',
+    'Cross-border M&A compliance requirements',
+    'Show me the latest GDPR enforcement actions in 2024',
+    'What are the key differences between GDPR and CCPA?',
+  ];
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -84,8 +64,6 @@ export default function GhostLegal() {
     }
   };
 
-  const suggestions = getSuggestions(query);
-
   return (
     <DiscoverLayout activeModule="legal">
       <div className="flex-1 flex flex-col items-center justify-start pt-24 px-6">
@@ -99,13 +77,6 @@ export default function GhostLegal() {
 
         {/* Search Card */}
         <Card className="w-full max-w-2xl p-6 bg-white border-slate-200/60 shadow-sm">
-          {/* Dynamic Title */}
-          <div className="mb-4">
-            <p className="text-lg text-slate-600 min-h-[28px]">
-              {query || 'Ask any question about legal & compliance'}
-            </p>
-          </div>
-          
           {/* Search Mode & Jurisdiction */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-sm">
@@ -139,7 +110,7 @@ export default function GhostLegal() {
               </button>
             </div>
 
-            {/* Jurisdiction Selector - Professional text only */}
+            {/* Jurisdiction Selector */}
             <div className="flex items-center gap-1">
               {jurisdictions.map((j) => (
                 <button
@@ -159,18 +130,37 @@ export default function GhostLegal() {
           </div>
           
           {/* Search Input */}
-          <div className="relative mb-6">
+          <div className="relative mb-4">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Ask any question about legal & compliance"
-              className="h-12 text-base rounded-xl border-0 bg-transparent focus-visible:ring-0 px-0 text-slate-900 placeholder:text-slate-400"
+              className="h-12 text-base rounded-xl border-slate-200/60 bg-white shadow-sm text-slate-900 placeholder:text-slate-400 pr-24"
             />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <button className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400">
-                <Search className="w-5 h-5" />
-              </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {/* Suggestions Dropdown */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600">
+                    <Clock className="w-4 h-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 p-2" align="end">
+                  <p className="text-xs text-slate-500 px-2 py-1 mb-1">Suggestions</p>
+                  {suggestions.map((suggestion, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setQuery(suggestion)}
+                      className="w-full flex items-start gap-2 p-2 rounded-lg hover:bg-slate-50 text-left text-sm text-slate-600 transition-colors"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 text-[#2A8C86] flex-shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{suggestion}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+              
               <button
                 onClick={handleSearch}
                 disabled={isSearching || !query.trim()}
@@ -183,20 +173,6 @@ export default function GhostLegal() {
                 )}
               </button>
             </div>
-          </div>
-
-          {/* Dynamic Suggestions */}
-          <div className="space-y-1">
-            {suggestions.map((suggestion, i) => (
-              <button
-                key={i}
-                onClick={() => setQuery(suggestion)}
-                className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 text-left text-sm transition-colors text-slate-600"
-              >
-                <ArrowRight className="w-4 h-4 text-[#2A8C86] flex-shrink-0 mt-0.5" />
-                {suggestion}
-              </button>
-            ))}
           </div>
         </Card>
 

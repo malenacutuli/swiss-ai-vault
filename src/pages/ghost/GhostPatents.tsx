@@ -6,8 +6,13 @@ import { Card } from '@/components/ui/card';
 import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { CategoryCard, PATENT_CATEGORIES } from '@/components/ghost/CategoryCard';
 import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { 
   Lightbulb, Search, ArrowRight, Loader2, 
-  FileText, Layers, Beaker, ExternalLink, Globe, Sparkles
+  FileText, Layers, Beaker, ExternalLink, Globe, Sparkles, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,38 +33,13 @@ export default function GhostPatents() {
   const [result, setResult] = useState<SearchResult | null>(null);
   const [searchMode, setSearchMode] = useState<'search' | 'pro'>('search');
 
-  // Dynamic suggestions based on input prefix (like Perplexity)
-  const getSuggestions = (input: string): string[] => {
-    const lower = input.toLowerCase();
-    
-    if (lower.startsWith('show')) {
-      return [
-        'Show patents using a similar approach to inventions in CPC subclass G06N for medical image diagnosis',
-        'Show patents similar to those invented by Katalin Karikó',
-        'Show patents with similar concepts issued between 2019 and 2024 for AR smart glasses',
-      ];
-    }
-    if (lower.startsWith('search')) {
-      return [
-        'Search for patents published since 2018 in CPC classification areas covering mRNA vaccine technologies',
-        'Search for clusters of patents similar to the inventions of Boston Dynamics',
-        'Search for patents filed before 2015 in electric vehicle battery management systems',
-      ];
-    }
-    if (lower.startsWith('find')) {
-      return [
-        'Find me patents that could qualify as prior art for my idea of a self-cleaning water bottle',
-        'Find me patents grouped by CPC subclass most similar to patent number US 10245367',
-        'Find me patents similar to my invention of wireless earbuds that monitor heart rate',
-      ];
-    }
-    // Default suggestions
-    return [
-      'Search for AI patents in medical diagnosis since 2020',
-      'Find prior art for autonomous vehicle navigation systems',
-      'Show patent landscape for solid-state battery technology',
-    ];
-  };
+  const suggestions = [
+    'Search for AI patents in medical diagnosis since 2020',
+    'Find prior art for autonomous vehicle navigation systems',
+    'Show patent landscape for solid-state battery technology',
+    'Show patents using a similar approach to inventions in CPC subclass G06N for medical image diagnosis',
+    'Find me patents that could qualify as prior art for my idea of a self-cleaning water bottle',
+  ];
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -81,8 +61,6 @@ export default function GhostPatents() {
     }
   };
 
-  const suggestions = getSuggestions(query);
-
   return (
     <DiscoverLayout activeModule="patents">
       <div className="flex-1 flex flex-col items-center justify-start pt-24 px-6">
@@ -96,13 +74,6 @@ export default function GhostPatents() {
 
         {/* Search Card */}
         <Card className="w-full max-w-2xl p-6 bg-white border-slate-200/60 shadow-sm">
-          {/* Dynamic Title */}
-          <div className="mb-4">
-            <p className="text-lg text-slate-600 min-h-[28px]">
-              {query || 'Ask any question about patents'}
-            </p>
-          </div>
-          
           {/* Search Mode Buttons */}
           <div className="flex items-center gap-2 mb-4 text-sm">
             <button 
@@ -136,18 +107,37 @@ export default function GhostPatents() {
           </div>
           
           {/* Search Input */}
-          <div className="relative mb-6">
+          <div className="relative mb-4">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Ask any question about patents"
-              className="h-12 text-base rounded-xl border-0 bg-transparent focus-visible:ring-0 px-0 text-slate-900 placeholder:text-slate-400"
+              className="h-12 text-base rounded-xl border-slate-200/60 bg-white shadow-sm text-slate-900 placeholder:text-slate-400 pr-24"
             />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <button className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400">
-                <Search className="w-5 h-5" />
-              </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {/* Suggestions Dropdown */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600">
+                    <Clock className="w-4 h-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 p-2" align="end">
+                  <p className="text-xs text-slate-500 px-2 py-1 mb-1">Suggestions</p>
+                  {suggestions.map((suggestion, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setQuery(suggestion)}
+                      className="w-full flex items-start gap-2 p-2 rounded-lg hover:bg-slate-50 text-left text-sm text-slate-600 transition-colors"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 text-[#2A8C86] flex-shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{suggestion}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+              
               <button
                 onClick={handleSearch}
                 disabled={isSearching || !query.trim()}
@@ -160,20 +150,6 @@ export default function GhostPatents() {
                 )}
               </button>
             </div>
-          </div>
-
-          {/* Dynamic Suggestions */}
-          <div className="space-y-1">
-            {suggestions.map((suggestion, i) => (
-              <button
-                key={i}
-                onClick={() => setQuery(suggestion)}
-                className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 text-left text-sm transition-colors text-slate-600"
-              >
-                <ArrowRight className="w-4 h-4 text-[#2A8C86] flex-shrink-0 mt-0.5" />
-                {suggestion}
-              </button>
-            ))}
           </div>
         </Card>
 
