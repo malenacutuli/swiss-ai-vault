@@ -6,8 +6,13 @@ import { Card } from '@/components/ui/card';
 import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { CategoryCard, RESEARCH_CATEGORIES } from '@/components/ghost/CategoryCard';
 import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { 
   BookOpen, Search, ArrowRight, Loader2, 
-  GraduationCap, FlaskConical, Lightbulb, ExternalLink, Globe, Sparkles
+  GraduationCap, FlaskConical, Lightbulb, ExternalLink, Globe, Sparkles, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,38 +36,13 @@ export default function GhostResearch() {
   const [searchMode, setSearchMode] = useState<'search' | 'pro'>('search');
   const [selectedFilter, setSelectedFilter] = useState('Peer-reviewed');
 
-  // Dynamic suggestions based on input prefix
-  const getSuggestions = (input: string): string[] => {
-    const lower = input.toLowerCase();
-    
-    if (lower.startsWith('find') || lower.startsWith('show')) {
-      return [
-        'Find recent clinical trials on GLP-1 receptor agonists for weight loss',
-        'Show peer-reviewed papers on CRISPR gene editing applications',
-        'Find longitudinal studies on intermittent fasting and longevity',
-      ];
-    }
-    if (lower.startsWith('what') || lower.startsWith('how')) {
-      return [
-        'What are the latest breakthroughs in solid-state battery research?',
-        'How effective are mRNA vaccines compared to traditional vaccines?',
-        'What does current research say about neuroplasticity in adults?',
-      ];
-    }
-    if (lower.startsWith('compare') || lower.startsWith('review')) {
-      return [
-        'Compare outcomes of robotic vs traditional surgery for prostate cancer',
-        'Review of machine learning applications in drug discovery',
-        'Compare efficacy of different Alzheimer\'s treatments in clinical trials',
-      ];
-    }
-    // Default suggestions
-    return [
-      'Latest research on longevity and aging interventions',
-      'AI applications in medical diagnostics',
-      'Climate change mitigation technologies research',
-    ];
-  };
+  const suggestions = [
+    'Latest research on longevity and aging interventions',
+    'AI applications in medical diagnostics',
+    'Climate change mitigation technologies research',
+    'Find recent clinical trials on GLP-1 receptor agonists',
+    'What are the latest breakthroughs in solid-state battery research?',
+  ];
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -84,8 +64,6 @@ export default function GhostResearch() {
     }
   };
 
-  const suggestions = getSuggestions(query);
-
   return (
     <DiscoverLayout activeModule="research">
       <div className="flex-1 flex flex-col items-center justify-start pt-24 px-6">
@@ -99,13 +77,6 @@ export default function GhostResearch() {
 
         {/* Search Card */}
         <Card className="w-full max-w-2xl p-6 bg-white border-slate-200/60 shadow-sm">
-          {/* Dynamic Title */}
-          <div className="mb-4">
-            <p className="text-lg text-slate-600 min-h-[28px]">
-              {query || 'Ask any question about research & studies'}
-            </p>
-          </div>
-          
           {/* Search Mode & Filter */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-sm">
@@ -159,18 +130,37 @@ export default function GhostResearch() {
           </div>
           
           {/* Search Input */}
-          <div className="relative mb-6">
+          <div className="relative mb-4">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Ask any question about research & studies"
-              className="h-12 text-base rounded-xl border-0 bg-transparent focus-visible:ring-0 px-0 text-slate-900 placeholder:text-slate-400"
+              className="h-12 text-base rounded-xl border-slate-200/60 bg-white shadow-sm text-slate-900 placeholder:text-slate-400 pr-24"
             />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <button className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400">
-                <Search className="w-5 h-5" />
-              </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {/* Suggestions Dropdown */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600">
+                    <Clock className="w-4 h-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 p-2" align="end">
+                  <p className="text-xs text-slate-500 px-2 py-1 mb-1">Suggestions</p>
+                  {suggestions.map((suggestion, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setQuery(suggestion)}
+                      className="w-full flex items-start gap-2 p-2 rounded-lg hover:bg-slate-50 text-left text-sm text-slate-600 transition-colors"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 text-[#2A8C86] flex-shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{suggestion}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+              
               <button
                 onClick={handleSearch}
                 disabled={isSearching || !query.trim()}
@@ -183,20 +173,6 @@ export default function GhostResearch() {
                 )}
               </button>
             </div>
-          </div>
-
-          {/* Dynamic Suggestions */}
-          <div className="space-y-1">
-            {suggestions.map((suggestion, i) => (
-              <button
-                key={i}
-                onClick={() => setQuery(suggestion)}
-                className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 text-left text-sm transition-colors text-slate-600"
-              >
-                <ArrowRight className="w-4 h-4 text-[#2A8C86] flex-shrink-0 mt-0.5" />
-                {suggestion}
-              </button>
-            ))}
           </div>
         </Card>
 

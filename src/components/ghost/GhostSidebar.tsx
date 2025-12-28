@@ -627,7 +627,7 @@ export function GhostSidebar({
             </div>
           )}
           
-          <div className="space-y-0.5">
+          <div className={cn("space-y-0.5", !isExpanded && "flex flex-col items-center")}>
             {visibleModules.map((module) => {
               const isActive = activeModule === module.id || location.pathname === module.route;
               const Icon = module.icon;
@@ -638,14 +638,24 @@ export function GhostSidebar({
                     <button
                       onClick={() => navigate(module.route)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-all",
-                        isActive
-                          ? "bg-primary/15 text-primary font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        "w-full transition-all",
+                        isExpanded
+                          ? cn(
+                              "flex items-center gap-3 px-2 py-2 rounded-lg text-sm",
+                              isActive
+                                ? "bg-primary/15 text-primary font-medium"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )
+                          : cn(
+                              "flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg",
+                              isActive
+                                ? "bg-primary/15 text-primary"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )
                       )}
                     >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {isExpanded && (
+                      <Icon className="w-5 h-5 shrink-0" />
+                      {isExpanded ? (
                         <>
                           <span className="truncate flex-1 text-left text-[13px]">{module.name}</span>
                           {module.isPro && (
@@ -654,6 +664,8 @@ export function GhostSidebar({
                             </span>
                           )}
                         </>
+                      ) : (
+                        <span className="text-[10px] font-medium">{module.name}</span>
                       )}
                     </button>
                   </TooltipTrigger>
