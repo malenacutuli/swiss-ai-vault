@@ -90,11 +90,10 @@ export function GhostUpgradeModal({
         return;
       }
 
-      // Call create-checkout function with Ghost tier
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      // Call create-pro-checkout function with Ghost tier
+      const { data, error } = await supabase.functions.invoke('create-pro-checkout', {
         body: {
-          productId: planId,
-          productType: 'ghost_subscription',
+          tier: planId === 'ghost_pro' ? 'ghost_pro' : 'swissvault_pro',
         },
       });
 

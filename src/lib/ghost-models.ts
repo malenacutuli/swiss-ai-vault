@@ -33,14 +33,14 @@ export function isVisionModel(modelId: string): boolean {
 // ==============================================
 
 export const TEXT_MODELS: GhostModel[] = [
-  // ========== SwissVault Branded Models (Swiss-Hosted, Zero Logging) ==========
+// ========== SwissVault Branded Models (Swiss-Hosted, Zero Logging) ==========
   {
     id: 'swissvault-1.0',
     name: 'SwissVault 1.0',
     provider: 'modal',
     modality: 'text',
     description: 'Balanced performance. Swiss-hosted, zero logging.',
-    tags: ['private', 'default', 'swiss'],
+    tags: ['private', 'default', 'swiss', 'vision'],  // vision enabled via GPT-4o-mini routing
     contextWindow: 128000,
     creditCost: 1,
     isPayPerUse: false,
