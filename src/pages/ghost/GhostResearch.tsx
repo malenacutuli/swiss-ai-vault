@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,7 @@ const getSuggestions = (action: ActionType, filter: string): string[] => {
 };
 
 export default function GhostResearch() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -121,7 +123,7 @@ export default function GhostResearch() {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center mb-4 shadow-sm">
             <IconBook2 className="w-8 h-8 text-emerald-600" stroke={1.5} />
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">Academic Research</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">{t('ghost.modules.research.title')}</h1>
         </div>
 
         {/* Search Card */}
@@ -165,7 +167,7 @@ export default function GhostResearch() {
               }}
               onFocus={() => !query && setShowSuggestions(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Ask any question about research & studies..."
+              placeholder={t('ghost.modules.research.placeholder')}
               className="h-14 text-base pl-12 pr-14 rounded-xl border-slate-200/60 bg-white shadow-sm text-slate-900 placeholder:text-slate-400"
             />
             <button

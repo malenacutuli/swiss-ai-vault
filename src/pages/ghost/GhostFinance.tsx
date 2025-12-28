@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,6 +97,7 @@ const getSuggestions = (activeTab: string): string[] => {
 };
 
 export default function GhostFinance() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -227,10 +229,10 @@ export default function GhostFinance() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center shadow-sm">
                   <IconTrendingUp className="w-5 h-5 text-green-600" stroke={1.5} />
                 </div>
-                <h1 className="text-xl font-semibold text-slate-900">Finance</h1>
+                <h1 className="text-xl font-semibold text-slate-900">{t('ghost.modules.finance.title')}</h1>
               </div>
               <Button variant="outline" size="sm" className="gap-2 text-slate-500 border-slate-200">
-                <IconBell className="w-4 h-4" stroke={1.5} />Price Alert
+                <IconBell className="w-4 h-4" stroke={1.5} />{t('common.notifications')}
               </Button>
             </div>
 
@@ -257,7 +259,7 @@ export default function GhostFinance() {
                   }}
                   onFocus={() => !query && setShowSuggestions(true)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()} 
-                  placeholder="Ask about markets, stocks, crypto..." 
+                  placeholder={t('ghost.modules.finance.placeholder')}
                   className="pl-12 pr-12 h-14 text-base rounded-xl border-slate-200/60 bg-white shadow-sm" 
                 />
                 <button onClick={handleSearch} disabled={isSearching} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#2A8C86] text-white hover:bg-[#2A8C86]/90 disabled:opacity-50 transition-colors">
