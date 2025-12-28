@@ -29,7 +29,15 @@ import {
   Image as ImageIcon,
   Check,
   Home,
+  MoreHorizontal,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { GhostModeToggle } from './GhostModeToggle';
 
 export interface GhostConversation {
@@ -65,6 +73,7 @@ interface GhostSidebarProps {
   onCreateFolder: () => void;
   onRenameFolder?: (id: string, name: string) => Promise<boolean>;
   onDeleteFolder?: (id: string) => Promise<boolean>;
+  onExportFolder?: (id: string) => void;
   userName?: string;
   userCredits?: number;
   isPro?: boolean;
@@ -86,6 +95,7 @@ export function GhostSidebar({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onExportFolder,
   userName = 'User',
   userCredits = 0,
   isPro = false,
@@ -226,32 +236,35 @@ export function GhostSidebar({
         ) : (
           <>
             <span className="text-[13px] truncate flex-1">{conv.title}</span>
-            <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/chat:opacity-100 transition-opacity duration-150">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 hover:bg-muted"
-                onClick={(e) => { e.stopPropagation(); setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}
-              >
-                <Edit3 className="w-3 h-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 hover:bg-muted"
-                onClick={(e) => { e.stopPropagation(); onExportConversation(conv.id); }}
-              >
-                <Download className="w-3 h-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 hover:text-destructive hover:bg-destructive/10"
-                onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0 opacity-0 group-hover/chat:opacity-100 transition-opacity duration-150"
+                >
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={() => { setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}>
+                  <Edit3 className="w-3.5 h-3.5 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExportConversation(conv.id)}>
+                  <Download className="w-3.5 h-3.5 mr-2" />
+                  Download
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => onDeleteConversation(conv.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         )
       )}
@@ -309,25 +322,38 @@ export function GhostSidebar({
             ) : (
               <>
                 <span className="text-[13px] truncate flex-1">{folder.name}</span>
-                {isFolderExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/folder:opacity-100 transition-opacity duration-150" onClick={e => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 hover:bg-muted"
-                    onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}
-                  >
-                    <Edit3 className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 hover:text-destructive hover:bg-destructive/10"
-                    onClick={async () => { if (onDeleteFolder) await onDeleteFolder(folder.id); }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
+                {isFolderExpanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0 opacity-0 group-hover/folder:opacity-100 transition-opacity duration-150"
+                    >
+                      <MoreHorizontal className="w-3.5 h-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
+                      <Edit3 className="w-3.5 h-3.5 mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    {onExportFolder && (
+                      <DropdownMenuItem onClick={() => onExportFolder(folder.id)}>
+                        <Download className="w-3.5 h-3.5 mr-2" />
+                        Download All
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={async () => { if (onDeleteFolder) await onDeleteFolder(folder.id); }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )
           )}
