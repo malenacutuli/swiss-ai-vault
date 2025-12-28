@@ -1,3 +1,4 @@
+// GhostSidebar v2 - Tabler Icons
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
