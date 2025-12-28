@@ -1158,6 +1158,7 @@
         "title": "Finanzas",
         "description": "Mercados, cripto, patrimonio",
         "placeholder": "Pregunta sobre mercados financieros...",
+        "suggestedFor": "Preguntas sugeridas para {{market}}",
         "tabs": {
           "us": "Mercados EE.UU.",
           "european": "Europeo",
@@ -1175,7 +1176,32 @@
           "markets": "¿Cómo están los mercados estadounidenses hoy?",
           "crypto": "Dame un resumen del mercado cripto",
           "stocks": "Analiza las acciones tecnológicas más activas",
-          "earnings": "¿Qué empresas reportan ganancias esta semana?"
+          "earnings": "¿Qué empresas reportan ganancias esta semana?",
+          "us": {
+            "1": "¿Cuáles son las acciones del S&P 500 con mejor rendimiento esta semana?",
+            "2": "Análisis del impacto de la decisión de tasas de interés de la Reserva Federal",
+            "3": "Vista previa de ganancias del sector tecnológico para Q4 2024"
+          },
+          "european": {
+            "1": "¿Cómo está afectando la política del BCE a los mercados europeos?",
+            "2": "Acciones europeas con mejor rendimiento en 2024",
+            "3": "Análisis técnico del Euro Stoxx 50"
+          },
+          "swiss": {
+            "1": "Rendimiento y perspectivas del índice SMI",
+            "2": "Impacto del franco suizo en acciones suizas",
+            "3": "Mejores acciones suizas de dividendos para 2024"
+          },
+          "crypto": {
+            "1": "Predicción y análisis del precio de Bitcoin",
+            "2": "Principales altcoins a seguir en 2024",
+            "3": "Impacto de las aprobaciones de ETF en los mercados cripto"
+          },
+          "default": {
+            "1": "¿Cuáles son las mejores oportunidades de inversión ahora?",
+            "2": "Análisis del sentimiento del mercado para esta semana",
+            "3": "Estrategias de diversificación de cartera"
+          }
         }
       },
       "legal": {
@@ -1184,6 +1210,7 @@
         "placeholder": "Pregunta sobre temas legales y de cumplimiento...",
         "exploreByCategory": "Explorar por Categoría",
         "regulationsIn": "Regulaciones de {{category}} en {{jurisdiction}}",
+        "inJurisdiction": "en {{jurisdiction}}",
         "jurisdictions": {
           "eu": "UE",
           "us": "EE.UU.",
@@ -1196,13 +1223,21 @@
           "compliance": "Verificación de Cumplimiento"
         },
         "suggestions": {
-          "regulatory": "Últimas actualizaciones regulatorias de {{jurisdiction}} para servicios financieros",
-          "dataProtection": "Requisitos de cumplimiento de protección de datos de {{jurisdiction}} 2024",
-          "crossBorder": "Marcos regulatorios transfronterizos que involucran {{jurisdiction}}",
-          "courtDecisions": "Decisiones judiciales recientes de {{jurisdiction}} sobre privacidad de datos",
-          "antitrust": "Casos emblemáticos de antimonopolio y competencia de {{jurisdiction}}",
-          "gdpr": "Lista de verificación de cumplimiento GDPR para operaciones en {{jurisdiction}}",
-          "aml": "Requisitos AML/KYC de {{jurisdiction}} para fintech"
+          "regulatory": {
+            "1": "Últimas actualizaciones regulatorias de {{jurisdiction}} para servicios financieros",
+            "2": "Requisitos de cumplimiento de protección de datos de {{jurisdiction}} 2024",
+            "3": "Marcos regulatorios transfronterizos que involucran {{jurisdiction}}"
+          },
+          "caselaw": {
+            "1": "Decisiones judiciales recientes de {{jurisdiction}} sobre privacidad de datos",
+            "2": "Casos emblemáticos de antimonopolio y competencia de {{jurisdiction}}",
+            "3": "Precedentes de derecho laboral de {{jurisdiction}} y fallos recientes"
+          },
+          "compliance": {
+            "1": "Lista de verificación de cumplimiento GDPR para operaciones en {{jurisdiction}}",
+            "2": "Requisitos AML/KYC de {{jurisdiction}} para fintech",
+            "3": "Regulaciones de cumplimiento ambiental en {{jurisdiction}}"
+          }
         }
       },
       "patents": {

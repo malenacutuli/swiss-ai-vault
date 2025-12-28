@@ -51,49 +51,49 @@ interface SearchResult {
   moduleName: string;
 }
 
-const MARKET_TABS = [
-  { id: 'us', label: 'US Markets' },
-  { id: 'european', label: 'European' },
-  { id: 'swiss', label: 'Swiss' },
-  { id: 'latam', label: 'LatAm' },
-  { id: 'asia', label: 'Asia' },
-  { id: 'mena', label: 'MENA' },
-  { id: 'crypto', label: 'Crypto' },
-  { id: 'earnings', label: 'Earnings' },
-  { id: 'predictions', label: 'Predictions' },
-  { id: 'screener', label: 'Screener' },
-  { id: 'watchlist', label: 'Watchlist' },
+const MARKET_TAB_KEYS = [
+  { id: 'us', labelKey: 'ghost.modules.finance.tabs.us' },
+  { id: 'european', labelKey: 'ghost.modules.finance.tabs.european' },
+  { id: 'swiss', labelKey: 'ghost.modules.finance.tabs.swiss' },
+  { id: 'latam', labelKey: 'ghost.modules.finance.tabs.latam' },
+  { id: 'asia', labelKey: 'ghost.modules.finance.tabs.asia' },
+  { id: 'mena', labelKey: 'ghost.modules.finance.tabs.mena' },
+  { id: 'crypto', labelKey: 'ghost.modules.finance.tabs.crypto' },
+  { id: 'earnings', labelKey: 'ghost.modules.finance.tabs.earnings' },
+  { id: 'predictions', labelKey: 'ghost.modules.finance.tabs.predictions' },
+  { id: 'screener', labelKey: 'ghost.modules.finance.tabs.screener' },
+  { id: 'watchlist', labelKey: 'ghost.modules.finance.tabs.watchlist' },
 ];
 
-const getSuggestions = (activeTab: string): string[] => {
-  const suggestions: Record<string, string[]> = {
+const getSuggestionKeys = (activeTab: string): string[] => {
+  const suggestionKeys: Record<string, string[]> = {
     us: [
-      'What are the top performing S&P 500 stocks this week?',
-      'Analysis of Federal Reserve interest rate decision impact',
-      'Tech sector earnings preview for Q4 2024',
+      'ghost.modules.finance.suggestions.us.1',
+      'ghost.modules.finance.suggestions.us.2',
+      'ghost.modules.finance.suggestions.us.3',
     ],
     european: [
-      'How is the ECB policy affecting European markets?',
-      'Top performing European stocks in 2024',
-      'Euro Stoxx 50 technical analysis',
+      'ghost.modules.finance.suggestions.european.1',
+      'ghost.modules.finance.suggestions.european.2',
+      'ghost.modules.finance.suggestions.european.3',
     ],
     swiss: [
-      'SMI index performance and outlook',
-      'Swiss franc impact on Swiss equities',
-      'Top Swiss dividend stocks for 2024',
+      'ghost.modules.finance.suggestions.swiss.1',
+      'ghost.modules.finance.suggestions.swiss.2',
+      'ghost.modules.finance.suggestions.swiss.3',
     ],
     crypto: [
-      'Bitcoin price prediction and analysis',
-      'Top altcoins to watch in 2024',
-      'Impact of ETF approvals on crypto markets',
+      'ghost.modules.finance.suggestions.crypto.1',
+      'ghost.modules.finance.suggestions.crypto.2',
+      'ghost.modules.finance.suggestions.crypto.3',
     ],
     default: [
-      'What are the best investment opportunities right now?',
-      'Market sentiment analysis for this week',
-      'Portfolio diversification strategies',
+      'ghost.modules.finance.suggestions.default.1',
+      'ghost.modules.finance.suggestions.default.2',
+      'ghost.modules.finance.suggestions.default.3',
     ],
   };
-  return suggestions[activeTab] || suggestions.default;
+  return suggestionKeys[activeTab] || suggestionKeys.default;
 };
 
 export default function GhostFinance() {
@@ -125,8 +125,8 @@ export default function GhostFinance() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const suggestions = useMemo(
-    () => getSuggestions(activeTab),
+  const suggestionKeys = useMemo(
+    () => getSuggestionKeys(activeTab),
     [activeTab]
   );
 
@@ -270,19 +270,19 @@ export default function GhostFinance() {
                 {showSuggestions && !query && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
                     <p className="text-xs font-medium text-slate-500 px-4 py-2 border-b border-slate-100">
-                      Suggested questions for {MARKET_TABS.find(t => t.id === activeTab)?.label || 'Markets'}
+                      {t('ghost.modules.finance.suggestedFor', { market: t(MARKET_TAB_KEYS.find(tab => tab.id === activeTab)?.labelKey || 'ghost.modules.finance.tabs.us') })}
                     </p>
-                    {suggestions.map((suggestion, i) => (
+                    {suggestionKeys.map((key, i) => (
                       <button
                         key={i}
                         onClick={() => {
-                          setQuery(suggestion);
+                          setQuery(t(key));
                           setShowSuggestions(false);
                         }}
                         className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 text-left text-sm text-slate-700 transition-colors border-b border-slate-50 last:border-b-0"
                       >
                         <IconSearch className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" stroke={1.5} />
-                        <span className="line-clamp-2">{suggestion}</span>
+                        <span className="line-clamp-2">{t(key)}</span>
                       </button>
                     ))}
                   </div>
@@ -292,7 +292,7 @@ export default function GhostFinance() {
 
             {/* Tabs */}
             <div className="flex items-center gap-1 border-b border-slate-200/60 overflow-x-auto pb-px">
-              {MARKET_TABS.map(tab => (
+              {MARKET_TAB_KEYS.map(tab => (
                 <button 
                   key={tab.id} 
                   onClick={() => {
@@ -301,7 +301,7 @@ export default function GhostFinance() {
                   }} 
                   className={cn("px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap", activeTab === tab.id ? "text-slate-900" : "text-slate-500 hover:text-slate-700")}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                   {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2A8C86]" />}
                 </button>
               ))}

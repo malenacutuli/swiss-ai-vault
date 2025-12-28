@@ -204,7 +204,7 @@ export default function GhostPatents() {
             )}
           >
             <IconFileDescription className="w-4 h-4" stroke={1.5} />
-            Patentability
+            {t('ghost.modules.patents.actions.patentability')}
           </Button>
           <Button 
             variant="outline" 
@@ -217,7 +217,7 @@ export default function GhostPatents() {
             )}
           >
             <IconChartTreemap className="w-4 h-4" stroke={1.5} />
-            Technology Landscape
+            {t('ghost.modules.patents.actions.landscape')}
           </Button>
           <Button 
             variant="outline" 
@@ -230,7 +230,7 @@ export default function GhostPatents() {
             )}
           >
             <IconFlask className="w-4 h-4" stroke={1.5} />
-            R&D
+            {t('ghost.modules.patents.actions.rnd')}
           </Button>
         </div>
 

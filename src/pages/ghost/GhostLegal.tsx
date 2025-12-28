@@ -34,25 +34,25 @@ type ActionType = 'regulatory' | 'caselaw' | 'compliance';
 
 const jurisdictions = ['EU', 'US', 'CH', 'UK'];
 
-const getSuggestions = (action: ActionType, jurisdiction: string): string[] => {
-  const suggestions: Record<ActionType, string[]> = {
+const getSuggestionKeys = (action: ActionType): string[] => {
+  const suggestionKeys: Record<ActionType, string[]> = {
     regulatory: [
-      `Latest ${jurisdiction} regulatory updates for financial services`,
-      `${jurisdiction} data protection compliance requirements 2024`,
-      `Cross-border regulatory frameworks involving ${jurisdiction}`,
+      'ghost.modules.legal.suggestions.regulatory.1',
+      'ghost.modules.legal.suggestions.regulatory.2',
+      'ghost.modules.legal.suggestions.regulatory.3',
     ],
     caselaw: [
-      `Recent ${jurisdiction} court decisions on data privacy`,
-      `Landmark ${jurisdiction} antitrust and competition cases`,
-      `${jurisdiction} employment law precedents and recent rulings`,
+      'ghost.modules.legal.suggestions.caselaw.1',
+      'ghost.modules.legal.suggestions.caselaw.2',
+      'ghost.modules.legal.suggestions.caselaw.3',
     ],
     compliance: [
-      `GDPR compliance checklist for ${jurisdiction} operations`,
-      `${jurisdiction} AML/KYC requirements for fintech`,
-      `Environmental compliance regulations in ${jurisdiction}`,
+      'ghost.modules.legal.suggestions.compliance.1',
+      'ghost.modules.legal.suggestions.compliance.2',
+      'ghost.modules.legal.suggestions.compliance.3',
     ],
   };
-  return suggestions[action];
+  return suggestionKeys[action];
 };
 
 export default function GhostLegal() {
@@ -66,9 +66,9 @@ export default function GhostLegal() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const searchCardRef = useRef<HTMLDivElement>(null);
 
-  const suggestions = useMemo(
-    () => getSuggestions(activeAction, selectedJurisdiction),
-    [activeAction, selectedJurisdiction]
+  const suggestionKeys = useMemo(
+    () => getSuggestionKeys(activeAction),
+    [activeAction]
   );
 
   // Click outside to close suggestions
@@ -184,19 +184,19 @@ export default function GhostLegal() {
             {showSuggestions && !query && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
                 <p className="text-xs font-medium text-slate-500 px-4 py-2 border-b border-slate-100">
-                  Get started with {activeAction === 'regulatory' ? 'Regulatory Search' : activeAction === 'caselaw' ? 'Case Law' : 'Compliance Check'} in {selectedJurisdiction}
+                  {t('ghost.search.getStarted')} {t(`ghost.modules.legal.actions.${activeAction}`)} {t('ghost.modules.legal.inJurisdiction', { jurisdiction: selectedJurisdiction })}
                 </p>
-                {suggestions.map((suggestion, i) => (
+                {suggestionKeys.map((key, i) => (
                   <button
                     key={i}
                     onClick={() => {
-                      setQuery(suggestion);
+                      setQuery(t(key, { jurisdiction: selectedJurisdiction }));
                       setShowSuggestions(false);
                     }}
                     className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 text-left text-sm text-slate-700 transition-colors border-b border-slate-50 last:border-b-0"
                   >
                     <IconSearch className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" stroke={1.5} />
-                    <span className="line-clamp-2">{suggestion}</span>
+                    <span className="line-clamp-2">{t(key, { jurisdiction: selectedJurisdiction })}</span>
                   </button>
                 ))}
               </div>
@@ -217,7 +217,7 @@ export default function GhostLegal() {
             )}
           >
             <IconFileSearch className="w-4 h-4" stroke={1.5} />
-            Regulatory Search
+            {t('ghost.modules.legal.actions.regulatory')}
           </Button>
           <Button 
             variant="outline" 
@@ -230,7 +230,7 @@ export default function GhostLegal() {
             )}
           >
             <IconBook2 className="w-4 h-4" stroke={1.5} />
-            Case Law
+            {t('ghost.modules.legal.actions.caselaw')}
           </Button>
           <Button 
             variant="outline" 
@@ -243,7 +243,7 @@ export default function GhostLegal() {
             )}
           >
             <IconShieldCheck className="w-4 h-4" stroke={1.5} />
-            Compliance Check
+            {t('ghost.modules.legal.actions.compliance')}
           </Button>
         </div>
 
