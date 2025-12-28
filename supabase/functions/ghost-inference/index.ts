@@ -10,29 +10,43 @@ const corsHeaders = {
 // ENDPOINT CONFIGURATION
 // ============================================
 
+// Open Source models → Modal (axessible-labs-- workspace)
 const SWISS_ENDPOINTS: Record<string, string> = {
-  // SwissVault 1.0 now routes to GPT-4o-mini for faster responses
+  // SwissVault branded fast/code models
   'swissvault-fast': 'https://axessible-labs--swissvault-fast-fast-chat.modal.run',
   'swissvault-code': 'https://axessible-labs--swissvault-code-code-chat.modal.run',
+  // LLaMA models
   'llama3.1-8b': 'https://axessible-labs--swissvault-llama8b-llama8b-chat.modal.run',
+  // Mistral models
   'mistral-7b': 'https://axessible-labs--swissvault-mistral-mistral-chat.modal.run',
-  // Aliases
+  // Qwen models (ALL go through Modal, not Qwen API)
   'qwen2.5-3b': 'https://axessible-labs--swissvault-main-main-chat.modal.run',
   'qwen2.5-0.5b': 'https://axessible-labs--swissvault-fast-fast-chat.modal.run',
   'qwen2.5-coder-7b': 'https://axessible-labs--swissvault-code-code-chat.modal.run',
+  // Future endpoints (uncomment when deployed on Modal)
+  // 'qwen2.5-7b': 'https://axessible-labs--swissvault-qwen7b-qwen7b-chat.modal.run',
+  // 'qwen2.5-72b': 'https://axessible-labs--swissvault-qwen72b-qwen72b-chat.modal.run',
+  // 'llama3.3-70b': 'https://axessible-labs--swissvault-llama70b-llama70b-chat.modal.run',
+  // 'deepseek-v3-oss': 'https://axessible-labs--swissvault-deepseek-deepseek-chat.modal.run',
 };
 
-// SwissVault branded models that route to OpenAI for performance
+// SwissVault branded models that route to OpenAI (hidden from user)
 const SWISSVAULT_OPENAI_ALIASES: Record<string, string> = {
   'swissvault-1.0': 'gpt-4o-mini',
+  'swissvault-pro': 'gpt-4o',
 };
 
+// Commercial API models
 const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o1-preview', 'gpt-5.2', 'gpt-5.2-mini', 'o3'];
 const ANTHROPIC_MODELS = ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'claude-sonnet-4', 'claude-opus-4.5', 'claude-sonnet-4.5', 'claude-haiku-4.5'];
 const GOOGLE_MODELS = ['gemini-2.0-flash', 'gemini-2.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-3-pro'];
 const XAI_MODELS = ['grok-4.1', 'grok-3', 'grok-2'];
-const DEEPSEEK_MODELS = ['deepseek-v3.2', 'deepseek-v3', 'deepseek-coder-v2'];
-const QWEN_MODELS = ['qwen3-235b', 'qwen3-235b-thinking', 'qwen3-coder-480b'];
+
+// DeepSeek direct API (for commercial DeepSeek models - cheap API pricing)
+const DEEPSEEK_MODELS = ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner', 'deepseek-v3', 'deepseek-v3.2', 'deepseek-coder-v2'];
+
+// NOTE: Qwen models removed from direct API - ALL Qwen goes through Modal
+// const QWEN_MODELS = ['qwen3-235b', 'qwen3-235b-thinking', 'qwen3-coder-480b'];
 
 // Models that don't support streaming
 const NON_STREAMING_MODELS = ['o1', 'o1-mini', 'o1-preview'];
@@ -40,21 +54,41 @@ const NON_STREAMING_MODELS = ['o1', 'o1-mini', 'o1-preview'];
 // Models that need special parameter handling (no temperature/top_p)
 const REASONING_MODELS = ['o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini'];
 
+// DeepSeek model ID mapping (UI model → API model)
+const DEEPSEEK_MODEL_MAP: Record<string, string> = {
+  'deepseek-chat': 'deepseek-chat',
+  'deepseek-coder': 'deepseek-coder',
+  'deepseek-reasoner': 'deepseek-reasoner',
+  // Map UI variants to correct API IDs
+  'deepseek-v3': 'deepseek-chat',
+  'deepseek-v3.2': 'deepseek-chat',
+  'deepseek-coder-v2': 'deepseek-coder',
+};
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
 
-function getProvider(model: string): 'modal' | 'openai' | 'anthropic' | 'google' | 'xai' | 'deepseek' | 'qwen' {
-  // SwissVault branded models that route to OpenAI
+function getProvider(model: string): 'modal' | 'openai' | 'anthropic' | 'google' | 'xai' | 'deepseek' {
+  // SwissVault branded models that route to OpenAI (hidden)
   if (SWISSVAULT_OPENAI_ALIASES[model]) return 'openai';
+  
+  // Open source models → Modal (includes Qwen, LLaMA, Mistral via Modal)
   if (SWISS_ENDPOINTS[model]) return 'modal';
+  
+  // Commercial APIs
   if (OPENAI_MODELS.some(m => model.includes(m))) return 'openai';
   if (ANTHROPIC_MODELS.some(m => model.includes(m))) return 'anthropic';
   if (GOOGLE_MODELS.some(m => model.includes(m))) return 'google';
   if (XAI_MODELS.some(m => model.includes(m))) return 'xai';
+  
+  // DeepSeek direct API (for commercial DeepSeek models like deepseek-chat)
   if (DEEPSEEK_MODELS.some(m => model.includes(m))) return 'deepseek';
-  if (QWEN_MODELS.some(m => model.includes(m))) return 'qwen';
-  // Default to modal for unknown models (assume Swiss-hosted)
+  
+  // REMOVED: Qwen direct API - all Qwen goes through Modal
+  // if (QWEN_MODELS.some(m => model.includes(m))) return 'qwen';
+  
+  // Default fallback to Modal for unknown open source models
   return 'modal';
 }
 
@@ -65,7 +99,6 @@ function getApiKey(provider: string): string | undefined {
     case 'google': return Deno.env.get('GOOGLE_API_KEY') || Deno.env.get('GOOGLE_GEMINI_API_KEY');
     case 'xai': return Deno.env.get('XAI_API_KEY');
     case 'deepseek': return Deno.env.get('DEEPSEEK_API_KEY');
-    case 'qwen': return Deno.env.get('QWEN_API_KEY') || Deno.env.get('DASHSCOPE_API_KEY');
     default: return undefined;
   }
 }
@@ -140,6 +173,39 @@ function convertToAnthropicFormat(content: any): any {
   });
 }
 
+// Sanitize messages for Anthropic to prevent empty content errors
+function sanitizeMessagesForAnthropic(messages: any[]): any[] {
+  return messages.map(msg => {
+    const newMsg = { ...msg };
+    
+    // Handle array content (multimodal with images)
+    if (Array.isArray(newMsg.content)) {
+      const hasText = newMsg.content.some((part: any) => 
+        part.type === 'text' && part.text?.trim()
+      );
+      
+      // If no text but has images, add default analysis request
+      if (!hasText) {
+        const hasImages = newMsg.content.some((part: any) => 
+          part.type === 'image' || part.type === 'image_url'
+        );
+        if (hasImages) {
+          newMsg.content = [
+            ...newMsg.content,
+            { type: 'text', text: 'Please analyze the attached image(s).' }
+          ];
+        }
+      }
+    }
+    // Handle empty string content
+    else if (typeof newMsg.content === 'string' && !newMsg.content.trim()) {
+      newMsg.content = 'Please respond.';
+    }
+    
+    return newMsg;
+  });
+}
+
 // ============================================
 // MODAL (SWISS) HANDLER - NON-STREAMING JSON
 // ============================================
@@ -151,16 +217,34 @@ async function callModal(
 ): Promise<{ content: string; usage?: any; responseTimeMs?: number }> {
   console.log('[Modal] Calling endpoint:', endpoint);
   
+  // Get Modal secret for authentication
+  const modalSecret = Deno.env.get('MODAL_SECRET');
+  
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
   
   try {
+    // Build headers WITH authentication
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // CRITICAL FIX: Add auth header if MODAL_SECRET is configured
+    if (modalSecret) {
+      headers['Authorization'] = `Bearer ${modalSecret}`;
+      console.log('[Modal] Using authentication');
+    } else {
+      console.warn('[Modal] No MODAL_SECRET configured - request may fail');
+    }
+    
+    const startTime = Date.now();
+    
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         messages,
-        max_tokens: options.maxTokens || 1024,
+        max_tokens: options.maxTokens || 2048,
         temperature: options.temperature || 0.7,
         top_p: options.topP || 0.9,
       }),
@@ -172,22 +256,41 @@ async function callModal(
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[Modal] Error response:', response.status, errorText);
-      throw new Error(`Modal error ${response.status}: ${errorText}`);
+      throw new Error(`Modal inference failed: ${response.status} - ${errorText}`);
     }
     
     const data = await response.json();
-    console.log('[Modal] Response received, content length:', data.choices?.[0]?.message?.content?.length);
+    const responseTimeMs = Date.now() - startTime;
+    
+    console.log('[Modal] Success, response time:', responseTimeMs, 'ms');
+    
+    // Handle different response formats from vLLM
+    let content = '';
+    if (data.choices?.[0]?.message?.content) {
+      content = data.choices[0].message.content;
+    } else if (data.content) {
+      content = data.content;
+    } else if (data.text) {
+      content = data.text;
+    } else if (typeof data === 'string') {
+      content = data;
+    }
     
     return {
-      content: data.choices?.[0]?.message?.content || '',
+      content,
       usage: data.usage,
-      responseTimeMs: data.response_time_ms,
+      responseTimeMs,
     };
-  } catch (error: unknown) {
+    
+  } catch (error: any) {
     clearTimeout(timeout);
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Modal request timed out after 120 seconds');
+    
+    if (error.name === 'AbortError') {
+      console.error('[Modal] Request timed out after 120 seconds');
+      throw new Error('Model is warming up. Please try again in 30-60 seconds.');
     }
+    
+    console.error('[Modal] Fetch error:', error);
     throw error;
   }
 }
@@ -289,9 +392,15 @@ async function callAnthropic(
   
   const apiModel = modelMap[model] || model;
   
+  // CRITICAL FIX: Sanitize messages to prevent empty content error
+  const sanitizedMessages = sanitizeMessagesForAnthropic(messages);
+  
+  console.log('[Anthropic] Model:', apiModel);
+  console.log('[Anthropic] Messages:', sanitizedMessages.length);
+  
   // Extract system message and convert multimodal content
   let systemPrompt = '';
-  const anthropicMessages = messages.filter(m => {
+  const anthropicMessages = sanitizedMessages.filter(m => {
     if (m.role === 'system') {
       systemPrompt = typeof m.content === 'string' ? m.content : '';
       return false;
@@ -311,8 +420,6 @@ async function callAnthropic(
   
   if (systemPrompt) body.system = systemPrompt;
   if (options.temperature !== undefined) body.temperature = options.temperature;
-  
-  console.log('[Anthropic] Request:', { model: apiModel, messageCount: anthropicMessages.length });
   
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -469,7 +576,7 @@ async function callXAI(
 }
 
 // ============================================
-// DEEPSEEK HANDLER
+// DEEPSEEK HANDLER (with model ID mapping)
 // ============================================
 
 async function callDeepSeek(
@@ -480,14 +587,20 @@ async function callDeepSeek(
   const apiKey = getApiKey('deepseek');
   if (!apiKey) throw new Error('DEEPSEEK_API_KEY not configured');
   
-  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+  // CRITICAL FIX: Map UI model ID to DeepSeek API model ID
+  const actualModel = DEEPSEEK_MODEL_MAP[model] || 'deepseek-chat';
+  
+  console.log('[DeepSeek] UI model:', model);
+  console.log('[DeepSeek] API model:', actualModel);
+  
+  const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model: actualModel,  // Use mapped model ID
       messages,
       stream: options.stream || false,
       max_tokens: options.maxTokens || 4096,
@@ -500,59 +613,6 @@ async function callDeepSeek(
     const errorText = await response.text();
     console.error('[DeepSeek] Error:', response.status, errorText);
     throw new Error(`DeepSeek error ${response.status}: ${errorText}`);
-  }
-  
-  if (options.stream && response.body) {
-    return response.body;
-  }
-  
-  const data = await response.json();
-  return {
-    content: data.choices?.[0]?.message?.content || '',
-    usage: data.usage,
-  };
-}
-
-// ============================================
-// QWEN HANDLER
-// ============================================
-
-async function callQwen(
-  model: string,
-  messages: any[],
-  options: { maxTokens?: number; temperature?: number; topP?: number; stream?: boolean }
-): Promise<{ content: string; usage?: any } | ReadableStream> {
-  const apiKey = getApiKey('qwen');
-  if (!apiKey) throw new Error('QWEN_API_KEY not configured');
-  
-  const modelMap: Record<string, string> = {
-    'qwen3-235b': 'qwen3-235b-a22b-instruct',
-    'qwen3-235b-thinking': 'qwen3-235b-a22b-thinking',
-    'qwen3-coder-480b': 'qwen3-coder-480b',
-  };
-  
-  const qwenModel = modelMap[model] || model;
-  
-  const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: qwenModel,
-      messages,
-      stream: options.stream || false,
-      max_tokens: options.maxTokens || 4096,
-      temperature: options.temperature || 0.7,
-      top_p: options.topP || 0.9,
-    }),
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Qwen] Error:', response.status, errorText);
-    throw new Error(`Qwen error ${response.status}: ${errorText}`);
   }
   
   if (options.stream && response.body) {
@@ -679,7 +739,9 @@ serve(async (req) => {
     // MODAL (SWISS-HOSTED) - Always non-streaming JSON
     // ==========================================
     if (provider === 'modal') {
-      const endpoint = SWISS_ENDPOINTS[model] || SWISS_ENDPOINTS['swissvault-1.0'];
+      const endpoint = SWISS_ENDPOINTS[model] || SWISS_ENDPOINTS['swissvault-fast'];
+      
+      console.log('[Modal] Selected endpoint for model', model, ':', endpoint);
       
       try {
         const result = await callModal(endpoint, finalMessages, options);
@@ -947,57 +1009,37 @@ serve(async (req) => {
       }
     }
     
-    // ==========================================
-    // QWEN
-    // ==========================================
-    if (provider === 'qwen') {
-      try {
-        const result = await callQwen(model, finalMessages, options);
-        
-        if (result instanceof ReadableStream) {
-          return new Response(result, {
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-            },
-          });
-        }
-        
-        return new Response(
-          JSON.stringify({
-            id: `chatcmpl-qwen-${Date.now()}`,
-            object: 'chat.completion',
-            model,
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: result.content },
-              finish_reason: 'stop',
-            }],
-            usage: result.usage,
-            response_time_ms: Date.now() - startTime,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } catch (error: unknown) {
-        console.error('[Qwen] Call failed:', error);
-        return new Response(
-          JSON.stringify({ error: 'Qwen inference failed', details: error instanceof Error ? error.message : String(error) }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Unknown provider - fallback to Modal
+    console.warn(`[Ghost Inference] Unknown provider for model ${model}, falling back to Modal`);
+    const fallbackEndpoint = SWISS_ENDPOINTS['swissvault-fast'];
+    try {
+      const result = await callModal(fallbackEndpoint, finalMessages, options);
+      return new Response(
+        JSON.stringify({
+          id: `chatcmpl-fallback-${Date.now()}`,
+          object: 'chat.completion',
+          model,
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: result.content },
+            finish_reason: 'stop',
+          }],
+          usage: result.usage,
+          response_time_ms: result.responseTimeMs || (Date.now() - startTime),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error: unknown) {
+      return new Response(
+        JSON.stringify({ error: 'Unknown model provider', model, details: error instanceof Error ? error.message : String(error) }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
-    // Unknown provider
-    return new Response(
-      JSON.stringify({ error: 'Unknown model provider', model }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
     
   } catch (error: unknown) {
     console.error('[Ghost Inference] Fatal error:', error);
     return new Response(
-      JSON.stringify({ error: 'Inference failed', details: error instanceof Error ? error.message : String(error) }),
+      JSON.stringify({ error: 'Internal error', details: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
