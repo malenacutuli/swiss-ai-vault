@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.ghost-web-search]
 verify_jwt = false
+
+[functions.ghost-discover]
+verify_jwt = true
