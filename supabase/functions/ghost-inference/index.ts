@@ -652,19 +652,23 @@ async function callGoogle(
   const apiKey = getApiKey('google');
   if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
   
-  // Map display names to actual Google API model names
-  // Using stable model names without date suffixes
+  // Map display names to Google Gemini API model IDs.
+  // IMPORTANT: For v1beta, some projects require versioned or -latest IDs.
   const modelMap: Record<string, string> = {
+    // Gemini 2.0
     'gemini-2.0-flash': 'gemini-2.0-flash-exp',
-    'gemini-2.0-pro': 'gemini-2.0-flash-exp',
-    'gemini-1.5-pro': 'gemini-1.5-pro',
-    'gemini-1.5-flash': 'gemini-1.5-flash',
-    'gemini-2.5-pro': 'gemini-1.5-pro',  // 2.5 not available, fallback to 1.5-pro
-    'gemini-2.5-flash': 'gemini-2.0-flash-exp',  // fallback to 2.0-flash
-    'gemini-2.5-flash-lite': 'gemini-1.5-flash',  // fallback to 1.5-flash
-    // gemini-3 models don't exist - redirect to best available
-    'gemini-3-pro': 'gemini-1.5-pro',
-    'gemini-3-flash': 'gemini-2.0-flash-exp',
+    'gemini-2.0-pro': 'gemini-1.5-pro-latest',
+
+    // Gemini 1.5 (use -latest to avoid 404s)
+    'gemini-1.5-pro': 'gemini-1.5-pro-latest',
+    'gemini-1.5-flash': 'gemini-1.5-flash-latest',
+
+    // Gemini 2.5/3.*: fall back to best available for this API key
+    'gemini-2.5-pro': 'gemini-1.5-pro-latest',
+    'gemini-2.5-flash': 'gemini-1.5-flash-latest',
+    'gemini-2.5-flash-lite': 'gemini-1.5-flash-latest',
+    'gemini-3-pro': 'gemini-1.5-pro-latest',
+    'gemini-3-flash': 'gemini-1.5-flash-latest',
   };
   
   const googleModel = modelMap[model] || model;
