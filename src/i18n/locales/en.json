@@ -1200,6 +1200,34 @@
             "2": "Market sentiment analysis for this week",
             "3": "Portfolio diversification strategies"
           }
+        },
+        "marketSummary": {
+          "title": "Market Summary",
+          "updated": "Updated 12 min ago",
+          "time": {
+            "2h": "2h ago",
+            "3h": "3h ago",
+            "4h": "4h ago",
+            "5h": "5h ago"
+          },
+          "articles": {
+            "bitcoin": {
+              "title": "Bitcoin Tumbles Below $88,000 Amid Year-End Selloff",
+              "summary": "Bitcoin is trading at $87,775, down 0.04%, well below its October high. Hawkish Bank of Japan comments triggered a sharp selloff with digital asset treasury stocks leading the decline."
+            },
+            "oil": {
+              "title": "Crude Oil Plunges 2.76% on Oversupply Concerns",
+              "summary": "Oil prices dropped to $56.74, marking the lowest level since May and heading for the biggest annual decline in seven years as OPEC+ members ramped up production."
+            },
+            "corporate": {
+              "title": "Corporate Bitcoin Holdings Face Liquidity Pressure",
+              "summary": "Strategy established a $1.44 billion cash reserve and slashed profit targets as its stock fell below its bitcoin holdings' value."
+            },
+            "metals": {
+              "title": "Precious Metals Rally to Record Highs",
+              "summary": "Gold and silver reached unprecedented highs amid a parabolic rally, showing strong correlation with momentum stocks and benefiting from AI manufacturing applications."
+            }
+          }
         }
       },
       "legal": {

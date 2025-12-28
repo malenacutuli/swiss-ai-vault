@@ -89,7 +89,21 @@ interface DiscoverRequest {
   module: string;
   query: string;
   reformatWithClaude?: boolean;
+  language?: string; // e.g., 'es', 'en', 'de', 'fr'
 }
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish',
+  de: 'German',
+  fr: 'French',
+  it: 'Italian',
+  pt: 'Portuguese',
+  nl: 'Dutch',
+  ja: 'Japanese',
+  ru: 'Russian',
+  ca: 'Catalan',
+};
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -97,7 +111,12 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { module, query, reformatWithClaude = true } = await req.json() as DiscoverRequest;
+    const { module, query, reformatWithClaude = true, language = 'en' } = await req.json() as DiscoverRequest;
+    
+    const languageName = LANGUAGE_NAMES[language] || 'English';
+    const languageInstruction = language !== 'en' 
+      ? `\n\nIMPORTANT: You MUST respond entirely in ${languageName}. All your analysis, explanations, and text must be in ${languageName}.`
+      : '';
     
     // Validate module
     const moduleConfig = MODULES[module];
@@ -116,7 +135,7 @@ serve(async (req: Request) => {
       throw new Error('PERPLEXITY_API_KEY not configured');
     }
 
-    console.log('[Discover] Module:', module, 'Query:', query.substring(0, 50) + '...');
+    console.log('[Discover] Module:', module, 'Language:', language, 'Query:', query.substring(0, 50) + '...');
 
     // Step 1: Call Perplexity for real-time search with citations
     const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -128,7 +147,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         model: 'sonar',
         messages: [
-          { role: 'system', content: moduleConfig.systemPrompt },
+          { role: 'system', content: moduleConfig.systemPrompt + languageInstruction },
           { role: 'user', content: query },
         ],
         search_recency_filter: moduleConfig.recencyFilter,
@@ -171,7 +190,8 @@ RULES:
 - Use professional, privacy-conscious language
 - Do NOT add information not in the source
 - Maintain factual accuracy
-- Use paragraphs, not bullet points unless listing items`,
+- Use paragraphs, not bullet points unless listing items
+${language !== 'en' ? `- CRITICAL: Your entire response MUST be in ${languageName}. Translate all content to ${languageName}.` : ''}`,
               messages: [
                 { role: 'user', content: `Reformat this research:\n\n${content}` },
               ],

@@ -97,7 +97,7 @@ const getSuggestionKeys = (activeTab: string): string[] => {
 };
 
 export default function GhostFinance() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
@@ -137,7 +137,7 @@ export default function GhostFinance() {
     setShowSuggestions(false);
     try {
       const { data, error } = await supabase.functions.invoke('ghost-discover', {
-        body: { module: 'finance', query, mode: searchMode },
+        body: { module: 'finance', query, mode: searchMode, language: i18n.language },
       });
       if (error) throw error;
       setResult(data);
