@@ -20,6 +20,8 @@ import {
   FolderPlus,
   ChevronDown,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
   Settings,
   Trash2,
   Download,
@@ -416,12 +418,41 @@ export function GhostSidebar({
           !isOpen && 'max-lg:hidden'
         )}
       >
-        {/* Ghost/Vault Toggle */}
-        {isExpanded && (
-          <div className="p-3 border-b border-border/40">
-            <GhostModeToggle currentMode="ghost" />
-          </div>
-        )}
+        {/* Header with Toggle */}
+        <div className="p-3 border-b border-border/40 flex items-center justify-between">
+          {isExpanded ? (
+            <>
+              <GhostModeToggle currentMode="ghost" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={onToggle}
+                  >
+                    <PanelLeftClose className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Collapse sidebar</TooltipContent>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 mx-auto"
+                  onClick={onToggle}
+                >
+                  <PanelLeft className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Expand sidebar</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
 
         {/* Top navigation */}
         <div className="flex flex-col gap-1 p-2">
