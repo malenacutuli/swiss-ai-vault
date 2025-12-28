@@ -233,8 +233,8 @@
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
   }
 
-  /* Generous spacing */
-  section {
+  /* Generous spacing - only for landing/marketing pages, not app UI */
+  .landing-section {
     @apply py-16 md:py-24;
   }
 
