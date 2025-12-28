@@ -85,6 +85,12 @@ export function useGhostInference() {
         if (!session) throw new Error('Not authenticated');
         if (!isCurrent()) return;
 
+        console.log('[Ghost Inference] Sending request:', {
+          model,
+          messageCount: messages.length,
+          stream: true,
+        });
+
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`,
           {
@@ -295,9 +301,13 @@ export function useGhostInference() {
 
         if (isCurrent()) {
           setStreamStatus('complete');
+          // Warn if stream ended with no content
+          if (!fullContent.trim()) {
+            console.warn('[Ghost Inference] Stream completed with empty content - no tokens received');
+          }
           callbacks.onComplete(fullContent);
           setLastResponseTime(Date.now() - startTime);
-          console.log(`[Ghost Inference] Total time: ${Date.now() - startTime}ms`);
+          console.log(`[Ghost Inference] Total time: ${Date.now() - startTime}ms, content length: ${fullContent.length}`);
         }
       } catch (error) {
         const err = error as Error;
