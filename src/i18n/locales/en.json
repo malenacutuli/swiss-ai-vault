@@ -194,6 +194,78 @@
       "realEstateDesc": "Luxury properties"
     }
   },
+  "vaultChat": {
+    "title": "Vault Chat",
+    "newChat": "New chat",
+    "creating": "Creating...",
+    "searchPlaceholder": "Search your chats...",
+    "conversations": "conversation(s)",
+    "matching": "matching \"{{query}}\"",
+    "noMatchingChats": "No conversations match your search",
+    "noConversationsYet": "No conversations yet",
+    "startFirstChat": "Start your first chat",
+    "newConversation": "New conversation",
+    "importChat": "Import Chat",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
+    "security": {
+      "aes256": "AES-256 Encrypted",
+      "swissHosted": "Swiss Hosted",
+      "zeroKnowledge": "Zero Knowledge"
+    },
+    "retention": {
+      "title": "Data Retention",
+      "mode": "Mode",
+      "mostSecure": "MOST SECURE",
+      "zerotrace": {
+        "label": "ZeroTrace",
+        "description": "No data retention. Encrypted & deleted immediately."
+      },
+      "1day": {
+        "label": "Keep 1 day",
+        "description": "Encrypted messages deleted after 24 hours."
+      },
+      "1week": {
+        "label": "Keep 1 week",
+        "description": "Encrypted messages deleted after 7 days."
+      },
+      "90days": {
+        "label": "Keep 90 days",
+        "description": "Encrypted messages deleted after 90 days."
+      },
+      "forever": {
+        "label": "Keep forever",
+        "description": "Encrypted messages stored permanently."
+      }
+    },
+    "encryption": {
+      "badge": "E2E Encrypted",
+      "tooltip": "Your messages are encrypted end-to-end using AES-256-GCM. Only you can read them."
+    },
+    "delete": {
+      "title": "Delete Conversation?",
+      "description": "Are you sure you want to delete \"{{title}}\"? This will permanently delete all messages and the encryption key. This action cannot be undone.",
+      "deleting": "Deleting..."
+    },
+    "research": {
+      "inProgress": "Research in Progress",
+      "encryptedInProgress": "Encrypted Research in Progress",
+      "stages": {
+        "encrypting": "Encrypting query",
+        "searching": "Searching web",
+        "analyzing": "Analyzing sources",
+        "synthesizing": "Synthesizing report",
+        "encryptingResults": "Encrypting results"
+      }
+    },
+    "modes": {
+      "zerotraceActivated": "ZeroTrace Mode Activated",
+      "zerotraceDescription": "Messages will be stored locally and never sent to our servers",
+      "cloudActivated": "Cloud Storage Mode Activated",
+      "cloudDescription": "Messages will be stored encrypted in the cloud",
+      "updateError": "Failed to update storage mode"
+    }
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "projects": "Projects",

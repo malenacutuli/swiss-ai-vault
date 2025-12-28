@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ export function DeleteConversationDialog({
   conversationTitle,
 }: DeleteConversationDialogProps) {
   const [deleting, setDeleting] = useState(false);
+  const { t } = useTranslation();
 
   const handleConfirm = async () => {
     setDeleting(true);
@@ -41,21 +43,19 @@ export function DeleteConversationDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
+          <AlertDialogTitle>{t('vaultChat.delete.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{conversationTitle}"? 
-            This will permanently delete all messages and the encryption key. 
-            This action cannot be undone.
+            {t('vaultChat.delete.description', { title: conversationTitle })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={deleting}>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={deleting}
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
-            {deleting ? 'Deleting...' : 'Delete'}
+            {deleting ? t('vaultChat.delete.deleting') : t('common.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

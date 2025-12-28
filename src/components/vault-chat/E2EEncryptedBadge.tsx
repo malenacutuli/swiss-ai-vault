@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ShieldCheck } from 'lucide-react';
 import {
   Tooltip,
@@ -8,6 +9,8 @@ import {
 import { cn } from '@/lib/utils';
 
 export function E2EEncryptedBadge() {
+  const { t } = useTranslation();
+  
   return (
     <TooltipProvider>
       <Tooltip>
@@ -21,13 +24,12 @@ export function E2EEncryptedBadge() {
             )}
           >
             <ShieldCheck className="h-3.5 w-3.5 animate-[pulse_5s_ease-in-out_infinite]" />
-            <span>E2E Encrypted</span>
+            <span>{t('vaultChat.encryption.badge')}</span>
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <p className="text-sm">
-            Your messages are encrypted end-to-end using AES-256-GCM. 
-            Only you can read them.
+            {t('vaultChat.encryption.tooltip')}
           </p>
         </TooltipContent>
       </Tooltip>

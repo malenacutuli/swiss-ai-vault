@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Key, Globe, Brain, Sparkles, Lock, CheckCircle, Search, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -8,16 +9,18 @@ interface ResearchProgressProps {
 }
 
 export function ResearchProgress({ stage, progress, isZeroTrace }: ResearchProgressProps) {
+  const { t } = useTranslation();
+  
   const stages = isZeroTrace ? [
-    { id: 'encrypting', label: 'Encrypting query', icon: Key },
-    { id: 'searching', label: 'Searching web', icon: Globe },
-    { id: 'analyzing', label: 'Analyzing sources', icon: Brain },
-    { id: 'synthesizing', label: 'Synthesizing report', icon: Sparkles },
-    { id: 'decrypting', label: 'Encrypting results', icon: Lock },
+    { id: 'encrypting', labelKey: 'vaultChat.research.stages.encrypting', icon: Key },
+    { id: 'searching', labelKey: 'vaultChat.research.stages.searching', icon: Globe },
+    { id: 'analyzing', labelKey: 'vaultChat.research.stages.analyzing', icon: Brain },
+    { id: 'synthesizing', labelKey: 'vaultChat.research.stages.synthesizing', icon: Sparkles },
+    { id: 'decrypting', labelKey: 'vaultChat.research.stages.encryptingResults', icon: Lock },
   ] : [
-    { id: 'searching', label: 'Searching web', icon: Globe },
-    { id: 'analyzing', label: 'Analyzing sources', icon: Brain },
-    { id: 'synthesizing', label: 'Synthesizing report', icon: Sparkles },
+    { id: 'searching', labelKey: 'vaultChat.research.stages.searching', icon: Globe },
+    { id: 'analyzing', labelKey: 'vaultChat.research.stages.analyzing', icon: Brain },
+    { id: 'synthesizing', labelKey: 'vaultChat.research.stages.synthesizing', icon: Sparkles },
   ];
 
   const currentIndex = stages.findIndex(s => s.id === stage);
@@ -42,7 +45,7 @@ export function ResearchProgress({ stage, progress, isZeroTrace }: ResearchProgr
           "font-medium",
           isZeroTrace ? "text-green-700 dark:text-green-300" : "text-purple-700 dark:text-purple-300"
         )}>
-          {isZeroTrace ? "Encrypted Research in Progress" : "Research in Progress"}
+          {isZeroTrace ? t('vaultChat.research.encryptedInProgress') : t('vaultChat.research.inProgress')}
         </span>
       </div>
       
@@ -84,7 +87,7 @@ export function ResearchProgress({ stage, progress, isZeroTrace }: ResearchProgr
                 "text-xs text-center max-w-[80px]",
                 isCurrent ? "font-medium" : "text-muted-foreground"
               )}>
-                {s.label}
+                {t(s.labelKey)}
               </span>
             </div>
           );

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -163,6 +164,7 @@ const VaultChat = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
   
   // Storage mode hook - routes to server or local based on zero_retention_mode
   const {
@@ -214,16 +216,16 @@ const VaultChat = () => {
         await refreshMode();
         
         toast({
-          title: shouldBeZeroTrace ? 'ZeroTrace Mode Activated' : 'Cloud Storage Mode Activated',
+          title: shouldBeZeroTrace ? t('vaultChat.modes.zerotraceActivated') : t('vaultChat.modes.cloudActivated'),
           description: shouldBeZeroTrace 
-            ? 'Messages will be stored locally and never sent to our servers'
-            : 'Messages will be stored encrypted in the cloud',
+            ? t('vaultChat.modes.zerotraceDescription')
+            : t('vaultChat.modes.cloudDescription'),
         });
       } catch (error) {
         console.error('Failed to update storage mode:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to update storage mode',
+          title: t('common.error'),
+          description: t('vaultChat.modes.updateError'),
           variant: 'destructive',
         });
         return;

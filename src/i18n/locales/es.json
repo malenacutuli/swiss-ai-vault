@@ -195,6 +195,78 @@
       "realEstateDesc": "Propiedades de lujo"
     }
   },
+  "vaultChat": {
+    "title": "Vault Chat",
+    "newChat": "Nuevo chat",
+    "creating": "Creando...",
+    "searchPlaceholder": "Buscar en tus chats...",
+    "conversations": "conversación(es)",
+    "matching": "que coinciden con \"{{query}}\"",
+    "noMatchingChats": "Ninguna conversación coincide con tu búsqueda",
+    "noConversationsYet": "Aún no hay conversaciones",
+    "startFirstChat": "Comienza tu primer chat",
+    "newConversation": "Nueva conversación",
+    "importChat": "Importar chat",
+    "switchToLight": "Cambiar a modo claro",
+    "switchToDark": "Cambiar a modo oscuro",
+    "security": {
+      "aes256": "Cifrado AES-256",
+      "swissHosted": "Alojado en Suiza",
+      "zeroKnowledge": "Conocimiento Cero"
+    },
+    "retention": {
+      "title": "Retención de Datos",
+      "mode": "Modo",
+      "mostSecure": "MÁS SEGURO",
+      "zerotrace": {
+        "label": "ZeroTrace",
+        "description": "Sin retención de datos. Cifrado y eliminado inmediatamente."
+      },
+      "1day": {
+        "label": "Mantener 1 día",
+        "description": "Mensajes cifrados eliminados después de 24 horas."
+      },
+      "1week": {
+        "label": "Mantener 1 semana",
+        "description": "Mensajes cifrados eliminados después de 7 días."
+      },
+      "90days": {
+        "label": "Mantener 90 días",
+        "description": "Mensajes cifrados eliminados después de 90 días."
+      },
+      "forever": {
+        "label": "Mantener siempre",
+        "description": "Mensajes cifrados almacenados permanentemente."
+      }
+    },
+    "encryption": {
+      "badge": "Cifrado E2E",
+      "tooltip": "Tus mensajes están cifrados de extremo a extremo usando AES-256-GCM. Solo tú puedes leerlos."
+    },
+    "delete": {
+      "title": "¿Eliminar conversación?",
+      "description": "¿Estás seguro de que quieres eliminar \"{{title}}\"? Esto eliminará permanentemente todos los mensajes y la clave de cifrado. Esta acción no se puede deshacer.",
+      "deleting": "Eliminando..."
+    },
+    "research": {
+      "inProgress": "Investigación en progreso",
+      "encryptedInProgress": "Investigación cifrada en progreso",
+      "stages": {
+        "encrypting": "Cifrando consulta",
+        "searching": "Buscando en la web",
+        "analyzing": "Analizando fuentes",
+        "synthesizing": "Sintetizando informe",
+        "encryptingResults": "Cifrando resultados"
+      }
+    },
+    "modes": {
+      "zerotraceActivated": "Modo ZeroTrace Activado",
+      "zerotraceDescription": "Los mensajes se almacenarán localmente y nunca se enviarán a nuestros servidores",
+      "cloudActivated": "Modo de Almacenamiento en la Nube Activado",
+      "cloudDescription": "Los mensajes se almacenarán cifrados en la nube",
+      "updateError": "Error al actualizar el modo de almacenamiento"
+    }
+  },
   "sidebar": {
     "dashboard": "Panel",
     "projects": "Proyectos",
