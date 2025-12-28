@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ export function ConversationListView({
 }: ConversationListViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
 
   const filtered = conversations.filter((c) => {
     const title = getDisplayTitle(c);
@@ -53,25 +55,25 @@ export function ConversationListView({
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
             <Lock className="w-5 h-5 text-primary" />
           </div>
-          <h1 className="text-2xl font-semibold">Vault Chat</h1>
+          <h1 className="text-2xl font-semibold">{t('vaultChat.title')}</h1>
         </div>
         <div className="flex gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? t('vaultChat.switchToLight') : t('vaultChat.switchToDark')}
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
           {isZeroTrace && onImport && (
-            <Button variant="outline" onClick={onImport} title="Import Chat">
+            <Button variant="outline" onClick={onImport} title={t('vaultChat.importChat')}>
               <Upload className="h-4 w-4" />
             </Button>
           )}
           <Button onClick={onNewChat} disabled={isCreating}>
             <Plus className="w-4 h-4 mr-2" />
-            {isCreating ? 'Creating...' : 'New chat'}
+            {isCreating ? t('vaultChat.creating') : t('vaultChat.newChat')}
           </Button>
         </div>
       </div>
@@ -80,7 +82,7 @@ export function ConversationListView({
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search your chats..."
+          placeholder={t('vaultChat.searchPlaceholder')}
           className="pl-10 h-11"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -89,8 +91,8 @@ export function ConversationListView({
 
       {/* Count */}
       <div className="text-sm text-muted-foreground mb-4">
-        {filtered.length} conversation{filtered.length !== 1 ? 's' : ''}
-        {searchQuery && ` matching "${searchQuery}"`}
+        {filtered.length} {t('vaultChat.conversations', { count: filtered.length })}
+        {searchQuery && ` ${t('vaultChat.matching', { query: searchQuery })}`}
       </div>
 
       {/* List */}
@@ -102,12 +104,12 @@ export function ConversationListView({
                 <Lock className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-muted-foreground mb-4">
-                {searchQuery ? 'No conversations match your search' : 'No conversations yet'}
+                {searchQuery ? t('vaultChat.noMatchingChats') : t('vaultChat.noConversationsYet')}
               </p>
               {!searchQuery && (
                 <Button onClick={onNewChat} disabled={isCreating}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Start your first chat
+                  {t('vaultChat.startFirstChat')}
                 </Button>
               )}
             </div>
@@ -127,7 +129,7 @@ export function ConversationListView({
                 <div className="text-sm text-muted-foreground mt-1">
                   {conversation.last_message_at
                     ? formatRelativeTime(conversation.last_message_at)
-                    : 'New conversation'}
+                    : t('vaultChat.newConversation')}
                 </div>
               </div>
             ))
@@ -139,15 +141,15 @@ export function ConversationListView({
       <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-border text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <Shield className="w-3.5 h-3.5" />
-          AES-256 Encrypted
+          {t('vaultChat.security.aes256')}
         </div>
         <div className="flex items-center gap-1.5">
           <Lock className="w-3.5 h-3.5" />
-          Swiss Hosted
+          {t('vaultChat.security.swissHosted')}
         </div>
         <div className="flex items-center gap-1.5">
           <Shield className="w-3.5 h-3.5" />
-          Zero Knowledge
+          {t('vaultChat.security.zeroKnowledge')}
         </div>
       </div>
     </div>

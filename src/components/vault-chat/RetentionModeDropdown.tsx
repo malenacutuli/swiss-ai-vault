@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Shield, Clock, Archive, Database } from 'lucide-react';
 import {
   DropdownMenu,
@@ -13,8 +14,8 @@ export type RetentionMode = 'zerotrace' | '1day' | '1week' | '90days' | 'forever
 
 interface RetentionOption {
   id: RetentionMode;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   retentionDays: number | null;
@@ -23,40 +24,40 @@ interface RetentionOption {
 const RETENTION_OPTIONS: RetentionOption[] = [
   {
     id: 'zerotrace',
-    label: 'ZeroTrace',
-    description: 'No data retention. Encrypted & deleted immediately.',
+    labelKey: 'vaultChat.retention.zerotrace.label',
+    descriptionKey: 'vaultChat.retention.zerotrace.description',
     icon: Shield,
     color: 'text-green-600 dark:text-green-400',
     retentionDays: 0
   },
   {
     id: '1day',
-    label: 'Keep 1 day',
-    description: 'Encrypted messages deleted after 24 hours.',
+    labelKey: 'vaultChat.retention.1day.label',
+    descriptionKey: 'vaultChat.retention.1day.description',
     icon: Clock,
     color: 'text-blue-600 dark:text-blue-400',
     retentionDays: 1
   },
   {
     id: '1week',
-    label: 'Keep 1 week',
-    description: 'Encrypted messages deleted after 7 days.',
+    labelKey: 'vaultChat.retention.1week.label',
+    descriptionKey: 'vaultChat.retention.1week.description',
     icon: Clock,
     color: 'text-purple-600 dark:text-purple-400',
     retentionDays: 7
   },
   {
     id: '90days',
-    label: 'Keep 90 days',
-    description: 'Encrypted messages deleted after 90 days.',
+    labelKey: 'vaultChat.retention.90days.label',
+    descriptionKey: 'vaultChat.retention.90days.description',
     icon: Archive,
     color: 'text-orange-600 dark:text-orange-400',
     retentionDays: 90
   },
   {
     id: 'forever',
-    label: 'Keep forever',
-    description: 'Encrypted messages stored permanently.',
+    labelKey: 'vaultChat.retention.forever.label',
+    descriptionKey: 'vaultChat.retention.forever.description',
     icon: Database,
     color: 'text-muted-foreground',
     retentionDays: null
@@ -70,6 +71,7 @@ interface RetentionModeDropdownProps {
 }
 
 export function RetentionModeDropdown({ value, onChange, disabled }: RetentionModeDropdownProps) {
+  const { t } = useTranslation();
   const selectedOption = RETENTION_OPTIONS.find(o => o.id === value) || RETENTION_OPTIONS[0];
   const Icon = selectedOption.icon;
 
@@ -90,15 +92,15 @@ export function RetentionModeDropdown({ value, onChange, disabled }: RetentionMo
             "hidden sm:inline font-medium",
             value === 'zerotrace' && "text-green-700 dark:text-green-300"
           )}>
-            {selectedOption.label}
+            {t(selectedOption.labelKey)}
           </span>
-          <span className="sm:hidden">Mode</span>
+          <span className="sm:hidden">{t('vaultChat.retention.mode')}</span>
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="w-64 bg-popover border border-border z-50">
         <div className="px-2 py-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Data Retention</p>
+          <p className="text-xs font-medium text-muted-foreground">{t('vaultChat.retention.title')}</p>
         </div>
         <DropdownMenuSeparator />
 
@@ -118,15 +120,15 @@ export function RetentionModeDropdown({ value, onChange, disabled }: RetentionMo
               <OptionIcon className={cn("h-4 w-4 mt-0.5 shrink-0", option.color)} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{option.label}</span>
+                  <span className="font-medium">{t(option.labelKey)}</span>
                   {option.id === 'zerotrace' && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      MOST SECURE
+                      {t('vaultChat.retention.mostSecure')}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {option.description}
+                  {t(option.descriptionKey)}
                 </p>
               </div>
             </DropdownMenuItem>
