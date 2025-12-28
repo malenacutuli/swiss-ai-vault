@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { SwissHeading } from '@/components/ui/swiss';
 import { MessageSquare, Image, Video, Globe } from 'lucide-react';
 
 export type GhostMode = 'text' | 'image' | 'video' | 'search';
@@ -24,7 +23,7 @@ export function GhostModeTabs({
   className,
 }: GhostModeTabsProps) {
   return (
-    <div className={cn('flex items-center gap-1 p-1 bg-muted/30 rounded-lg', className)}>
+    <div className={cn('flex items-center gap-0.5 p-1 bg-muted/40 rounded-xl', className)}>
       {MODES.map(({ id, label, icon: Icon }) => (
         <Button
           key={id}
@@ -32,9 +31,9 @@ export function GhostModeTabs({
           size="sm"
           onClick={() => onModeChange(id)}
           className={cn(
-            'h-9 px-4 gap-2 font-medium transition-all',
+            'h-8 px-3 gap-2 font-medium text-[13px] rounded-lg transition-all duration-150',
             activeMode === id
-              ? 'bg-background text-foreground shadow-sm'
+              ? 'bg-background text-foreground shadow-card'
               : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
           )}
         >

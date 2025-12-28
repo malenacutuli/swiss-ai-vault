@@ -20,6 +20,7 @@ import {
   Mic,
   Globe,
   FlaskConical,
+  Check,
 } from 'lucide-react';
 import {
   type GhostModel,
@@ -119,24 +120,24 @@ export function GhostModelPicker({
         <Button
           variant="ghost"
           className={cn(
-            'h-9 px-3 gap-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted/50',
+            'h-8 px-2.5 gap-1.5 text-[13px] font-medium text-foreground/80 hover:text-foreground hover:bg-muted/50',
             className
           )}
         >
           {currentModel && (
             <>
-              <span className="truncate max-w-[120px]">{currentModel.name}</span>
+              <span className="truncate max-w-[100px]">{currentModel.name}</span>
               {currentModel.tags.includes('private') && (
-                <Lock className="w-3 h-3 text-swiss-navy" />
+                <Lock className="w-3 h-3 text-primary" />
               )}
             </>
           )}
-          <ChevronDown className="w-4 h-4 opacity-60" />
+          <ChevronDown className="w-3.5 h-3.5 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-[320px] max-h-[400px] overflow-auto bg-popover border-border z-50"
+        className="w-[300px] max-h-[400px] overflow-auto bg-popover border-border shadow-elevated z-50"
       >
         {/* Auto option at top */}
         {hasAutoOption && (
@@ -151,17 +152,17 @@ export function GhostModelPicker({
                     setOpen(false);
                   }}
                   className={cn(
-                    'flex items-start gap-3 p-3 cursor-pointer',
-                    selectedModel === model.id && 'bg-swiss-navy/10'
+                    'flex items-start gap-3 p-3 cursor-pointer rounded-lg',
+                    selectedModel === model.id && 'bg-muted'
                   )}
                 >
-                  <div className="w-8 h-8 rounded-md bg-gradient-to-br from-swiss-navy to-swiss-sapphire flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-white" />
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{model.name}</span>
-                      <SwissBadge variant="success" size="sm">Recommended</SwissBadge>
+                      <span className="font-medium text-[13px]">{model.name}</span>
+                      {selectedModel === model.id && <Check className="w-3.5 h-3.5 text-primary" />}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
                   </div>
@@ -180,7 +181,7 @@ export function GhostModelPicker({
           return (
             <React.Fragment key={provider}>
               {idx > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+              <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium px-3 py-1.5">
                 {PROVIDER_LABELS[provider] || provider}
               </DropdownMenuLabel>
               {filteredModels.map(model => (
@@ -194,15 +195,16 @@ export function GhostModelPicker({
                   }}
                   disabled={model.comingSoon}
                   className={cn(
-                    'flex items-start gap-3 p-3 cursor-pointer',
-                    selectedModel === model.id && 'bg-swiss-navy/10',
+                    'flex items-start gap-3 p-3 cursor-pointer rounded-lg mx-1',
+                    selectedModel === model.id && 'bg-muted',
                     model.comingSoon && 'opacity-50 cursor-not-allowed'
                   )}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{model.name}</span>
-                      {model.tags.slice(0, 3).map(tag => (
+                      <span className="font-medium text-[13px]">{model.name}</span>
+                      {selectedModel === model.id && <Check className="w-3.5 h-3.5 text-primary" />}
+                      {model.tags.slice(0, 2).map(tag => (
                         <SwissBadge
                           key={tag}
                           variant={getTagBadgeVariant(tag)}
@@ -217,7 +219,7 @@ export function GhostModelPicker({
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
                       {model.contextWindow && (
                         <span>{(model.contextWindow / 1000).toFixed(0)}K context</span>
                       )}

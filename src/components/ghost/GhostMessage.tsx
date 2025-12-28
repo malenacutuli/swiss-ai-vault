@@ -159,7 +159,7 @@ function renderTextContent(
         }}
         target={isExternal ? '_blank' : undefined}
         rel={isExternal ? 'noopener noreferrer' : undefined}
-        className="text-swiss-sapphire hover:underline inline-flex items-center gap-1"
+        className="text-primary hover:underline inline-flex items-center gap-1"
       >
         {linkText}
         {isExternal && <ExternalLink className="w-3 h-3" />}
@@ -197,7 +197,7 @@ function TextPart({ text }: { text: string }) {
           return (
             <code
               key={i}
-              className="px-1.5 py-0.5 bg-muted rounded text-swiss-sapphire text-sm font-mono"
+              className="px-1.5 py-0.5 bg-muted rounded text-primary text-[13px] font-mono"
             >
               {part.slice(1, -1)}
             </code>
@@ -304,7 +304,7 @@ export function GhostMessage({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
               onClick={handleStartEdit}
             >
               <Pencil className="w-3 h-3 mr-1" />
@@ -319,7 +319,7 @@ export function GhostMessage({
             <Textarea
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
-              className="min-h-[80px] text-sm"
+              className="min-h-[80px] text-[15px]"
               autoFocus
             />
             <div className="flex gap-2">
@@ -339,7 +339,7 @@ export function GhostMessage({
             {role === 'user' && attachments && attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {attachments.map((att, idx) => (
-                  <div key={idx} className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+                  <div key={idx} className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 rounded-lg px-2 py-1">
                     {att.type === 'image' ? (
                       <ImageIcon className="w-3 h-3" />
                     ) : (
@@ -364,7 +364,7 @@ export function GhostMessage({
 
               // Text segment - render with markdown parsing and link handling
               return (
-                <div key={index} className="text-sm whitespace-pre-wrap leading-relaxed">
+                <div key={index} className="text-[15px] whitespace-pre-wrap leading-relaxed">
                   {renderTextContent(
                     segment.content, 
                     handleExternalLinkClick,
@@ -378,7 +378,7 @@ export function GhostMessage({
         
         {/* Streaming cursor */}
         {isStreaming && (
-          <span className="inline-block w-0.5 h-4 bg-swiss-navy animate-pulse ml-0.5" />
+          <span className="inline-block w-0.5 h-4 bg-primary animate-pulse ml-0.5" />
         )}
 
         {/* Timestamp */}
@@ -388,9 +388,9 @@ export function GhostMessage({
           </div>
         )}
         
-        {/* Action bar for assistant messages - ALWAYS visible, not just on hover */}
+        {/* Action bar for assistant messages */}
         {role === 'assistant' && !isEditing && !isStreaming && (
-          <div className="mt-3 pt-2 border-t border-border/50">
+          <div className="mt-3 pt-2 border-t border-border/40">
             <GhostMessageActions
               content={content}
               messageId={id}
@@ -440,7 +440,7 @@ export function GhostMessage({
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span>You are about to visit an external website:</span>
-              <code className="block text-sm bg-muted px-3 py-2 rounded break-all">
+              <code className="block text-[13px] bg-muted px-3 py-2 rounded-lg break-all">
                 {externalLinkDialog.url}
               </code>
               <span className="text-muted-foreground text-xs">
