@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Popover,
   PopoverContent,
@@ -54,6 +55,7 @@ const getDefaultSources = (module: string): Source[] => {
 };
 
 export function SourcesDropdown({ module }: SourcesDropdownProps) {
+  const { t } = useTranslation();
   const [sources, setSources] = useState<Source[]>(getDefaultSources(module));
   const activeCount = sources.filter(s => s.enabled).length;
 
@@ -77,7 +79,7 @@ export function SourcesDropdown({ module }: SourcesDropdownProps) {
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="end">
-        <p className="text-xs font-medium text-slate-500 px-2 py-1.5 mb-1">Sources</p>
+        <p className="text-xs font-medium text-slate-500 px-2 py-1.5 mb-1">{t('ghost.discover.sources')}</p>
         <div className="space-y-1">
           {sources.map((source) => (
             <div 
