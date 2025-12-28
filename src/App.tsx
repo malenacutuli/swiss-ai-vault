@@ -50,6 +50,7 @@ import VaultChat from "./pages/VaultChat";
 import VaultChatIntegrations from "./pages/VaultChatIntegrations";
 import SecureChat from "./pages/SecureChat";
 import GhostChat from "./pages/GhostChat";
+import GhostPricing from "./pages/GhostPricing";
 import GhostLibrary from "./pages/GhostLibrary";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -110,6 +111,7 @@ const App = () => {
                 {/* Ghost Chat routes - NO AUTH REQUIRED */}
                 <Route path="/ghost" element={<GhostChat />} />
                 <Route path="/ghost/chat" element={<GhostChat />} />
+                <Route path="/ghost/pricing" element={<GhostPricing />} />
                 <Route path="/ghost/library" element={<ProtectedRoute><GhostLibrary /></ProtectedRoute>} />
                 
                 {/* Ghost Auth routes */}
