@@ -104,11 +104,52 @@
     "auditLogs": "Registros de auditoría",
     "admin": "Administración",
     "catalog": "Catálogo",
+    "products": "Productos",
     "features": "Características",
     "pricing": "Precios",
     "signIn": "Iniciar sesión",
     "getStarted": "Comenzar",
     "earlyAccess": "Solicitar"
+  },
+  "footer": {
+    "products": "Productos",
+    "company": "Empresa",
+    "legal": "Legal",
+    "support": "Soporte",
+    "ghostChat": "Ghost Chat",
+    "vaultChat": "Vault Chat",
+    "vaultLabs": "Vault Labs",
+    "pricing": "Precios",
+    "apiReference": "Referencia API",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "privacyPolicy": "Política de Privacidad",
+    "termsOfService": "Términos de Servicio",
+    "dpa": "DPA",
+    "security": "Seguridad",
+    "status": "Estado",
+    "emailSupport": "Soporte por Email",
+    "description": "IA de confianza cero para equipos regulados. Residencia de datos suiza, cifrado E2E, auditabilidad completa.",
+    "allSystemsOperational": "Todos los sistemas operativos",
+    "madeInSwitzerland": "Hecho en Suiza",
+    "allRightsReserved": "Todos los derechos reservados"
+  },
+  "ghost": {
+    "status": {
+      "localOnly": "Solo Local",
+      "zeroRetention": "Sin Retención"
+    },
+    "auth": {
+      "signupBanner": "Regístrate gratis para guardar conversaciones",
+      "signUp": "Registrarse"
+    },
+    "alerts": {
+      "corruptedTitle": "Algunas conversaciones no se pudieron cargar",
+      "corruptedDescription": "conversación(es) cifrada(s) con una clave diferente no se pudieron descifrar.",
+      "clearCorruptedData": "Limpiar datos corruptos",
+      "storageCleared": "Almacenamiento limpiado",
+      "storageClearedDescription": "Todos los datos locales han sido eliminados. Puedes empezar de nuevo."
+    }
   },
   "sidebar": {
     "dashboard": "Panel",

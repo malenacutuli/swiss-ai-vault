@@ -110,6 +110,46 @@
     "getStarted": "Get Started",
     "earlyAccess": "Apply"
   },
+  "footer": {
+    "products": "Products",
+    "company": "Company",
+    "legal": "Legal",
+    "support": "Support",
+    "ghostChat": "Ghost Chat",
+    "vaultChat": "Vault Chat",
+    "vaultLabs": "Vault Labs",
+    "pricing": "Pricing",
+    "apiReference": "API Reference",
+    "about": "About",
+    "contact": "Contact",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "dpa": "DPA",
+    "security": "Security",
+    "status": "Status",
+    "emailSupport": "Email Support",
+    "description": "Zero-trust AI for regulated teams. Swiss data residency, E2E encryption, full auditability.",
+    "allSystemsOperational": "All systems operational",
+    "madeInSwitzerland": "Made in Switzerland",
+    "allRightsReserved": "All rights reserved"
+  },
+  "ghost": {
+    "status": {
+      "localOnly": "Local Only",
+      "zeroRetention": "Zero Retention"
+    },
+    "auth": {
+      "signupBanner": "Sign up free to save conversations",
+      "signUp": "Sign up"
+    },
+    "alerts": {
+      "corruptedTitle": "Some conversations couldn't be loaded",
+      "corruptedDescription": "conversation(s) encrypted with a different key could not be decrypted.",
+      "clearCorruptedData": "Clear corrupted data",
+      "storageCleared": "Storage cleared",
+      "storageClearedDescription": "All local data has been removed. You can start fresh."
+    }
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "projects": "Projects",
