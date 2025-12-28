@@ -12,36 +12,36 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import {
-  Search,
-  Plus,
-  MessageSquare,
-  Clock,
-  Folder,
-  FolderPlus,
-  ChevronDown,
-  ChevronRight,
-  PanelLeftClose,
-  PanelLeft,
-  Settings,
-  Trash2,
-  Download,
-  Edit3,
-  X,
-  Menu,
-  Image as ImageIcon,
-  Check,
-  Home,
-  MoreHorizontal,
-  TrendingUp,
-  Scale,
-  Lightbulb,
-  BookOpen,
-  Shield,
-  Plane,
-  Activity,
-  Compass,
-  LucideIcon,
-} from 'lucide-react';
+  IconSearch,
+  IconPlus,
+  IconMessage,
+  IconClock,
+  IconFolder,
+  IconFolderPlus,
+  IconChevronDown,
+  IconChevronRight,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebar,
+  IconSettings,
+  IconTrash,
+  IconDownload,
+  IconEdit,
+  IconX,
+  IconMenu2,
+  IconPhoto,
+  IconCheck,
+  IconHome,
+  IconDotsVertical,
+  IconTrendingUp,
+  IconScale,
+  IconBulb,
+  IconBook2,
+  IconShield,
+  IconPlane,
+  IconActivity,
+  IconCompass,
+} from '@tabler/icons-react';
+import type { Icon } from '@tabler/icons-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,21 +56,21 @@ import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
 interface DiscoverModule {
   id: string;
   name: string;
-  icon: LucideIcon;
+  icon: Icon;
   description: string;
   route: string;
   isPro?: boolean;
 }
 
 const ALL_DISCOVER_MODULES: DiscoverModule[] = [
-  { id: 'finance', name: 'Finance', icon: TrendingUp, description: 'Markets, crypto, wealth', route: '/ghost/finance' },
-  { id: 'legal', name: 'Legal', icon: Scale, description: 'Compliance, regulations', route: '/ghost/legal' },
-  { id: 'patents', name: 'Patents', icon: Lightbulb, description: 'IP search, prior art', route: '/ghost/patents' },
-  { id: 'research', name: 'Research', icon: BookOpen, description: 'Academic, clinical', route: '/ghost/research' },
-  { id: 'security', name: 'Security', icon: Shield, description: 'Cyber, privacy tools', route: '/ghost/security' },
-  { id: 'health', name: 'Health', icon: Activity, description: 'Longevity, clinical', route: '/ghost/health', isPro: true },
-  { id: 'travel', name: 'Travel', icon: Plane, description: 'Private, exclusive', route: '/ghost/travel', isPro: true },
-  { id: 'realestate', name: 'Real Estate', icon: Home, description: 'Luxury properties', route: '/ghost/realestate', isPro: true },
+  { id: 'finance', name: 'Finance', icon: IconTrendingUp, description: 'Markets, crypto, wealth', route: '/ghost/finance' },
+  { id: 'legal', name: 'Legal', icon: IconScale, description: 'Compliance, regulations', route: '/ghost/legal' },
+  { id: 'patents', name: 'Patents', icon: IconBulb, description: 'IP search, prior art', route: '/ghost/patents' },
+  { id: 'research', name: 'Research', icon: IconBook2, description: 'Academic, clinical', route: '/ghost/research' },
+  { id: 'security', name: 'Security', icon: IconShield, description: 'Cyber, privacy tools', route: '/ghost/security' },
+  { id: 'health', name: 'Health', icon: IconActivity, description: 'Longevity, clinical', route: '/ghost/health', isPro: true },
+  { id: 'travel', name: 'Travel', icon: IconPlane, description: 'Private, exclusive', route: '/ghost/travel', isPro: true },
+  { id: 'realestate', name: 'Real Estate', icon: IconHome, description: 'Luxury properties', route: '/ghost/realestate', isPro: true },
 ];
 
 const DEFAULT_ENABLED_MODULES = ['finance', 'legal', 'patents', 'research'];
@@ -253,9 +253,9 @@ export function GhostSidebar({
       )}
     >
       {conv.isTemporary ? (
-        <Clock className="w-4 h-4 text-warning shrink-0" />
+        <IconClock className="w-4 h-4 text-warning shrink-0" stroke={1.5} />
       ) : (
-        <MessageSquare className="w-4 h-4 shrink-0" />
+        <IconMessage className="w-4 h-4 shrink-0" stroke={1.5} />
       )}
       
       {isExpanded && (
@@ -278,7 +278,7 @@ export function GhostSidebar({
               className="h-6 w-6 shrink-0"
               onClick={(e) => { e.stopPropagation(); handleSaveChatTitle(conv.id); }}
             >
-              <Check className="w-3.5 h-3.5" />
+              <IconCheck className="w-3.5 h-3.5" stroke={1.5} />
             </Button>
             <Button
               size="icon"
@@ -286,7 +286,7 @@ export function GhostSidebar({
               className="h-6 w-6 shrink-0"
               onClick={(e) => { e.stopPropagation(); setEditingChatId(null); }}
             >
-              <X className="w-3.5 h-3.5" />
+              <IconX className="w-3.5 h-3.5" stroke={1.5} />
             </Button>
           </div>
         ) : (
@@ -299,16 +299,16 @@ export function GhostSidebar({
                   size="icon"
                   className="h-6 w-6 shrink-0 opacity-0 group-hover/chat:opacity-100 transition-opacity duration-150"
                 >
-                  <MoreHorizontal className="w-3.5 h-3.5" />
+                  <IconDotsVertical className="w-3.5 h-3.5" stroke={1.5} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem onClick={() => { setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}>
-                  <Edit3 className="w-3.5 h-3.5 mr-2" />
+                  <IconEdit className="w-3.5 h-3.5 mr-2" stroke={1.5} />
                   Rename
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onExportConversation(conv.id)}>
-                  <Download className="w-3.5 h-3.5 mr-2" />
+                  <IconDownload className="w-3.5 h-3.5 mr-2" stroke={1.5} />
                   Download
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -316,7 +316,7 @@ export function GhostSidebar({
                   onClick={() => onDeleteConversation(conv.id)}
                   className="text-destructive focus:text-destructive"
                 >
-                  <Trash2 className="w-3.5 h-3.5 mr-2" />
+                  <IconTrash className="w-3.5 h-3.5 mr-2" stroke={1.5} />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -353,7 +353,7 @@ export function GhostSidebar({
             }
           }}
         >
-          <Folder className="w-4 h-4 shrink-0" style={{ color: folder.color || 'currentColor' }} />
+          <IconFolder className="w-4 h-4 shrink-0" stroke={1.5} style={{ color: folder.color || 'currentColor' }} />
           
           {isExpanded && (
             editingFolderId === folder.id ? (
@@ -369,16 +369,16 @@ export function GhostSidebar({
                   className="h-6 text-xs px-2 flex-1"
                 />
                 <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => handleSaveFolderName(folder.id)}>
-                  <Check className="w-3.5 h-3.5" />
+                  <IconCheck className="w-3.5 h-3.5" stroke={1.5} />
                 </Button>
                 <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setEditingFolderId(null)}>
-                  <X className="w-3.5 h-3.5" />
+                  <IconX className="w-3.5 h-3.5" stroke={1.5} />
                 </Button>
               </div>
             ) : (
               <>
                 <span className="text-[13px] truncate flex-1">{folder.name}</span>
-                {isFolderExpanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+                {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" stroke={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" stroke={1.5} />}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
                     <Button
@@ -386,26 +386,26 @@ export function GhostSidebar({
                       size="icon"
                       className="h-6 w-6 shrink-0 opacity-0 group-hover/folder:opacity-100 transition-opacity duration-150"
                     >
-                      <MoreHorizontal className="w-3.5 h-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
-                      <Edit3 className="w-3.5 h-3.5 mr-2" />
-                      Rename
+                    <IconDotsVertical className="w-3.5 h-3.5" stroke={1.5} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
+                    <IconEdit className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                    Rename
+                  </DropdownMenuItem>
+                  {onExportFolder && (
+                    <DropdownMenuItem onClick={() => onExportFolder(folder.id)}>
+                      <IconDownload className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                      Download All
                     </DropdownMenuItem>
-                    {onExportFolder && (
-                      <DropdownMenuItem onClick={() => onExportFolder(folder.id)}>
-                        <Download className="w-3.5 h-3.5 mr-2" />
-                        Download All
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={async () => { if (onDeleteFolder) await onDeleteFolder(folder.id); }}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={async () => { if (onDeleteFolder) await onDeleteFolder(folder.id); }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <IconTrash className="w-3.5 h-3.5 mr-2" stroke={1.5} />
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -485,7 +485,7 @@ export function GhostSidebar({
                     className="h-7 w-7 shrink-0"
                     onClick={onToggle}
                   >
-                    <PanelLeftClose className="w-4 h-4" />
+                    <IconLayoutSidebarLeftCollapse className="w-4 h-4" stroke={1.5} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">Collapse sidebar</TooltipContent>
@@ -500,7 +500,7 @@ export function GhostSidebar({
                   className="h-8 w-8 mx-auto"
                   onClick={onToggle}
                 >
-                  <PanelLeft className="w-4 h-4" />
+                  <IconLayoutSidebar className="w-4 h-4" stroke={1.5} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">Expand sidebar</TooltipContent>
@@ -512,21 +512,21 @@ export function GhostSidebar({
         <div className="flex flex-col gap-1 p-2">
           {/* New Chat */}
           <IconButton 
-            icon={Plus} 
+            icon={IconPlus} 
             label="New Chat" 
             onClick={() => onNewChat(false)} 
           />
 
           {/* New Folder */}
           <IconButton 
-            icon={FolderPlus} 
+            icon={IconFolderPlus} 
             label="New Folder" 
             onClick={onCreateFolder} 
           />
           
           {/* Home */}
           <IconButton 
-            icon={Home} 
+            icon={IconHome} 
             label="Home" 
             onClick={() => navigate('/')} 
           />
@@ -534,7 +534,7 @@ export function GhostSidebar({
           {/* Search - only when expanded */}
           {isExpanded && (
             <div className="relative mt-2">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" stroke={1.5} />
               <Input
                 type="text"
                 placeholder="Search..."
@@ -561,7 +561,7 @@ export function GhostSidebar({
                       className="h-5 w-5 hover:bg-muted"
                       onClick={onCreateFolder}
                     >
-                      <FolderPlus className="w-3 h-3" />
+                      <IconFolderPlus className="w-3 h-3" stroke={1.5} />
                     </Button>
                   </div>
                   {folders.map(folder => renderFolderItem(folder))}
@@ -579,7 +579,7 @@ export function GhostSidebar({
                       className="h-5 w-5 hover:bg-muted"
                       onClick={onCreateFolder}
                     >
-                      <FolderPlus className="w-3 h-3" />
+                      <IconFolderPlus className="w-3 h-3" stroke={1.5} />
                     </Button>
                   )}
                 </div>
@@ -593,25 +593,34 @@ export function GhostSidebar({
               </div>
             </div>
           ) : (
-            // Collapsed: show icons with stacked labels (professional style)
-            <div className="flex flex-col gap-2 py-2">
-              {unfolderedChats.slice(0, 5).map(conv => (
-                <button
-                  key={conv.id}
-                  onClick={() => onSelectConversation(conv.id)}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-0.5 w-full py-2 rounded-lg transition-colors duration-150',
-                    selectedConversation === conv.id
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                  )}
-                >
-                  {conv.isTemporary ? <Clock className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-                  <span className="text-[9px] font-medium truncate max-w-[48px] leading-tight">
-                    {conv.title.slice(0, 8)}
-                  </span>
-                </button>
-              ))}
+            // Collapsed: show single Folders/Chats icons
+            <div className="flex flex-col items-center gap-1 py-2">
+              {folders.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={onToggle}
+                      className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                    >
+                      <IconFolder className="w-5 h-5" stroke={1.5} />
+                      <span className="text-[10px] font-medium">Folders</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">View Folders</TooltipContent>
+                </Tooltip>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onToggle}
+                    className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                  >
+                    <IconMessage className="w-5 h-5" stroke={1.5} />
+                    <span className="text-[10px] font-medium">Chats</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">View Chats</TooltipContent>
+              </Tooltip>
             </div>
           )}
         </ScrollArea>
@@ -621,7 +630,7 @@ export function GhostSidebar({
           {isExpanded && (
             <div className="flex items-center justify-between px-2 py-1 mb-1">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                <Compass className="w-3 h-3" />
+                <IconCompass className="w-3 h-3" stroke={1.5} />
                 Discover
               </span>
             </div>
@@ -688,7 +697,7 @@ export function GhostSidebar({
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
                   className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                 >
-                  <MoreHorizontal className="w-4 h-4 shrink-0" />
+                  <IconDotsVertical className="w-4 h-4 shrink-0" stroke={1.5} />
                   {isExpanded && <span className="text-[13px]">More</span>}
                 </button>
                 
@@ -724,7 +733,7 @@ export function GhostSidebar({
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded"
                       >
-                        <Settings className="w-4 h-4 shrink-0" />
+                        <IconSettings className="w-4 h-4 shrink-0" stroke={1.5} />
                         <span>Customize Sidebar</span>
                       </button>
                     </div>
@@ -738,12 +747,12 @@ export function GhostSidebar({
         {/* Bottom navigation */}
         <div className="flex flex-col gap-1 p-2 border-t border-border/60">
           <IconButton 
-            icon={ImageIcon} 
+            icon={IconPhoto} 
             label="Library" 
             onClick={() => navigate('/ghost/library')} 
           />
           <IconButton 
-            icon={Settings} 
+            icon={IconSettings} 
             label="Settings" 
             onClick={onOpenSettings} 
           />
@@ -769,7 +778,7 @@ export function GhostSidebar({
           className="fixed top-4 left-4 z-40 lg:hidden bg-background/80 border border-border/60"
           onClick={onToggle}
         >
-          <Menu className="w-5 h-5" />
+          <IconMenu2 className="w-5 h-5" stroke={1.5} />
         </Button>
       )}
     </TooltipProvider>

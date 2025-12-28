@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { MarketSparkline } from '@/components/ghost/MarketSparkline';
 import { MarketSummary } from '@/components/ghost/MarketSummary';
 import { WatchlistSidebar } from '@/components/ghost/WatchlistSidebar';
+import { SearchModeSelector, SourcesDropdown, type SearchMode } from '@/components/ghost/discover';
 import { 
   CryptoMarketView, 
   EarningsCalendarView, 
@@ -63,11 +64,46 @@ const MARKET_TABS = [
   { id: 'watchlist', label: 'Watchlist' },
 ];
 
+const getSuggestions = (activeTab: string): string[] => {
+  const suggestions: Record<string, string[]> = {
+    us: [
+      'What are the top performing S&P 500 stocks this week?',
+      'Analysis of Federal Reserve interest rate decision impact',
+      'Tech sector earnings preview for Q4 2024',
+    ],
+    european: [
+      'How is the ECB policy affecting European markets?',
+      'Top performing European stocks in 2024',
+      'Euro Stoxx 50 technical analysis',
+    ],
+    swiss: [
+      'SMI index performance and outlook',
+      'Swiss franc impact on Swiss equities',
+      'Top Swiss dividend stocks for 2024',
+    ],
+    crypto: [
+      'Bitcoin price prediction and analysis',
+      'Top altcoins to watch in 2024',
+      'Impact of ETF approvals on crypto markets',
+    ],
+    default: [
+      'What are the best investment opportunities right now?',
+      'Market sentiment analysis for this week',
+      'Portfolio diversification strategies',
+    ],
+  };
+  return suggestions[activeTab] || suggestions.default;
+};
+
 export default function GhostFinance() {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [activeTab, setActiveTab] = useState('us');
+  const [searchMode, setSearchMode] = useState<SearchMode>('search');
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const marketData: MarketTicker[] = [
     { symbol: 'SPY', name: 'S&P 500', price: 6012.45, change: -15.23, changePercent: -0.25 },
@@ -76,13 +112,30 @@ export default function GhostFinance() {
     { symbol: 'VIX', name: 'VIX', price: 13.45, change: 0.34, changePercent: 2.59 },
   ];
 
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const suggestions = useMemo(
+    () => getSuggestions(activeTab),
+    [activeTab]
+  );
+
   const handleSearch = async () => {
     if (!query.trim()) return;
     setIsSearching(true);
     setResult(null);
+    setShowSuggestions(false);
     try {
       const { data, error } = await supabase.functions.invoke('ghost-discover', {
-        body: { module: 'finance', query },
+        body: { module: 'finance', query, mode: searchMode },
       });
       if (error) throw error;
       setResult(data);
@@ -181,19 +234,71 @@ export default function GhostFinance() {
               </Button>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-              <IconSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" stroke={1.5} />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} placeholder="Search for stocks, crypto, and more..." className="pl-12 pr-12 h-12 text-base rounded-xl border-slate-200/60 bg-white shadow-sm" />
-              <button onClick={handleSearch} disabled={isSearching} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-slate-100">
-                {isSearching ? <IconLoader2 className="w-5 h-5 text-[#2A8C86] animate-spin" stroke={1.5} /> : <IconArrowRight className="w-5 h-5 text-[#2A8C86]" stroke={1.5} />}
-              </button>
-            </div>
+            {/* Search Card */}
+            <Card className="p-5 bg-white border-slate-200/60 shadow-sm" ref={containerRef}>
+              {/* Mode Selector & Sources */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <SearchModeSelector mode={searchMode} onModeChange={setSearchMode} />
+                  <SourcesDropdown module="finance" />
+                </div>
+              </div>
+
+              {/* Search Input */}
+              <div className="relative">
+                <IconSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" stroke={1.5} />
+                <Input 
+                  value={query} 
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    if (e.target.value.length === 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onFocus={() => !query && setShowSuggestions(true)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()} 
+                  placeholder="Ask about markets, stocks, crypto..." 
+                  className="pl-12 pr-12 h-14 text-base rounded-xl border-slate-200/60 bg-white shadow-sm" 
+                />
+                <button onClick={handleSearch} disabled={isSearching} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#2A8C86] text-white hover:bg-[#2A8C86]/90 disabled:opacity-50 transition-colors">
+                  {isSearching ? <IconLoader2 className="w-5 h-5 animate-spin" stroke={1.5} /> : <IconArrowRight className="w-5 h-5" stroke={1.5} />}
+                </button>
+
+                {/* Suggestions Dropdown */}
+                {showSuggestions && !query && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                    <p className="text-xs font-medium text-slate-500 px-4 py-2 border-b border-slate-100">
+                      Suggested questions for {MARKET_TABS.find(t => t.id === activeTab)?.label || 'Markets'}
+                    </p>
+                    {suggestions.map((suggestion, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setQuery(suggestion);
+                          setShowSuggestions(false);
+                        }}
+                        className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 text-left text-sm text-slate-700 transition-colors border-b border-slate-50 last:border-b-0"
+                      >
+                        <IconSearch className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" stroke={1.5} />
+                        <span className="line-clamp-2">{suggestion}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
 
             {/* Tabs */}
             <div className="flex items-center gap-1 border-b border-slate-200/60 overflow-x-auto pb-px">
               {MARKET_TABS.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap", activeTab === tab.id ? "text-slate-900" : "text-slate-500 hover:text-slate-700")}>
+                <button 
+                  key={tab.id} 
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setShowSuggestions(true);
+                  }} 
+                  className={cn("px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap", activeTab === tab.id ? "text-slate-900" : "text-slate-500 hover:text-slate-700")}
+                >
                   {tab.label}
                   {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2A8C86]" />}
                 </button>
