@@ -289,32 +289,33 @@ async function callModal(
     let content = '';
     
     // Format 1: OpenAI-compatible format (choices[].message.content)
-    if (data.choices?.[0]?.message?.content) {
-      content = data.choices[0].message.content;
+    // NOTE: content can be an empty string, so we must check for property existence, not truthiness.
+    if (data.choices?.[0]?.message && Object.prototype.hasOwnProperty.call(data.choices[0].message, 'content')) {
+      content = typeof data.choices[0].message.content === 'string' ? data.choices[0].message.content : '';
       console.log('[Modal] Extracted from choices[0].message.content');
     }
-    // Format 2: vLLM streaming-style (choices[].delta.content) 
-    else if (data.choices?.[0]?.delta?.content) {
-      content = data.choices[0].delta.content;
+    // Format 2: vLLM streaming-style (choices[].delta.content)
+    else if (data.choices?.[0]?.delta && Object.prototype.hasOwnProperty.call(data.choices[0].delta, 'content')) {
+      content = typeof data.choices[0].delta.content === 'string' ? data.choices[0].delta.content : '';
       console.log('[Modal] Extracted from choices[0].delta.content');
     }
     // Format 3: Direct content field
-    else if (data.content) {
+    else if (Object.prototype.hasOwnProperty.call(data, 'content')) {
       content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
       console.log('[Modal] Extracted from data.content');
     }
     // Format 4: Text field (some older APIs)
-    else if (data.text) {
-      content = data.text;
+    else if (Object.prototype.hasOwnProperty.call(data, 'text')) {
+      content = typeof data.text === 'string' ? data.text : JSON.stringify(data.text);
       console.log('[Modal] Extracted from data.text');
     }
     // Format 5: Generated text (HuggingFace style)
-    else if (data.generated_text) {
-      content = data.generated_text;
+    else if (Object.prototype.hasOwnProperty.call(data, 'generated_text')) {
+      content = typeof data.generated_text === 'string' ? data.generated_text : JSON.stringify(data.generated_text);
       console.log('[Modal] Extracted from data.generated_text');
     }
     // Format 6: Output field
-    else if (data.output) {
+    else if (Object.prototype.hasOwnProperty.call(data, 'output')) {
       content = typeof data.output === 'string' ? data.output : JSON.stringify(data.output);
       console.log('[Modal] Extracted from data.output');
     }
@@ -324,22 +325,24 @@ async function callModal(
       console.log('[Modal] Data is raw string');
     }
     // Format 8: Check for nested response structure
-    else if (data.response) {
+    else if (Object.prototype.hasOwnProperty.call(data, 'response')) {
       content = typeof data.response === 'string' ? data.response : JSON.stringify(data.response);
       console.log('[Modal] Extracted from data.response');
     }
     // Format 9: Check for result field
-    else if (data.result) {
+    else if (Object.prototype.hasOwnProperty.call(data, 'result')) {
       content = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
       console.log('[Modal] Extracted from data.result');
     }
-    
-    // If still no content, log the full structure for debugging
-    if (!content) {
-      console.error('[Modal] Could not extract content. Full response:', JSON.stringify(data));
-    } else {
-      console.log('[Modal] Extracted content length:', content.length);
+
+    // If the upstream returned an empty completion, fail fast with a clearer error.
+    if (!content || content.trim().length === 0) {
+      const finishReason = data?.choices?.[0]?.finish_reason;
+      console.error('[Modal] Empty completion from upstream:', JSON.stringify({ finish_reason: finishReason, model: data?.model, id: data?.id }));
+      throw new Error(`Empty completion from model${finishReason ? ` (finish_reason=${finishReason})` : ''}`);
     }
+
+    console.log('[Modal] Extracted content length:', content.length);
     
     return {
       content,
@@ -990,7 +993,7 @@ serve(async (req) => {
         console.error('[Modal] Call failed:', error);
         return new Response(
           JSON.stringify({ error: 'Swiss inference failed', details: error instanceof Error ? error.message : String(error) }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
