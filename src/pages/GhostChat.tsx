@@ -655,6 +655,41 @@ function GhostChat() {
     }
   };
 
+  const handleExportFolder = (folderId: string) => {
+    // Get all conversations in this folder
+    const folderConvs = sidebarConversations.filter(c => c.folderId === folderId);
+    const folder = folders.find(f => f.id === folderId);
+    
+    if (folderConvs.length === 0) {
+      toast({ title: 'Empty folder', description: 'No chats to export in this folder' });
+      return;
+    }
+
+    // Export each conversation as markdown and combine
+    let combinedMarkdown = `# ${folder?.name || 'Folder Export'}\n\nExported: ${new Date().toLocaleString()}\n\n---\n\n`;
+    
+    for (const convMeta of folderConvs) {
+      const conv = getConversation(convMeta.id);
+      if (conv) {
+        combinedMarkdown += `## ${conv.title}\n\n`;
+        for (const msg of conv.messages) {
+          const role = msg.role === 'user' ? '**You**' : '**Assistant**';
+          combinedMarkdown += `${role}:\n\n${msg.content}\n\n---\n\n`;
+        }
+      }
+    }
+
+    // Download as markdown file
+    const blob = new Blob([combinedMarkdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${folder?.name || 'folder'}-export.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Exported', description: `Exported ${folderConvs.length} chat(s) from folder` });
+  };
+
   const handleDeleteConversation = (id: string) => {
     deleteConversation(id);
     if (selectedConversation === id) {
@@ -1237,6 +1272,7 @@ function GhostChat() {
         onCreateFolder={handleCreateFolder}
         onRenameFolder={renameFolder}
         onDeleteFolder={deleteFolder}
+        onExportFolder={handleExportFolder}
         userName={user.email?.split('@')[0] || 'User'}
         userCredits={balance}
         isPro={isPro}
