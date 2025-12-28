@@ -86,10 +86,16 @@ const DEEPSEEK_MODEL_MAP: Record<string, string> = {
 
 function getProvider(model: string): 'modal' | 'openai' | 'anthropic' | 'google' | 'xai' | 'deepseek' {
   // SwissVault branded models that route to OpenAI (hidden)
-  if (SWISSVAULT_OPENAI_ALIASES[model]) return 'openai';
+  if (SWISSVAULT_OPENAI_ALIASES[model]) {
+    console.log(`[Router] SwissVault model "${model}" → OpenAI alias "${SWISSVAULT_OPENAI_ALIASES[model]}"`);
+    return 'openai';
+  }
   
   // Open source models → Modal (includes Qwen, LLaMA, Mistral via Modal)
-  if (SWISS_ENDPOINTS[model]) return 'modal';
+  if (SWISS_ENDPOINTS[model]) {
+    console.log(`[Router] Model "${model}" → Modal endpoint`);
+    return 'modal';
+  }
   
   // Commercial APIs
   if (OPENAI_MODELS.some(m => model.includes(m))) return 'openai';
@@ -100,10 +106,8 @@ function getProvider(model: string): 'modal' | 'openai' | 'anthropic' | 'google'
   // DeepSeek direct API (for commercial DeepSeek models like deepseek-chat)
   if (DEEPSEEK_MODELS.some(m => model.includes(m))) return 'deepseek';
   
-  // REMOVED: Qwen direct API - all Qwen goes through Modal
-  // if (QWEN_MODELS.some(m => model.includes(m))) return 'qwen';
-  
   // Default fallback to Modal for unknown open source models
+  console.log(`[Router] Unknown model "${model}" → fallback to Modal`);
   return 'modal';
 }
 
