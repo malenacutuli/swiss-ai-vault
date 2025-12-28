@@ -1182,6 +1182,8 @@
         "title": "Legal y Cumplimiento",
         "description": "Cumplimiento, regulaciones",
         "placeholder": "Pregunta sobre temas legales y de cumplimiento...",
+        "exploreByCategory": "Explorar por Categoría",
+        "regulationsIn": "Regulaciones de {{category}} en {{jurisdiction}}",
         "jurisdictions": {
           "eu": "UE",
           "us": "EE.UU.",
@@ -1207,6 +1209,8 @@
         "title": "Patentes",
         "description": "Búsqueda de PI, arte previo",
         "placeholder": "Pregunta sobre patentes y propiedad intelectual...",
+        "exploreByCategory": "Explorar por Categoría",
+        "landscapeFor": "Panorama de patentes para {{category}}",
         "actions": {
           "patentability": "Patentabilidad",
           "landscape": "Panorama Tecnológico",
@@ -1225,14 +1229,22 @@
         "title": "Investigación Académica",
         "description": "Académico, clínico",
         "placeholder": "Busca investigación académica y estudios clínicos...",
+        "exploreByCategory": "Explorar por Categoría",
+        "latestResearchIn": "Últimas investigaciones en {{category}}",
         "actions": {
           "academic": "Artículos Académicos",
           "clinical": "Ensayos Clínicos",
           "preprints": "Preprints"
         },
+        "getStarted": {
+          "academic": "Comenzar con Artículos Académicos",
+          "clinical": "Comenzar con Ensayos Clínicos",
+          "preprints": "Comenzar con Preprints"
+        },
         "filters": {
           "all": "Todos",
           "peerReviewed": "Revisado por pares",
+          "preprints": "Preprints",
           "openAccess": "Acceso abierto",
           "highImpact": "Alto impacto"
         },
@@ -1242,7 +1254,10 @@
           "climate": "Estudios sobre tecnologías de mitigación del cambio climático",
           "glp1": "Ensayos clínicos recientes sobre agonistas del receptor GLP-1 para obesidad",
           "alzheimers": "Ensayos fase 3 para tratamientos del Alzheimer en 2024",
-          "llm": "Últimos preprints de arXiv sobre modelos de lenguaje grandes"
+          "mrna": "Resultados de ensayos clínicos para vacunas mRNA de próxima generación",
+          "llm": "Últimos preprints de arXiv sobre modelos de lenguaje grandes",
+          "crispr": "Envíos recientes de bioRxiv sobre edición genética CRISPR",
+          "longCovid": "Nuevos preprints de medRxiv sobre investigación de COVID prolongado"
         }
       },
       "security": {
@@ -1261,6 +1276,27 @@
         "title": "Bienes Raíces",
         "description": "Propiedades de lujo"
       }
+    },
+    "discover": {
+      "modes": {
+        "search": "Buscar",
+        "research": "Investigar",
+        "reason": "Razonar"
+      },
+      "sources": "Fuentes"
+    },
+    "categories": {
+      "lifeSciences": "Ciencias de la Vida",
+      "computerScience": "Ciencias de la Computación",
+      "physicsMathematics": "Física y Matemáticas",
+      "socialSciences": "Ciencias Sociales",
+      "computersSoftware": "Computadoras y Software",
+      "medicalHealthcare": "Médico y Salud",
+      "industrialManufacturing": "Manufactura Industrial",
+      "financialRegulations": "Regulaciones Financieras",
+      "dataProtection": "Protección de Datos",
+      "corporateSecurities": "Corporativo y Valores",
+      "crossBorderCompliance": "Cumplimiento Transfronterizo"
     },
     "search": {
       "placeholder": "Buscar en la web...",

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import { 
   IconSearch, 
   IconBrain, 
@@ -13,15 +14,17 @@ interface SearchModeSelectorProps {
 }
 
 export function SearchModeSelector({ mode, onModeChange }: SearchModeSelectorProps) {
+  const { t } = useTranslation();
+  
   const modes = [
-    { id: 'search' as const, label: 'Search', icon: IconSearch },
-    { id: 'research' as const, label: 'Research', icon: IconBrain },
-    { id: 'reason' as const, label: 'Reason', icon: IconBulb },
+    { id: 'search' as const, labelKey: 'ghost.discover.modes.search', icon: IconSearch },
+    { id: 'research' as const, labelKey: 'ghost.discover.modes.research', icon: IconBrain },
+    { id: 'reason' as const, labelKey: 'ghost.discover.modes.reason', icon: IconBulb },
   ];
 
   return (
     <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
-      {modes.map(({ id, label, icon: Icon }) => (
+      {modes.map(({ id, labelKey, icon: Icon }) => (
         <button
           key={id}
           onClick={() => onModeChange(id)}
@@ -33,7 +36,7 @@ export function SearchModeSelector({ mode, onModeChange }: SearchModeSelectorPro
           )}
         >
           <Icon className="w-4 h-4" stroke={1.5} />
-          {label}
+          {t(labelKey)}
         </button>
       ))}
     </div>

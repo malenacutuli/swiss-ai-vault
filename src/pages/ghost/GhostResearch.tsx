@@ -32,24 +32,28 @@ interface SearchResult {
 
 type ActionType = 'academic' | 'clinical' | 'preprints';
 
-const filters = ['Peer-reviewed', 'Preprints', 'All'];
+const getFilters = (t: (key: string) => string) => [
+  { key: 'peerReviewed', label: t('ghost.modules.research.filters.peerReviewed') },
+  { key: 'preprints', label: t('ghost.modules.research.filters.preprints') },
+  { key: 'all', label: t('ghost.modules.research.filters.all') },
+];
 
-const getSuggestions = (action: ActionType, filter: string): string[] => {
+const getSuggestions = (action: ActionType, t: (key: string) => string): string[] => {
   const suggestions: Record<ActionType, string[]> = {
     academic: [
-      `Find ${filter.toLowerCase()} papers on longevity and aging interventions`,
-      `Latest ${filter.toLowerCase()} research on AI in medical diagnostics`,
-      `${filter} studies on climate change mitigation technologies`,
+      t('ghost.modules.research.suggestions.longevity'),
+      t('ghost.modules.research.suggestions.aiMedical'),
+      t('ghost.modules.research.suggestions.climate'),
     ],
     clinical: [
-      'Recent clinical trials on GLP-1 receptor agonists for obesity',
-      'Phase 3 trials for Alzheimer\'s disease treatments in 2024',
-      'Clinical trial results for next-generation mRNA vaccines',
+      t('ghost.modules.research.suggestions.glp1'),
+      t('ghost.modules.research.suggestions.alzheimers'),
+      t('ghost.modules.research.suggestions.mrna'),
     ],
     preprints: [
-      'Latest arXiv preprints on large language models',
-      'Recent bioRxiv submissions on CRISPR gene editing',
-      'New medRxiv preprints on long COVID research',
+      t('ghost.modules.research.suggestions.llm'),
+      t('ghost.modules.research.suggestions.crispr'),
+      t('ghost.modules.research.suggestions.longCovid'),
     ],
   };
   return suggestions[action];
@@ -61,9 +65,11 @@ export default function GhostResearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>('search');
-  const [selectedFilter, setSelectedFilter] = useState('Peer-reviewed');
+  const [selectedFilter, setSelectedFilter] = useState('peerReviewed');
   const [activeAction, setActiveAction] = useState<ActionType>('academic');
   const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  const filters = getFilters(t);
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -79,8 +85,8 @@ export default function GhostResearch() {
   }, []);
 
   const suggestions = useMemo(
-    () => getSuggestions(activeAction, selectedFilter),
-    [activeAction, selectedFilter]
+    () => getSuggestions(activeAction, t),
+    [activeAction, t]
   );
 
   const handleSearch = async () => {
@@ -139,16 +145,16 @@ export default function GhostResearch() {
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
               {filters.map((f) => (
                 <button
-                  key={f}
-                  onClick={() => setSelectedFilter(f)}
+                  key={f.key}
+                  onClick={() => setSelectedFilter(f.key)}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
-                    selectedFilter === f
+                    selectedFilter === f.key
                       ? "bg-white text-slate-900 shadow-sm"
                       : "text-slate-500 hover:text-slate-700"
                   )}
                 >
-                  {f}
+                  {f.label}
                 </button>
               ))}
             </div>
@@ -186,7 +192,7 @@ export default function GhostResearch() {
             {showSuggestions && !query && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
                 <p className="text-xs font-medium text-slate-500 px-4 py-2 border-b border-slate-100">
-                  Get started with {activeAction === 'academic' ? 'Academic Papers' : activeAction === 'clinical' ? 'Clinical Trials' : 'Preprints'}
+                  {t(`ghost.modules.research.getStarted.${activeAction}`)}
                 </p>
                 {suggestions.map((suggestion, i) => (
                   <button
@@ -219,7 +225,7 @@ export default function GhostResearch() {
             )}
           >
             <IconSchool className="w-4 h-4" stroke={1.5} />
-            Academic Papers
+            {t('ghost.modules.research.actions.academic')}
           </Button>
           <Button 
             variant="outline" 
@@ -232,7 +238,7 @@ export default function GhostResearch() {
             )}
           >
             <IconTestPipe className="w-4 h-4" stroke={1.5} />
-            Clinical Trials
+            {t('ghost.modules.research.actions.clinical')}
           </Button>
           <Button 
             variant="outline" 
@@ -245,7 +251,7 @@ export default function GhostResearch() {
             )}
           >
             <IconFileStack className="w-4 h-4" stroke={1.5} />
-            Preprints
+            {t('ghost.modules.research.actions.preprints')}
           </Button>
         </div>
 
@@ -287,15 +293,15 @@ export default function GhostResearch() {
         {/* Categories */}
         {!result && (
           <div className="w-full max-w-2xl">
-            <h3 className="text-sm font-medium text-slate-500 mb-4">Explore by Category</h3>
+            <h3 className="text-sm font-medium text-slate-500 mb-4">{t('ghost.modules.research.exploreByCategory')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {RESEARCH_CATEGORIES.map((category) => (
                 <CategoryCard
-                  key={category.name}
-                  name={category.name}
+                  key={category.nameKey}
+                  nameKey={category.nameKey}
                   gradientFrom={category.gradientFrom}
                   gradientTo={category.gradientTo}
-                  onClick={() => setQuery(`Latest ${selectedFilter.toLowerCase()} research in ${category.name}`)}
+                  onClick={() => setQuery(t('ghost.modules.research.latestResearchIn', { category: t(category.nameKey) }))}
                 />
               ))}
             </div>

@@ -285,15 +285,15 @@ export default function GhostLegal() {
         {/* Categories */}
         {!result && (
           <div className="w-full max-w-2xl">
-            <h3 className="text-sm font-medium text-slate-500 mb-4">Explore by Category</h3>
+            <h3 className="text-sm font-medium text-slate-500 mb-4">{t('ghost.modules.legal.exploreByCategory')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {LEGAL_CATEGORIES.map((category) => (
                 <CategoryCard
-                  key={category.name}
-                  name={category.name}
+                  key={category.nameKey}
+                  nameKey={category.nameKey}
                   gradientFrom={category.gradientFrom}
                   gradientTo={category.gradientTo}
-                  onClick={() => setQuery(`${category.name} regulations in ${selectedJurisdiction}`)}
+                  onClick={() => setQuery(t('ghost.modules.legal.regulationsIn', { category: t(category.nameKey), jurisdiction: selectedJurisdiction }))}
                 />
               ))}
             </div>

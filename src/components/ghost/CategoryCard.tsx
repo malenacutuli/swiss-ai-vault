@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface CategoryCardProps {
-  name: string;
+  nameKey: string;
   gradientFrom: string;
   gradientTo: string;
   onClick?: () => void;
@@ -9,12 +10,14 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ 
-  name, 
+  nameKey, 
   gradientFrom, 
   gradientTo,
   onClick,
   className
 }: CategoryCardProps) {
+  const { t } = useTranslation();
+  
   return (
     <button
       onClick={onClick}
@@ -44,7 +47,7 @@ export function CategoryCard({
       
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-end p-4">
-        <p className="text-white text-sm font-medium leading-tight">{name}</p>
+        <p className="text-white text-sm font-medium leading-tight">{t(nameKey)}</p>
       </div>
       
       {/* Hover effect */}
@@ -53,23 +56,23 @@ export function CategoryCard({
   );
 }
 
-// Professional color palette for categories
+// Professional color palette for categories - keys for translation
 export const PATENT_CATEGORIES = [
-  { name: 'Computers & Software', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
-  { name: 'Medical & Healthcare', gradientFrom: '#1a4d4d', gradientTo: '#2a7a7a' },
-  { name: 'Industrial Manufacturing', gradientFrom: '#3d3d5c', gradientTo: '#5a5a7a' },
+  { nameKey: 'ghost.categories.computersSoftware', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
+  { nameKey: 'ghost.categories.medicalHealthcare', gradientFrom: '#1a4d4d', gradientTo: '#2a7a7a' },
+  { nameKey: 'ghost.categories.industrialManufacturing', gradientFrom: '#3d3d5c', gradientTo: '#5a5a7a' },
 ];
 
 export const LEGAL_CATEGORIES = [
-  { name: 'Financial Regulations', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
-  { name: 'Data Protection', gradientFrom: '#1a4d5a', gradientTo: '#2a7a8a' },
-  { name: 'Corporate & Securities', gradientFrom: '#3d3d5c', gradientTo: '#5a5a7a' },
-  { name: 'Cross-Border Compliance', gradientFrom: '#5a4a3d', gradientTo: '#7a6a5a' },
+  { nameKey: 'ghost.categories.financialRegulations', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
+  { nameKey: 'ghost.categories.dataProtection', gradientFrom: '#1a4d5a', gradientTo: '#2a7a8a' },
+  { nameKey: 'ghost.categories.corporateSecurities', gradientFrom: '#3d3d5c', gradientTo: '#5a5a7a' },
+  { nameKey: 'ghost.categories.crossBorderCompliance', gradientFrom: '#5a4a3d', gradientTo: '#7a6a5a' },
 ];
 
 export const RESEARCH_CATEGORIES = [
-  { name: 'Life Sciences', gradientFrom: '#1a4d4d', gradientTo: '#2a7a7a' },
-  { name: 'Computer Science', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
-  { name: 'Physics & Mathematics', gradientFrom: '#3d3d5c', gradientTo: '#5a5a7a' },
-  { name: 'Social Sciences', gradientFrom: '#5a4a3d', gradientTo: '#7a6a5a' },
+  { nameKey: 'ghost.categories.lifeSciences', gradientFrom: '#1a4d4d', gradientTo: '#2a7a7a' },
+  { nameKey: 'ghost.categories.computerScience', gradientFrom: '#1e3a5f', gradientTo: '#2d5a87' },
+  { nameKey: 'ghost.categories.physicsMathematics', gradientFrom: '#3d3d5c', gradientTo: '#5a5a7a' },
+  { nameKey: 'ghost.categories.socialSciences', gradientFrom: '#5a4a3d', gradientTo: '#7a6a5a' },
 ];

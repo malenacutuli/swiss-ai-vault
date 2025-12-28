@@ -272,15 +272,15 @@ export default function GhostPatents() {
         {/* Categories */}
         {!result && (
           <div className="w-full max-w-2xl">
-            <h3 className="text-sm font-medium text-slate-500 mb-4">Explore by Category</h3>
+            <h3 className="text-sm font-medium text-slate-500 mb-4">{t('ghost.modules.patents.exploreByCategory')}</h3>
             <div className="grid grid-cols-3 gap-4">
               {PATENT_CATEGORIES.map((category) => (
                 <CategoryCard
-                  key={category.name}
-                  name={category.name}
+                  key={category.nameKey}
+                  nameKey={category.nameKey}
                   gradientFrom={category.gradientFrom}
                   gradientTo={category.gradientTo}
-                  onClick={() => setQuery(`Patent landscape for ${category.name}`)}
+                  onClick={() => setQuery(t('ghost.modules.patents.landscapeFor', { category: t(category.nameKey) }))}
                 />
               ))}
             </div>

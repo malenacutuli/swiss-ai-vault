@@ -1180,6 +1180,8 @@
         "title": "Legal & Compliance",
         "description": "Compliance, regulations",
         "placeholder": "Ask about legal and compliance topics...",
+        "exploreByCategory": "Explore by Category",
+        "regulationsIn": "{{category}} regulations in {{jurisdiction}}",
         "jurisdictions": {
           "eu": "EU",
           "us": "US",
@@ -1205,6 +1207,8 @@
         "title": "Patents",
         "description": "IP search, prior art",
         "placeholder": "Ask about patents and intellectual property...",
+        "exploreByCategory": "Explore by Category",
+        "landscapeFor": "Patent landscape for {{category}}",
         "actions": {
           "patentability": "Patentability",
           "landscape": "Technology Landscape",
@@ -1223,14 +1227,22 @@
         "title": "Academic Research",
         "description": "Academic, clinical",
         "placeholder": "Search academic research and clinical studies...",
+        "exploreByCategory": "Explore by Category",
+        "latestResearchIn": "Latest research in {{category}}",
         "actions": {
           "academic": "Academic Papers",
           "clinical": "Clinical Trials",
           "preprints": "Preprints"
         },
+        "getStarted": {
+          "academic": "Get started with Academic Papers",
+          "clinical": "Get started with Clinical Trials",
+          "preprints": "Get started with Preprints"
+        },
         "filters": {
           "all": "All",
-          "peerReviewed": "Peer Reviewed",
+          "peerReviewed": "Peer-reviewed",
+          "preprints": "Preprints",
           "openAccess": "Open Access",
           "highImpact": "High Impact"
         },
@@ -1240,7 +1252,10 @@
           "climate": "Studies on climate change mitigation technologies",
           "glp1": "Recent clinical trials on GLP-1 receptor agonists for obesity",
           "alzheimers": "Phase 3 trials for Alzheimer's disease treatments in 2024",
-          "llm": "Latest arXiv preprints on large language models"
+          "mrna": "Clinical trial results for next-generation mRNA vaccines",
+          "llm": "Latest arXiv preprints on large language models",
+          "crispr": "Recent bioRxiv submissions on CRISPR gene editing",
+          "longCovid": "New medRxiv preprints on long COVID research"
         }
       },
       "security": {
@@ -1259,6 +1274,27 @@
         "title": "Real Estate",
         "description": "Luxury properties"
       }
+    },
+    "discover": {
+      "modes": {
+        "search": "Search",
+        "research": "Research",
+        "reason": "Reason"
+      },
+      "sources": "Sources"
+    },
+    "categories": {
+      "lifeSciences": "Life Sciences",
+      "computerScience": "Computer Science",
+      "physicsMathematics": "Physics & Mathematics",
+      "socialSciences": "Social Sciences",
+      "computersSoftware": "Computers & Software",
+      "medicalHealthcare": "Medical & Healthcare",
+      "industrialManufacturing": "Industrial Manufacturing",
+      "financialRegulations": "Financial Regulations",
+      "dataProtection": "Data Protection",
+      "corporateSecurities": "Corporate & Securities",
+      "crossBorderCompliance": "Cross-Border Compliance"
     },
     "search": {
       "placeholder": "Search the web...",
