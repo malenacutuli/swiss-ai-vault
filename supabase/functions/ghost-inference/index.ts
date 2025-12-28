@@ -649,50 +649,52 @@ async function callGoogle(
   messages: any[],
   options: { maxTokens?: number; temperature?: number }
 ): Promise<{ content: string; usage?: any }> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const apiKey = getApiKey('google');
-  if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
-  
+
+  // If Google key isn't configured, fall back to Lovable AI for Gemini models.
+  if (!apiKey) {
+    if (!LOVABLE_API_KEY) throw new Error('GOOGLE_API_KEY not configured');
+    return await callLovableGeminiFallback(model, messages, options);
+  }
+
   // Map display names to Google Gemini API model IDs.
-  // IMPORTANT: For v1beta, some projects require versioned or -latest IDs.
+  // NOTE: some Google API keys/projects do not have access to these models; we fall back if we get a model_not_found 404.
   const modelMap: Record<string, string> = {
-    // Gemini 2.0
     'gemini-2.0-flash': 'gemini-2.0-flash-exp',
-    'gemini-2.0-pro': 'gemini-1.5-pro-latest',
-
-    // Gemini 1.5 (use -latest to avoid 404s)
-    'gemini-1.5-pro': 'gemini-1.5-pro-latest',
-    'gemini-1.5-flash': 'gemini-1.5-flash-latest',
-
-    // Gemini 2.5/3.*: fall back to best available for this API key
-    'gemini-2.5-pro': 'gemini-1.5-pro-latest',
-    'gemini-2.5-flash': 'gemini-1.5-flash-latest',
-    'gemini-2.5-flash-lite': 'gemini-1.5-flash-latest',
-    'gemini-3-pro': 'gemini-1.5-pro-latest',
-    'gemini-3-flash': 'gemini-1.5-flash-latest',
+    'gemini-2.0-pro': 'gemini-2.0-pro-exp',
+    'gemini-1.5-pro': 'gemini-1.5-pro',
+    'gemini-1.5-flash': 'gemini-1.5-flash',
+    // Newer UI labels → best-effort Google IDs (may 404 depending on key)
+    'gemini-2.5-pro': 'gemini-2.5-pro',
+    'gemini-2.5-flash': 'gemini-2.5-flash',
+    'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite-preview',
+    'gemini-3-pro': 'gemini-3-pro',
+    'gemini-3-flash': 'gemini-3-flash-preview',
   };
-  
+
   const googleModel = modelMap[model] || model;
-  
+
   // Convert to Gemini format
   const contents = messages.filter(m => m.role !== 'system').map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }));
-  
+
   const systemInstruction = messages.find(m => m.role === 'system');
-  
+
   const body: any = {
     contents,
     generationConfig: {
       maxOutputTokens: options.maxTokens || 4096,
-      temperature: options.temperature || 0.7,
+      temperature: options.temperature ?? 0.7,
     },
   };
-  
+
   if (systemInstruction) {
     body.systemInstruction = { parts: [{ text: systemInstruction.content }] };
   }
-  
+
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${googleModel}:generateContent?key=${apiKey}`,
     {
@@ -701,16 +703,81 @@ async function callGoogle(
       body: JSON.stringify(body),
     }
   );
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('[Google] Error:', response.status, errorText);
+
+    // Many users' Google keys don't have access to Gemini (or specific variants) → fall back to Lovable AI.
+    const looksLikeModelNotFound =
+      response.status === 404 &&
+      (errorText.includes('models/') || errorText.includes('not found') || errorText.includes('NOT_FOUND'));
+
+    if (looksLikeModelNotFound && LOVABLE_API_KEY) {
+      console.log('[Google] Model not available for this key; falling back to Lovable AI gateway');
+      return await callLovableGeminiFallback(model, messages, options);
+    }
+
     throw new Error(`Google error ${response.status}: ${errorText}`);
   }
-  
+
   const data = await response.json();
   return {
     content: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+  };
+}
+
+async function callLovableGeminiFallback(
+  model: string,
+  messages: any[],
+  options: { maxTokens?: number; temperature?: number }
+): Promise<{ content: string; usage?: any }> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
+
+  const gatewayModel = (() => {
+    if (model.includes('pro')) return 'google/gemini-2.5-pro';
+    if (model.includes('flash-lite')) return 'google/gemini-2.5-flash-lite';
+    if (model.includes('flash')) return 'google/gemini-2.5-flash';
+    // sensible default
+    return 'google/gemini-2.5-flash';
+  })();
+
+  const resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: gatewayModel,
+      messages,
+      stream: false,
+      max_tokens: options.maxTokens || 4096,
+      temperature: options.temperature ?? 0.7,
+    }),
+  });
+
+  if (!resp.ok) {
+    const t = await resp.text();
+    console.error('[Lovable AI][Gemini fallback] Error:', resp.status, t);
+
+    if (resp.status === 429) throw new Error('Rate limits exceeded, please try again later.');
+    if (resp.status === 402) throw new Error('AI credits required. Please add credits to continue.');
+
+    throw new Error(`Lovable AI gateway error ${resp.status}: ${t}`);
+  }
+
+  const data = await resp.json();
+  const content = data?.choices?.[0]?.message?.content;
+
+  if (!content || String(content).trim().length === 0) {
+    throw new Error('Empty completion from model');
+  }
+
+  return {
+    content,
+    usage: data?.usage,
   };
 }
 
