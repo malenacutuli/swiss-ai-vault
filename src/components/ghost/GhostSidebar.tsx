@@ -43,7 +43,6 @@ import {
   IconActivity,
   IconCompass,
 } from '@tabler/icons-react';
-import type { Icon } from '@tabler/icons-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,7 +57,7 @@ import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
 interface DiscoverModule {
   id: string;
   nameKey: string;
-  icon: Icon;
+  icon: any;
   descriptionKey: string;
   route: string;
   isPro?: boolean;
@@ -229,7 +228,6 @@ export function GhostSidebar({
         ? folders.find(f => f.id === folderId)?.name || 'folder'
         : t('ghost.sidebar.chats');
       toast.success(`${t('ghost.sidebar.movedTo')} ${folderName}`);
-    }
     }
   };
 
