@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, Image, Video, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export type GhostMode = 'text' | 'image' | 'video' | 'search';
 
@@ -10,11 +11,11 @@ interface GhostModeTabsProps {
   className?: string;
 }
 
-const MODES: { id: GhostMode; label: string; icon: React.ElementType; isNew?: boolean }[] = [
-  { id: 'text', label: 'Text', icon: MessageSquare },
-  { id: 'image', label: 'Image', icon: Image, isNew: true },
-  { id: 'video', label: 'Video', icon: Video, isNew: true },
-  { id: 'search', label: 'Search', icon: Globe },
+const MODES: { id: GhostMode; labelKey: string; icon: React.ElementType; isNew?: boolean }[] = [
+  { id: 'text', labelKey: 'ghost.modes.text', icon: MessageSquare },
+  { id: 'image', labelKey: 'ghost.modes.image', icon: Image, isNew: true },
+  { id: 'video', labelKey: 'ghost.modes.video', icon: Video, isNew: true },
+  { id: 'search', labelKey: 'ghost.modes.search', icon: Globe },
 ];
 
 export function GhostModeTabs({
@@ -22,9 +23,11 @@ export function GhostModeTabs({
   onModeChange,
   className,
 }: GhostModeTabsProps) {
+  const { t } = useTranslation();
+  
   return (
     <div className={cn('flex items-center gap-0.5 p-1 bg-muted/40 rounded-xl', className)}>
-      {MODES.map(({ id, label, icon: Icon, isNew }) => (
+      {MODES.map(({ id, labelKey, icon: Icon, isNew }) => (
         <Button
           key={id}
           variant="ghost"
@@ -38,10 +41,10 @@ export function GhostModeTabs({
           )}
         >
           <Icon className="w-4 h-4" />
-          <span className="hidden sm:inline">{label}</span>
+          <span className="hidden sm:inline">{t(labelKey)}</span>
           {isNew && (
             <span className="absolute -top-1 -right-0.5 text-[9px] font-semibold text-primary bg-primary/10 px-1 rounded">
-              New
+              {t('ghost.modes.new')}
             </span>
           )}
         </Button>
