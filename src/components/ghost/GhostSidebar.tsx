@@ -64,14 +64,14 @@ interface DiscoverModule {
 }
 
 const ALL_DISCOVER_MODULES: DiscoverModule[] = [
-  { id: 'finance', nameKey: 'ghost.modules.finance', icon: IconTrendingUp, descriptionKey: 'ghost.modules.financeDesc', route: '/ghost/finance' },
-  { id: 'legal', nameKey: 'ghost.modules.legal', icon: IconScale, descriptionKey: 'ghost.modules.legalDesc', route: '/ghost/legal' },
-  { id: 'patents', nameKey: 'ghost.modules.patents', icon: IconBulb, descriptionKey: 'ghost.modules.patentsDesc', route: '/ghost/patents' },
-  { id: 'research', nameKey: 'ghost.modules.research', icon: IconBook2, descriptionKey: 'ghost.modules.researchDesc', route: '/ghost/research' },
-  { id: 'security', nameKey: 'ghost.modules.security', icon: IconShield, descriptionKey: 'ghost.modules.securityDesc', route: '/ghost/security' },
-  { id: 'health', nameKey: 'ghost.modules.health', icon: IconActivity, descriptionKey: 'ghost.modules.healthDesc', route: '/ghost/health', isPro: true },
-  { id: 'travel', nameKey: 'ghost.modules.travel', icon: IconPlane, descriptionKey: 'ghost.modules.travelDesc', route: '/ghost/travel', isPro: true },
-  { id: 'realestate', nameKey: 'ghost.modules.realEstate', icon: IconHome, descriptionKey: 'ghost.modules.realEstateDesc', route: '/ghost/realestate', isPro: true },
+  { id: 'finance', nameKey: 'ghost.modules.finance.title', icon: IconTrendingUp, descriptionKey: 'ghost.modules.finance.description', route: '/ghost/finance' },
+  { id: 'legal', nameKey: 'ghost.modules.legal.title', icon: IconScale, descriptionKey: 'ghost.modules.legal.description', route: '/ghost/legal' },
+  { id: 'patents', nameKey: 'ghost.modules.patents.title', icon: IconBulb, descriptionKey: 'ghost.modules.patents.description', route: '/ghost/patents' },
+  { id: 'research', nameKey: 'ghost.modules.research.title', icon: IconBook2, descriptionKey: 'ghost.modules.research.description', route: '/ghost/research' },
+  { id: 'security', nameKey: 'ghost.modules.security.title', icon: IconShield, descriptionKey: 'ghost.modules.security.description', route: '/ghost/security' },
+  { id: 'health', nameKey: 'ghost.modules.health.title', icon: IconActivity, descriptionKey: 'ghost.modules.health.description', route: '/ghost/health', isPro: true },
+  { id: 'travel', nameKey: 'ghost.modules.travel.title', icon: IconPlane, descriptionKey: 'ghost.modules.travel.description', route: '/ghost/travel', isPro: true },
+  { id: 'realestate', nameKey: 'ghost.modules.realEstate.title', icon: IconHome, descriptionKey: 'ghost.modules.realEstate.description', route: '/ghost/realestate', isPro: true },
 ];
 
 const DEFAULT_ENABLED_MODULES = ['finance', 'legal', 'patents', 'research'];
