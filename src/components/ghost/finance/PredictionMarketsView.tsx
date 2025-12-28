@@ -1,59 +1,62 @@
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface PredictionMarket {
-  question: string;
-  category: string;
+  questionKey: string;
+  categoryKey: string;
   volume: string;
-  options: { label: string; probability: number }[];
+  options: { labelKey: string; probability: number }[];
   source: string;
 }
 
 const predictionMarkets: PredictionMarket[] = [
   {
-    question: 'Will the Fed cut rates in January 2025?',
-    category: 'Economics',
+    questionKey: 'ghost.modules.finance.views.predictions.questions.fedRates',
+    categoryKey: 'ghost.modules.finance.views.predictions.categories.economics',
     volume: '$72M',
     options: [
-      { label: 'No change', probability: 86 },
-      { label: '25 bps cut', probability: 13 },
-      { label: '50+ bps cut', probability: 1 },
+      { labelKey: 'ghost.modules.finance.views.predictions.options.noChange', probability: 86 },
+      { labelKey: 'ghost.modules.finance.views.predictions.options.cut25', probability: 13 },
+      { labelKey: 'ghost.modules.finance.views.predictions.options.cut50', probability: 1 },
     ],
     source: 'Polymarket',
   },
   {
-    question: 'Will Bitcoin reach $100K in Q1 2025?',
-    category: 'Crypto',
+    questionKey: 'ghost.modules.finance.views.predictions.questions.btc100k',
+    categoryKey: 'ghost.modules.finance.views.predictions.categories.crypto',
     volume: '$45M',
     options: [
-      { label: 'Yes', probability: 42 },
-      { label: 'No', probability: 58 },
+      { labelKey: 'common.yes', probability: 42 },
+      { labelKey: 'common.no', probability: 58 },
     ],
     source: 'Polymarket',
   },
   {
-    question: 'Will S&P 500 close above 6,200 by end of January?',
-    category: 'Markets',
+    questionKey: 'ghost.modules.finance.views.predictions.questions.sp6200',
+    categoryKey: 'ghost.modules.finance.views.predictions.categories.markets',
     volume: '$28M',
     options: [
-      { label: 'Yes', probability: 35 },
-      { label: 'No', probability: 65 },
+      { labelKey: 'common.yes', probability: 35 },
+      { labelKey: 'common.no', probability: 65 },
     ],
     source: 'Kalshi',
   },
   {
-    question: 'Will NVIDIA beat Q4 earnings estimates?',
-    category: 'Earnings',
+    questionKey: 'ghost.modules.finance.views.predictions.questions.nvidiaEarnings',
+    categoryKey: 'ghost.modules.finance.views.predictions.categories.earnings',
     volume: '$18M',
     options: [
-      { label: 'Beat', probability: 72 },
-      { label: 'Miss', probability: 28 },
+      { labelKey: 'ghost.modules.finance.views.earnings.beat', probability: 72 },
+      { labelKey: 'ghost.modules.finance.views.earnings.miss', probability: 28 },
     ],
     source: 'Polymarket',
   },
 ];
 
 export function PredictionMarketsView() {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-4">
       {predictionMarkets.map((market, index) => (
@@ -64,12 +67,12 @@ export function PredictionMarketsView() {
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <span className="text-xs font-medium text-[#2A8C86] bg-[#2A8C86]/10 px-2 py-0.5 rounded-full">
-                {market.category}
+                {t(market.categoryKey)}
               </span>
-              <h4 className="text-base font-medium text-slate-900 mt-2">{market.question}</h4>
+              <h4 className="text-base font-medium text-slate-900 mt-2">{t(market.questionKey)}</h4>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-500">Volume</p>
+              <p className="text-xs text-slate-500">{t('ghost.modules.finance.views.predictions.volume')}</p>
               <p className="text-sm font-semibold text-slate-900">{market.volume}</p>
             </div>
           </div>
@@ -79,7 +82,7 @@ export function PredictionMarketsView() {
               <div key={i} className="flex items-center gap-3">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-slate-700">{option.label}</span>
+                    <span className="text-sm text-slate-700">{t(option.labelKey)}</span>
                     <span className="text-sm font-semibold text-slate-900">{option.probability}%</span>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">

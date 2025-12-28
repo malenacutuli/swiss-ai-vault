@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { MarketSparkline } from '../MarketSparkline';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,8 @@ const cryptoData: CryptoAsset[] = [
 ];
 
 export function CryptoMarketView() {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       {/* Crypto Grid */}
@@ -60,7 +63,7 @@ export function CryptoMarketView() {
                 ${crypto.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
               <p className="text-xs text-slate-500">
-                MCap: {crypto.marketCap}
+                {t('ghost.modules.finance.views.crypto.mcap')}: {crypto.marketCap}
               </p>
             </div>
           </Card>
@@ -69,7 +72,9 @@ export function CryptoMarketView() {
 
       {/* Top Movers */}
       <div>
-        <h3 className="text-sm font-medium text-slate-500 mb-3">Top Movers (24h)</h3>
+        <h3 className="text-sm font-medium text-slate-500 mb-3">
+          {t('ghost.modules.finance.views.crypto.topMovers')}
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {cryptoData.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 4).map((crypto) => (
             <div

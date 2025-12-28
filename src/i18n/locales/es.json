@@ -1230,6 +1230,79 @@
               "summary": "El oro y la plata alcanzaron máximos sin precedentes en medio de un rally parabólico, mostrando fuerte correlación con acciones de momentum y beneficiándose de aplicaciones de fabricación de IA."
             }
           }
+        },
+        "views": {
+          "crypto": {
+            "mcap": "Cap. Mercado",
+            "topMovers": "Mayores Movimientos (24h)"
+          },
+          "earnings": {
+            "upcoming": "Próximas Ganancias",
+            "recent": "Ganancias Recientes",
+            "beforeOpen": "Antes de Apertura",
+            "afterClose": "Después del Cierre",
+            "epsEstimate": "Est. BPA",
+            "estimate": "Estimado",
+            "actual": "Real",
+            "beat": "Superó",
+            "miss": "Falló"
+          },
+          "predictions": {
+            "volume": "Volumen",
+            "categories": {
+              "economics": "Economía",
+              "crypto": "Cripto",
+              "markets": "Mercados",
+              "earnings": "Ganancias"
+            },
+            "questions": {
+              "fedRates": "¿Recortará la Fed las tasas en enero 2025?",
+              "btc100k": "¿Alcanzará Bitcoin $100K en Q1 2025?",
+              "sp6200": "¿Cerrará el S&P 500 por encima de 6,200 a finales de enero?",
+              "nvidiaEarnings": "¿Superará NVIDIA las estimaciones de ganancias del Q4?"
+            },
+            "options": {
+              "noChange": "Sin cambio",
+              "cut25": "Recorte de 25 pbs",
+              "cut50": "Recorte de 50+ pbs"
+            }
+          },
+          "screener": {
+            "searchPlaceholder": "Buscar acciones...",
+            "sortBy": "Ordenar por",
+            "sectors": {
+              "all": "Todos los Sectores",
+              "technology": "Tecnología",
+              "healthcare": "Salud",
+              "finance": "Finanzas",
+              "consumer": "Consumo",
+              "energy": "Energía"
+            },
+            "sortOptions": {
+              "marketCap": "Cap. de Mercado",
+              "price": "Precio",
+              "change": "Cambio %",
+              "pe": "Ratio P/E",
+              "dividend": "Rendimiento Div."
+            },
+            "columns": {
+              "symbol": "Símbolo",
+              "name": "Nombre",
+              "price": "Precio",
+              "change": "Cambio",
+              "marketCap": "Cap. Mercado",
+              "pe": "P/E",
+              "dividend": "Rend. Div."
+            }
+          },
+          "watchlist": {
+            "title": "Tu Lista de Seguimiento",
+            "addStock": "Añadir Acción",
+            "alertAt": "Alerta en",
+            "emptyTitle": "No hay acciones en tu lista",
+            "emptyDescription": "Añade acciones para seguir su rendimiento",
+            "addFirstStock": "Añade Tu Primera Acción"
+          }
         }
       },
       "legal": {

@@ -1228,6 +1228,79 @@
               "summary": "Gold and silver reached unprecedented highs amid a parabolic rally, showing strong correlation with momentum stocks and benefiting from AI manufacturing applications."
             }
           }
+        },
+        "views": {
+          "crypto": {
+            "mcap": "MCap",
+            "topMovers": "Top Movers (24h)"
+          },
+          "earnings": {
+            "upcoming": "Upcoming Earnings",
+            "recent": "Recent Earnings",
+            "beforeOpen": "Before Open",
+            "afterClose": "After Close",
+            "epsEstimate": "EPS Est.",
+            "estimate": "Estimate",
+            "actual": "Actual",
+            "beat": "Beat",
+            "miss": "Miss"
+          },
+          "predictions": {
+            "volume": "Volume",
+            "categories": {
+              "economics": "Economics",
+              "crypto": "Crypto",
+              "markets": "Markets",
+              "earnings": "Earnings"
+            },
+            "questions": {
+              "fedRates": "Will the Fed cut rates in January 2025?",
+              "btc100k": "Will Bitcoin reach $100K in Q1 2025?",
+              "sp6200": "Will S&P 500 close above 6,200 by end of January?",
+              "nvidiaEarnings": "Will NVIDIA beat Q4 earnings estimates?"
+            },
+            "options": {
+              "noChange": "No change",
+              "cut25": "25 bps cut",
+              "cut50": "50+ bps cut"
+            }
+          },
+          "screener": {
+            "searchPlaceholder": "Search stocks...",
+            "sortBy": "Sort",
+            "sectors": {
+              "all": "All Sectors",
+              "technology": "Technology",
+              "healthcare": "Healthcare",
+              "finance": "Finance",
+              "consumer": "Consumer",
+              "energy": "Energy"
+            },
+            "sortOptions": {
+              "marketCap": "Market Cap",
+              "price": "Price",
+              "change": "Change %",
+              "pe": "P/E Ratio",
+              "dividend": "Dividend Yield"
+            },
+            "columns": {
+              "symbol": "Symbol",
+              "name": "Name",
+              "price": "Price",
+              "change": "Change",
+              "marketCap": "Market Cap",
+              "pe": "P/E",
+              "dividend": "Div Yield"
+            }
+          },
+          "watchlist": {
+            "title": "Your Watchlist",
+            "addStock": "Add Stock",
+            "alertAt": "Alert at",
+            "emptyTitle": "No stocks in your watchlist",
+            "emptyDescription": "Add stocks to track their performance",
+            "addFirstStock": "Add Your First Stock"
+          }
         }
       },
       "legal": {

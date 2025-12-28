@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Star, TrendingUp, TrendingDown } from 'lucide-react';
@@ -23,14 +24,18 @@ const watchlistItems: WatchlistItem[] = [
 ];
 
 export function WatchlistView() {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-slate-900">Your Watchlist</h3>
+        <h3 className="text-sm font-medium text-slate-900">
+          {t('ghost.modules.finance.views.watchlist.title')}
+        </h3>
         <Button variant="outline" size="sm" className="gap-2 h-8 border-slate-200">
           <Plus className="w-3.5 h-3.5" />
-          Add Stock
+          {t('ghost.modules.finance.views.watchlist.addStock')}
         </Button>
       </div>
 
@@ -83,7 +88,9 @@ export function WatchlistView() {
               
               {item.alertPrice && (
                 <div className="text-right">
-                  <p className="text-xs text-slate-500">Alert at</p>
+                  <p className="text-xs text-slate-500">
+                    {t('ghost.modules.finance.views.watchlist.alertAt')}
+                  </p>
                   <p className="text-sm font-medium text-slate-700">${item.alertPrice}</p>
                 </div>
               )}
@@ -96,11 +103,15 @@ export function WatchlistView() {
       {watchlistItems.length === 0 && (
         <Card className="p-8 bg-white border-slate-200/60 text-center">
           <Star className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h4 className="text-base font-medium text-slate-900 mb-1">No stocks in your watchlist</h4>
-          <p className="text-sm text-slate-500 mb-4">Add stocks to track their performance</p>
+          <h4 className="text-base font-medium text-slate-900 mb-1">
+            {t('ghost.modules.finance.views.watchlist.emptyTitle')}
+          </h4>
+          <p className="text-sm text-slate-500 mb-4">
+            {t('ghost.modules.finance.views.watchlist.emptyDescription')}
+          </p>
           <Button variant="outline" className="gap-2">
             <Plus className="w-4 h-4" />
-            Add Your First Stock
+            {t('ghost.modules.finance.views.watchlist.addFirstStock')}
           </Button>
         </Card>
       )}
