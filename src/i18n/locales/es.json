@@ -153,72 +153,6 @@
       "action": "Entrar en Modo Ghost"
     }
   },
-  "ghost": {
-    "welcome": {
-      "title": "Chat de IA Privado",
-      "description": "Tus conversaciones están cifradas localmente y nunca salen de tu dispositivo. Comienza a escribir para iniciar una conversación privada.",
-      "poweredBy": "Impulsado por modelos de IA alojados en Suiza"
-    },
-    "status": {
-      "localOnly": "Solo Local",
-      "zeroRetention": "Sin Retención"
-    },
-    "auth": {
-      "signupBanner": "Regístrate gratis para guardar conversaciones",
-      "signUp": "Registrarse"
-    },
-    "alerts": {
-      "corruptedTitle": "Algunas conversaciones no se pudieron cargar",
-      "corruptedDescription": "conversación(es) cifrada(s) con una clave diferente no se pudieron descifrar.",
-      "clearCorruptedData": "Limpiar datos corruptos",
-      "storageCleared": "Almacenamiento limpiado",
-      "storageClearedDescription": "Todos los datos locales han sido eliminados. Puedes empezar de nuevo."
-    },
-    "sidebar": {
-      "newChat": "Nuevo Chat",
-      "newFolder": "Nueva Carpeta",
-      "home": "Inicio",
-      "searchPlaceholder": "Buscar...",
-      "folders": "Carpetas",
-      "chats": "Chats",
-      "noMatches": "Sin resultados",
-      "noChatsYet": "Aún no hay chats",
-      "viewFolders": "Ver Carpetas",
-      "viewChats": "Ver Chats",
-      "discover": "Descubrir",
-      "more": "Más",
-      "customizeSidebar": "Personalizar Barra Lateral",
-      "library": "Biblioteca",
-      "settings": "Configuración",
-      "collapseSidebar": "Contraer barra lateral",
-      "expandSidebar": "Expandir barra lateral",
-      "rename": "Renombrar",
-      "download": "Descargar",
-      "downloadAll": "Descargar Todo",
-      "delete": "Eliminar",
-      "empty": "Vacío",
-      "chatRenamed": "Chat renombrado",
-      "movedTo": "Movido a"
-    },
-    "modules": {
-      "finance": "Finanzas",
-      "financeDesc": "Mercados, cripto, riqueza",
-      "legal": "Legal",
-      "legalDesc": "Cumplimiento, regulaciones",
-      "patents": "Patentes",
-      "patentsDesc": "Búsqueda de PI, estado del arte",
-      "research": "Investigación",
-      "researchDesc": "Académico, clínico",
-      "security": "Seguridad",
-      "securityDesc": "Ciber, herramientas de privacidad",
-      "health": "Salud",
-      "healthDesc": "Longevidad, clínico",
-      "travel": "Viajes",
-      "travelDesc": "Privado, exclusivo",
-      "realEstate": "Bienes Raíces",
-      "realEstateDesc": "Propiedades de lujo"
-    }
-  },
   "vaultChat": {
     "title": "Vault Chat",
     "newChat": "Nuevo chat",
@@ -1175,6 +1109,26 @@
   "ghost": {
     "title": "Ghost Chat",
     "subtitle": "Tu asistente de IA privado",
+    "welcome": {
+      "title": "Chat de IA Privado",
+      "description": "Tus conversaciones están cifradas localmente y nunca salen de tu dispositivo. Comienza a escribir para iniciar una conversación privada.",
+      "poweredBy": "Impulsado por modelos de IA alojados en Suiza"
+    },
+    "status": {
+      "localOnly": "Solo Local",
+      "zeroRetention": "Sin Retención"
+    },
+    "auth": {
+      "signupBanner": "Regístrate gratis para guardar conversaciones",
+      "signUp": "Registrarse"
+    },
+    "alerts": {
+      "corruptedTitle": "Algunas conversaciones no se pudieron cargar",
+      "corruptedDescription": "conversación(es) cifrada(s) con una clave diferente no se pudieron descifrar.",
+      "clearCorruptedData": "Limpiar datos corruptos",
+      "storageCleared": "Almacenamiento limpiado",
+      "storageClearedDescription": "Todos los datos locales han sido eliminados. Puedes empezar de nuevo."
+    },
     "modes": {
       "text": "Texto",
       "image": "Imagen",

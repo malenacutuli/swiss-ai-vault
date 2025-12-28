@@ -152,72 +152,6 @@
       "action": "Enter Ghost Mode"
     }
   },
-  "ghost": {
-    "welcome": {
-      "title": "Private AI Chat",
-      "description": "Your conversations are encrypted locally and never leave your device. Start typing to begin a private conversation.",
-      "poweredBy": "Powered by Swiss-hosted AI models"
-    },
-    "status": {
-      "localOnly": "Local Only",
-      "zeroRetention": "Zero Retention"
-    },
-    "auth": {
-      "signupBanner": "Sign up free to save conversations",
-      "signUp": "Sign up"
-    },
-    "alerts": {
-      "corruptedTitle": "Some conversations couldn't be loaded",
-      "corruptedDescription": "conversation(s) encrypted with a different key could not be decrypted.",
-      "clearCorruptedData": "Clear corrupted data",
-      "storageCleared": "Storage cleared",
-      "storageClearedDescription": "All local data has been removed. You can start fresh."
-    },
-    "sidebar": {
-      "newChat": "New Chat",
-      "newFolder": "New Folder",
-      "home": "Home",
-      "searchPlaceholder": "Search...",
-      "folders": "Folders",
-      "chats": "Chats",
-      "noMatches": "No matches",
-      "noChatsYet": "No chats yet",
-      "viewFolders": "View Folders",
-      "viewChats": "View Chats",
-      "discover": "Discover",
-      "more": "More",
-      "customizeSidebar": "Customize Sidebar",
-      "library": "Library",
-      "settings": "Settings",
-      "collapseSidebar": "Collapse sidebar",
-      "expandSidebar": "Expand sidebar",
-      "rename": "Rename",
-      "download": "Download",
-      "downloadAll": "Download All",
-      "delete": "Delete",
-      "empty": "Empty",
-      "chatRenamed": "Chat renamed",
-      "movedTo": "Moved to"
-    },
-    "modules": {
-      "finance": "Finance",
-      "financeDesc": "Markets, crypto, wealth",
-      "legal": "Legal",
-      "legalDesc": "Compliance, regulations",
-      "patents": "Patents",
-      "patentsDesc": "IP search, prior art",
-      "research": "Research",
-      "researchDesc": "Academic, clinical",
-      "security": "Security",
-      "securityDesc": "Cyber, privacy tools",
-      "health": "Health",
-      "healthDesc": "Longevity, clinical",
-      "travel": "Travel",
-      "travelDesc": "Private, exclusive",
-      "realEstate": "Real Estate",
-      "realEstateDesc": "Luxury properties"
-    }
-  },
   "vaultChat": {
     "title": "Vault Chat",
     "newChat": "New chat",
@@ -1173,6 +1107,26 @@
   "ghost": {
     "title": "Ghost Chat",
     "subtitle": "Your private AI assistant",
+    "welcome": {
+      "title": "Private AI Chat",
+      "description": "Your conversations are encrypted locally and never leave your device. Start typing to begin a private conversation.",
+      "poweredBy": "Powered by Swiss-hosted AI models"
+    },
+    "status": {
+      "localOnly": "Local Only",
+      "zeroRetention": "Zero Retention"
+    },
+    "auth": {
+      "signupBanner": "Sign up free to save conversations",
+      "signUp": "Sign up"
+    },
+    "alerts": {
+      "corruptedTitle": "Some conversations couldn't be loaded",
+      "corruptedDescription": "conversation(s) encrypted with a different key could not be decrypted.",
+      "clearCorruptedData": "Clear corrupted data",
+      "storageCleared": "Storage cleared",
+      "storageClearedDescription": "All local data has been removed. You can start fresh."
+    },
     "modes": {
       "text": "Text",
       "image": "Image",
