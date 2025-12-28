@@ -1156,6 +1156,7 @@
         "title": "Finance",
         "description": "Markets, crypto, wealth",
         "placeholder": "Ask about financial markets...",
+        "suggestedFor": "Suggested questions for {{market}}",
         "tabs": {
           "us": "US Markets",
           "european": "European",
@@ -1173,7 +1174,32 @@
           "markets": "How are US markets doing today?",
           "crypto": "Give me a crypto market summary",
           "stocks": "Analyze the most active tech stocks",
-          "earnings": "What companies are reporting earnings this week?"
+          "earnings": "What companies are reporting earnings this week?",
+          "us": {
+            "1": "What are the top performing S&P 500 stocks this week?",
+            "2": "Analysis of Federal Reserve interest rate decision impact",
+            "3": "Tech sector earnings preview for Q4 2024"
+          },
+          "european": {
+            "1": "How is the ECB policy affecting European markets?",
+            "2": "Top performing European stocks in 2024",
+            "3": "Euro Stoxx 50 technical analysis"
+          },
+          "swiss": {
+            "1": "SMI index performance and outlook",
+            "2": "Swiss franc impact on Swiss equities",
+            "3": "Top Swiss dividend stocks for 2024"
+          },
+          "crypto": {
+            "1": "Bitcoin price prediction and analysis",
+            "2": "Top altcoins to watch in 2024",
+            "3": "Impact of ETF approvals on crypto markets"
+          },
+          "default": {
+            "1": "What are the best investment opportunities right now?",
+            "2": "Market sentiment analysis for this week",
+            "3": "Portfolio diversification strategies"
+          }
         }
       },
       "legal": {
@@ -1182,6 +1208,7 @@
         "placeholder": "Ask about legal and compliance topics...",
         "exploreByCategory": "Explore by Category",
         "regulationsIn": "{{category}} regulations in {{jurisdiction}}",
+        "inJurisdiction": "in {{jurisdiction}}",
         "jurisdictions": {
           "eu": "EU",
           "us": "US",
@@ -1194,13 +1221,21 @@
           "compliance": "Compliance Check"
         },
         "suggestions": {
-          "regulatory": "Latest {{jurisdiction}} regulatory updates for financial services",
-          "dataProtection": "{{jurisdiction}} data protection compliance requirements 2024",
-          "crossBorder": "Cross-border regulatory frameworks involving {{jurisdiction}}",
-          "courtDecisions": "Recent {{jurisdiction}} court decisions on data privacy",
-          "antitrust": "Landmark {{jurisdiction}} antitrust and competition cases",
-          "gdpr": "GDPR compliance checklist for {{jurisdiction}} operations",
-          "aml": "{{jurisdiction}} AML/KYC requirements for fintech"
+          "regulatory": {
+            "1": "Latest {{jurisdiction}} regulatory updates for financial services",
+            "2": "{{jurisdiction}} data protection compliance requirements 2024",
+            "3": "Cross-border regulatory frameworks involving {{jurisdiction}}"
+          },
+          "caselaw": {
+            "1": "Recent {{jurisdiction}} court decisions on data privacy",
+            "2": "Landmark {{jurisdiction}} antitrust and competition cases",
+            "3": "{{jurisdiction}} employment law precedents and recent rulings"
+          },
+          "compliance": {
+            "1": "GDPR compliance checklist for {{jurisdiction}} operations",
+            "2": "{{jurisdiction}} AML/KYC requirements for fintech",
+            "3": "Environmental compliance regulations in {{jurisdiction}}"
+          }
         }
       },
       "patents": {
