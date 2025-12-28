@@ -1300,20 +1300,19 @@ function GhostChat() {
           </div>
         </header>
 
-        {/* Upgrade banner for free users */}
-        {tier === 'ghost_free' && (
-          <div className="flex-shrink-0 flex items-center justify-between gap-3 px-4 py-2 bg-primary/5 border-b border-primary/10">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="text-primary">✨</span>
-              <span>Upgrade to <span className="font-medium text-foreground">Ghost Pro</span> for unlimited prompts & commercial models</span>
-            </div>
+        {/* Signup banner for non-authenticated users only */}
+        {!user && (
+          <div className="flex-shrink-0 flex items-center justify-between gap-3 px-4 py-2 bg-muted/30 border-b border-border/50">
+            <span className="text-sm text-muted-foreground">
+              Sign up free to save conversations
+            </span>
             <Button
               size="sm"
               variant="ghost"
-              className="text-primary hover:text-primary hover:bg-primary/10"
-              onClick={() => setShowUpgradeModal(true)}
+              className="text-primary hover:bg-primary/10"
+              onClick={() => navigate('/auth/ghost-signup')}
             >
-              Upgrade
+              Sign up
             </Button>
           </div>
         )}
