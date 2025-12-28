@@ -30,6 +30,7 @@ import {
   Check,
   Home,
 } from 'lucide-react';
+import { GhostModeToggle } from './GhostModeToggle';
 
 export interface GhostConversation {
   id: string;
@@ -389,6 +390,13 @@ export function GhostSidebar({
           !isOpen && 'max-lg:hidden'
         )}
       >
+        {/* Ghost/Vault Toggle */}
+        {isExpanded && (
+          <div className="p-3 border-b border-border/40">
+            <GhostModeToggle currentMode="ghost" />
+          </div>
+        )}
+
         {/* Top navigation */}
         <div className="flex flex-col gap-1 p-2">
           {/* New Chat */}
@@ -396,6 +404,13 @@ export function GhostSidebar({
             icon={Plus} 
             label="New Chat" 
             onClick={() => onNewChat(false)} 
+          />
+
+          {/* New Folder */}
+          <IconButton 
+            icon={FolderPlus} 
+            label="New Folder" 
+            onClick={onCreateFolder} 
           />
           
           {/* Home */}
