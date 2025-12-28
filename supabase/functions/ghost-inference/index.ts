@@ -39,7 +39,7 @@ const SWISSVAULT_OPENAI_ALIASES: Record<string, string> = {
 // Commercial API models
 const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini', 'o4-mini', 'gpt-5.2', 'gpt-5.2-mini'];
 const ANTHROPIC_MODELS = ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'claude-sonnet-4', 'claude-opus-4.5', 'claude-sonnet-4.5', 'claude-haiku-4.5', 'claude-3.5-sonnet', 'claude-3.5-haiku'];
-const GOOGLE_MODELS = ['gemini-2.0-flash', 'gemini-2.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-3-pro'];
+const GOOGLE_MODELS = ['gemini-2.0-flash', 'gemini-2.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-pro', 'gemini-3-flash'];
 const XAI_MODELS = ['grok-4.1', 'grok-3', 'grok-2', 'grok-2-vision'];
 
 // DeepSeek direct API (for commercial DeepSeek models - cheap API pricing)
@@ -599,7 +599,10 @@ async function callGoogle(
     'gemini-1.5-pro': 'gemini-1.5-pro',
     'gemini-1.5-flash': 'gemini-1.5-flash',
     'gemini-2.5-pro': 'gemini-2.5-pro',
-    'gemini-3-pro': 'gemini-3-pro-preview',
+    'gemini-2.5-flash': 'gemini-2.5-flash',
+    'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite-preview',
+    'gemini-3-pro': 'gemini-3-pro',
+    'gemini-3-flash': 'gemini-3-flash-preview',
   };
   
   const googleModel = modelMap[model] || model;
