@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,12 +61,24 @@ export default function GhostLegal() {
   const [searchMode, setSearchMode] = useState<SearchMode>('search');
   const [selectedJurisdiction, setSelectedJurisdiction] = useState('EU');
   const [activeAction, setActiveAction] = useState<ActionType>('regulatory');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const searchCardRef = useRef<HTMLDivElement>(null);
 
   const suggestions = useMemo(
     () => getSuggestions(activeAction, selectedJurisdiction),
     [activeAction, selectedJurisdiction]
   );
+
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchCardRef.current && !searchCardRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -96,6 +108,8 @@ export default function GhostLegal() {
 
   const handleActionClick = (action: ActionType) => {
     setActiveAction(action);
+    setQuery('');
+    setResult(null);
     setShowSuggestions(true);
   };
 
@@ -111,7 +125,7 @@ export default function GhostLegal() {
         </div>
 
         {/* Search Card */}
-        <Card className="w-full max-w-2xl p-5 bg-white border-slate-200/60 shadow-sm">
+        <Card ref={searchCardRef} className="w-full max-w-2xl p-5 bg-white border-slate-200/60 shadow-sm">
           {/* Mode Selector, Sources & Jurisdiction */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
