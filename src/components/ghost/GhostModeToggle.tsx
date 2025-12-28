@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Ghost, Lock } from "lucide-react";
 import {
   AlertDialog,
@@ -23,6 +24,7 @@ const STORAGE_KEY = "last_chat_mode";
 export function GhostModeToggle({ currentMode, className }: GhostModeToggleProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [showGhostToVaultModal, setShowGhostToVaultModal] = useState(false);
   const [showVaultToGhostModal, setShowVaultToGhostModal] = useState(false);
 
@@ -111,23 +113,23 @@ export function GhostModeToggle({ currentMode, className }: GhostModeToggleProps
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
               <Lock className="h-5 w-5 text-foreground" />
-              Switch to Vault Chat?
+              {t('modeToggle.toVault.title')}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-muted-foreground">
-                <p>Vault Chat stores your conversations on SwissVault servers (encrypted).</p>
-                <p>Your Ghost conversations will remain local on this device.</p>
-                <p className="text-foreground">Do you want to switch?</p>
+                <p>{t('modeToggle.toVault.description1')}</p>
+                <p>{t('modeToggle.toVault.description2')}</p>
+                <p className="text-foreground">{t('modeToggle.toVault.confirm')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay in Ghost</AlertDialogCancel>
+            <AlertDialogCancel>{t('modeToggle.toVault.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSwitchToVault}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Switch to Vault Chat
+              {t('modeToggle.toVault.action')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -139,27 +141,27 @@ export function GhostModeToggle({ currentMode, className }: GhostModeToggleProps
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
               <Ghost className="h-5 w-5 text-foreground" />
-              Entering Ghost Mode
+              {t('modeToggle.toGhost.title')}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4 text-muted-foreground">
-                <p>Ghost Mode stores nothing on SwissVault servers.</p>
+                <p>{t('modeToggle.toGhost.description')}</p>
                 <ul className="list-disc pl-5 space-y-2 text-sm">
-                  <li>Conversations exist only on your device</li>
-                  <li>Swiss-hosted AI models only</li>
-                  <li>Export your data anytime</li>
+                  <li>{t('modeToggle.toGhost.feature1')}</li>
+                  <li>{t('modeToggle.toGhost.feature2')}</li>
+                  <li>{t('modeToggle.toGhost.feature3')}</li>
                 </ul>
-                <p className="font-medium text-foreground">Ready to go invisible?</p>
+                <p className="font-medium text-foreground">{t('modeToggle.toGhost.confirm')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSwitchToGhost}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Enter Ghost Mode
+              {t('modeToggle.toGhost.action')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

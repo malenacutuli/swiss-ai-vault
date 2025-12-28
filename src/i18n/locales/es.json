@@ -134,6 +134,25 @@
     "madeInSwitzerland": "Hecho en Suiza",
     "allRightsReserved": "Todos los derechos reservados"
   },
+  "modeToggle": {
+    "toVault": {
+      "title": "¿Cambiar a Vault Chat?",
+      "description1": "Vault Chat almacena tus conversaciones en los servidores de SwissVault (cifradas).",
+      "description2": "Tus conversaciones Ghost permanecerán locales en este dispositivo.",
+      "confirm": "¿Deseas cambiar?",
+      "cancel": "Quedarse en Ghost",
+      "action": "Cambiar a Vault Chat"
+    },
+    "toGhost": {
+      "title": "Entrando en Modo Ghost",
+      "description": "El Modo Ghost no almacena nada en los servidores de SwissVault.",
+      "feature1": "Las conversaciones existen solo en tu dispositivo",
+      "feature2": "Solo modelos de IA alojados en Suiza",
+      "feature3": "Exporta tus datos en cualquier momento",
+      "confirm": "¿Listo para ser invisible?",
+      "action": "Entrar en Modo Ghost"
+    }
+  },
   "ghost": {
     "status": {
       "localOnly": "Solo Local",
