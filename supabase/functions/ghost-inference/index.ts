@@ -37,10 +37,10 @@ const SWISSVAULT_OPENAI_ALIASES: Record<string, string> = {
 };
 
 // Commercial API models
-const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o1-preview', 'gpt-5.2', 'gpt-5.2-mini', 'o3'];
-const ANTHROPIC_MODELS = ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'claude-sonnet-4', 'claude-opus-4.5', 'claude-sonnet-4.5', 'claude-haiku-4.5'];
+const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini', 'o4-mini', 'gpt-5.2', 'gpt-5.2-mini'];
+const ANTHROPIC_MODELS = ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'claude-sonnet-4', 'claude-opus-4.5', 'claude-sonnet-4.5', 'claude-haiku-4.5', 'claude-3.5-sonnet', 'claude-3.5-haiku'];
 const GOOGLE_MODELS = ['gemini-2.0-flash', 'gemini-2.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.5-pro', 'gemini-3-pro'];
-const XAI_MODELS = ['grok-4.1', 'grok-3', 'grok-2'];
+const XAI_MODELS = ['grok-4.1', 'grok-3', 'grok-2', 'grok-2-vision'];
 
 // DeepSeek direct API (for commercial DeepSeek models - cheap API pricing)
 const DEEPSEEK_MODELS = ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner', 'deepseek-v3', 'deepseek-v3.2', 'deepseek-coder-v2'];
@@ -52,7 +52,20 @@ const DEEPSEEK_MODELS = ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner',
 const NON_STREAMING_MODELS = ['o1', 'o1-mini', 'o1-preview'];
 
 // Models that need special parameter handling (no temperature/top_p)
-const REASONING_MODELS = ['o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini'];
+const REASONING_MODELS = ['o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini', 'o4-mini'];
+
+// OpenAI model ID mapping (UI model → API model)
+const OPENAI_MODEL_MAP: Record<string, string> = {
+  'gpt-5.2': 'gpt-4.1',
+  'gpt-5.2-mini': 'gpt-4.1-mini',
+  'o4-mini': 'o4-mini',
+  'o3': 'o3',
+  'o3-mini': 'o3-mini',
+  'gpt-4o': 'gpt-4o',
+  'gpt-4o-mini': 'gpt-4o-mini',
+  'o1': 'o1',
+  'o1-mini': 'o1-mini',
+};
 
 // DeepSeek model ID mapping (UI model → API model)
 const DEEPSEEK_MODEL_MAP: Record<string, string> = {
@@ -307,19 +320,46 @@ async function callOpenAI(
   const apiKey = getApiKey('openai');
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
   
+  // Map UI model to OpenAI API model
+  const apiModel = OPENAI_MODEL_MAP[model] || model;
   const isReasoning = isReasoningModel(model);
   const canStream = supportsStreaming(model) && options.stream;
+  
+  // Sanitize messages for OpenAI - ensure valid image formats
+  const sanitizedMessages = messages.map(msg => {
+    if (Array.isArray(msg.content)) {
+      return {
+        ...msg,
+        content: msg.content.filter((part: any) => {
+          // Keep text parts
+          if (part.type === 'text') return true;
+          // Only keep image_url parts with valid image MIME types
+          if (part.type === 'image_url') {
+            const url = part.image_url?.url || '';
+            // Check if it's a valid image data URL or HTTP URL
+            if (url.startsWith('data:image/')) return true;
+            if (url.startsWith('http://') || url.startsWith('https://')) return true;
+            // Skip invalid MIME types (e.g., data:application/pdf)
+            console.log('[OpenAI] Skipping invalid image_url:', url.substring(0, 50));
+            return false;
+          }
+          return true;
+        })
+      };
+    }
+    return msg;
+  });
   
   // Build request body with proper parameters
   // IMPORTANT: OpenAI now requires max_completion_tokens for ALL models
   const body: any = {
-    model,
-    messages,
+    model: apiModel,
+    messages: sanitizedMessages,
     stream: canStream,
-    max_completion_tokens: options.maxTokens || 4096,  // Always use max_completion_tokens
+    max_completion_tokens: options.maxTokens || 4096,
   };
   
-  // Reasoning models (o1, o3) don't support temperature or top_p
+  // Reasoning models (o1, o3, o4) don't support temperature or top_p
   if (!isReasoning) {
     if (options.temperature !== undefined) {
       body.temperature = options.temperature;
@@ -329,7 +369,7 @@ async function callOpenAI(
     }
   }
   
-  console.log('[OpenAI] Request:', { model, isReasoning, canStream, messageCount: messages.length });
+  console.log('[OpenAI] Request:', { model, apiModel, isReasoning, canStream, messageCount: sanitizedMessages.length });
   
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
