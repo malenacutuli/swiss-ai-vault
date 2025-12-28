@@ -549,25 +549,26 @@ async function callAnthropic(
   const apiKey = getApiKey('anthropic');
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
   
-  // Map display names to API model names - CORRECTED model names
+  // Map display names to API model names - UPDATED for current Anthropic model IDs
+  // NOTE: Claude 3/3.5 models deprecated, redirected to Claude 4 equivalents
   const modelMap: Record<string, string> = {
-    // Claude 3 family
-    'claude-3-haiku': 'claude-3-haiku-20240307',
-    'claude-3-sonnet': 'claude-3-sonnet-20240229',
-    'claude-3-opus': 'claude-3-opus-20240229',
-    // Claude 3.5 family
-    'claude-3.5-haiku': 'claude-3-5-haiku-20241022',
-    'claude-3.5-sonnet': 'claude-3-5-sonnet-20241022',
-    // Claude 4 family - CORRECT official names
+    // Claude 4 family - current models
     'claude-sonnet-4': 'claude-sonnet-4-20250514',
     'claude-opus-4': 'claude-opus-4-20250514',
-    'claude-opus-4.5': 'claude-opus-4-20250514',  // Map to opus-4 until 4.5 exists
-    'claude-sonnet-4.5': 'claude-sonnet-4-20250514',
-    'claude-haiku-4.5': 'claude-3-5-haiku-20241022',  // Fallback to 3.5 haiku
-    // Short aliases
+    'claude-sonnet-4.5': 'claude-sonnet-4-5-20250514',
+    'claude-opus-4.5': 'claude-opus-4-5-20251101',
+    'claude-haiku-4.5': 'claude-3-5-haiku-20241022',
+    // Legacy Claude 3.5 → redirect to Claude 4 (3.5-sonnet deprecated)
+    'claude-3.5-sonnet': 'claude-sonnet-4-20250514',
+    'claude-3.5-haiku': 'claude-3-5-haiku-20241022',
+    // Legacy Claude 3 → redirect to Claude 4
+    'claude-3-haiku': 'claude-3-5-haiku-20241022',
+    'claude-3-sonnet': 'claude-sonnet-4-20250514',
+    'claude-3-opus': 'claude-opus-4-20250514',
+    // Short aliases → current best equivalents
     'claude-haiku': 'claude-3-5-haiku-20241022',
-    'claude-sonnet': 'claude-3-5-sonnet-20241022',
-    'claude-opus': 'claude-3-opus-20240229',
+    'claude-sonnet': 'claude-sonnet-4-20250514',
+    'claude-opus': 'claude-opus-4-20250514',
   };
   
   const apiModel = modelMap[model] || model;
