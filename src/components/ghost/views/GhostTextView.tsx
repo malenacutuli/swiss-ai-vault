@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SwissHeading } from '@/components/ui/swiss';
 import { Sparkles } from 'lucide-react';
 import swissVaultLogo from '@/assets/swissvault-logo.png';
@@ -8,6 +9,8 @@ interface GhostTextViewProps {
 }
 
 export function GhostTextView({ hasMessages, children }: GhostTextViewProps) {
+  const { t } = useTranslation();
+  
   if (!hasMessages) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8">
@@ -15,15 +18,14 @@ export function GhostTextView({ hasMessages, children }: GhostTextViewProps) {
           <img src={swissVaultLogo} alt="SwissVault" className="w-16 h-16" />
         </div>
         <h2 className="text-xs text-muted-foreground uppercase tracking-wider font-sans text-center mb-3">
-          Private AI Chat
+          {t('ghost.welcome.title')}
         </h2>
         <p className="text-muted-foreground text-center max-w-md">
-          Your conversations are encrypted locally and never leave your device.
-          Start typing to begin a private conversation.
+          {t('ghost.welcome.description')}
         </p>
         <div className="flex items-center gap-2 mt-6 text-sm text-muted-foreground">
           <Sparkles className="w-4 h-4" />
-          <span>Powered by Swiss-hosted AI models</span>
+          <span>{t('ghost.welcome.poweredBy')}</span>
         </div>
       </div>
     );
