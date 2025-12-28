@@ -358,6 +358,88 @@ async function callOpenAI(
 }
 
 // ============================================
+// ANTHROPIC STREAM TRANSFORMER
+// Transform Anthropic SSE to OpenAI-compatible SSE format
+// ============================================
+
+function transformAnthropicStream(anthropicStream: ReadableStream): ReadableStream {
+  const reader = anthropicStream.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = '';
+
+  return new ReadableStream({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          // Send final [DONE] message
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+          return;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith('data: ')) continue;
+          
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') {
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            continue;
+          }
+
+          try {
+            const event = JSON.parse(data);
+            
+            // Handle different Anthropic event types
+            if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+              // Transform to OpenAI format
+              const openAIEvent = {
+                id: `chatcmpl-anthropic-${Date.now()}`,
+                object: 'chat.completion.chunk',
+                choices: [{
+                  index: 0,
+                  delta: { content: event.delta.text },
+                  finish_reason: null,
+                }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(openAIEvent)}\n\n`));
+            } else if (event.type === 'message_stop') {
+              // Send stop event
+              const stopEvent = {
+                id: `chatcmpl-anthropic-${Date.now()}`,
+                object: 'chat.completion.chunk',
+                choices: [{
+                  index: 0,
+                  delta: {},
+                  finish_reason: 'stop',
+                }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(stopEvent)}\n\n`));
+            }
+            // Skip other event types (message_start, content_block_start, etc.)
+          } catch (e) {
+            // Skip unparseable lines
+            console.log('[Anthropic Stream] Skipping unparseable line:', data.substring(0, 50));
+          }
+        }
+      } catch (error) {
+        console.error('[Anthropic Stream] Transform error:', error);
+        controller.error(error);
+      }
+    },
+    cancel() {
+      reader.cancel();
+    },
+  });
+}
+
+// ============================================
 // ANTHROPIC HANDLER
 // ============================================
 
@@ -395,7 +477,7 @@ async function callAnthropic(
   // CRITICAL FIX: Sanitize messages to prevent empty content error
   const sanitizedMessages = sanitizeMessagesForAnthropic(messages);
   
-  console.log('[Anthropic] Model:', apiModel);
+  console.log('[Anthropic] Model:', apiModel, '| Stream:', options.stream);
   console.log('[Anthropic] Messages:', sanitizedMessages.length);
   
   // Extract system message and convert multimodal content
@@ -421,6 +503,8 @@ async function callAnthropic(
   if (systemPrompt) body.system = systemPrompt;
   if (options.temperature !== undefined) body.temperature = options.temperature;
   
+  console.log('[Anthropic] Sending request to API...');
+  
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -437,11 +521,16 @@ async function callAnthropic(
     throw new Error(`Anthropic error ${response.status}: ${errorText}`);
   }
   
+  console.log('[Anthropic] Response OK, stream:', options.stream);
+  
+  // CRITICAL FIX: Transform Anthropic stream to OpenAI-compatible format
   if (options.stream && response.body) {
-    return response.body;
+    console.log('[Anthropic] Transforming stream to OpenAI format');
+    return transformAnthropicStream(response.body);
   }
   
   const data = await response.json();
+  console.log('[Anthropic] Non-streaming response received');
   return {
     content: data.content?.[0]?.text || '',
     usage: {
