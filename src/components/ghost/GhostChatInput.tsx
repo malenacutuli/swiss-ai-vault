@@ -92,9 +92,9 @@ export function GhostChatInput({
   return (
     <TooltipProvider delayDuration={300}>
       <div className={cn('w-full', className)}>
-        <div className="relative flex items-end gap-2 bg-card/50 border border-border/50 rounded-xl px-3 py-2 focus-within:border-primary/30 transition-colors">
+        <div className="relative flex items-end gap-2 bg-background border border-border rounded-2xl px-3 py-2.5 shadow-card focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all duration-150">
           {/* Left icons */}
-          <div className="flex items-center gap-1 pb-1">
+          <div className="flex items-center gap-0.5 pb-0.5">
             <GhostModelPicker
               mode={mode}
               selectedModel={selectedModel}
@@ -108,7 +108,7 @@ export function GhostChatInput({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground opacity-60 hover:opacity-100 transition-opacity"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-150"
                     onClick={onAttach}
                   >
                     <Paperclip className="w-4 h-4" />
@@ -125,10 +125,10 @@ export function GhostChatInput({
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      'h-8 w-8 transition-all',
+                      'h-8 w-8 transition-colors duration-150',
                       enhancePrompt
-                        ? 'text-primary opacity-100'
-                        : 'text-muted-foreground opacity-60 hover:opacity-100'
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     )}
                     onClick={onToggleEnhance}
                   >
@@ -150,12 +150,12 @@ export function GhostChatInput({
             onKeyDown={handleKeyDown}
             placeholder={PLACEHOLDERS[mode]}
             disabled={disabled || isLoading}
-            className="flex-1 min-h-[36px] max-h-[160px] resize-none border-0 bg-transparent p-0 py-1.5 text-sm focus-visible:ring-0 placeholder:text-muted-foreground/50"
+            className="flex-1 min-h-[36px] max-h-[160px] resize-none border-0 bg-transparent p-0 py-1.5 text-[15px] leading-relaxed focus-visible:ring-0 placeholder:text-muted-foreground/60"
             rows={1}
           />
 
           {/* Right icons */}
-          <div className="flex items-center gap-1 pb-1">
+          <div className="flex items-center gap-0.5 pb-0.5">
             {mode === 'text' && (
               <VoiceInputButton
                 onTranscript={handleVoiceTranscript}
@@ -178,7 +178,7 @@ export function GhostChatInput({
                 size="icon"
                 variant="ghost"
                 className={cn(
-                  'h-8 w-8 transition-all',
+                  'h-8 w-8 transition-colors duration-150',
                   canSubmit
                     ? 'text-primary hover:bg-primary/10'
                     : 'text-muted-foreground/40'
@@ -198,7 +198,7 @@ export function GhostChatInput({
 
         {/* Minimal hint */}
         <p className="mt-2 text-center text-[11px] text-muted-foreground/50">
-          <kbd className="px-1 py-0.5 bg-muted/50 rounded text-[10px]">↵</kbd> send · <kbd className="px-1 py-0.5 bg-muted/50 rounded text-[10px]">⇧↵</kbd> new line
+          <kbd className="px-1 py-0.5 bg-muted/40 rounded text-[10px]">↵</kbd> send · <kbd className="px-1 py-0.5 bg-muted/40 rounded text-[10px]">⇧↵</kbd> new line
         </p>
       </div>
     </TooltipProvider>

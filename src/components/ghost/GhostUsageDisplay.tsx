@@ -45,7 +45,7 @@ export function GhostUsageDisplay({
 
   if (isPro) {
     return (
-      <Badge variant="outline" className={cn('bg-primary/10 text-primary border-primary/20', className)}>
+      <Badge variant="outline" className={cn('bg-primary/10 text-primary border-primary/30 font-medium', className)}>
         <Crown className="w-3 h-3 mr-1" />
         {isSwissVaultPro ? 'SWISSVAULT PRO' : 'PRO'}
       </Badge>
@@ -56,17 +56,17 @@ export function GhostUsageDisplay({
   const imagesLow = remaining.images <= 1;
 
   return (
-    <div className={cn('flex items-center gap-3', className)}>
+    <div className={cn('flex items-center gap-2', className)}>
       {/* Prompts remaining */}
       <Tooltip>
         <TooltipTrigger asChild>
           <div className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs',
+            'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px]',
             promptsLow 
               ? 'bg-destructive/10 text-destructive' 
               : 'bg-muted/50 text-muted-foreground'
           )}>
-            <Zap className="w-3.5 h-3.5" />
+            <Zap className="w-3 h-3" />
             <span className="font-medium tabular-nums">
               {remaining.prompts}/{limits.prompts}
             </span>
@@ -85,12 +85,12 @@ export function GhostUsageDisplay({
       <Tooltip>
         <TooltipTrigger asChild>
           <div className={cn(
-            'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs',
+            'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px]',
             imagesLow 
               ? 'bg-destructive/10 text-destructive' 
               : 'bg-muted/50 text-muted-foreground'
           )}>
-            <Image className="w-3.5 h-3.5" />
+            <Image className="w-3 h-3" />
             <span className="font-medium tabular-nums">
               {remaining.images}/{limits.images}
             </span>

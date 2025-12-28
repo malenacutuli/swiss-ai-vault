@@ -1254,13 +1254,13 @@ function GhostChat() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 py-3 border-b border-border bg-card/50 backdrop-blur-sm">
+        <header className="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 py-3 border-b border-border/60 bg-background">
           <div className="flex items-center gap-4">
             {/* Mobile menu toggle */}
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden text-muted-foreground"
+              className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-muted/50"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -1274,7 +1274,7 @@ function GhostChat() {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {/* Usage Display */}
             <GhostUsageDisplay
               tier={tier}
@@ -1286,14 +1286,14 @@ function GhostChat() {
 
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success/60 opacity-50" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
               </span>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider hidden md:inline">
+              <span className="text-[13px] text-muted-foreground hidden md:inline">
                 Local Only
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground hidden sm:flex">
+            <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground hidden sm:flex">
               <Shield className="w-3.5 h-3.5 text-success" />
               <span className="hidden md:inline">Zero Retention</span>
             </div>
@@ -1356,7 +1356,7 @@ function GhostChat() {
                         key={msg.id}
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-swiss-navy/10 rounded-2xl px-4 py-3' : ''}`}>
+                        <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-muted/60 rounded-2xl px-4 py-3' : ''}`}>
                           <GhostMessageComponent
                             id={msg.id}
                             role={msg.role}

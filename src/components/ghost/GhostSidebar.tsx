@@ -177,10 +177,10 @@ export function GhostSidebar({
       }}
       onClick={() => onSelectConversation(conv.id)}
       className={cn(
-        'group/chat flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
+        'group/chat flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors duration-150',
         isNested && 'ml-4',
         selectedConversation === conv.id
-          ? 'bg-primary/10 text-foreground'
+          ? 'bg-muted text-foreground'
           : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
         isDraggingChat && 'select-none'
       )}
@@ -224,12 +224,12 @@ export function GhostSidebar({
           </div>
         ) : (
           <>
-            <span className="text-sm truncate flex-1">{conv.title}</span>
-            <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/chat:opacity-100 transition-opacity">
+            <span className="text-[13px] truncate flex-1">{conv.title}</span>
+            <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/chat:opacity-100 transition-opacity duration-150">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 hover:bg-muted"
                 onClick={(e) => { e.stopPropagation(); setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}
               >
                 <Edit3 className="w-3 h-3" />
@@ -237,7 +237,7 @@ export function GhostSidebar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 hover:bg-muted"
                 onClick={(e) => { e.stopPropagation(); onExportConversation(conv.id); }}
               >
                 <Download className="w-3 h-3" />
@@ -245,7 +245,7 @@ export function GhostSidebar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 hover:text-destructive"
+                className="h-6 w-6 hover:text-destructive hover:bg-destructive/10"
                 onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
               >
                 <Trash2 className="w-3 h-3" />
@@ -265,7 +265,7 @@ export function GhostSidebar({
       <div key={folder.id}>
         <div
           className={cn(
-            'group/folder flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
+            'group/folder flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors duration-150',
             dragOverFolderId === folder.id ? 'bg-primary/10' : 'hover:bg-muted/50',
             'text-muted-foreground hover:text-foreground'
           )}
@@ -307,13 +307,13 @@ export function GhostSidebar({
               </div>
             ) : (
               <>
-                <span className="text-sm truncate flex-1">{folder.name}</span>
+                <span className="text-[13px] truncate flex-1">{folder.name}</span>
                 {isFolderExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/folder:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/folder:opacity-100 transition-opacity duration-150" onClick={e => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-6 w-6 hover:bg-muted"
                     onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}
                   >
                     <Edit3 className="w-3 h-3" />
@@ -321,7 +321,7 @@ export function GhostSidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 hover:text-destructive"
+                    className="h-6 w-6 hover:text-destructive hover:bg-destructive/10"
                     onClick={async () => { if (onDeleteFolder) await onDeleteFolder(folder.id); }}
                   >
                     <Trash2 className="w-3 h-3" />
@@ -351,14 +351,14 @@ export function GhostSidebar({
         <button
           onClick={onClick}
           className={cn(
-            'flex items-center gap-3 w-full px-2 py-2 rounded-md transition-colors',
+            'flex items-center gap-3 w-full px-2 py-2 rounded-lg transition-colors duration-150',
             active 
-              ? 'bg-primary/10 text-primary' 
+              ? 'bg-muted text-foreground' 
               : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
           )}
         >
           <Icon className="w-5 h-5 shrink-0" />
-          {isExpanded && <span className="text-sm truncate">{label}</span>}
+          {isExpanded && <span className="text-[13px] truncate">{label}</span>}
         </button>
       </TooltipTrigger>
       {!isExpanded && (
@@ -374,7 +374,7 @@ export function GhostSidebar({
       {/* Mobile overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-background/80 z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
@@ -384,7 +384,7 @@ export function GhostSidebar({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          'fixed lg:relative inset-y-0 left-0 z-50 flex flex-col bg-card/50 backdrop-blur-sm border-r border-border/50 transition-all duration-200 ease-out',
+          'fixed lg:relative inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border/60 transition-all duration-200 ease-out',
           isExpanded ? 'w-64' : 'w-14',
           !isOpen && 'max-lg:hidden'
         )}
@@ -414,7 +414,7 @@ export function GhostSidebar({
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 bg-muted/30 border-0 text-sm"
+                className="pl-8 h-8 bg-muted/40 border-0 text-[13px] rounded-lg"
               />
             </div>
           )}
@@ -428,11 +428,11 @@ export function GhostSidebar({
               {folders.length > 0 && (
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between px-2 py-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Folders</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Folders</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-5 w-5"
+                      className="h-5 w-5 hover:bg-muted"
                       onClick={onCreateFolder}
                     >
                       <FolderPlus className="w-3 h-3" />
@@ -445,12 +445,12 @@ export function GhostSidebar({
               {/* Chats */}
               <div className="space-y-0.5 mt-3">
                 <div className="flex items-center justify-between px-2 py-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Chats</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Chats</span>
                   {folders.length === 0 && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-5 w-5"
+                      className="h-5 w-5 hover:bg-muted"
                       onClick={onCreateFolder}
                     >
                       <FolderPlus className="w-3 h-3" />
@@ -475,9 +475,9 @@ export function GhostSidebar({
                     <button
                       onClick={() => onSelectConversation(conv.id)}
                       className={cn(
-                        'flex items-center justify-center w-full p-2 rounded-md transition-colors',
+                        'flex items-center justify-center w-full p-2 rounded-lg transition-colors duration-150',
                         selectedConversation === conv.id
-                          ? 'bg-primary/10 text-primary'
+                          ? 'bg-muted text-foreground'
                           : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                       )}
                     >
@@ -494,7 +494,7 @@ export function GhostSidebar({
         </ScrollArea>
 
         {/* Bottom navigation */}
-        <div className="flex flex-col gap-1 p-2 border-t border-border/50">
+        <div className="flex flex-col gap-1 p-2 border-t border-border/60">
           <IconButton 
             icon={ImageIcon} 
             label="Library" 
@@ -508,18 +508,17 @@ export function GhostSidebar({
         </div>
       </aside>
 
-      {/* Mobile toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(
-          'fixed top-4 left-4 z-50 lg:hidden',
-          isOpen && 'hidden'
-        )}
-        onClick={onToggle}
-      >
-        <Menu className="w-5 h-5" />
-      </Button>
+      {/* Mobile toggle button */}
+      {!isOpen && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed top-4 left-4 z-40 lg:hidden bg-background/80 border border-border/60"
+          onClick={onToggle}
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
+      )}
     </TooltipProvider>
   );
 }
