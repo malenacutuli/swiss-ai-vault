@@ -1,6 +1,7 @@
 // GhostSidebar v2 - Tabler Icons
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,25 +54,25 @@ import {
 import { GhostModeToggle } from './GhostModeToggle';
 import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
 
-// Discover module definitions
+// Discover module definitions - IDs for translation keys
 interface DiscoverModule {
   id: string;
-  name: string;
+  nameKey: string;
   icon: Icon;
-  description: string;
+  descriptionKey: string;
   route: string;
   isPro?: boolean;
 }
 
 const ALL_DISCOVER_MODULES: DiscoverModule[] = [
-  { id: 'finance', name: 'Finance', icon: IconTrendingUp, description: 'Markets, crypto, wealth', route: '/ghost/finance' },
-  { id: 'legal', name: 'Legal', icon: IconScale, description: 'Compliance, regulations', route: '/ghost/legal' },
-  { id: 'patents', name: 'Patents', icon: IconBulb, description: 'IP search, prior art', route: '/ghost/patents' },
-  { id: 'research', name: 'Research', icon: IconBook2, description: 'Academic, clinical', route: '/ghost/research' },
-  { id: 'security', name: 'Security', icon: IconShield, description: 'Cyber, privacy tools', route: '/ghost/security' },
-  { id: 'health', name: 'Health', icon: IconActivity, description: 'Longevity, clinical', route: '/ghost/health', isPro: true },
-  { id: 'travel', name: 'Travel', icon: IconPlane, description: 'Private, exclusive', route: '/ghost/travel', isPro: true },
-  { id: 'realestate', name: 'Real Estate', icon: IconHome, description: 'Luxury properties', route: '/ghost/realestate', isPro: true },
+  { id: 'finance', nameKey: 'ghost.modules.finance', icon: IconTrendingUp, descriptionKey: 'ghost.modules.financeDesc', route: '/ghost/finance' },
+  { id: 'legal', nameKey: 'ghost.modules.legal', icon: IconScale, descriptionKey: 'ghost.modules.legalDesc', route: '/ghost/legal' },
+  { id: 'patents', nameKey: 'ghost.modules.patents', icon: IconBulb, descriptionKey: 'ghost.modules.patentsDesc', route: '/ghost/patents' },
+  { id: 'research', nameKey: 'ghost.modules.research', icon: IconBook2, descriptionKey: 'ghost.modules.researchDesc', route: '/ghost/research' },
+  { id: 'security', nameKey: 'ghost.modules.security', icon: IconShield, descriptionKey: 'ghost.modules.securityDesc', route: '/ghost/security' },
+  { id: 'health', nameKey: 'ghost.modules.health', icon: IconActivity, descriptionKey: 'ghost.modules.healthDesc', route: '/ghost/health', isPro: true },
+  { id: 'travel', nameKey: 'ghost.modules.travel', icon: IconPlane, descriptionKey: 'ghost.modules.travelDesc', route: '/ghost/travel', isPro: true },
+  { id: 'realestate', nameKey: 'ghost.modules.realEstate', icon: IconHome, descriptionKey: 'ghost.modules.realEstateDesc', route: '/ghost/realestate', isPro: true },
 ];
 
 const DEFAULT_ENABLED_MODULES = ['finance', 'legal', 'patents', 'research'];
@@ -139,6 +140,7 @@ export function GhostSidebar({
   onOpenSettings,
   activeModule = 'chat',
 }: GhostSidebarProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -215,7 +217,7 @@ export function GhostSidebar({
   const handleSaveChatTitle = (chatId: string) => {
     if (onRenameConversation && editingChatTitle.trim()) {
       onRenameConversation(chatId, editingChatTitle.trim());
-      toast.success('Chat renamed');
+      toast.success(t('ghost.sidebar.chatRenamed'));
     }
     setEditingChatId(null);
   };
@@ -225,8 +227,9 @@ export function GhostSidebar({
       onMoveToFolder(convId, folderId);
       const folderName = folderId 
         ? folders.find(f => f.id === folderId)?.name || 'folder'
-        : 'Chats';
-      toast.success(`Moved to ${folderName}`);
+        : t('ghost.sidebar.chats');
+      toast.success(`${t('ghost.sidebar.movedTo')} ${folderName}`);
+    }
     }
   };
 
@@ -306,11 +309,11 @@ export function GhostSidebar({
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem onClick={() => { setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}>
                   <IconEdit className="w-3.5 h-3.5 mr-2" stroke={1.5} />
-                  Rename
+                  {t('ghost.sidebar.rename')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onExportConversation(conv.id)}>
                   <IconDownload className="w-3.5 h-3.5 mr-2" stroke={1.5} />
-                  Download
+                  {t('ghost.sidebar.download')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
@@ -318,7 +321,7 @@ export function GhostSidebar({
                   className="text-destructive focus:text-destructive"
                 >
                   <IconTrash className="w-3.5 h-3.5 mr-2" stroke={1.5} />
-                  Delete
+                  {t('ghost.sidebar.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -393,12 +396,12 @@ export function GhostSidebar({
                 <DropdownMenuContent align="end" className="w-40">
                   <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
                     <IconEdit className="w-3.5 h-3.5 mr-2" stroke={1.5} />
-                    Rename
+                    {t('ghost.sidebar.rename')}
                   </DropdownMenuItem>
                   {onExportFolder && (
                     <DropdownMenuItem onClick={() => onExportFolder(folder.id)}>
                       <IconDownload className="w-3.5 h-3.5 mr-2" stroke={1.5} />
-                      Download All
+                      {t('ghost.sidebar.downloadAll')}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -407,7 +410,7 @@ export function GhostSidebar({
                     className="text-destructive focus:text-destructive"
                   >
                     <IconTrash className="w-3.5 h-3.5 mr-2" stroke={1.5} />
-                      Delete
+                      {t('ghost.sidebar.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -421,7 +424,7 @@ export function GhostSidebar({
             {folderChats.length > 0 ? (
               folderChats.map(conv => renderChatItem(conv, true))
             ) : (
-              <p className="text-xs text-muted-foreground italic py-1 px-6">Empty</p>
+              <p className="text-xs text-muted-foreground italic py-1 px-6">{t('ghost.sidebar.empty')}</p>
             )}
           </div>
         )}
@@ -489,7 +492,7 @@ export function GhostSidebar({
                     <IconLayoutSidebarLeftCollapse className="w-4 h-4" stroke={1.5} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Collapse sidebar</TooltipContent>
+                <TooltipContent side="right">{t('ghost.sidebar.collapseSidebar')}</TooltipContent>
               </Tooltip>
             </>
           ) : (
@@ -504,7 +507,7 @@ export function GhostSidebar({
                   <IconLayoutSidebar className="w-4 h-4" stroke={1.5} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Expand sidebar</TooltipContent>
+              <TooltipContent side="right">{t('ghost.sidebar.expandSidebar')}</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -514,21 +517,21 @@ export function GhostSidebar({
           {/* New Chat */}
           <IconButton 
             icon={IconPlus} 
-            label="New Chat" 
+            label={t('ghost.sidebar.newChat')} 
             onClick={() => onNewChat(false)} 
           />
 
           {/* New Folder */}
           <IconButton 
             icon={IconFolderPlus} 
-            label="New Folder" 
+            label={t('ghost.sidebar.newFolder')} 
             onClick={onCreateFolder} 
           />
           
           {/* Home */}
           <IconButton 
             icon={IconHome} 
-            label="Home" 
+            label={t('ghost.sidebar.home')} 
             onClick={() => navigate('/')} 
           />
 
@@ -538,7 +541,7 @@ export function GhostSidebar({
               <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" stroke={1.5} />
               <Input
                 type="text"
-                placeholder="Search..."
+                placeholder={t('ghost.sidebar.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-8 bg-muted/40 border-0 text-[13px] rounded-lg"
@@ -555,7 +558,7 @@ export function GhostSidebar({
               {folders.length > 0 && (
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between px-2 py-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Folders</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t('ghost.sidebar.folders')}</span>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -572,7 +575,7 @@ export function GhostSidebar({
               {/* Chats */}
               <div className="space-y-0.5 mt-3">
                 <div className="flex items-center justify-between px-2 py-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Chats</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t('ghost.sidebar.chats')}</span>
                   {folders.length === 0 && (
                     <Button
                       variant="ghost"
@@ -586,7 +589,7 @@ export function GhostSidebar({
                 </div>
                 {unfolderedChats.length === 0 ? (
                   <p className="px-2 py-2 text-xs text-muted-foreground">
-                    {searchQuery ? 'No matches' : 'No chats yet'}
+                    {searchQuery ? t('ghost.sidebar.noMatches') : t('ghost.sidebar.noChatsYet')}
                   </p>
                 ) : (
                   unfolderedChats.map(conv => renderChatItem(conv))
@@ -604,10 +607,10 @@ export function GhostSidebar({
                       className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                     >
                       <IconFolder className="w-5 h-5" stroke={1.5} />
-                      <span className="text-[10px] font-medium">Folders</span>
+                      <span className="text-[10px] font-medium">{t('ghost.sidebar.folders')}</span>
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">View Folders</TooltipContent>
+                  <TooltipContent side="right">{t('ghost.sidebar.viewFolders')}</TooltipContent>
                 </Tooltip>
               )}
               <Tooltip>
@@ -617,10 +620,10 @@ export function GhostSidebar({
                     className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                   >
                     <IconMessage className="w-5 h-5" stroke={1.5} />
-                    <span className="text-[10px] font-medium">Chats</span>
+                    <span className="text-[10px] font-medium">{t('ghost.sidebar.chats')}</span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">View Chats</TooltipContent>
+                <TooltipContent side="right">{t('ghost.sidebar.viewChats')}</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -632,7 +635,7 @@ export function GhostSidebar({
             <div className="flex items-center justify-between px-2 py-1 mb-1">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
                 <IconCompass className="w-3 h-3" stroke={1.5} />
-                Discover
+                {t('ghost.sidebar.discover')}
               </span>
             </div>
           )}
@@ -667,7 +670,7 @@ export function GhostSidebar({
                       <Icon className="w-5 h-5 shrink-0" />
                       {isExpanded ? (
                         <>
-                          <span className="truncate flex-1 text-left text-[13px]">{module.name}</span>
+                          <span className="truncate flex-1 text-left text-[13px]">{t(module.nameKey)}</span>
                           {module.isPro && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                               PRO
@@ -675,15 +678,15 @@ export function GhostSidebar({
                           )}
                         </>
                       ) : (
-                        <span className="text-[10px] font-medium">{module.name}</span>
+                        <span className="text-[10px] font-medium">{t(module.nameKey)}</span>
                       )}
                     </button>
                   </TooltipTrigger>
                   {!isExpanded && (
                     <TooltipContent side="right" sideOffset={8}>
                       <div>
-                        <div className="font-medium">{module.name}</div>
-                        <div className="text-xs text-muted-foreground">{module.description}</div>
+                        <div className="font-medium">{t(module.nameKey)}</div>
+                        <div className="text-xs text-muted-foreground">{t(module.descriptionKey)}</div>
                       </div>
                     </TooltipContent>
                   )}
@@ -699,7 +702,7 @@ export function GhostSidebar({
                   className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                 >
                   <IconDotsVertical className="w-4 h-4 shrink-0" stroke={1.5} />
-                  {isExpanded && <span className="text-[13px]">More</span>}
+                  {isExpanded && <span className="text-[13px]">{t('ghost.sidebar.more')}</span>}
                 </button>
                 
                 {showMoreMenu && isExpanded && (
@@ -716,7 +719,7 @@ export function GhostSidebar({
                           className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
                         >
                           <Icon className="w-4 h-4 shrink-0" />
-                          <span>{module.name}</span>
+                          <span>{t(module.nameKey)}</span>
                           {module.isPro && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium ml-auto">
                               PRO
@@ -735,7 +738,7 @@ export function GhostSidebar({
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded"
                       >
                         <IconSettings className="w-4 h-4 shrink-0" stroke={1.5} />
-                        <span>Customize Sidebar</span>
+                        <span>{t('ghost.sidebar.customizeSidebar')}</span>
                       </button>
                     </div>
                   </div>
@@ -749,12 +752,12 @@ export function GhostSidebar({
         <div className="flex flex-col gap-1 p-2 border-t border-border/60">
           <IconButton 
             icon={IconPhoto} 
-            label="Library" 
+            label={t('ghost.sidebar.library')} 
             onClick={() => navigate('/ghost/library')} 
           />
           <IconButton 
             icon={IconSettings} 
-            label="Settings" 
+            label={t('ghost.sidebar.settings')} 
             onClick={onOpenSettings} 
           />
         </div>
