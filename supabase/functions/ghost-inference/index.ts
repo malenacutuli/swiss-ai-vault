@@ -283,17 +283,62 @@ async function callModal(
     const responseTimeMs = Date.now() - startTime;
     
     console.log('[Modal] Success, response time:', responseTimeMs, 'ms');
+    console.log('[Modal] Raw response structure:', JSON.stringify(data).substring(0, 1000));
     
-    // Handle different response formats from vLLM
+    // Handle different response formats from vLLM / Modal endpoints
     let content = '';
+    
+    // Format 1: OpenAI-compatible format (choices[].message.content)
     if (data.choices?.[0]?.message?.content) {
       content = data.choices[0].message.content;
-    } else if (data.content) {
-      content = data.content;
-    } else if (data.text) {
+      console.log('[Modal] Extracted from choices[0].message.content');
+    }
+    // Format 2: vLLM streaming-style (choices[].delta.content) 
+    else if (data.choices?.[0]?.delta?.content) {
+      content = data.choices[0].delta.content;
+      console.log('[Modal] Extracted from choices[0].delta.content');
+    }
+    // Format 3: Direct content field
+    else if (data.content) {
+      content = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
+      console.log('[Modal] Extracted from data.content');
+    }
+    // Format 4: Text field (some older APIs)
+    else if (data.text) {
       content = data.text;
-    } else if (typeof data === 'string') {
+      console.log('[Modal] Extracted from data.text');
+    }
+    // Format 5: Generated text (HuggingFace style)
+    else if (data.generated_text) {
+      content = data.generated_text;
+      console.log('[Modal] Extracted from data.generated_text');
+    }
+    // Format 6: Output field
+    else if (data.output) {
+      content = typeof data.output === 'string' ? data.output : JSON.stringify(data.output);
+      console.log('[Modal] Extracted from data.output');
+    }
+    // Format 7: Response is a string directly
+    else if (typeof data === 'string') {
       content = data;
+      console.log('[Modal] Data is raw string');
+    }
+    // Format 8: Check for nested response structure
+    else if (data.response) {
+      content = typeof data.response === 'string' ? data.response : JSON.stringify(data.response);
+      console.log('[Modal] Extracted from data.response');
+    }
+    // Format 9: Check for result field
+    else if (data.result) {
+      content = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+      console.log('[Modal] Extracted from data.result');
+    }
+    
+    // If still no content, log the full structure for debugging
+    if (!content) {
+      console.error('[Modal] Could not extract content. Full response:', JSON.stringify(data));
+    } else {
+      console.log('[Modal] Extracted content length:', content.length);
     }
     
     return {
