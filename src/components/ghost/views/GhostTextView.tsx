@@ -9,7 +9,7 @@ interface GhostTextViewProps {
 }
 
 export function GhostTextView({ hasMessages, children }: GhostTextViewProps) {
-  const { t } = useTranslation();
+  const { t, ready } = useTranslation();
   
   if (!hasMessages) {
     return (
