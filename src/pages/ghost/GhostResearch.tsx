@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,7 +61,20 @@ export default function GhostResearch() {
   const [searchMode, setSearchMode] = useState<SearchMode>('search');
   const [selectedFilter, setSelectedFilter] = useState('Peer-reviewed');
   const [activeAction, setActiveAction] = useState<ActionType>('academic');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const suggestions = useMemo(
     () => getSuggestions(activeAction, selectedFilter),
@@ -97,6 +110,7 @@ export default function GhostResearch() {
   const handleActionClick = (action: ActionType) => {
     setActiveAction(action);
     setShowSuggestions(true);
+    setQuery('');
   };
 
   return (
@@ -111,7 +125,7 @@ export default function GhostResearch() {
         </div>
 
         {/* Search Card */}
-        <Card className="w-full max-w-2xl p-5 bg-white border-slate-200/60 shadow-sm">
+        <Card className="w-full max-w-2xl p-5 bg-white border-slate-200/60 shadow-sm" ref={containerRef}>
           {/* Mode Selector, Sources & Filter */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -145,7 +159,9 @@ export default function GhostResearch() {
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
-                setShowSuggestions(e.target.value.length === 0);
+                if (e.target.value.length === 0) {
+                  setShowSuggestions(true);
+                }
               }}
               onFocus={() => !query && setShowSuggestions(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
