@@ -64,6 +64,7 @@ import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
 import GhostSignup from "./pages/auth/GhostSignup";
 import GhostFinance from "./pages/ghost/GhostFinance";
+import GhostPatents from "./pages/ghost/GhostPatents";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => {
                 <Route path="/ghost/pricing" element={<GhostPricing />} />
                 <Route path="/ghost/library" element={<ProtectedRoute><GhostLibrary /></ProtectedRoute>} />
                 <Route path="/ghost/finance" element={<GhostFinance />} />
+                <Route path="/ghost/patents" element={<GhostPatents />} />
                 
                 {/* Ghost Auth routes */}
                 <Route path="/auth/ghost-signup" element={<GhostSignup />} />
