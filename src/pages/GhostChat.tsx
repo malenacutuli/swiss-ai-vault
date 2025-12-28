@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,9 +29,10 @@ import { ExportMarkdownDialog } from '@/components/ghost/ExportMarkdownDialog';
 import { GhostDropZone } from '@/components/ghost/GhostDropZone';
 import { GhostUpgradeModal } from '@/components/ghost/GhostUpgradeModal';
 import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 import { SwissFlag } from '@/components/icons/SwissFlag';
-import { EyeOff, Shield, Menu, X, AlertTriangle, FileText } from 'lucide-react';
+import { EyeOff, Shield, Menu, X, AlertTriangle, FileText, Moon, Sun } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TEXT_MODELS } from '@/lib/ghost-models';
 
@@ -116,10 +118,26 @@ function GhostChat() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false); // Prevent double submission
+  
+  // Theme state
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return true;
+  });
+  
+  const toggleTheme = useCallback(() => {
+    const newIsDark = !isDark;
+    setIsDark(newIsDark);
+    document.documentElement.classList.toggle('dark', newIsDark);
+    localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+  }, [isDark]);
 
   // Get mode from URL or default to 'text'
   const mode = (searchParams.get('mode') as GhostMode) || 'text';
@@ -1310,7 +1328,7 @@ function GhostChat() {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Usage Display */}
             <GhostUsageDisplay
               tier={tier}
@@ -1326,13 +1344,26 @@ function GhostChat() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
               </span>
               <span className="text-[13px] text-muted-foreground hidden md:inline">
-                Local Only
+                {t('ghost.status.localOnly', 'Local Only')}
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground hidden sm:flex">
               <Shield className="w-3.5 h-3.5 text-success" />
-              <span className="hidden md:inline">Zero Retention</span>
+              <span className="hidden md:inline">{t('ghost.status.zeroRetention', 'Zero Retention')}</span>
             </div>
+            
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+            
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
           </div>
         </header>
 
@@ -1340,7 +1371,7 @@ function GhostChat() {
         {!user && (
           <div className="flex-shrink-0 flex items-center justify-between gap-3 px-4 py-2 bg-muted/30 border-b border-border/50">
             <span className="text-sm text-muted-foreground">
-              Sign up free to save conversations
+              {t('ghost.auth.signupBanner', 'Sign up free to save conversations')}
             </span>
             <Button
               size="sm"
@@ -1348,7 +1379,7 @@ function GhostChat() {
               className="text-primary hover:bg-primary/10"
               onClick={() => navigate('/auth/ghost-signup')}
             >
-              Sign up
+              {t('ghost.auth.signUp', 'Sign up')}
             </Button>
           </div>
         )}
@@ -1357,9 +1388,9 @@ function GhostChat() {
         {corruptedCount > 0 && (
           <Alert variant="destructive" className="m-4 border-destructive/50 bg-destructive/10">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Some conversations couldn't be loaded</AlertTitle>
+            <AlertTitle>{t('ghost.alerts.corruptedTitle', "Some conversations couldn't be loaded")}</AlertTitle>
             <AlertDescription className="mt-2">
-              {corruptedCount} conversation{corruptedCount > 1 ? 's' : ''} encrypted with a different key could not be decrypted.
+              {corruptedCount} {t('ghost.alerts.corruptedDescription', 'conversation(s) encrypted with a different key could not be decrypted.')}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -1367,12 +1398,12 @@ function GhostChat() {
                 onClick={() => {
                   clearAllData();
                   toast({ 
-                    title: 'Storage cleared', 
-                    description: 'All local data has been removed. You can start fresh.' 
+                    title: t('ghost.alerts.storageCleared', 'Storage cleared'), 
+                    description: t('ghost.alerts.storageClearedDescription', 'All local data has been removed. You can start fresh.') 
                   });
                 }}
               >
-                Clear corrupted data
+                {t('ghost.alerts.clearCorruptedData', 'Clear corrupted data')}
               </Button>
             </AlertDescription>
           </Alert>
