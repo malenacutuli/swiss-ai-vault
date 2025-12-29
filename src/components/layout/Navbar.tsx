@@ -26,9 +26,8 @@ export const Navbar = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <SwissFlag className="h-12 w-12" />
-              <span className="text-xl font-bold">SwissVault<span className="text-brand-accent">.ai</span></span>
+            <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <SwissFlag className="h-10" />
             </Link>
 
             {/* Desktop Nav */}

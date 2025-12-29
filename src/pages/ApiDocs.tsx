@@ -1027,11 +1027,8 @@ export default function ApiDocs() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2">
-              <SwissFlag className="h-8 w-8 rounded-lg" />
-              <span className="text-lg font-semibold text-foreground">
-                SwissVault<span className="text-brand-accent">.ai</span>
-              </span>
+            <Link to="/" className="flex items-center">
+              <SwissFlag className="h-9" />
             </Link>
             <div className="h-6 w-px bg-border" />
             <span className="text-sm font-medium text-muted-foreground">{t('apiDocs.title')}</span>
