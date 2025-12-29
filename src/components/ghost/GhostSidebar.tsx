@@ -75,16 +75,18 @@ function ChatActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className="flex items-center justify-center h-8 w-8 rounded-md text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           draggable={false}
           aria-label="Chat actions"
         >
-          <IconDotsVertical className="h-4 w-4" />
-        </button>
+          <IconDotsVertical className="w-4 h-4" strokeWidth={1.5} />
+        </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
@@ -157,16 +159,18 @@ function FolderActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className="flex items-center justify-center h-8 w-8 rounded-md text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           draggable={false}
           aria-label="Folder actions"
         >
-          <IconDotsVertical className="h-4 w-4" />
-        </button>
+          <IconDotsVertical className="w-4 h-4" strokeWidth={1.5} />
+        </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
