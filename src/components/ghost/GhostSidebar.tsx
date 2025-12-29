@@ -301,35 +301,39 @@ export function GhostSidebar({
                 {t('ghost.sidebar.incognito', 'Incognito')}
               </span>
             )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0 opacity-100 transition-opacity duration-150"
-                >
-                  <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40 z-50 bg-popover text-popover-foreground border border-border shadow-md">
-                <DropdownMenuItem onClick={() => { setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}>
-                  <IconEdit className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                  {t('ghost.sidebar.rename')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExportConversation(conv.id)}>
-                  <IconDownload className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                  {t('ghost.sidebar.download')}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => onDeleteConversation(conv.id)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <IconTrash className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                  {t('ghost.sidebar.delete')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => {
+                  setEditingChatId(conv.id);
+                  setEditingChatTitle(conv.title);
+                }}
+                aria-label={t('ghost.sidebar.rename', 'Rename')}
+              >
+                <IconEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => onExportConversation(conv.id)}
+                aria-label={t('ghost.sidebar.download', 'Download')}
+              >
+                <IconDownload className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-destructive hover:text-destructive"
+                onClick={() => onDeleteConversation(conv.id)}
+                aria-label={t('ghost.sidebar.delete', 'Delete')}
+              >
+                <IconTrash className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </Button>
+            </div>
           </>
         )
       )}
@@ -388,37 +392,45 @@ export function GhostSidebar({
               <>
                 <span className="text-[13px] truncate flex-1">{folder.name}</span>
                 {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" strokeWidth={1.5} />}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      setEditingFolderId(folder.id);
+                      setEditingFolderName(folder.name);
+                    }}
+                    aria-label={t('ghost.sidebar.rename', 'Rename')}
+                  >
+                    <IconEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </Button>
+
+                  {onExportFolder && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 shrink-0 opacity-100 transition-opacity duration-150"
+                      className="h-6 w-6"
+                      onClick={() => onExportFolder(folder.id)}
+                      aria-label={t('ghost.sidebar.downloadAll', 'Download all')}
                     >
-                    <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40 z-50 bg-popover text-popover-foreground border border-border shadow-md">
-                  <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
-                    <IconEdit className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                    {t('ghost.sidebar.rename')}
-                  </DropdownMenuItem>
-                  {onExportFolder && (
-                    <DropdownMenuItem onClick={() => onExportFolder(folder.id)}>
-                      <IconDownload className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                      {t('ghost.sidebar.downloadAll')}
-                    </DropdownMenuItem>
+                      <IconDownload className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    </Button>
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={async () => { if (onDeleteFolder) await onDeleteFolder(folder.id); }}
-                    className="text-destructive focus:text-destructive"
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if (onDeleteFolder) await onDeleteFolder(folder.id);
+                    }}
+                    aria-label={t('ghost.sidebar.delete', 'Delete')}
                   >
-                    <IconTrash className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                      {t('ghost.sidebar.delete')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    <IconTrash className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  </Button>
+                </div>
               </>
             )
           )}
