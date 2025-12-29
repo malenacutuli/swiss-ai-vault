@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from '@/icons';
+import { ChevronDown, ChevronUp, Square, RectangleVertical, RectangleHorizontal, Minus, GripVertical, type LucideIcon } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,12 +24,12 @@ interface ImageGenSettingsProps {
   onSettingsChange: (settings: ImageGenSettingsState) => void;
 }
 
-const ASPECT_RATIOS: { value: AspectRatio; label: string; icon: string }[] = [
-  { value: '1:1', label: 'Square', icon: '◼' },
-  { value: '3:4', label: 'Portrait', icon: '▮' },
-  { value: '4:3', label: 'Landscape', icon: '▬' },
-  { value: '16:9', label: 'Wide', icon: '━' },
-  { value: '9:16', label: 'Tall', icon: '┃' },
+const ASPECT_RATIOS: { value: AspectRatio; label: string; Icon: LucideIcon }[] = [
+  { value: '1:1', label: 'Square', Icon: Square },
+  { value: '3:4', label: 'Portrait', Icon: RectangleVertical },
+  { value: '4:3', label: 'Landscape', Icon: RectangleHorizontal },
+  { value: '16:9', label: 'Wide', Icon: Minus },
+  { value: '9:16', label: 'Tall', Icon: GripVertical },
 ];
 
 const STYLE_PRESETS: { value: StylePreset; label: string }[] = [
@@ -83,7 +83,7 @@ export function ImageGenSettings({ settings, onSettingsChange }: ImageGenSetting
                     : 'hover:bg-muted/50'
                 )}
               >
-                <span className="mr-1.5 opacity-60">{ratio.icon}</span>
+                <ratio.Icon className="h-3 w-3 mr-1.5 opacity-60" />
                 {ratio.label}
               </Button>
             ))}

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, Brain, Clock } from '@/icons';
+import { ChevronDown, Brain, Clock, Check, Star } from '@/icons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,14 +75,21 @@ const DEEPSEEK_MODELS: Model[] = [
   { id: 'deepseek-ai/deepseek-coder-7b-instruct-v1.5', name: 'DeepSeek Coder', provider: 'DeepSeek', description: 'Code expert', coldStart: true, comingSoon: true },
 ];
 
-const MODEL_GROUPS = [
-  { name: 'Anthropic', icon: '🟣', models: ANTHROPIC_MODELS },
-  { name: 'OpenAI', icon: '🟢', models: OPENAI_MODELS },
-  { name: 'Google', icon: '🔵', models: GOOGLE_MODELS },
-  { name: 'Mistral', icon: '🟠', models: MISTRAL_MODELS },
-  { name: 'Qwen', icon: '🟡', models: QWEN_MODELS },
-  { name: 'Meta', icon: '🔷', models: META_MODELS },
-  { name: 'DeepSeek', icon: '🔶', models: DEEPSEEK_MODELS },
+type ModelGroup = {
+  name: string;
+  colorClass: string;
+  isStarred?: boolean;
+  models: Model[];
+};
+
+const MODEL_GROUPS: ModelGroup[] = [
+  { name: 'Anthropic', colorClass: 'bg-purple-500', models: ANTHROPIC_MODELS },
+  { name: 'OpenAI', colorClass: 'bg-green-500', models: OPENAI_MODELS },
+  { name: 'Google', colorClass: 'bg-blue-500', models: GOOGLE_MODELS },
+  { name: 'Mistral', colorClass: 'bg-orange-500', models: MISTRAL_MODELS },
+  { name: 'Qwen', colorClass: 'bg-yellow-500', models: QWEN_MODELS },
+  { name: 'Meta', colorClass: 'bg-cyan-500', models: META_MODELS },
+  { name: 'DeepSeek', colorClass: 'bg-amber-600', models: DEEPSEEK_MODELS },
 ];
 
 export function ModelSelectorBar({ selectedModel, onModelChange, className }: ModelSelectorBarProps) {
@@ -104,10 +111,10 @@ export function ModelSelectorBar({ selectedModel, onModelChange, className }: Mo
     },
   });
 
-  const allModelGroups = useMemo(() => {
+  const allModelGroups = useMemo((): ModelGroup[] => {
     const groups = [...MODEL_GROUPS];
     if (fineTunedModels.length > 0) {
-      groups.unshift({ name: 'Your Models', icon: '⭐', models: fineTunedModels });
+      groups.unshift({ name: 'Your Models', colorClass: 'bg-yellow-400', isStarred: true, models: fineTunedModels });
     }
     return groups;
   }, [fineTunedModels]);
@@ -138,7 +145,11 @@ export function ModelSelectorBar({ selectedModel, onModelChange, className }: Mo
             <React.Fragment key={group.name}>
               {idx > 0 && <DropdownMenuSeparator />}
               <DropdownMenuLabel className="flex items-center gap-2">
-                <span>{group.icon}</span>
+                {group.isStarred ? (
+                  <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                ) : (
+                  <span className={`w-2.5 h-2.5 rounded-full ${group.colorClass}`} />
+                )}
                 <span>{group.name}</span>
                 <span className="text-xs text-muted-foreground">({group.models.length})</span>
               </DropdownMenuLabel>
@@ -160,7 +171,7 @@ export function ModelSelectorBar({ selectedModel, onModelChange, className }: Mo
                     {model.description && <span className="text-xs text-muted-foreground">{model.description}</span>}
                   </div>
                   {model.coldStart && !model.comingSoon && <span className="text-xs text-yellow-500 flex items-center gap-1"><Clock className="h-3 w-3" /></span>}
-                  {selectedModel === model.id && !model.comingSoon && <span className="text-primary">✓</span>}
+                  {selectedModel === model.id && !model.comingSoon && <Check className="h-4 w-4 text-primary" />}
                 </DropdownMenuItem>
               ))}
             </React.Fragment>

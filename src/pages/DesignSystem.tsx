@@ -28,8 +28,12 @@ import {
   MousePointer, 
   FormInput,
   Layers,
-  Sparkles
+  Sparkles,
+  Flag,
+  Moon,
+  Circle,
 } from "@/icons";
+import { SwissIconTile } from "@/components/ui/swiss";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -815,27 +819,45 @@ toast.info("Info")`} />
               <h2 className="text-2xl font-semibold mb-6">Design Principles</h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
-                  <h3 className="font-medium mb-2">🇨🇭 Swiss Minimalism</h3>
+                  <h3 className="font-medium mb-2 flex items-center gap-2">
+                    <SwissIconTile size="xs" variant="muted"><Flag className="h-3 w-3" /></SwissIconTile>
+                    Swiss Minimalism
+                  </h3>
                   <p className="text-sm text-muted-foreground">Clean, precise, and functional. Every element has a purpose.</p>
                 </div>
                 <div>
-                  <h3 className="font-medium mb-2">🌙 Dark-First Design</h3>
+                  <h3 className="font-medium mb-2 flex items-center gap-2">
+                    <SwissIconTile size="xs" variant="muted"><Moon className="h-3 w-3" /></SwissIconTile>
+                    Dark-First Design
+                  </h3>
                   <p className="text-sm text-muted-foreground">Optimized for dark mode with careful light mode support.</p>
                 </div>
                 <div>
-                  <h3 className="font-medium mb-2">🔴 Swiss Red Accent</h3>
+                  <h3 className="font-medium mb-2 flex items-center gap-2">
+                    <SwissIconTile size="xs" variant="muted"><Circle className="h-3 w-3" /></SwissIconTile>
+                    Swiss Red Accent
+                  </h3>
                   <p className="text-sm text-muted-foreground">Strategic use of the primary red for important actions and CTAs.</p>
                 </div>
                 <div>
-                  <h3 className="font-medium mb-2">✨ Subtle Animations</h3>
+                  <h3 className="font-medium mb-2 flex items-center gap-2">
+                    <SwissIconTile size="xs" variant="muted"><Sparkles className="h-3 w-3" /></SwissIconTile>
+                    Subtle Animations
+                  </h3>
                   <p className="text-sm text-muted-foreground">Purposeful motion that enhances without distracting.</p>
                 </div>
                 <div>
-                  <h3 className="font-medium mb-2">🔮 Glassmorphism</h3>
+                  <h3 className="font-medium mb-2 flex items-center gap-2">
+                    <SwissIconTile size="xs" variant="muted"><Layers className="h-3 w-3" /></SwissIconTile>
+                    Glassmorphism
+                  </h3>
                   <p className="text-sm text-muted-foreground">Layered, translucent surfaces for depth and hierarchy.</p>
                 </div>
                 <div>
-                  <h3 className="font-medium mb-2">🎨 Semantic Colors</h3>
+                  <h3 className="font-medium mb-2 flex items-center gap-2">
+                    <SwissIconTile size="xs" variant="muted"><Palette className="h-3 w-3" /></SwissIconTile>
+                    Semantic Colors
+                  </h3>
                   <p className="text-sm text-muted-foreground">Consistent use of colors for states: success, error, warning, info.</p>
                 </div>
               </div>
