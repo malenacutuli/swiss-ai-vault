@@ -829,7 +829,7 @@ function GhostChat() {
     messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp?: number }>;
   } | null>(null);
 
-  const handleExportConversation = (id: string) => {
+  const handleExportConversation = useCallback((id: string) => {
     const conv = getConversation(id);
     if (conv) {
       setExportingConversation({
@@ -839,7 +839,7 @@ function GhostChat() {
       });
       setExportDialogOpen(true);
     }
-  };
+  }, [getConversation]);
 
   const handleExportEncrypted = async () => {
     if (!exportingConversation) return;
@@ -855,11 +855,11 @@ function GhostChat() {
     }
   };
 
-  const handleExportFolder = (folderId: string) => {
+  const handleExportFolder = useCallback((folderId: string) => {
     // Get all conversations in this folder
     const folderConvs = sidebarConversations.filter(c => c.folderId === folderId);
     const folder = folders.find(f => f.id === folderId);
-    
+
     if (folderConvs.length === 0) {
       toast({ title: 'Empty folder', description: 'No chats to export in this folder' });
       return;
@@ -867,7 +867,7 @@ function GhostChat() {
 
     // Export each conversation as markdown and combine
     let combinedMarkdown = `# ${folder?.name || 'Folder Export'}\n\nExported: ${new Date().toLocaleString()}\n\n---\n\n`;
-    
+
     for (const convMeta of folderConvs) {
       const conv = getConversation(convMeta.id);
       if (conv) {
@@ -888,28 +888,28 @@ function GhostChat() {
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: 'Exported', description: `Exported ${folderConvs.length} chat(s) from folder` });
-  };
+  }, [folders, getConversation, sidebarConversations, toast]);
 
-  const handleDeleteConversation = (id: string) => {
+  const handleDeleteConversation = useCallback((id: string) => {
     deleteConversation(id);
     if (selectedConversation === id) {
       setSelectedConversation(null);
       setMessages([]);
     }
     toast({ title: 'Deleted', description: 'Chat deleted' });
-  };
+  }, [deleteConversation, selectedConversation, toast]);
 
-  const handleRenameConversation = (id: string, title: string) => {
+  const handleRenameConversation = useCallback((id: string, title: string) => {
     updateConversationTitle(id, title);
-  };
+  }, [updateConversationTitle]);
 
-  const handleMoveToFolder = (convId: string, folderId: string | null) => {
+  const handleMoveToFolder = useCallback((convId: string, folderId: string | null) => {
     moveToFolder(convId, folderId);
-  };
+  }, [moveToFolder]);
 
-  const handleCreateFolder = async () => {
+  const handleCreateFolder = useCallback(async () => {
     await createFolder('New Folder');
-  };
+  }, [createFolder]);
 
   // Handle message edit with fork or regenerate behavior
   const handleMessageEdit = useCallback(async (messageId: string, newContent: string) => {
