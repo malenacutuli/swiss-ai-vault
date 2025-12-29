@@ -28,6 +28,7 @@ import { GhostErrorBoundary } from '@/components/ghost/GhostErrorBoundary';
 import { ExportMarkdownDialog } from '@/components/ghost/ExportMarkdownDialog';
 import { GhostDropZone } from '@/components/ghost/GhostDropZone';
 import { GhostUpgradeModal } from '@/components/ghost/GhostUpgradeModal';
+import { GhostChatUsageBar } from '@/components/ghost/GhostChatUsageBar';
 import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -1821,6 +1822,25 @@ function GhostChat() {
           {((mode === 'text' && messages.length > 0) || mode === 'search' || (mode === 'research' && messages.length > 0)) && (
             <div className="flex-shrink-0 p-4 lg:p-6">
               <div className="max-w-3xl mx-auto">
+                {/* Usage Bar - Above Input */}
+                <GhostChatUsageBar
+                  usage={{
+                    prompts: { used: (limits?.prompts ?? 0) - (remaining?.prompts ?? 0), limit: limits?.prompts ?? 0 },
+                    images: { used: (limits?.images ?? 0) - (remaining?.images ?? 0), limit: limits?.images ?? 0 },
+                    videos: { used: (limits?.videos ?? 0) - (remaining?.videos ?? 0), limit: limits?.videos ?? 0 },
+                    research: { used: (limits?.searches ?? 0) - (remaining?.searches ?? 0), limit: limits?.searches ?? 0 },
+                  }}
+                  resetsIn={typeof resetTime === 'number' ? Math.floor((resetTime - Date.now()) / 1000) : undefined}
+                  tier={tier as 'anonymous' | 'free' | 'ghost' | 'pro' | 'ultra'}
+                  onUpgrade={() => {
+                    if (!user) {
+                      navigate('/auth/ghost-signup');
+                    } else {
+                      setShowUpgradeModal(true);
+                    }
+                  }}
+                  className="mb-2"
+                />
                 {/* Multi-file attachment preview */}
                 {attachedFiles.length > 0 && (
                   <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">

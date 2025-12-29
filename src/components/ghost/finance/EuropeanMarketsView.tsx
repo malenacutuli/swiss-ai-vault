@@ -58,20 +58,20 @@ export function EuropeanMarketsView() {
               <span className="text-sm text-slate-500">{ticker.name}</span>
               <span className={cn(
                 "text-xs font-medium px-1.5 py-0.5 rounded",
-                ticker.changePercent >= 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                (ticker.changePercent ?? 0) >= 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
               )}>
-                {ticker.changePercent >= 0 ? '↑' : '↓'} {Math.abs(ticker.changePercent).toFixed(2)}%
+                {(ticker.changePercent ?? 0) >= 0 ? '↑' : '↓'} {Math.abs(ticker.changePercent ?? 0).toFixed(2)}%
               </span>
             </div>
             <div className="my-2">
-              <MarketSparkline changePercent={ticker.changePercent} />
+              <MarketSparkline changePercent={ticker.changePercent ?? 0} />
             </div>
             <div className="flex items-end justify-between">
               <div className="text-xl font-semibold text-slate-900">
-                {ticker.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {(ticker.price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
-              <p className={cn("text-sm font-medium", ticker.change >= 0 ? "text-green-600" : "text-red-600")}>
-                {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(2)}
+              <p className={cn("text-sm font-medium", (ticker.change ?? 0) >= 0 ? "text-green-600" : "text-red-600")}>
+                {(ticker.change ?? 0) >= 0 ? '+' : ''}{(ticker.change ?? 0).toFixed(2)}
               </p>
             </div>
           </Card>
