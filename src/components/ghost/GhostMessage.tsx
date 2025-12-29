@@ -30,6 +30,8 @@ interface GhostMessageProps {
   tokenCount?: number;
   contextUsagePercent?: number;
   attachments?: Array<{ name: string; type: string; size: number }>;
+  sources?: Array<{ title: string; url: string; snippet?: string }>;
+  mode?: 'text' | 'image' | 'video' | 'search' | 'research';
   onRegenerate?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
@@ -247,6 +249,8 @@ export function GhostMessage({
   tokenCount,
   contextUsagePercent,
   attachments,
+  sources,
+  mode,
   onRegenerate,
   onEdit,
   onDelete,
@@ -445,6 +449,27 @@ export function GhostMessage({
               onReport={onReport ? () => onReport(id) : undefined}
               onStopGeneration={onStopGeneration}
             />
+          </div>
+        )}
+
+        {/* Research Sources */}
+        {role === 'assistant' && sources && sources.length > 0 && !isStreaming && (
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Sources</p>
+            <div className="flex flex-wrap gap-2">
+              {sources.map((source, i) => (
+                <a
+                  key={i}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline bg-muted/50 px-2 py-1 rounded"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  [{i + 1}] {source.title || new URL(source.url).hostname}
+                </a>
+              ))}
+            </div>
           </div>
         )}
         

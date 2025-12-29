@@ -9,6 +9,7 @@ import { useGhostStorage } from '@/hooks/useGhostStorage';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostInference } from '@/hooks/useGhostInference';
 import { useGhostSearch, type SearchResult } from '@/hooks/useGhostSearch';
+import { useGhostResearch, type ResearchSource } from '@/hooks/useGhostResearch';
 import { useGhostSettings } from '@/hooks/useGhostSettings';
 import { useGhostFolders } from '@/hooks/useGhostFolders';
 import { useGhostUsage } from '@/hooks/useGhostUsage';
@@ -52,6 +53,7 @@ const DEFAULT_MODELS: Record<GhostMode, string> = {
   image: 'auto-image',
   video: 'runway-gen3-turbo',
   search: 'sonar',
+  research: 'sonar-deep-research',
 };
 
 // Swiss models (free tier)
@@ -89,6 +91,8 @@ interface GhostMessageData {
   tokenCount?: number;
   contextUsagePercent?: number;
   attachments?: Array<{ name: string; type: string; size: number }>;
+  mode?: 'text' | 'image' | 'video' | 'search' | 'research';
+  sources?: Array<{ title: string; url: string; snippet?: string }>;
 }
 
 // Attached file for context - supports multiple files
@@ -186,6 +190,9 @@ function GhostChat() {
   // Web search hook
   const webSearch = useGhostSearch();
 
+  // Deep research hook
+  const ghostResearch = useGhostResearch();
+
   // Ghost settings hook
   const { settings } = useGhostSettings();
 
@@ -206,6 +213,7 @@ function GhostChat() {
   // Ghost folders hook (persistent)
   const { folders, createFolder, renameFolder, deleteFolder } = useGhostFolders();
   const [searchCitations, setSearchCitations] = useState<SearchResult[]>([]);
+  const [researchSources, setResearchSources] = useState<ResearchSource[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
 
   // Usage tracking hook
@@ -428,19 +436,27 @@ function GhostChat() {
 
   const handleSendMessage = async () => {
     // Prevent double submission - allow if we have attachments even without text
-    if ((!inputValue.trim() && attachedFiles.length === 0) || isStreaming || webSearch.isSearching || isSubmittingRef.current) return;
+    if ((!inputValue.trim() && attachedFiles.length === 0) || isStreaming || webSearch.isSearching || ghostResearch.isResearching || isSubmittingRef.current) return;
     isSubmittingRef.current = true;
 
     try {
       const requestId = crypto.randomUUID();
 
       // Determine usage type based on mode
-      const usageType = mode as 'text' | 'image' | 'video' | 'search';
       const usageTypeMap: Record<string, 'prompt' | 'image' | 'video' | 'file' | 'search'> = {
         text: 'prompt',
         image: 'image',
         video: 'video',
         search: 'search',
+        research: 'search', // Research uses search quota
+      };
+      
+      const creditTypeMap: Record<string, 'text' | 'image' | 'video' | 'search'> = {
+        text: 'text',
+        image: 'image',
+        video: 'video',
+        search: 'search',
+        research: 'search',
       };
 
       // Check usage limit before proceeding (free tier enforcement)
@@ -466,7 +482,8 @@ function GhostChat() {
       }
 
       // Check credits before proceeding (for Pro users)
-      const creditCheck = await checkCredits(usageType);
+      const creditType = creditTypeMap[mode] || 'text';
+      const creditCheck = await checkCredits(creditType);
       if (!creditCheck.allowed) {
         handleInsufficientCredits(creditCheck.reason);
         return;
@@ -737,6 +754,69 @@ function GhostChat() {
           });
         } catch (error) {
           console.error('Search error:', error);
+        }
+      } else if (mode === 'research') {
+        // Deep research mode
+        const assistantId = crypto.randomUUID();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantId,
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            isStreaming: true,
+            mode: 'research',
+          },
+        ]);
+        setResearchSources([]);
+
+        try {
+          await ghostResearch.research(userMessage.content, {
+            onToken: (token) => {
+              setMessages((prev) =>
+                prev.map((msg) => (msg.id === assistantId ? { ...msg, content: msg.content + token } : msg))
+              );
+            },
+            onSources: (sources) => {
+              setResearchSources(sources);
+              setMessages((prev) =>
+                prev.map((msg) => (msg.id === assistantId ? { ...msg, sources } : msg))
+              );
+            },
+            onComplete: async (response) => {
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId 
+                    ? { ...msg, content: response.content, isStreaming: false, sources: response.sources } 
+                    : msg
+                )
+              );
+              if (response.content) {
+                saveMessage(convId!, 'assistant', response.content);
+                await recordUsage('search', 'sonar-deep-research', {
+                  inputTokens: Math.ceil(userMessage.content.length / 4),
+                  outputTokens: Math.ceil(response.content.length / 4),
+                });
+              }
+            },
+            onError: (error) => {
+              toast({
+                title: 'Research Error',
+                description: error.message || 'Failed to complete research',
+                variant: 'destructive',
+              });
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantId
+                    ? { ...msg, content: `Error: ${error.message || 'Research failed'}`, isStreaming: false }
+                    : msg
+                )
+              );
+            },
+          });
+        } catch (error) {
+          console.error('Research error:', error);
         }
       } else if (mode === 'image') {
         // Image generation - placeholder for now
