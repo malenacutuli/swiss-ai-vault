@@ -477,7 +477,7 @@ export function GhostSidebar({
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
           'fixed lg:relative inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border/60 transition-all duration-200 ease-out',
-          isExpanded ? 'w-64' : 'w-14',
+          isExpanded ? 'w-64' : 'w-20',
           !isOpen && 'max-lg:hidden'
         )}
       >
@@ -656,7 +656,7 @@ export function GhostSidebar({
                     className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                   >
                     <IconMessage className="w-5 h-5" strokeWidth={1.5} />
-                    <span className="text-[10px] font-medium">{t('ghost.sidebar.chats')}</span>
+                    <span className="text-[10px] font-medium truncate max-w-full">{t('ghost.sidebar.chats')}</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">{t('ghost.sidebar.viewChats')}</TooltipContent>
@@ -714,7 +714,7 @@ export function GhostSidebar({
                           )}
                         </>
                       ) : (
-                        <span className="text-[10px] font-medium">{t(module.nameKey)}</span>
+                        <span className="text-[10px] font-medium truncate max-w-full">{t(module.nameKey)}</span>
                       )}
                     </button>
                   </TooltipTrigger>
