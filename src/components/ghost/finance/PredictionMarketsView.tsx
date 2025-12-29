@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, AlertCircle } from '@/icons';
 import { useFinanceData, PredictionMarket } from '@/hooks/useFinanceData';
 import { cn } from '@/lib/utils';
 

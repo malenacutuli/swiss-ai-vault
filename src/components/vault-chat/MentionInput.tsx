@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { FileText, Mail, MessageSquare, Github, BookOpen, X } from 'lucide-react';
+import { FileText, Mail, MessageSquare, Github, BookOpen, X } from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface MentionItem {

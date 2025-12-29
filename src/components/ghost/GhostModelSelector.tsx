@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Zap, Scale, Brain, Clock, Cpu, Code, Sparkles, Lock, Eye, Shield, Globe } from 'lucide-react';
+import { Zap, Scale, Brain, Clock, Cpu, Code, Sparkles, Lock, Eye, Shield, Globe } from '@/icons';
 import { TEXT_MODELS, type GhostModel, getModelsByModality } from '@/lib/ghost-models';
 
 // LocalStorage key

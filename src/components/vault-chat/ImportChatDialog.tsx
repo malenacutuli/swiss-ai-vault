@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, FileJson, AlertTriangle, CheckCircle2, Lock, Calendar, MessageSquare } from 'lucide-react';
+import { Upload, FileJson, AlertTriangle, CheckCircle2, Lock, Calendar, MessageSquare } from '@/icons';
 import { localChatStorage, type ExportedChat, type LocalConversation } from '@/lib/storage/local-chat-storage';
 import { chatEncryption } from '@/lib/encryption';
 import { toast } from 'sonner';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Video, Zap, Crown, Clock, Check, Volume2 } from 'lucide-react';
+import { ChevronDown, Video, Zap, Crown, Clock, Check, Volume2 } from '@/icons';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

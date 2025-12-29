@@ -3,7 +3,7 @@ import { Progress } from '@/components/ui/progress';
 import { 
   Upload, FileSearch, Brain, CheckCircle, Loader2, 
   FileText, Zap 
-} from 'lucide-react';
+} from '@/icons';
 
 export type ProcessingStage = 'uploading' | 'extracting' | 'embedding' | 'complete' | 'error';
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Heart, RefreshCw, Video, X, Maximize2, Trash2 } from 'lucide-react';
+import { Download, Heart, RefreshCw, Video, X, Maximize2, Trash2 } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { SwissCard } from '@/components/ui/swiss';

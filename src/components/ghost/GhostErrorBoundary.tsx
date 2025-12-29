@@ -1,5 +1,5 @@
 import React, { Component, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from '@/icons';
 import { Button } from '@/components/ui/button';
 
 interface Props {

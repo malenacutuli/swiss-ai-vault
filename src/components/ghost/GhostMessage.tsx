@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { GhostMessageActions } from './GhostMessageActions';
 import { cn } from '@/lib/utils';
-import { ExternalLink, Pencil, Check, X, FileText, ImageIcon, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Pencil, Check, X, FileText, ImageIcon, RefreshCw, Loader2, AlertTriangle } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';

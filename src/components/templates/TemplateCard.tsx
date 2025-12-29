@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, ArrowRight } from "lucide-react";
+import { Clock, ArrowRight } from "@/icons";
 import type { TemplateSummary } from "@/hooks/useFinetuningTemplates";
 
 interface TemplateCardProps {

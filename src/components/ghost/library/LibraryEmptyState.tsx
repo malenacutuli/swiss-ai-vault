@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Image as ImageIcon, Video, Sparkles } from 'lucide-react';
+import { Image as ImageIcon, Video, Sparkles } from '@/icons';
 
 interface LibraryEmptyStateProps {
   activeTab: 'all' | 'images' | 'videos';

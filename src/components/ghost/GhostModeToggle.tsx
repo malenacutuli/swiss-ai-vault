@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Ghost, Lock } from "lucide-react";
+import { Ghost, Lock } from "@/icons";
 import {
   AlertDialog,
   AlertDialogAction,

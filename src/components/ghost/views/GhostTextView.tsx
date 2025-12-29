@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { SwissHeading } from '@/components/ui/swiss';
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from '@/icons';
 import swissVaultLogo from '@/assets/swissvault-logo.png';
 
 interface GhostTextViewProps {

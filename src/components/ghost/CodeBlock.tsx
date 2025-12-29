@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import hljs from 'highlight.js/lib/core';

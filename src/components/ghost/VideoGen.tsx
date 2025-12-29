@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Video, Film, Sparkles, Upload, Image as ImageIcon, Coins, Loader2, X } from 'lucide-react';
+import { Video, Film, Sparkles, Upload, Image as ImageIcon, Coins, Loader2, X } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';

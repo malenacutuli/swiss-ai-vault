@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Key, Globe, Brain, Sparkles, Lock, CheckCircle, Search, Shield } from 'lucide-react';
+import { Key, Globe, Brain, Sparkles, Lock, CheckCircle, Search, Shield } from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface ResearchProgressProps {

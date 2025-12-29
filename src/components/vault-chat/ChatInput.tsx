@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Plus, Send, Loader2, Lock } from 'lucide-react';
+import { Plus, Send, Loader2, Lock } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { ModelProviderBar } from './ModelProviderBar';
 import { RetentionModeDropdown, type RetentionMode } from './RetentionModeDropdown';

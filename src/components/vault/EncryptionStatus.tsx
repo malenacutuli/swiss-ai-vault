@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, ShieldCheck, Key, Lock, Eye, EyeOff, Copy, CheckCircle2 } from 'lucide-react';
+import { Shield, ShieldCheck, Key, Lock, Eye, EyeOff, Copy, CheckCircle2 } from '@/icons';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

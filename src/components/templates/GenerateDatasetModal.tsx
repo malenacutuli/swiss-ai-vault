@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, Loader2, CheckCircle, XCircle, AlertTriangle, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle, XCircle, AlertTriangle, ArrowRight } from "@/icons";
 import { useFinetuningTemplate, type FinetuningTemplate } from "@/hooks/useFinetuningTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Lock, AlertCircle, User, Bot, FileText, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Lock, AlertCircle, User, Bot, FileText, ChevronDown, ChevronUp, ExternalLink } from '@/icons';
 import {
   Tooltip,
   TooltipContent,
