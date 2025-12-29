@@ -159,11 +159,11 @@ function FolderActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
-          onClick={(e) => e.stopPropagation()}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 shrink-0 text-foreground/70 hover:text-foreground hover:bg-muted bg-muted/40 rounded-md"
+        onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           draggable={false}
@@ -473,7 +473,7 @@ export function GhostSidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+                  className="h-7 w-7 shrink-0 text-foreground/70 hover:text-foreground hover:bg-muted bg-muted/40 rounded-md"
                   onClick={(e) => e.stopPropagation()}
                   onPointerDown={(e) => e.stopPropagation()}
                   onMouseDown={(e) => e.stopPropagation()}
