@@ -29,7 +29,7 @@ import {
   Activity,
   Shield,
   LayoutTemplate,
-} from "lucide-react";
+} from "@/icons";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { useAuth } from "@/contexts/AuthContext";

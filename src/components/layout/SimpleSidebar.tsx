@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Shield, Settings, Beaker, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Shield, Settings, Beaker, ArrowRight, ChevronLeft, ChevronRight } from "@/icons";
 import { cn } from "@/lib/utils";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { SwissFlag } from "@/components/icons/SwissFlag";

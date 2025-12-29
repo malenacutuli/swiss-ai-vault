@@ -32,7 +32,7 @@ import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 import { SwissFlag } from '@/components/icons/SwissFlag';
-import { EyeOff, Shield, Menu, X, AlertTriangle, FileText, Moon, Sun } from 'lucide-react';
+import { EyeOff, Shield, Menu, X, AlertTriangle, FileText, Moon, Sun } from '@/icons';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TEXT_MODELS } from '@/lib/ghost-models';
 

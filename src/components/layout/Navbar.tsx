@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { SwissFlag } from "@/components/icons/SwissFlag";
-import { Menu, X, ArrowRight, ChevronDown } from "lucide-react";
+import { Menu, X, ArrowRight, ChevronDown } from "@/icons";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";

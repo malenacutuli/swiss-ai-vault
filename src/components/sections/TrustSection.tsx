@@ -1,4 +1,4 @@
-import { Shield, Lock, Server, FileCheck } from "lucide-react";
+import { Shield, Lock, Server, FileCheck } from "@/icons";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 
 const trustPoints = [

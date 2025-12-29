@@ -1,5 +1,5 @@
 import { SwissFlag } from "@/components/icons/SwissFlag";
-import { Shield, Lock, Database, Users, Award, Target } from "lucide-react";
+import { Shield, Lock, Database, Users, Award, Target } from "@/icons";
 
 const About = () => {
   return (

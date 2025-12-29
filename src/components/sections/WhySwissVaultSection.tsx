@@ -1,4 +1,4 @@
-import { Shield, Lock, Server, ArrowRight } from "lucide-react";
+import { Shield, Lock, Server, ArrowRight } from "@/icons";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { useTranslation } from "react-i18next";
 

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight } from "@/icons";
 import { useState } from "react";
 import { EarlyAccessModal } from "@/components/EarlyAccessModal";
 import { DemoRequestModal } from "@/components/DemoRequestModal";
@@ -106,7 +106,7 @@ export const PricingSection = () => {
         
         <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            <h2 className="text-3xl sm:text-4xl font-normal tracking-[-0.045em] leading-[1.07] mb-4 text-foreground">
               {t('home.pricing.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -121,8 +121,8 @@ export const PricingSection = () => {
                 className={`relative rounded-2xl p-6 ${
                   plan.popular
                     ? "bg-card border-2 border-primary shadow-glow"
-                    : "bg-card/50 border border-border/50"
-                } backdrop-blur-sm`}
+                    : "bg-card border border-border/60"
+                }`}
               >
                 {plan.popular && plan.badgeKey && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">

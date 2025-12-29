@@ -33,7 +33,7 @@ import {
   Lock,
   Eye,
   Calendar
-} from 'lucide-react';
+} from '@/icons';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

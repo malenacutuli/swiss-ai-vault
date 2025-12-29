@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Lock, Mail, User, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, ArrowLeft } from '@/icons';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';

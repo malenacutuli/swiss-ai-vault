@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SwissFlag } from "@/components/icons/SwissFlag";
-import { Mail, MessageSquare, Building2, Clock } from "lucide-react";
+import { Mail, MessageSquare, Building2, Clock } from "@/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";

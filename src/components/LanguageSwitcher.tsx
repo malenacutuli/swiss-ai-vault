@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Globe } from 'lucide-react';
+import { Globe } from '@/icons';
 
 export function LanguageSwitcher() {
   const { i18n } = useTranslation();
