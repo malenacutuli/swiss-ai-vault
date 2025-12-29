@@ -54,6 +54,170 @@ import {
 import { GhostModeToggle } from './GhostModeToggle';
 import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
 
+// ============================================
+// CHAT ACTIONS MENU
+// ============================================
+interface ChatActionsMenuProps {
+  conversationId: string;
+  conversationTitle: string;
+  onRename: (id: string, title: string) => void;
+  onExport?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}
+
+function ChatActionsMenu({
+  conversationId,
+  conversationTitle,
+  onRename,
+  onExport,
+  onDelete,
+}: ChatActionsMenuProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex items-center justify-center h-8 w-8 rounded-md text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          draggable={false}
+          aria-label="Chat actions"
+        >
+          <IconDotsVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        className="z-50 min-w-[160px] bg-popover text-popover-foreground border border-border shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRename(conversationId, conversationTitle);
+          }}
+        >
+          <IconEdit className="h-4 w-4 mr-2" />
+          Rename
+        </DropdownMenuItem>
+
+        {onExport && (
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExport(conversationId);
+            }}
+          >
+            <IconDownload className="h-4 w-4 mr-2" />
+            Download
+          </DropdownMenuItem>
+        )}
+
+        {onDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive focus:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(conversationId);
+              }}
+            >
+              <IconTrash className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ============================================
+// FOLDER ACTIONS MENU
+// ============================================
+interface FolderActionsMenuProps {
+  folderId: string;
+  folderName: string;
+  onRename: (id: string, name: string) => void;
+  onExport?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}
+
+function FolderActionsMenu({
+  folderId,
+  folderName,
+  onRename,
+  onExport,
+  onDelete,
+}: FolderActionsMenuProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex items-center justify-center h-8 w-8 rounded-md text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          draggable={false}
+          aria-label="Folder actions"
+        >
+          <IconDotsVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        className="z-50 min-w-[160px] bg-popover text-popover-foreground border border-border shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRename(folderId, folderName);
+          }}
+        >
+          <IconEdit className="h-4 w-4 mr-2" />
+          Rename
+        </DropdownMenuItem>
+
+        {onExport && (
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExport(folderId);
+            }}
+          >
+            <IconDownload className="h-4 w-4 mr-2" />
+            Download All
+          </DropdownMenuItem>
+        )}
+
+        {onDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive focus:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(folderId);
+              }}
+            >
+              <IconTrash className="h-4 w-4 mr-2" />
+              Delete Folder
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 // Discover module definitions - IDs for translation keys
 interface DiscoverModule {
   id: string;
@@ -304,55 +468,16 @@ export function GhostSidebar({
               )}
             </div>
 
-            <div
-              className="flex items-center gap-0.5 shrink-0 ml-auto"
-              onClick={(e) => e.stopPropagation()}
-              onPointerDown={(e) => {
-                // Prevent parent draggable/onClick from hijacking button interactions
-                e.stopPropagation();
+            <ChatActionsMenu
+              conversationId={conv.id}
+              conversationTitle={conv.title}
+              onRename={(id, title) => {
+                setEditingChatId(id);
+                setEditingChatTitle(title);
               }}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-60 hover:opacity-100"
-                draggable={false}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditingChatId(conv.id);
-                  setEditingChatTitle(conv.title);
-                }}
-                aria-label={t('ghost.sidebar.rename', 'Rename')}
-              >
-                <IconEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-60 hover:opacity-100"
-                draggable={false}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onExportConversation(conv.id);
-                }}
-                aria-label={t('ghost.sidebar.download', 'Download')}
-              >
-                <IconDownload className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-destructive opacity-60 hover:opacity-100"
-                draggable={false}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteConversation(conv.id);
-                }}
-                aria-label={t('ghost.sidebar.delete', 'Delete')}
-              >
-                <IconTrash className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </Button>
-            </div>
+              onExport={onExportConversation}
+              onDelete={onDeleteConversation}
+            />
           </>
         )
       )}
@@ -414,58 +539,16 @@ export function GhostSidebar({
                   {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" strokeWidth={1.5} />}
                 </div>
 
-                <div
-                  className="flex items-center gap-0.5 shrink-0 ml-auto"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
+                <FolderActionsMenu
+                  folderId={folder.id}
+                  folderName={folder.name}
+                  onRename={(id, name) => {
+                    setEditingFolderId(id);
+                    setEditingFolderName(name);
                   }}
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-60 hover:opacity-100"
-                    draggable={false}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingFolderId(folder.id);
-                      setEditingFolderName(folder.name);
-                    }}
-                    aria-label={t('ghost.sidebar.rename', 'Rename')}
-                  >
-                    <IconEdit className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  </Button>
-
-                  {onExportFolder && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-60 hover:opacity-100"
-                      draggable={false}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onExportFolder(folder.id);
-                      }}
-                      aria-label={t('ghost.sidebar.downloadAll', 'Download all')}
-                    >
-                      <IconDownload className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    </Button>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive opacity-60 hover:opacity-100"
-                    draggable={false}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (onDeleteFolder) await onDeleteFolder(folder.id);
-                    }}
-                    aria-label={t('ghost.sidebar.delete', 'Delete')}
-                  >
-                    <IconTrash className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  </Button>
-                </div>
+                  onExport={onExportFolder}
+                  onDelete={onDeleteFolder ? (id) => { void onDeleteFolder(id); } : undefined}
+                />
               </>
             )
           )}
