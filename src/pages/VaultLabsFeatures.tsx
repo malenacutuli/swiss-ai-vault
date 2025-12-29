@@ -38,7 +38,6 @@ const VaultLabsFeatures = () => {
         { icon: GitBranch, text: t("vaultLabsFeatures.datasets.features.version") },
         { icon: Lock, text: t("vaultLabsFeatures.datasets.features.encryption") },
       ],
-      gradient: "from-blue-500 to-cyan-500",
     },
     {
       id: "finetuning",
@@ -52,7 +51,6 @@ const VaultLabsFeatures = () => {
         { icon: Target, text: t("vaultLabsFeatures.finetuning.features.alignment") },
         { icon: Shield, text: t("vaultLabsFeatures.finetuning.features.security") },
       ],
-      gradient: "from-purple-500 to-pink-500",
     },
     {
       id: "evaluations",
@@ -66,7 +64,6 @@ const VaultLabsFeatures = () => {
         { icon: Zap, text: t("vaultLabsFeatures.evaluations.features.byoe") },
         { icon: Eye, text: t("vaultLabsFeatures.evaluations.features.compliance") },
       ],
-      gradient: "from-orange-500 to-red-500",
     },
     {
       id: "deployment",
@@ -80,7 +77,6 @@ const VaultLabsFeatures = () => {
         { icon: HardDrive, text: t("vaultLabsFeatures.deployment.features.onprem") },
         { icon: Key, text: t("vaultLabsFeatures.deployment.features.inference") },
       ],
-      gradient: "from-green-500 to-emerald-500",
     },
   ];
 
@@ -119,7 +115,7 @@ const VaultLabsFeatures = () => {
             <div className={`grid md:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
               {/* Content */}
               <div className={index % 2 === 1 ? 'md:order-2' : ''}>
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${section.gradient} text-white text-sm font-medium mb-4`}>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium mb-4">
                   <section.icon className="h-4 w-4" />
                   {section.title}
                 </div>
@@ -135,7 +131,7 @@ const VaultLabsFeatures = () => {
                 <ul className="space-y-4">
                   {section.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-start gap-3">
-                      <div className={`p-1.5 rounded-lg bg-gradient-to-r ${section.gradient} text-white flex-shrink-0`}>
+                      <div className="p-1.5 rounded-lg bg-primary text-primary-foreground flex-shrink-0">
                         <feature.icon className="h-4 w-4" />
                       </div>
                       <span className="text-foreground">{feature.text}</span>
@@ -189,26 +185,6 @@ const VaultLabsFeatures = () => {
         </section>
       ))}
 
-      {/* CTA Section */}
-      <section className="py-24 px-4 bg-foreground">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-background mb-6">
-            {t("vaultLabsFeatures.cta.title")}
-          </h2>
-          <p className="text-xl text-muted mb-10">
-            {t("vaultLabsFeatures.cta.description")}
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" asChild>
-              <Link to="/auth">{t("vaultLabsFeatures.cta.requestAccess")}</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="border-muted text-background hover:bg-muted/20" asChild>
-              <Link to="/contact">{t("vaultLabsFeatures.cta.talkToSales")}</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
     </MarketingLayout>
   );
 };
