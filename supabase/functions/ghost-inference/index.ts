@@ -915,6 +915,32 @@ function selectAutoModel(messages: any[]): string {
 }
 
 // ============================================
+// ANONYMOUS HELPER FUNCTIONS
+// ============================================
+
+async function hashIP(ip: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(ip + (Deno.env.get('ANONYMOUS_SALT') || 'swissvault-2025'));
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getClientIP(req: Request): string | null {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+         req.headers.get('cf-connecting-ip') ||
+         req.headers.get('x-real-ip') ||
+         null;
+}
+
+function getUsageType(mode: string): string {
+  if (mode === 'image') return 'image';
+  if (mode === 'video') return 'video';
+  if (mode === 'research') return 'research';
+  return 'prompt';
+}
+
+// ============================================
 // MAIN HANDLER
 // ============================================
 
@@ -928,62 +954,132 @@ serve(async (req) => {
   const requestId = req.headers.get('X-Request-ID') || crypto.randomUUID().slice(0, 8);
   console.log(`[Ghost Inference] [${requestId}] Request started`);
   
+  // Create Supabase clients
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  
   try {
-    // 1. Verify user is authenticated
+    // ============================================
+    // AUTHENTICATION - FULL MODEL ACCESS FOR ALL
+    // ============================================
+    
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Create Supabase client with user's auth
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.log('[Ghost Inference] Auth failed:', authError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const userId = user.id;
-    console.log(`[Ghost Inference] User ${userId.slice(0, 8)}... authenticated`);
-
-    // 2. Check user usage via RPC (includes admin bypass)
-    const { data: usageCheck, error: usageError } = await supabase
-      .rpc('check_user_usage', {
-        p_user_id: userId,
-        p_usage_type: 'text',
-        p_estimated_cost_cents: 0
+    let user: any = null;
+    let userId: string | null = null;
+    let isAnonymous = false;
+    let anonymousUsageResult: any = null;
+    let usageCheck: any = null;
+    
+    // Try to authenticate if header present
+    if (authHeader) {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
       });
-
-    if (usageError) {
-      console.error('[Ghost Inference] Usage check error:', usageError);
+      
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (!authError && authUser) {
+        user = authUser;
+        userId = user.id;
+        console.log(`[Ghost Inference] User ${userId!.slice(0, 8)}... authenticated`);
+        
+        // Check user usage via RPC (includes admin bypass)
+        const { data: checkResult, error: usageError } = await supabase
+          .rpc('check_user_usage', {
+            p_user_id: userId,
+            p_usage_type: 'text',
+            p_estimated_cost_cents: 0
+          });
+        
+        if (usageError) {
+          console.error('[Ghost Inference] Usage check error:', usageError);
+        }
+        usageCheck = checkResult;
+        
+        // Only block if explicitly not allowed AND not admin
+        if (usageCheck && usageCheck.allowed === false && !usageCheck.is_admin) {
+          console.log(`[Ghost Inference] Insufficient credits - reason: ${usageCheck.reason}`);
+          return new Response(
+            JSON.stringify({ 
+              error: usageCheck.reason || 'Insufficient credits',
+              balance: usageCheck.balance || 0,
+            }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
     }
-
-    // Only block if explicitly not allowed AND not admin
-    if (usageCheck && usageCheck.allowed === false && !usageCheck.is_admin) {
-      console.log(`[Ghost Inference] Insufficient credits - reason: ${usageCheck.reason}`);
-      return new Response(
-        JSON.stringify({ 
-          error: usageCheck.reason || 'Insufficient credits',
-          balance: usageCheck.balance || 0,
-        }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    
+    // Anonymous path - FULL MODEL ACCESS with daily caps
+    if (!user) {
+      const clientIP = getClientIP(req);
+      
+      if (!clientIP) {
+        return new Response(
+          JSON.stringify({ error: 'Unable to verify request origin' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      const ipHash = await hashIP(clientIP);
+      
+      // Parse body to get mode for usage type (will parse again later, but need it here)
+      const bodyClone = req.clone();
+      let mode = 'text';
+      try {
+        const body = await bodyClone.json();
+        mode = body.mode || 'text';
+      } catch {}
+      
+      const usageType = getUsageType(mode);
+      
+      // Create service client for RPC call
+      const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Check anonymous usage limits
+      const { data: anonUsageCheck, error: usageError } = await serviceClient
+        .rpc('check_anonymous_usage', { 
+          p_ip_hash: ipHash, 
+          p_usage_type: usageType
+        });
+      
+      if (usageError) {
+        console.error('[Ghost Inference] Anonymous usage check error:', usageError);
+        return new Response(
+          JSON.stringify({ error: 'Usage check failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (!anonUsageCheck || !anonUsageCheck.allowed) {
+        return new Response(
+          JSON.stringify({ 
+            error: anonUsageCheck?.reason || 'Daily limit reached',
+            signup_required: true,
+            usage_type: usageType,
+            used: anonUsageCheck?.used,
+            limit: anonUsageCheck?.limit,
+            all_usage: anonUsageCheck?.all_usage,
+            resets_in_seconds: anonUsageCheck?.resets_in_seconds
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      isAnonymous = true;
+      anonymousUsageResult = anonUsageCheck;
+      
+      console.log(`[Ghost Inference] Anonymous request: ipHash=${ipHash.substring(0, 8)}, usageType=${usageType}`);
     }
 
     // 3. Parse request
-    const { model: requestedModel, messages, max_tokens, temperature, top_p, stream, system_prompt } = await req.json();
+    let { model: requestedModel, messages, max_tokens, temperature, top_p, stream, system_prompt } = await req.json();
+    
+    // Limit context for anonymous users (last 8 messages)
+    if (isAnonymous && messages && messages.length > 8) {
+      messages = messages.slice(-8);
+      console.log('[Ghost Inference] Anonymous: limiting messages to last 8');
+    }
     
     // Handle auto model selection
     let model = requestedModel || 'swissvault-1.0';
@@ -998,7 +1094,7 @@ serve(async (req) => {
       : messages;
     
     const provider = getProvider(model);
-    console.log('[Ghost Inference] Request:', { model, provider, stream, messageCount: messages?.length });
+    console.log('[Ghost Inference] Request:', { model, provider, stream, messageCount: messages?.length, isAnonymous });
     
     const options = { maxTokens: max_tokens, temperature, topP: top_p, stream };
     
@@ -1015,55 +1111,72 @@ serve(async (req) => {
         const inputTokens = estimateTokens(finalMessages);
         const outputTokens = Math.ceil((result.content?.length || 0) / 4);
         
-        // Log usage
-        const serviceClient = createClient(
-          supabaseUrl,
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-        );
-        
-        try {
-          if (!usageCheck?.is_admin) {
-            await serviceClient.rpc('deduct_ghost_credits', {
-              p_user_id: userId,
-              p_amount: inputTokens + outputTokens
-            });
+        // Log usage (only for authenticated users)
+        if (!isAnonymous && userId) {
+          const serviceClient = createClient(
+            supabaseUrl,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+          );
+          
+          try {
+            if (!usageCheck?.is_admin) {
+              await serviceClient.rpc('deduct_ghost_credits', {
+                p_user_id: userId,
+                p_amount: inputTokens + outputTokens
+              });
+            }
+          } catch (creditErr) {
+            console.error('[Ghost Inference] Credit deduction error:', creditErr);
           }
-        } catch (creditErr) {
-          console.error('[Ghost Inference] Credit deduction error:', creditErr);
+          
+          try {
+            await serviceClient.from('ghost_usage').insert({
+              user_id: userId,
+              model_id: model,
+              input_tokens: inputTokens,
+              output_tokens: outputTokens,
+              provider: 'modal',
+              modality: 'text',
+              generation_time_ms: result.responseTimeMs || (Date.now() - startTime),
+            });
+          } catch (usageErr) {
+            console.error('[Ghost Inference] Usage log error:', usageErr);
+          }
         }
         
-        try {
-          await serviceClient.from('ghost_usage').insert({
-            user_id: userId,
-            model_id: model,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            provider: 'modal',
-            modality: 'text',
-            generation_time_ms: result.responseTimeMs || (Date.now() - startTime),
-          });
-        } catch (usageErr) {
-          console.error('[Ghost Inference] Usage log error:', usageErr);
+        // Build response
+        const responseData: any = {
+          id: `chatcmpl-swiss-${Date.now()}`,
+          object: 'chat.completion',
+          model,
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: result.content },
+            finish_reason: 'stop',
+          }],
+          usage: result.usage || { prompt_tokens: inputTokens, completion_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
+          response_time_ms: result.responseTimeMs || (Date.now() - startTime),
+        };
+        
+        // Include usage info for anonymous users
+        if (isAnonymous && anonymousUsageResult) {
+          responseData.anonymous_usage = {
+            type: anonymousUsageResult.type,
+            used: anonymousUsageResult.used,
+            limit: anonymousUsageResult.limit,
+            remaining: anonymousUsageResult.remaining,
+            all_usage: anonymousUsageResult.all_usage,
+            resets_in_seconds: anonymousUsageResult.resets_in_seconds
+          };
         }
         
-        // Return as JSON (NOT SSE) - this is the key fix!
+        // Return as JSON (NOT SSE)
         return new Response(
-          JSON.stringify({
-            id: `chatcmpl-swiss-${Date.now()}`,
-            object: 'chat.completion',
-            model,
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: result.content },
-              finish_reason: 'stop',
-            }],
-            usage: result.usage || { prompt_tokens: inputTokens, completion_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
-            response_time_ms: result.responseTimeMs || (Date.now() - startTime),
-          }),
+          JSON.stringify(responseData),
           {
             headers: {
               ...corsHeaders,
-              'Content-Type': 'application/json', // NOT text/event-stream!
+              'Content-Type': 'application/json',
             },
           }
         );
@@ -1098,19 +1211,32 @@ serve(async (req) => {
           });
         }
         
+        const openaiResponseData: any = {
+          id: `chatcmpl-openai-${Date.now()}`,
+          object: 'chat.completion',
+          model,
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: result.content },
+            finish_reason: 'stop',
+          }],
+          usage: result.usage,
+          response_time_ms: Date.now() - startTime,
+        };
+        
+        if (isAnonymous && anonymousUsageResult) {
+          openaiResponseData.anonymous_usage = {
+            type: anonymousUsageResult.type,
+            used: anonymousUsageResult.used,
+            limit: anonymousUsageResult.limit,
+            remaining: anonymousUsageResult.remaining,
+            all_usage: anonymousUsageResult.all_usage,
+            resets_in_seconds: anonymousUsageResult.resets_in_seconds
+          };
+        }
+        
         return new Response(
-          JSON.stringify({
-            id: `chatcmpl-openai-${Date.now()}`,
-            object: 'chat.completion',
-            model,
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: result.content },
-              finish_reason: 'stop',
-            }],
-            usage: result.usage,
-            response_time_ms: Date.now() - startTime,
-          }),
+          JSON.stringify(openaiResponseData),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (error: unknown) {
@@ -1139,19 +1265,32 @@ serve(async (req) => {
           });
         }
         
+        const anthropicResponseData: any = {
+          id: `chatcmpl-anthropic-${Date.now()}`,
+          object: 'chat.completion',
+          model,
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: result.content },
+            finish_reason: 'stop',
+          }],
+          usage: result.usage,
+          response_time_ms: Date.now() - startTime,
+        };
+        
+        if (isAnonymous && anonymousUsageResult) {
+          anthropicResponseData.anonymous_usage = {
+            type: anonymousUsageResult.type,
+            used: anonymousUsageResult.used,
+            limit: anonymousUsageResult.limit,
+            remaining: anonymousUsageResult.remaining,
+            all_usage: anonymousUsageResult.all_usage,
+            resets_in_seconds: anonymousUsageResult.resets_in_seconds
+          };
+        }
+        
         return new Response(
-          JSON.stringify({
-            id: `chatcmpl-anthropic-${Date.now()}`,
-            object: 'chat.completion',
-            model,
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: result.content },
-              finish_reason: 'stop',
-            }],
-            usage: result.usage,
-            response_time_ms: Date.now() - startTime,
-          }),
+          JSON.stringify(anthropicResponseData),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (error: unknown) {
@@ -1170,19 +1309,32 @@ serve(async (req) => {
       try {
         const result = await callGoogle(model, finalMessages, options);
         
+        const googleResponseData: any = {
+          id: `chatcmpl-google-${Date.now()}`,
+          object: 'chat.completion',
+          model,
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: result.content },
+            finish_reason: 'stop',
+          }],
+          usage: result.usage,
+          response_time_ms: Date.now() - startTime,
+        };
+        
+        if (isAnonymous && anonymousUsageResult) {
+          googleResponseData.anonymous_usage = {
+            type: anonymousUsageResult.type,
+            used: anonymousUsageResult.used,
+            limit: anonymousUsageResult.limit,
+            remaining: anonymousUsageResult.remaining,
+            all_usage: anonymousUsageResult.all_usage,
+            resets_in_seconds: anonymousUsageResult.resets_in_seconds
+          };
+        }
+        
         return new Response(
-          JSON.stringify({
-            id: `chatcmpl-google-${Date.now()}`,
-            object: 'chat.completion',
-            model,
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: result.content },
-              finish_reason: 'stop',
-            }],
-            usage: result.usage,
-            response_time_ms: Date.now() - startTime,
-          }),
+          JSON.stringify(googleResponseData),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (error: unknown) {
@@ -1211,19 +1363,32 @@ serve(async (req) => {
           });
         }
         
+        const xaiResponseData: any = {
+          id: `chatcmpl-xai-${Date.now()}`,
+          object: 'chat.completion',
+          model,
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: result.content },
+            finish_reason: 'stop',
+          }],
+          usage: result.usage,
+          response_time_ms: Date.now() - startTime,
+        };
+        
+        if (isAnonymous && anonymousUsageResult) {
+          xaiResponseData.anonymous_usage = {
+            type: anonymousUsageResult.type,
+            used: anonymousUsageResult.used,
+            limit: anonymousUsageResult.limit,
+            remaining: anonymousUsageResult.remaining,
+            all_usage: anonymousUsageResult.all_usage,
+            resets_in_seconds: anonymousUsageResult.resets_in_seconds
+          };
+        }
+        
         return new Response(
-          JSON.stringify({
-            id: `chatcmpl-xai-${Date.now()}`,
-            object: 'chat.completion',
-            model,
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: result.content },
-              finish_reason: 'stop',
-            }],
-            usage: result.usage,
-            response_time_ms: Date.now() - startTime,
-          }),
+          JSON.stringify(xaiResponseData),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (error: unknown) {
@@ -1252,19 +1417,32 @@ serve(async (req) => {
           });
         }
         
+        const deepseekResponseData: any = {
+          id: `chatcmpl-deepseek-${Date.now()}`,
+          object: 'chat.completion',
+          model,
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: result.content },
+            finish_reason: 'stop',
+          }],
+          usage: result.usage,
+          response_time_ms: Date.now() - startTime,
+        };
+        
+        if (isAnonymous && anonymousUsageResult) {
+          deepseekResponseData.anonymous_usage = {
+            type: anonymousUsageResult.type,
+            used: anonymousUsageResult.used,
+            limit: anonymousUsageResult.limit,
+            remaining: anonymousUsageResult.remaining,
+            all_usage: anonymousUsageResult.all_usage,
+            resets_in_seconds: anonymousUsageResult.resets_in_seconds
+          };
+        }
+        
         return new Response(
-          JSON.stringify({
-            id: `chatcmpl-deepseek-${Date.now()}`,
-            object: 'chat.completion',
-            model,
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: result.content },
-              finish_reason: 'stop',
-            }],
-            usage: result.usage,
-            response_time_ms: Date.now() - startTime,
-          }),
+          JSON.stringify(deepseekResponseData),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (error: unknown) {
@@ -1281,19 +1459,32 @@ serve(async (req) => {
     const fallbackEndpoint = SWISS_ENDPOINTS['swissvault-fast'];
     try {
       const result = await callModal(fallbackEndpoint, finalMessages, options);
+      const fallbackResponseData: any = {
+        id: `chatcmpl-fallback-${Date.now()}`,
+        object: 'chat.completion',
+        model,
+        choices: [{
+          index: 0,
+          message: { role: 'assistant', content: result.content },
+          finish_reason: 'stop',
+        }],
+        usage: result.usage,
+        response_time_ms: result.responseTimeMs || (Date.now() - startTime),
+      };
+      
+      if (isAnonymous && anonymousUsageResult) {
+        fallbackResponseData.anonymous_usage = {
+          type: anonymousUsageResult.type,
+          used: anonymousUsageResult.used,
+          limit: anonymousUsageResult.limit,
+          remaining: anonymousUsageResult.remaining,
+          all_usage: anonymousUsageResult.all_usage,
+          resets_in_seconds: anonymousUsageResult.resets_in_seconds
+        };
+      }
+      
       return new Response(
-        JSON.stringify({
-          id: `chatcmpl-fallback-${Date.now()}`,
-          object: 'chat.completion',
-          model,
-          choices: [{
-            index: 0,
-            message: { role: 'assistant', content: result.content },
-            finish_reason: 'stop',
-          }],
-          usage: result.usage,
-          response_time_ms: result.responseTimeMs || (Date.now() - startTime),
-        }),
+        JSON.stringify(fallbackResponseData),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (error: unknown) {
