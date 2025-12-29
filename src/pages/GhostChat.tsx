@@ -1722,10 +1722,103 @@ function GhostChat() {
                 <GhostSearchView isSearching={webSearch.isSearching} />
               )
             )}
+            {mode === 'research' && (
+              messages.length > 0 ? (
+                <div className="h-full flex flex-col">
+                  {/* Research citations */}
+                  {researchSources.length > 0 && (
+                    <div className="flex-shrink-0 px-4 py-3 border-b border-border/40">
+                      <div className="max-w-3xl mx-auto">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Research Sources</p>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {researchSources.map((source, idx) => (
+                            <a
+                              key={idx}
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-shrink-0 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted text-xs text-foreground/80 hover:text-foreground transition-colors flex items-center gap-1.5"
+                            >
+                              <span className="w-4 h-4 rounded bg-swiss-sapphire/20 flex items-center justify-center text-[10px] font-medium text-swiss-sapphire">
+                                {idx + 1}
+                              </span>
+                              <span className="truncate max-w-[120px]">
+                                {new URL(source.url).hostname.replace('www.', '')}
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <ScrollArea className="flex-1">
+                    <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+                      {messages.map((msg) => (
+                        <GhostMessageComponent
+                          key={msg.id}
+                          id={msg.id}
+                          role={msg.role}
+                          content={msg.content}
+                          timestamp={msg.timestamp}
+                          isStreaming={msg.isStreaming}
+                          responseTimeMs={msg.responseTimeMs}
+                          tokenCount={msg.tokenCount}
+                          showDate={settings?.show_message_date ?? true}
+                          showExternalLinkWarning={settings?.show_external_link_warning ?? false}
+                          onEdit={handleMessageEdit}
+                          onRegenerate={handleRegenerate}
+                          onDelete={handleDeleteMessage}
+                          onFork={handleForkConversation}
+                          onShorten={handleShortenResponse}
+                          onElaborate={handleElaborateResponse}
+                          onFeedback={handleFeedback}
+                          onShare={handleShare}
+                          onReport={handleReport}
+                          onStopGeneration={handleStopGeneration}
+                        />
+                      ))}
+                      {/* Research progress */}
+                      {ghostResearch.isResearching && (
+                        <GhostThinkingIndicator
+                          status={ghostResearch.progress as any || 'Researching...'}
+                          elapsedTime={0}
+                          model="sonar-deep-research"
+                          onCancel={ghostResearch.cancelResearch}
+                        />
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </ScrollArea>
+                </div>
+              ) : (
+                <GhostTextViewEmpty>
+                  <GhostChatInput
+                    mode={mode}
+                    onModeChange={handleModeChange}
+                    selectedModel={selectedModels.text}
+                    onSelectModel={handleModelChange}
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onSubmit={handleSendMessage}
+                    onCancel={ghostResearch.cancelResearch}
+                    isStreaming={ghostResearch.isResearching}
+                    elapsedTime={0}
+                    credits={balance}
+                    enhancePrompt={false}
+                    onToggleEnhance={() => {}}
+                    onOpenSettings={() => setShowSettings(true)}
+                    onAttach={() => {}}
+                    voiceLanguage={settings?.voice_language}
+                    matureFilterEnabled={settings?.mature_filter_enabled ?? true}
+                  />
+                </GhostTextViewEmpty>
+              )
+            )}
           </div>
 
-          {/* Input Area - Only when there are messages (text mode) or for search mode */}
-          {((mode === 'text' && messages.length > 0) || mode === 'search') && (
+          {/* Input Area - Only when there are messages (text mode) or for search/research mode */}
+          {((mode === 'text' && messages.length > 0) || mode === 'search' || (mode === 'research' && messages.length > 0)) && (
             <div className="flex-shrink-0 p-4 lg:p-6">
               <div className="max-w-3xl mx-auto">
                 {/* Multi-file attachment preview */}
