@@ -78,7 +78,7 @@ function ChatActionsMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+          className="h-7 w-7 shrink-0 text-foreground/60 hover:text-foreground bg-muted/30 hover:bg-muted rounded-md"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -162,7 +162,7 @@ function FolderActionsMenu({
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 shrink-0 text-foreground/70 hover:text-foreground hover:bg-muted bg-muted/40 rounded-md"
+        className="h-7 w-7 shrink-0 text-foreground/60 hover:text-foreground bg-muted/30 hover:bg-muted rounded-md"
         onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -467,60 +467,13 @@ export function GhostSidebar({
           <>
             <span className="text-[13px] truncate flex-1">{conv.title}</span>
             
-            {/* KEBAB MENU - ALWAYS VISIBLE */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 shrink-0 text-foreground/70 hover:text-foreground hover:bg-muted bg-muted/40 rounded-md"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <IconDotsVertical className="w-4 h-4" strokeWidth={1.5} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
-                className="w-40 z-50 bg-popover border border-border shadow-lg"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <DropdownMenuItem 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setEditingChatId(conv.id); 
-                    setEditingChatTitle(conv.title); 
-                  }}
-                  className="cursor-pointer"
-                >
-                  <IconEdit className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                  {t('ghost.sidebar.rename')}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onExportConversation(conv.id); 
-                  }}
-                  className="cursor-pointer"
-                >
-                  <IconDownload className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                  {t('ghost.sidebar.download')}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onDeleteConversation(conv.id); 
-                  }}
-                  className="text-destructive focus:text-destructive cursor-pointer"
-                >
-                  <IconTrash className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
-                  {t('ghost.sidebar.delete')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ChatActionsMenu
+              conversationId={conv.id}
+              conversationTitle={conv.title}
+              onRename={(id, title) => { setEditingChatId(id); setEditingChatTitle(title); }}
+              onExport={onExportConversation}
+              onDelete={onDeleteConversation}
+            />
           </>
         )
       )}
@@ -590,7 +543,15 @@ export function GhostSidebar({
                     setEditingFolderName(name);
                   }}
                   onExport={onExportFolder}
-                  onDelete={onDeleteFolder ? (id) => { void onDeleteFolder(id); } : undefined}
+                  onDelete={onDeleteFolder ? async (id) => {
+                    try {
+                      await onDeleteFolder(id);
+                      toast.success('Folder deleted');
+                    } catch (error) {
+                      console.error('Delete folder error:', error);
+                      toast.error('Failed to delete folder');
+                    }
+                  } : undefined}
                 />
               </>
             )
