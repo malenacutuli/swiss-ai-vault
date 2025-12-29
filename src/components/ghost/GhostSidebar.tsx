@@ -452,15 +452,19 @@ export function GhostSidebar({
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 )
               : cn(
-                  'flex items-center justify-center w-10 h-10 mx-auto rounded-xl',
+                  'flex flex-col items-center justify-center gap-1 py-2 w-full rounded-lg',
                   active 
                     ? 'bg-muted text-foreground' 
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 )
           )}
         >
-          <Icon className={cn(isExpanded ? 'w-5 h-5' : 'w-5 h-5', 'shrink-0')} />
-          {isExpanded && <span className="text-[13px] truncate">{label}</span>}
+          <Icon className="w-5 h-5 shrink-0" />
+          {isExpanded ? (
+            <span className="text-[13px] truncate">{label}</span>
+          ) : (
+            <span className="text-[10px] font-medium truncate w-full text-center px-1">{label}</span>
+          )}
         </button>
       </TooltipTrigger>
       {!isExpanded && (
@@ -643,16 +647,17 @@ export function GhostSidebar({
               </div>
             </div>
           ) : (
-            // Collapsed: show single Folders/Chats icons (icon-only, Perplexity-style)
-            <div className="flex flex-col items-center gap-2 py-3">
+            // Collapsed: show Folders/Chats with text labels (Perplexity-style)
+            <div className="flex flex-col items-center gap-1 py-2">
               {folders.length > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={onToggle}
-                      className="flex items-center justify-center w-10 h-10 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                      className="flex flex-col items-center justify-center gap-1 py-2 w-full rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                     >
                       <IconFolder className="w-5 h-5" strokeWidth={1.5} />
+                      <span className="text-[10px] font-medium truncate w-full text-center px-1">{t('ghost.sidebar.folders')}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" sideOffset={8}>{t('ghost.sidebar.folders')}</TooltipContent>
@@ -662,9 +667,10 @@ export function GhostSidebar({
                 <TooltipTrigger asChild>
                   <button
                     onClick={onToggle}
-                    className="flex items-center justify-center w-10 h-10 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                    className="flex flex-col items-center justify-center gap-1 py-2 w-full rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                   >
                     <IconMessage className="w-5 h-5" strokeWidth={1.5} />
+                    <span className="text-[10px] font-medium truncate w-full text-center px-1">{t('ghost.sidebar.chats')}</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" sideOffset={8}>{t('ghost.sidebar.chats')}</TooltipContent>
@@ -684,7 +690,7 @@ export function GhostSidebar({
             </div>
           )}
           
-          <div className={cn("space-y-0.5", !isExpanded && "flex flex-col items-center gap-2")}>
+          <div className={cn("space-y-0.5", !isExpanded && "flex flex-col items-center gap-1")}>
             {visibleModules.map((module) => {
               const isActive = activeModule === module.id || location.pathname === module.route;
               const Icon = module.icon;
@@ -704,7 +710,7 @@ export function GhostSidebar({
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                             )
                           : cn(
-                              "flex items-center justify-center w-10 h-10 rounded-xl",
+                              "flex flex-col items-center justify-center gap-1 py-2 w-full rounded-lg",
                               isActive
                                 ? "bg-primary/15 text-primary"
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -712,7 +718,7 @@ export function GhostSidebar({
                       )}
                     >
                       <Icon className="w-5 h-5 shrink-0" />
-                      {isExpanded && (
+                      {isExpanded ? (
                         <>
                           <span className="truncate flex-1 text-left text-[13px]">{t(module.nameKey)}</span>
                           {module.isPro && (
@@ -721,6 +727,8 @@ export function GhostSidebar({
                             </span>
                           )}
                         </>
+                      ) : (
+                        <span className="text-[10px] font-medium truncate w-full text-center px-1">{t(module.nameKey)}</span>
                       )}
                     </button>
                   </TooltipTrigger>
@@ -747,11 +755,15 @@ export function GhostSidebar({
                         "transition-all",
                         isExpanded 
                           ? "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          : "flex items-center justify-center w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          : "flex flex-col items-center justify-center gap-1 py-2 w-full rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       )}
                     >
                       <IconDotsVertical className="w-5 h-5 shrink-0" strokeWidth={1.5} />
-                      {isExpanded && <span className="text-[13px]">{t('ghost.sidebar.more')}</span>}
+                      {isExpanded ? (
+                        <span className="text-[13px]">{t('ghost.sidebar.more')}</span>
+                      ) : (
+                        <span className="text-[10px] font-medium">{t('ghost.sidebar.more')}</span>
+                      )}
                     </button>
                   </TooltipTrigger>
                   {!isExpanded && (
