@@ -443,13 +443,23 @@ export function GhostSidebar({
         <button
           onClick={onClick}
           className={cn(
-            'flex items-center gap-3 w-full px-2 py-2 rounded-lg transition-colors duration-150',
-            active 
-              ? 'bg-muted text-foreground' 
-              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+            'transition-colors duration-150',
+            isExpanded 
+              ? cn(
+                  'flex items-center gap-3 w-full px-2 py-2 rounded-lg',
+                  active 
+                    ? 'bg-muted text-foreground' 
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                )
+              : cn(
+                  'flex items-center justify-center w-10 h-10 mx-auto rounded-xl',
+                  active 
+                    ? 'bg-muted text-foreground' 
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                )
           )}
         >
-          <Icon className="w-5 h-5 shrink-0" />
+          <Icon className={cn(isExpanded ? 'w-5 h-5' : 'w-5 h-5', 'shrink-0')} />
           {isExpanded && <span className="text-[13px] truncate">{label}</span>}
         </button>
       </TooltipTrigger>
@@ -518,7 +528,7 @@ export function GhostSidebar({
         </div>
 
         {/* Top navigation */}
-        <div className="flex flex-col gap-1 p-2">
+        <div className={cn("flex flex-col p-2", isExpanded ? "gap-1" : "gap-2 items-center")}>
           {/* New Chat with dropdown */}
           {isExpanded ? (
             <DropdownMenu>
@@ -633,33 +643,31 @@ export function GhostSidebar({
               </div>
             </div>
           ) : (
-            // Collapsed: show single Folders/Chats icons
-            <div className="flex flex-col items-center gap-1 py-2">
+            // Collapsed: show single Folders/Chats icons (icon-only, Perplexity-style)
+            <div className="flex flex-col items-center gap-2 py-3">
               {folders.length > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={onToggle}
-                      className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                      className="flex items-center justify-center w-10 h-10 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                     >
                       <IconFolder className="w-5 h-5" strokeWidth={1.5} />
-                      <span className="text-[10px] font-medium">{t('ghost.sidebar.folders')}</span>
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">{t('ghost.sidebar.viewFolders')}</TooltipContent>
+                  <TooltipContent side="right" sideOffset={8}>{t('ghost.sidebar.folders')}</TooltipContent>
                 </Tooltip>
               )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={onToggle}
-                    className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-10 h-10 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                   >
                     <IconMessage className="w-5 h-5" strokeWidth={1.5} />
-                    <span className="text-[10px] font-medium truncate max-w-full">{t('ghost.sidebar.chats')}</span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">{t('ghost.sidebar.viewChats')}</TooltipContent>
+                <TooltipContent side="right" sideOffset={8}>{t('ghost.sidebar.chats')}</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -676,7 +684,7 @@ export function GhostSidebar({
             </div>
           )}
           
-          <div className={cn("space-y-0.5", !isExpanded && "flex flex-col items-center")}>
+          <div className={cn("space-y-0.5", !isExpanded && "flex flex-col items-center gap-2")}>
             {visibleModules.map((module) => {
               const isActive = activeModule === module.id || location.pathname === module.route;
               const Icon = module.icon;
@@ -687,16 +695,16 @@ export function GhostSidebar({
                     <button
                       onClick={() => navigate(module.route)}
                       className={cn(
-                        "w-full transition-all",
+                        "transition-all",
                         isExpanded
                           ? cn(
-                              "flex items-center gap-3 px-2 py-2 rounded-lg text-sm",
+                              "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm",
                               isActive
                                 ? "bg-primary/15 text-primary font-medium"
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                             )
                           : cn(
-                              "flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg",
+                              "flex items-center justify-center w-10 h-10 rounded-xl",
                               isActive
                                 ? "bg-primary/15 text-primary"
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -704,7 +712,7 @@ export function GhostSidebar({
                       )}
                     >
                       <Icon className="w-5 h-5 shrink-0" />
-                      {isExpanded ? (
+                      {isExpanded && (
                         <>
                           <span className="truncate flex-1 text-left text-[13px]">{t(module.nameKey)}</span>
                           {module.isPro && (
@@ -713,8 +721,6 @@ export function GhostSidebar({
                             </span>
                           )}
                         </>
-                      ) : (
-                        <span className="text-[10px] font-medium truncate max-w-full">{t(module.nameKey)}</span>
                       )}
                     </button>
                   </TooltipTrigger>
@@ -733,13 +739,25 @@ export function GhostSidebar({
             {/* More Menu */}
             {hiddenModules.length > 0 && (
               <div className="relative">
-                <button
-                  onClick={() => setShowMoreMenu(!showMoreMenu)}
-                  className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-                >
-                  <IconDotsVertical className="w-4 h-4 shrink-0" strokeWidth={1.5} />
-                  {isExpanded && <span className="text-[13px]">{t('ghost.sidebar.more')}</span>}
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setShowMoreMenu(!showMoreMenu)}
+                      className={cn(
+                        "transition-all",
+                        isExpanded 
+                          ? "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          : "flex items-center justify-center w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <IconDotsVertical className="w-5 h-5 shrink-0" strokeWidth={1.5} />
+                      {isExpanded && <span className="text-[13px]">{t('ghost.sidebar.more')}</span>}
+                    </button>
+                  </TooltipTrigger>
+                  {!isExpanded && (
+                    <TooltipContent side="right" sideOffset={8}>{t('ghost.sidebar.more')}</TooltipContent>
+                  )}
+                </Tooltip>
                 
                 {showMoreMenu && isExpanded && (
                   <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-lg shadow-lg p-1 z-50">
@@ -785,7 +803,7 @@ export function GhostSidebar({
         </div>
 
         {/* Bottom navigation */}
-        <div className="flex flex-col gap-1 p-2 border-t border-border/60">
+        <div className={cn("flex flex-col p-2 border-t border-border/60", isExpanded ? "gap-1" : "gap-2 items-center")}>
           <IconButton 
             icon={IconPhoto} 
             label={t('ghost.sidebar.library')} 
