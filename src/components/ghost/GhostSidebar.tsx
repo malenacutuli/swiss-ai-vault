@@ -1,4 +1,4 @@
-// GhostSidebar v2 - Tabler Icons
+// GhostSidebar v2 - Centralized Icons
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -98,152 +98,153 @@ interface GhostSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   conversations: GhostConversation[];
-  folders: GhostFolder[];
   selectedConversation: string | null;
   onSelectConversation: (id: string) => void;
   onNewChat: (isTemporary?: boolean) => void;
   onDeleteConversation: (id: string) => void;
+  onRenameConversation: (id: string, title: string) => void;
   onExportConversation: (id: string) => void;
-  onRenameConversation?: (id: string, title: string) => void;
-  onMoveToFolder?: (convId: string, folderId: string | null) => void;
-  onCreateFolder: () => void;
-  onRenameFolder?: (id: string, name: string) => Promise<boolean>;
-  onDeleteFolder?: (id: string) => Promise<boolean>;
-  onExportFolder?: (id: string) => void;
+  onOpenSettings: () => void;
+  activeModule?: string;
   userName?: string;
   userCredits?: number;
   isPro?: boolean;
-  onOpenSettings: () => void;
-  activeModule?: 'chat' | 'finance' | 'legal' | 'patents' | 'research';
+  // Folder support
+  folders?: GhostFolder[];
+  onCreateFolder?: () => void;
+  onDeleteFolder?: (id: string) => Promise<boolean | void>;
+  onRenameFolder?: (id: string, name: string) => void;
+  onMoveToFolder?: (conversationId: string, folderId: string | null) => void;
+  onExportFolder?: (folderId: string) => void;
 }
 
 export function GhostSidebar({
   isOpen,
   onToggle,
   conversations,
-  folders,
   selectedConversation,
   onSelectConversation,
   onNewChat,
   onDeleteConversation,
-  onExportConversation,
   onRenameConversation,
-  onMoveToFolder,
-  onCreateFolder,
-  onRenameFolder,
-  onDeleteFolder,
-  onExportFolder,
-  userName = 'User',
-  userCredits = 0,
-  isPro = false,
+  onExportConversation,
   onOpenSettings,
-  activeModule = 'chat',
+  activeModule,
+  folders = [],
+  onCreateFolder,
+  onDeleteFolder,
+  onRenameFolder,
+  onMoveToFolder,
+  onExportFolder,
 }: GhostSidebarProps) {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [isHovered, setIsHovered] = useState(false);
-
-  // Drag + drop
-  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
-  const [isDraggingChat, setIsDraggingChat] = useState(false);
-
-  // Editing states
-  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-  const [editingFolderName, setEditingFolderName] = useState('');
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingChatTitle, setEditingChatTitle] = useState('');
-
-  // Discover modules state
-  const [enabledModules, setEnabledModules] = useState<string[]>(DEFAULT_ENABLED_MODULES);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState('');
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
-
-  // Load enabled modules from localStorage
-  useEffect(() => {
+  const [enabledModules, setEnabledModules] = useState<string[]>(() => {
     const saved = localStorage.getItem('ghost-discover-modules');
-    if (saved) {
-      try {
-        setEnabledModules(JSON.parse(saved));
-      } catch {}
-    }
-  }, []);
+    return saved ? JSON.parse(saved) : DEFAULT_ENABLED_MODULES;
+  });
+  
+  // Drag and drop state
+  const [isDraggingChat, setIsDraggingChat] = useState(false);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
-  const visibleModules = ALL_DISCOVER_MODULES.filter(m => enabledModules.includes(m.id));
-  const hiddenModules = ALL_DISCOVER_MODULES.filter(m => !enabledModules.includes(m.id));
-
-  // Expanded state = sidebar open OR hovered
   const isExpanded = isOpen || isHovered;
 
-  const filteredConversations = conversations.filter(c =>
-    c.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Compute visible and hidden modules based on enabled state
+  const { visibleModules, hiddenModules } = useMemo(() => {
+    const visible = ALL_DISCOVER_MODULES.filter(m => enabledModules.includes(m.id));
+    const hidden = ALL_DISCOVER_MODULES.filter(m => !enabledModules.includes(m.id));
+    return { visibleModules: visible, hiddenModules: hidden };
+  }, [enabledModules]);
 
+  // Filtered conversations
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery) return conversations;
+    const query = searchQuery.toLowerCase();
+    return conversations.filter(c => c.title.toLowerCase().includes(query));
+  }, [conversations, searchQuery]);
+
+  // Group conversations by folder
   const { folderedChats, unfolderedChats } = useMemo(() => {
     const foldered: Record<string, GhostConversation[]> = {};
     const unfoldered: GhostConversation[] = [];
-
-    for (const conv of filteredConversations) {
-      if (conv.folderId) {
-        if (!foldered[conv.folderId]) foldered[conv.folderId] = [];
+    
+    folders.forEach(f => { foldered[f.id] = []; });
+    
+    filteredConversations.forEach(conv => {
+      if (conv.folderId && foldered[conv.folderId]) {
         foldered[conv.folderId].push(conv);
       } else {
         unfoldered.push(conv);
       }
-    }
-
+    });
+    
     return { folderedChats: foldered, unfolderedChats: unfoldered };
-  }, [filteredConversations]);
+  }, [filteredConversations, folders]);
 
   const toggleFolderExpanded = (folderId: string) => {
     setExpandedFolders(prev => {
       const next = new Set(prev);
-      if (next.has(folderId)) next.delete(folderId);
-      else next.add(folderId);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
       return next;
     });
   };
 
-  const handleSaveFolderName = async (folderId: string) => {
-    if (onRenameFolder && editingFolderName.trim()) {
-      await onRenameFolder(folderId, editingFolderName.trim());
-    }
-    setEditingFolderId(null);
-  };
-
-  const handleSaveChatTitle = (chatId: string) => {
-    if (onRenameConversation && editingChatTitle.trim()) {
-      onRenameConversation(chatId, editingChatTitle.trim());
-      toast.success(t('ghost.sidebar.chatRenamed'));
+  const handleSaveChatTitle = (id: string) => {
+    if (editingChatTitle.trim()) {
+      onRenameConversation(id, editingChatTitle.trim());
     }
     setEditingChatId(null);
+  };
+
+  const handleSaveFolderName = (id: string) => {
+    if (editingFolderName.trim() && onRenameFolder) {
+      onRenameFolder(id, editingFolderName.trim());
+    }
+    setEditingFolderId(null);
   };
 
   const handleMoveToFolder = (convId: string, folderId: string | null) => {
     if (onMoveToFolder) {
       onMoveToFolder(convId, folderId);
-      const folderName = folderId 
-        ? folders.find(f => f.id === folderId)?.name || 'folder'
-        : t('ghost.sidebar.chats');
-      toast.success(`${t('ghost.sidebar.movedTo')} ${folderName}`);
+      toast.success(folderId ? t('ghost.sidebar.movedToFolder') : t('ghost.sidebar.movedToChats'));
     }
   };
 
+  // Chat item drag handlers
+  const handleChatDragStart = (e: React.DragEvent, convId: string) => {
+    e.dataTransfer.setData('application/x-ghost-conversation-id', convId);
+    e.dataTransfer.effectAllowed = 'move';
+    setIsDraggingChat(true);
+  };
+
+  const handleChatDragEnd = () => {
+    setIsDraggingChat(false);
+    setDragOverFolderId(null);
+  };
+
+  // Render individual chat item
   const renderChatItem = (conv: GhostConversation, isNested = false) => (
     <div
       key={conv.id}
-      draggable={isExpanded}
-      onDragStart={(e) => {
-        setIsDraggingChat(true);
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('application/x-ghost-conversation-id', conv.id);
-      }}
-      onDragEnd={() => {
-        setIsDraggingChat(false);
-        setDragOverFolderId(null);
-      }}
+      draggable={!!onMoveToFolder}
+      onDragStart={(e) => handleChatDragStart(e, conv.id)}
+      onDragEnd={handleChatDragEnd}
       onClick={() => onSelectConversation(conv.id)}
       className={cn(
         'group/chat flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors duration-150',
@@ -255,9 +256,9 @@ export function GhostSidebar({
       )}
     >
       {conv.isTemporary ? (
-        <IconClock className="w-4 h-4 text-warning shrink-0" stroke={1.5} />
+        <IconClock className="w-4 h-4 text-warning shrink-0" strokeWidth={1.5} />
       ) : (
-        <IconMessage className="w-4 h-4 shrink-0" stroke={1.5} />
+        <IconMessage className="w-4 h-4 shrink-0" strokeWidth={1.5} />
       )}
       
       {isExpanded && (
@@ -280,7 +281,7 @@ export function GhostSidebar({
               className="h-6 w-6 shrink-0"
               onClick={(e) => { e.stopPropagation(); handleSaveChatTitle(conv.id); }}
             >
-              <IconCheck className="w-3.5 h-3.5" stroke={1.5} />
+              <IconCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
             </Button>
             <Button
               size="icon"
@@ -288,7 +289,7 @@ export function GhostSidebar({
               className="h-6 w-6 shrink-0"
               onClick={(e) => { e.stopPropagation(); setEditingChatId(null); }}
             >
-              <IconX className="w-3.5 h-3.5" stroke={1.5} />
+              <IconX className="w-3.5 h-3.5" strokeWidth={1.5} />
             </Button>
           </div>
         ) : (
@@ -301,16 +302,16 @@ export function GhostSidebar({
                   size="icon"
                   className="h-6 w-6 shrink-0 opacity-0 group-hover/chat:opacity-100 transition-opacity duration-150"
                 >
-                  <IconDotsVertical className="w-3.5 h-3.5" stroke={1.5} />
+                  <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem onClick={() => { setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}>
-                  <IconEdit className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                  <IconEdit className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                   {t('ghost.sidebar.rename')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onExportConversation(conv.id)}>
-                  <IconDownload className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                  <IconDownload className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                   {t('ghost.sidebar.download')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -318,7 +319,7 @@ export function GhostSidebar({
                   onClick={() => onDeleteConversation(conv.id)}
                   className="text-destructive focus:text-destructive"
                 >
-                  <IconTrash className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                  <IconTrash className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                   {t('ghost.sidebar.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -355,7 +356,7 @@ export function GhostSidebar({
             }
           }}
         >
-          <IconFolder className="w-4 h-4 shrink-0" stroke={1.5} style={{ color: folder.color || 'currentColor' }} />
+          <IconFolder className="w-4 h-4 shrink-0" strokeWidth={1.5} style={{ color: folder.color || 'currentColor' }} />
           
           {isExpanded && (
             editingFolderId === folder.id ? (
@@ -371,16 +372,16 @@ export function GhostSidebar({
                   className="h-6 text-xs px-2 flex-1"
                 />
                 <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => handleSaveFolderName(folder.id)}>
-                  <IconCheck className="w-3.5 h-3.5" stroke={1.5} />
+                  <IconCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </Button>
                 <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setEditingFolderId(null)}>
-                  <IconX className="w-3.5 h-3.5" stroke={1.5} />
+                  <IconX className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </Button>
               </div>
             ) : (
               <>
                 <span className="text-[13px] truncate flex-1">{folder.name}</span>
-                {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" stroke={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" stroke={1.5} />}
+                {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" strokeWidth={1.5} />}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
                     <Button
@@ -388,17 +389,17 @@ export function GhostSidebar({
                       size="icon"
                       className="h-6 w-6 shrink-0 opacity-0 group-hover/folder:opacity-100 transition-opacity duration-150"
                     >
-                    <IconDotsVertical className="w-3.5 h-3.5" stroke={1.5} />
+                    <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
                   <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
-                    <IconEdit className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                    <IconEdit className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                     {t('ghost.sidebar.rename')}
                   </DropdownMenuItem>
                   {onExportFolder && (
                     <DropdownMenuItem onClick={() => onExportFolder(folder.id)}>
-                      <IconDownload className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                      <IconDownload className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                       {t('ghost.sidebar.downloadAll')}
                     </DropdownMenuItem>
                   )}
@@ -407,7 +408,7 @@ export function GhostSidebar({
                     onClick={async () => { if (onDeleteFolder) await onDeleteFolder(folder.id); }}
                     className="text-destructive focus:text-destructive"
                   >
-                    <IconTrash className="w-3.5 h-3.5 mr-2" stroke={1.5} />
+                    <IconTrash className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                       {t('ghost.sidebar.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -487,7 +488,7 @@ export function GhostSidebar({
                     className="h-7 w-7 shrink-0"
                     onClick={onToggle}
                   >
-                    <IconLayoutSidebarLeftCollapse className="w-4 h-4" stroke={1.5} />
+                    <IconLayoutSidebarLeftCollapse className="w-4 h-4" strokeWidth={1.5} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">{t('ghost.sidebar.collapseSidebar')}</TooltipContent>
@@ -502,7 +503,7 @@ export function GhostSidebar({
                   className="h-8 w-8 mx-auto"
                   onClick={onToggle}
                 >
-                  <IconLayoutSidebar className="w-4 h-4" stroke={1.5} />
+                  <IconLayoutSidebar className="w-4 h-4" strokeWidth={1.5} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">{t('ghost.sidebar.expandSidebar')}</TooltipContent>
@@ -536,7 +537,7 @@ export function GhostSidebar({
           {/* Search - only when expanded */}
           {isExpanded && (
             <div className="relative mt-2">
-              <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" stroke={1.5} />
+              <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
               <Input
                 type="text"
                 placeholder={t('ghost.sidebar.searchPlaceholder')}
@@ -563,7 +564,7 @@ export function GhostSidebar({
                       className="h-5 w-5 hover:bg-muted"
                       onClick={onCreateFolder}
                     >
-                      <IconFolderPlus className="w-3 h-3" stroke={1.5} />
+                      <IconFolderPlus className="w-3 h-3" strokeWidth={1.5} />
                     </Button>
                   </div>
                   {folders.map(folder => renderFolderItem(folder))}
@@ -581,7 +582,7 @@ export function GhostSidebar({
                       className="h-5 w-5 hover:bg-muted"
                       onClick={onCreateFolder}
                     >
-                      <IconFolderPlus className="w-3 h-3" stroke={1.5} />
+                      <IconFolderPlus className="w-3 h-3" strokeWidth={1.5} />
                     </Button>
                   )}
                 </div>
@@ -604,7 +605,7 @@ export function GhostSidebar({
                       onClick={onToggle}
                       className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                     >
-                      <IconFolder className="w-5 h-5" stroke={1.5} />
+                      <IconFolder className="w-5 h-5" strokeWidth={1.5} />
                       <span className="text-[10px] font-medium">{t('ghost.sidebar.folders')}</span>
                     </button>
                   </TooltipTrigger>
@@ -617,7 +618,7 @@ export function GhostSidebar({
                     onClick={onToggle}
                     className="flex flex-col items-center justify-center gap-1 w-full py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                   >
-                    <IconMessage className="w-5 h-5" stroke={1.5} />
+                    <IconMessage className="w-5 h-5" strokeWidth={1.5} />
                     <span className="text-[10px] font-medium">{t('ghost.sidebar.chats')}</span>
                   </button>
                 </TooltipTrigger>
@@ -632,7 +633,7 @@ export function GhostSidebar({
           {isExpanded && (
             <div className="flex items-center justify-between px-2 py-1 mb-1">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                <IconCompass className="w-3 h-3" stroke={1.5} />
+                <IconCompass className="w-3 h-3" strokeWidth={1.5} />
                 {t('ghost.sidebar.discover')}
               </span>
             </div>
@@ -699,7 +700,7 @@ export function GhostSidebar({
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
                   className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                 >
-                  <IconDotsVertical className="w-4 h-4 shrink-0" stroke={1.5} />
+                  <IconDotsVertical className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                   {isExpanded && <span className="text-[13px]">{t('ghost.sidebar.more')}</span>}
                 </button>
                 
@@ -735,7 +736,7 @@ export function GhostSidebar({
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded"
                       >
-                        <IconSettings className="w-4 h-4 shrink-0" stroke={1.5} />
+                        <IconSettings className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                         <span>{t('ghost.sidebar.customizeSidebar')}</span>
                       </button>
                     </div>
@@ -780,7 +781,7 @@ export function GhostSidebar({
           className="fixed top-4 left-4 z-40 lg:hidden bg-background/80 border border-border/60"
           onClick={onToggle}
         >
-          <IconMenu2 className="w-5 h-5" stroke={1.5} />
+          <IconMenu2 className="w-5 h-5" strokeWidth={1.5} />
         </Button>
       )}
     </TooltipProvider>
