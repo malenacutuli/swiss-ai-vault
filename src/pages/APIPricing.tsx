@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronUp, Shield, Zap, Eye, Brain, Code, Globe, Lock } from "lucide-react";
+import { ChevronDown, ChevronUp, Shield, Zap, Eye, Brain, Code, Globe, Lock } from "@/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

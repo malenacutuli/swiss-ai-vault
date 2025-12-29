@@ -1,4 +1,4 @@
-import { Database, Cpu, BarChart3, Lock, Zap, Code2 } from "lucide-react";
+import { Database, Cpu, BarChart3, Lock, Zap, Code2 } from "@/icons";
 import { useTranslation } from "react-i18next";
 
 export const FeaturesSection = () => {

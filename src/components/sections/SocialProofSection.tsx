@@ -1,4 +1,4 @@
-import { Quote } from "lucide-react";
+import { Quote } from "@/icons";
 import { useTranslation } from "react-i18next";
 
 export const SocialProofSection = () => {
@@ -22,7 +22,7 @@ export const SocialProofSection = () => {
       
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-3xl font-normal tracking-[-0.045em] leading-[1.07] mb-4 text-foreground">
             {t('home.socialProof.title')}
           </h2>
         </div>
@@ -44,7 +44,7 @@ export const SocialProofSection = () => {
 
         {/* Testimonial */}
         <div className="max-w-3xl mx-auto">
-          <div className="relative p-8 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+          <div className="relative p-8 rounded-2xl bg-card border border-border/60">
             <Quote className="absolute top-6 left-6 h-8 w-8 text-primary/20" />
             <blockquote className="text-lg sm:text-xl italic text-center mb-6 pt-4">
               "{t('home.socialProof.testimonial')}"

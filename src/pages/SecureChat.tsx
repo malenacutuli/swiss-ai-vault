@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Settings, MoreVertical, Trash2, Send, Shield } from 'lucide-react';
+import { Plus, Settings, MoreVertical, Trash2, Send, Shield } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';

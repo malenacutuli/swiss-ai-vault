@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { SimpleSidebar } from "@/components/layout/SimpleSidebar";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X } from "@/icons";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { GhostModeToggle } from "@/components/ghost/GhostModeToggle";
 import { cn } from "@/lib/utils";

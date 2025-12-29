@@ -1,4 +1,4 @@
-import { FileCheck, Code2, Building2, ArrowRight } from "lucide-react";
+import { FileCheck, Code2, Building2, ArrowRight } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { DemoRequestModal } from "@/components/DemoRequestModal";
@@ -42,7 +42,7 @@ export const SolutionsSection = () => {
       <section id="solutions" className="py-24 relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            <h2 className="text-3xl sm:text-4xl font-normal tracking-[-0.045em] leading-[1.07] mb-4 text-foreground">
               {t('home.solutions.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
@@ -54,7 +54,7 @@ export const SolutionsSection = () => {
             {solutions.map((solution) => (
               <div
                 key={solution.titleKey}
-                className="group p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm hover:bg-card/80 hover:border-primary/30 transition-all duration-300"
+                className="group p-6 rounded-2xl bg-card border border-border/60 hover:bg-card/80 hover:border-primary/30 transition-all duration-300"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <solution.icon className="h-6 w-6 text-primary" />

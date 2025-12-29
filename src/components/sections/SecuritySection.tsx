@@ -1,4 +1,4 @@
-import { Lock, Shield, Server, FileCheck, Download, MessageSquare } from "lucide-react";
+import { Lock, Shield, Server, FileCheck, Download, MessageSquare } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { useState } from "react";

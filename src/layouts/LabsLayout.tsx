@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
 import { LabsSidebar } from "@/components/layout/LabsSidebar";
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/icons";
 
 const routeLabels: Record<string, string> = {
   "/labs": "Vault Labs",

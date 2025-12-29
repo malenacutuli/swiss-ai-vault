@@ -448,16 +448,17 @@
 .marketing h1 {
   font-family: "Playfair Display", serif;
   font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 1.03;
-  color: hsl(210 20% 20%);
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+  color: hsl(var(--foreground));
 }
 
 .marketing h2 {
   font-family: "Playfair Display", serif;
   font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  letter-spacing: -0.045em;
+  line-height: 1.07;
+  color: hsl(var(--foreground));
 }
 
 .marketing p {

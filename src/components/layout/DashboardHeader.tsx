@@ -16,7 +16,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Search, Bell, Sun, Moon, CheckCircle, XCircle, AlertCircle, Info } from "lucide-react";
+import { Search, Bell, Sun, Moon, CheckCircle, XCircle, AlertCircle, Info } from "@/icons";
 import { useState } from "react";
 import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from "@/hooks/useNotifications";
 import { formatDistanceToNow, parseISO } from "date-fns";

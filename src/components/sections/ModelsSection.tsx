@@ -1,4 +1,4 @@
-import { Cloud } from "lucide-react";
+import { Cloud } from "@/icons";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { useTranslation } from "react-i18next";
 
@@ -30,7 +30,7 @@ export const ModelsSection = () => {
     <section id="models" className="py-24 relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl font-normal tracking-[-0.045em] leading-[1.07] mb-4 text-foreground">
             {t('home.models.title')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
@@ -39,7 +39,7 @@ export const ModelsSection = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
-          <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+          <div className="p-6 rounded-2xl bg-card border border-border/60">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
                 <Cloud className="h-5 w-5 text-info" />
@@ -59,7 +59,7 @@ export const ModelsSection = () => {
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+          <div className="p-6 rounded-2xl bg-card border border-border/60">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <SwissFlag className="h-5 w-5" />

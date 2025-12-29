@@ -23,7 +23,7 @@ import {
   FileJson,
   FileCode,
   Zap
-} from 'lucide-react';
+} from '@/icons';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

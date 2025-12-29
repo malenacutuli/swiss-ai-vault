@@ -15,7 +15,7 @@ import {
   Cpu,
   Wifi,
   WifiOff
-} from "lucide-react";
+} from "@/icons";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
