@@ -17,9 +17,8 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Components
 import { GhostSidebar, type GhostConversation } from '@/components/ghost/GhostSidebar';
-import { GhostModeTabs, type GhostMode } from '@/components/ghost/GhostModeTabs';
 import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
-import { GhostChatInput } from '@/components/ghost/GhostChatInput';
+import { GhostChatInput, type GhostMode } from '@/components/ghost/GhostChatInput';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
 import { GhostTextView, GhostTextViewEmpty, GhostImageView, GhostVideoView, GhostSearchView } from '@/components/ghost/views';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
@@ -1574,6 +1573,7 @@ function GhostChat() {
               )}
               <GhostChatInput
                 mode={mode}
+                onModeChange={handleModeChange}
                 selectedModel={selectedModels[mode]}
                 onSelectModel={handleModelChange}
                 value={inputValue}
@@ -1783,6 +1783,7 @@ function GhostChat() {
                 )}
                 <GhostChatInput
                   mode={mode}
+                  onModeChange={handleModeChange}
                   selectedModel={selectedModels[mode]}
                   onSelectModel={handleModelChange}
                   value={inputValue}
