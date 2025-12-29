@@ -306,12 +306,12 @@ export function GhostSidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 shrink-0 opacity-100 md:opacity-0 md:group-hover/chat:opacity-100 transition-opacity duration-150"
+                  className="h-6 w-6 shrink-0 opacity-100 transition-opacity duration-150"
                 >
                   <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuContent align="end" className="w-40 z-50 bg-popover text-popover-foreground border border-border shadow-md">
                 <DropdownMenuItem onClick={() => { setEditingChatId(conv.id); setEditingChatTitle(conv.title); }}>
                   <IconEdit className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                   {t('ghost.sidebar.rename')}
@@ -393,12 +393,12 @@ export function GhostSidebar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 shrink-0 opacity-100 md:opacity-0 md:group-hover/folder:opacity-100 transition-opacity duration-150"
+                      className="h-6 w-6 shrink-0 opacity-100 transition-opacity duration-150"
                     >
                     <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuContent align="end" className="w-40 z-50 bg-popover text-popover-foreground border border-border shadow-md">
                   <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
                     <IconEdit className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} />
                     {t('ghost.sidebar.rename')}
