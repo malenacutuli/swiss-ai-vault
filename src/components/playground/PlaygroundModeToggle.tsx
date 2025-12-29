@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { MessageSquare, Code } from "lucide-react";
+import { MessageSquare, Code } from "@/icons";
 
 interface PlaygroundModeToggleProps {
   mode: "chat" | "code";

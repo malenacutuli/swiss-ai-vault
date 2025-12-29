@@ -26,7 +26,7 @@ import {
   Calendar,
   Hash,
   Layers,
-} from "lucide-react";
+} from "@/icons";
 
 interface Model {
   id: string;

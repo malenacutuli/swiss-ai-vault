@@ -25,7 +25,7 @@ import {
   Trash2,
   Download,
   HardDrive
-} from 'lucide-react';
+} from '@/icons';
 import { LibraryGrid } from '@/components/ghost/library/LibraryGrid';
 import { LibraryLightbox } from '@/components/ghost/library/LibraryLightbox';
 import { FolderSidebar } from '@/components/ghost/library/FolderSidebar';

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check, Lock, Sparkles } from "lucide-react";
+import { Check, Lock, Sparkles } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

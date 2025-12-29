@@ -3,7 +3,7 @@ import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bell, BellRing, Check } from "lucide-react";
+import { Bell, BellRing, Check } from "@/icons";
 import { useState } from "react";
 import {
   useNotifications,

@@ -52,7 +52,7 @@ import {
   Mail,
   Clock,
   X,
-} from "lucide-react";
+} from "@/icons";
 import {
   useCurrentOrganization,
   useOrganizationMembers,

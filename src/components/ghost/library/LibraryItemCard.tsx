@@ -10,7 +10,7 @@ import {
   Play,
   Image as ImageIcon,
   Video
-} from 'lucide-react';
+} from '@/icons';
 import { formatDistanceToNow } from 'date-fns';
 
 interface LibraryItemCardProps {

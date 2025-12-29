@@ -42,7 +42,7 @@ import {
   MoreVertical,
   Trash2,
   AlertCircle,
-} from "lucide-react";
+} from "@/icons";
 import { useProjects, useCreateProject, useDeleteProject } from "@/hooks/useSupabase";
 import type { ProjectStatus } from "@/types/database";
 

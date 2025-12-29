@@ -60,7 +60,7 @@ import {
   Download,
   Building2,
   Shield,
-} from "lucide-react";
+} from "@/icons";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/hooks/useSupabase";

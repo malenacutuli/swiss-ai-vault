@@ -38,7 +38,7 @@ import {
   Shield,
   AlertTriangle,
   CheckCircle,
-} from "lucide-react";
+} from "@/icons";
 
 // Provider brand colors
 const PROVIDER_COLORS: Record<string, { bg: string; text: string; border: string }> = {

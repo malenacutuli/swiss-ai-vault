@@ -17,7 +17,7 @@ import {
   TEMPLATE_LANGUAGES, 
   TEMPLATE_DOMAINS 
 } from "@/hooks/useFinetuningTemplates";
-import { Filter, X, LayoutTemplate } from "lucide-react";
+import { Filter, X, LayoutTemplate } from "@/icons";
 
 const Templates = () => {
   const { t } = useTranslation();

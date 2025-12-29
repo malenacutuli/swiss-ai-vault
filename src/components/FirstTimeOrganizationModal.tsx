@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Upload, Building2, Loader2, Check, X, User } from 'lucide-react';
+import { Upload, Building2, Loader2, Check, X, User } from '@/icons';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 

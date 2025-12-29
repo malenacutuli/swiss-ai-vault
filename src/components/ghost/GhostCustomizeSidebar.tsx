@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Compass, TrendingUp, Scale, Lightbulb, BookOpen, 
   Shield, Plane, Activity, Home, Palette, Users, LucideIcon
-} from 'lucide-react';
+} from '@/icons';
 
 interface Module {
   id: string;

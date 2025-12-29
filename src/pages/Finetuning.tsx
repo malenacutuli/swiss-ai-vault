@@ -49,7 +49,7 @@ import {
   Loader2,
   Play,
   XCircle,
-} from "lucide-react";
+} from "@/icons";
 import { 
   useFinetuningJobs, 
   useCreateFinetuningJob,

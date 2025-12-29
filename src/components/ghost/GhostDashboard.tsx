@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { 
   Sparkles, MessageSquare, HardDrive, Shield, 
   TrendingUp, ChevronDown, ChevronUp, Loader2, Check, Lock
-} from 'lucide-react';
+} from '@/icons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGhostCredits } from '@/hooks/useGhostCredits';

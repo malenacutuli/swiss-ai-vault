@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { CheckCircle, Clock, AlertCircle, Activity } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Activity } from "@/icons";
 
 const statusItems = [
   {

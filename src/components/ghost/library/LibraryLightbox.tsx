@@ -16,7 +16,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2
-} from 'lucide-react';
+} from '@/icons';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 

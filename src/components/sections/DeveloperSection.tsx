@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, ArrowRight } from "lucide-react";
+import { Copy, Check, ArrowRight } from "@/icons";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Coins, CreditCard, TrendingUp, Zap, Database, Brain, MessageSquare, CheckCircle } from "lucide-react";
+import { Coins, CreditCard, TrendingUp, Zap, Database, Brain, MessageSquare, CheckCircle } from "@/icons";
 import { useUserCredits } from "@/hooks/useUserCredits";
 import { useCreditTransactions } from "@/hooks/useCreditTransactions";
 import { supabase } from "@/integrations/supabase/client";

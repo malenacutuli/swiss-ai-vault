@@ -70,7 +70,7 @@ import {
   FolderOpen,
   Code,
   Table as TableIcon,
-} from "lucide-react";
+} from "@/icons";
 import type { DatasetStatus, SourceType } from "@/types/database";
 
 interface ParsedMessage {

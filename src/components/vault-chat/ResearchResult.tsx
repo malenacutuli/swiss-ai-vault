@@ -1,4 +1,4 @@
-import { Shield, Lock, Search, Brain, Globe, Clock, BookOpen, ChevronDown, ExternalLink } from 'lucide-react';
+import { Shield, Lock, Search, Brain, Globe, Clock, BookOpen, ChevronDown, ExternalLink } from '@/icons';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';

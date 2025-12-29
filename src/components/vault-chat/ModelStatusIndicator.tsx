@@ -1,4 +1,4 @@
-import { Circle } from 'lucide-react';
+import { Circle } from '@/icons';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 

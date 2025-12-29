@@ -21,7 +21,7 @@ import {
   Globe,
   FlaskConical,
   Check,
-} from 'lucide-react';
+} from '@/icons';
 import {
   type GhostModel,
   TEXT_MODELS,

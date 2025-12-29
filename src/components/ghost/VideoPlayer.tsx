@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize2, Minimize2,
   Download, Heart, Share2, RotateCcw, Loader2
-} from 'lucide-react';
+} from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SwissCard } from '@/components/ui/swiss';

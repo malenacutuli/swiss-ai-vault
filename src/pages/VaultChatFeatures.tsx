@@ -14,7 +14,7 @@ import {
   ClipboardCheck,
   ChevronRight,
   CheckCircle2
-} from "lucide-react";
+} from "@/icons";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 

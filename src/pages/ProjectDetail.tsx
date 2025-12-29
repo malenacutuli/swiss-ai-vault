@@ -16,7 +16,7 @@ import {
   BarChart3,
   Settings,
   AlertCircle,
-} from "lucide-react";
+} from "@/icons";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectStatus } from "@/types/database";

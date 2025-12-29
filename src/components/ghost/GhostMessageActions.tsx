@@ -4,7 +4,7 @@ import {
   MoreHorizontal, Minus, Plus, ThumbsUp, ThumbsDown,
   Share2, Flag, Trash2, GitFork, Timer, Hash,
   StopCircle
-} from 'lucide-react';
+} from '@/icons';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
