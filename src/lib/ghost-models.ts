@@ -152,7 +152,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditCost: 1,
     creditMultiplier: 1,
     isPayPerUse: false,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   
   // --- Premium Open Source (Deploy when ready) ---
