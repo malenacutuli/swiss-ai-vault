@@ -19,7 +19,8 @@ import {
   SwissMarketsView,
   LatamMarketsView,
   AsiaMarketsView,
-  MENAMarketsView
+  MENAMarketsView,
+  USMarketsView
 } from '@/components/ghost/finance';
 import { 
   TrendingUp,
@@ -30,14 +31,6 @@ import {
   ExternalLink
 } from '@/icons';
 import { cn } from '@/lib/utils';
-
-interface MarketTicker {
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  changePercent: number;
-}
 
 interface Citation {
   index: number;
@@ -106,13 +99,6 @@ export default function GhostFinance() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const marketData: MarketTicker[] = [
-    { symbol: 'SPY', name: 'S&P 500', price: 6012.45, change: -15.23, changePercent: -0.25 },
-    { symbol: 'QQQ', name: 'NASDAQ', price: 21543.20, change: 45.67, changePercent: 0.21 },
-    { symbol: 'DIA', name: 'Dow Jones', price: 43789.50, change: -89.12, changePercent: -0.20 },
-    { symbol: 'VIX', name: 'VIX', price: 13.45, change: 0.34, changePercent: 2.59 },
-  ];
 
   // Click outside to close suggestions
   useEffect(() => {
@@ -170,30 +156,12 @@ export default function GhostFinance() {
         return <StockScreenerView />;
       case 'watchlist':
         return <WatchlistView />;
+      case 'us':
       default:
         return (
           <div className="space-y-8">
-            {/* Market Tickers */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {marketData.map((ticker) => (
-                <Card key={ticker.symbol} className="p-4 bg-white border-slate-200/60 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-500">{ticker.name}</span>
-                    <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", ticker.changePercent >= 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>
-                      {ticker.changePercent >= 0 ? '↑' : '↓'} {Math.abs(ticker.changePercent).toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="my-2"><MarketSparkline changePercent={ticker.changePercent} /></div>
-                  <div className="flex items-end justify-between">
-                    <div className="text-xl font-semibold text-slate-900">{ticker.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                    <p className={cn("text-sm font-medium", ticker.change >= 0 ? "text-green-600" : "text-red-600")}>
-                      {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(2)}
-                    </p>
-                  </div>
-                </Card>
-              ))}
-            </div>
-            {result ? (
+            <USMarketsView />
+            {result && (
               <Card className="p-6 bg-white border-slate-200/60">
                 <div className="prose prose-sm max-w-none text-slate-700">
                   {result.content.split('\n').map((p, i) => p.trim() && <p key={i} className="mb-3 leading-relaxed">{p}</p>)}
@@ -210,8 +178,6 @@ export default function GhostFinance() {
                   </div>
                 )}
               </Card>
-            ) : (
-              <MarketSummary />
             )}
           </div>
         );

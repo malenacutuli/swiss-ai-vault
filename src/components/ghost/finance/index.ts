@@ -8,3 +8,4 @@ export { SwissMarketsView } from './SwissMarketsView';
 export { LatamMarketsView } from './LatamMarketsView';
 export { AsiaMarketsView } from './AsiaMarketsView';
 export { MENAMarketsView } from './MENAMarketsView';
+export { USMarketsView } from './USMarketsView';
