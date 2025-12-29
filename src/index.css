@@ -440,3 +440,64 @@
 .hljs-punctuation {
   color: #94a3b8;
 }
+
+/* ==========================================================================
+   MARKETING LAYOUT SCOPE
+   Applied via .marketing class wrapper in MarketingLayout.tsx
+   ========================================================================== */
+
+/* Marketing Background - Warmer cream tone for luxury feel */
+.marketing {
+  --background: 48 38% 97%; /* #FBFAF4 */
+}
+
+/* Marketing Typography - Fraunces serif for H1/H2 headlines only */
+.marketing h1,
+.marketing h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.marketing h1 {
+  font-weight: 600;
+}
+
+.marketing h2 {
+  font-weight: 500;
+}
+
+/* Ensure all other marketing text stays Inter (sans-serif) */
+.marketing h3,
+.marketing h4,
+.marketing h5,
+.marketing h6,
+.marketing p,
+.marketing span,
+.marketing div,
+.marketing li,
+.marketing a,
+.marketing button,
+.marketing input,
+.marketing textarea,
+.marketing label {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ==========================================================================
+   APP LAYOUT SCOPE (Chat, Labs, Ghost)
+   Ensure app pages never use serif fonts
+   ========================================================================== */
+
+.app h1,
+.app h2,
+.app h3,
+.app h4,
+.app h5,
+.app h6,
+.app p,
+.app span,
+.app div {
+  font-family: 'Inter', system-ui, sans-serif;
+}
