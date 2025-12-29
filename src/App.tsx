@@ -15,6 +15,7 @@ import { chatEncryption } from "@/lib/encryption";
 // Layouts
 import { ChatLayout } from "@/layouts/ChatLayout";
 import { LabsLayout } from "@/layouts/LabsLayout";
+import { MarketingLayout } from "@/layouts/MarketingLayout";
 
 // Pages
 import Index from "./pages/Index";
@@ -88,23 +89,23 @@ const App = () => {
             <AuthProvider>
               <FirstTimeOrganizationModal />
               <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Index />} />
+                {/* Public routes - Marketing pages with MarketingLayout */}
+                <Route path="/" element={<MarketingLayout><Index /></MarketingLayout>} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/docs/api" element={<ApiDocs />} />
-                <Route path="/docs/on-premises" element={<OnPremisesDeployment />} />
+                <Route path="/docs/api" element={<MarketingLayout><ApiDocs /></MarketingLayout>} />
+                <Route path="/docs/on-premises" element={<MarketingLayout><OnPremisesDeployment /></MarketingLayout>} />
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />
                 <Route path="/oauth/callback" element={<OAuthCallback />} />
-                <Route path="/design-system" element={<DesignSystem />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/dpa" element={<DPA />} />
-                <Route path="/status" element={<Status />} />
-                <Route path="/features/vault-chat" element={<VaultChatFeatures />} />
-                <Route path="/features/vault-labs" element={<VaultLabsFeatures />} />
-                <Route path="/api-pricing" element={<APIPricing />} />
+                <Route path="/design-system" element={<MarketingLayout><DesignSystem /></MarketingLayout>} />
+                <Route path="/privacy-policy" element={<MarketingLayout><PrivacyPolicy /></MarketingLayout>} />
+                <Route path="/terms-of-service" element={<MarketingLayout><TermsOfService /></MarketingLayout>} />
+                <Route path="/about" element={<MarketingLayout><About /></MarketingLayout>} />
+                <Route path="/contact" element={<MarketingLayout><Contact /></MarketingLayout>} />
+                <Route path="/dpa" element={<MarketingLayout><DPA /></MarketingLayout>} />
+                <Route path="/status" element={<MarketingLayout><Status /></MarketingLayout>} />
+                <Route path="/features/vault-chat" element={<MarketingLayout><VaultChatFeatures /></MarketingLayout>} />
+                <Route path="/features/vault-labs" element={<MarketingLayout><VaultLabsFeatures /></MarketingLayout>} />
+                <Route path="/api-pricing" element={<MarketingLayout><APIPricing /></MarketingLayout>} />
 
                 {/* Vault Chat routes (simple mode) */}
                 <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>

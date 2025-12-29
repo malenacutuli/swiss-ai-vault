@@ -5,8 +5,6 @@ import { ChevronDown, ChevronUp, Shield, Zap, Eye, Brain, Code, Globe, Lock } fr
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 
 interface ModelRow {
   name: string;
@@ -221,9 +219,7 @@ const APIPricing = () => {
         />
       </Helmet>
 
-      <Navbar />
-
-      <main className="min-h-screen bg-background pt-20">
+      <div className="pt-20">
         {/* Hero Section */}
         <section className="py-16 md:py-24 border-b border-border/50">
           <div className="container max-w-5xl mx-auto px-4">
@@ -390,9 +386,7 @@ const APIPricing = () => {
             </div>
           </div>
         </section>
-      </main>
-
-      <Footer />
+      </div>
     </>
   );
 };

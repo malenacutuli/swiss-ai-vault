@@ -1,5 +1,3 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { FeaturesSection } from "@/components/sections/FeaturesSection";
 import { WhySwissVaultSection } from "@/components/sections/WhySwissVaultSection";
@@ -14,23 +12,19 @@ import { SupportedBySection } from "@/components/sections/SupportedBySection";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main>
-        <HeroSection />
-        <WhySwissVaultSection />
-        <FeaturesSection />
-        <SolutionsSection />
-        <HowItWorksSection />
-        <SecuritySection />
-        <ModelsSection />
-        <PricingSection />
-        <SocialProofSection />
-        <DeveloperSection />
-        <SupportedBySection />
-      </main>
-      <Footer />
-    </div>
+    <>
+      <HeroSection />
+      <WhySwissVaultSection />
+      <FeaturesSection />
+      <SolutionsSection />
+      <HowItWorksSection />
+      <SecuritySection />
+      <ModelsSection />
+      <PricingSection />
+      <SocialProofSection />
+      <DeveloperSection />
+      <SupportedBySection />
+    </>
   );
 };
 
