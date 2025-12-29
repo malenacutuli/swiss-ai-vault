@@ -14,11 +14,9 @@ export const HeroSection = () => {
   return (
     <>
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        {/* Background Effects */}
-        <div className="absolute inset-0 gradient-hero" />
-        <div className="absolute inset-0 grid-pattern opacity-30" />
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+        {/* Background */}
+        <div className="absolute inset-0 bg-background" />
+        <div className="absolute inset-0 grid-pattern opacity-20" />
 
         <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -26,13 +24,13 @@ export const HeroSection = () => {
             <div className="text-center lg:text-left">
 
               {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 animate-slide-up text-foreground">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl tracking-tight mb-6 animate-slide-up text-foreground">
                 {t('home.hero.title')} {t('home.hero.titleHighlight')}
               </h1>
 
               {/* Subheadline */}
               <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-slide-up animate-delay-100">
-                <span className="font-semibold text-foreground">{t('home.hero.subtitle')}</span>{" "}
+                <span className="text-foreground">{t('home.hero.subtitle')}</span>{" "}
                 {t('home.hero.description')}
               </p>
 
@@ -66,9 +64,9 @@ export const HeroSection = () => {
 
             {/* Right: Mock UI Preview */}
             <div className="relative animate-slide-up animate-delay-200">
-              <div className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden shadow-elevated">
+              <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-elevated">
                 {/* Window header */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/30">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-[hsl(0_0%_24%)]" />
                     <div className="w-3 h-3 rounded-full bg-[hsl(0_0%_24%)]" />
@@ -142,10 +140,6 @@ export const HeroSection = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Floating elements */}
-              <div className="absolute -top-4 -right-4 w-20 h-20 bg-primary/10 rounded-full blur-2xl animate-pulse" />
-              <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-success/10 rounded-full blur-2xl animate-pulse" />
             </div>
           </div>
         </div>

@@ -1,25 +1,22 @@
-import { ReactNode } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { Outlet } from "react-router-dom";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { ReactNode } from "react";
 
 interface MarketingLayoutProps {
-  children: ReactNode;
-  showNavbar?: boolean;
-  showFooter?: boolean;
+  children?: ReactNode;
 }
 
-export function MarketingLayout({ 
-  children, 
-  showNavbar = true, 
-  showFooter = true 
-}: MarketingLayoutProps) {
+export function MarketingLayout({ children }: MarketingLayoutProps) {
   return (
     <div className="marketing min-h-screen bg-background">
-      {showNavbar && <Navbar />}
+      <Navbar />
       <main>
-        {children}
+        {children || <Outlet />}
       </main>
-      {showFooter && <Footer />}
+      <Footer />
     </div>
   );
 }
+
+export default MarketingLayout;
