@@ -14,10 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Fraunces', 'Georgia', 'serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'Times New Roman', 'serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
