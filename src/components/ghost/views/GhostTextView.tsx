@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { SwissHeading } from '@/components/ui/swiss';
-import { Sparkles } from '@/icons';
 import swissVaultLogo from '@/assets/swissvault-logo.png';
+import { SwissFlag } from '@/components/icons/SwissFlag';
 
 interface GhostTextViewProps {
   hasMessages: boolean;
@@ -34,10 +33,15 @@ export function GhostTextViewEmpty({ children }: GhostTextViewEmptyProps) {
       </div>
       
       {/* Powered by text below input */}
-      <div className="flex items-center gap-2 mt-6 text-xs text-muted-foreground/70">
-        <Sparkles className="w-3.5 h-3.5" />
+      <div className="flex items-center gap-1.5 mt-6 text-xs text-muted-foreground/70">
+        <SwissFlag className="w-4 h-3" />
         <span>{t('ghost.welcome.poweredBy')}</span>
       </div>
+      
+      {/* AI disclaimer */}
+      <p className="mt-3 text-center text-[11px] text-muted-foreground/60 max-w-md">
+        AI can make mistakes. Always check results. Swiss Vault does not use your information to train models.
+      </p>
     </div>
   );
 }
