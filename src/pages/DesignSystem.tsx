@@ -29,7 +29,7 @@ import {
   FormInput,
   Layers,
   Sparkles
-} from "lucide-react";
+} from "@/icons";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
