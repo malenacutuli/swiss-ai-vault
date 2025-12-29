@@ -306,7 +306,7 @@ export function GhostSidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 shrink-0 opacity-0 group-hover/chat:opacity-100 transition-opacity duration-150"
+                  className="h-6 w-6 shrink-0 opacity-100 md:opacity-0 md:group-hover/chat:opacity-100 transition-opacity duration-150"
                 >
                   <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </Button>
@@ -393,7 +393,7 @@ export function GhostSidebar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 shrink-0 opacity-0 group-hover/folder:opacity-100 transition-opacity duration-150"
+                      className="h-6 w-6 shrink-0 opacity-100 md:opacity-0 md:group-hover/folder:opacity-100 transition-opacity duration-150"
                     >
                     <IconDotsVertical className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </Button>
