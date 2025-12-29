@@ -69,9 +69,8 @@ export const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <SwissFlag className="h-6 w-6" />
-              <span className="text-lg font-bold text-white">SwissVault<span className="text-brand-accent">.ai</span></span>
+            <div className="flex items-center mb-4">
+              <SwissFlag className="h-8" />
             </div>
             <p className="text-sm text-gray-300 mb-4">
               {t('footer.description')}

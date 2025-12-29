@@ -64,7 +64,7 @@ export default function GhostSignup() {
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center">
-            <SwissFlag className="h-12" />
+            <SwissFlag className="h-10" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">
             Create Ghost Account

@@ -94,13 +94,8 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
           "flex h-16 items-center border-b border-sidebar-border px-4",
           collapsed ? "justify-center" : "justify-between"
         )}>
-          <a href="/" className="flex items-center gap-2">
-            <SwissFlag className="h-8 w-8 rounded-lg" />
-            {!collapsed && (
-              <span className="text-lg font-semibold text-sidebar-foreground">
-                SwissVault<span className="text-brand-accent">.ai</span>
-              </span>
-            )}
+          <a href="/" className="flex items-center">
+            <SwissFlag className={cn("transition-all", collapsed ? "h-8" : "h-9")} />
           </a>
         </div>
 

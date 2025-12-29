@@ -23,11 +23,8 @@ export function ChatLayout() {
           <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="ml-3 flex items-center gap-2">
-            <SwissFlag className="h-6 w-6 rounded" />
-            <span className="font-semibold text-sidebar-foreground">
-              SwissVault<span className="text-brand-accent">.ai</span>
-            </span>
+          <div className="ml-3 flex items-center">
+            <SwissFlag className="h-8" />
           </div>
         </div>
         <GhostModeToggle currentMode={currentMode} className="scale-90" />
@@ -42,11 +39,8 @@ export function ChatLayout() {
           />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border">
             <div className="flex items-center justify-between h-14 px-4 border-b border-sidebar-border">
-              <div className="flex items-center gap-2">
-                <SwissFlag className="h-6 w-6 rounded" />
-                <span className="font-semibold text-sidebar-foreground">
-                  SwissVault<span className="text-brand-accent">.ai</span>
-                </span>
+              <div className="flex items-center">
+                <SwissFlag className="h-8" />
               </div>
               <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
                 <X className="h-5 w-5" />
