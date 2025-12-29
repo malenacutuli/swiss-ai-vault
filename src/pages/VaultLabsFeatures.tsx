@@ -91,9 +91,7 @@ const VaultLabsFeatures = () => {
         <div className="container mx-auto max-w-6xl text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             {t("vaultLabsFeatures.hero.title")}{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              {t("vaultLabsFeatures.hero.titleHighlight")}
-            </span>
+            {t("vaultLabsFeatures.hero.titleHighlight")}
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
