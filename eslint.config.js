@@ -21,6 +21,21 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "lucide-react",
+              message: "Import icons from @/icons instead.",
+            },
+            {
+              name: "@tabler/icons-react",
+              message: "Tabler icons are deprecated. Use @/icons.",
+            },
+          ],
+        },
+      ],
     },
   },
 );

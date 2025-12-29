@@ -442,49 +442,27 @@
 }
 
 /* ================================
-   MARKETING: PERPLEXITY-LIKE TYPE
+   MARKETING TYPOGRAPHY (PERPLEXITY)
    ================================ */
 
-.marketing {
-  /* Cream background for marketing only */
-  --background: 48 38% 97%;
-}
-
-/* Ensure marketing headings use Playfair Display */
-.marketing h1,
-.marketing h2 {
-  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+.marketing h1 {
+  font-family: "Playfair Display", serif;
   font-weight: 400;
   letter-spacing: -0.045em;
   line-height: 1.03;
-  text-rendering: geometricPrecision;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  color: hsl(210 20% 20%);
 }
 
-/* Optional: marketing h2 slightly less tight than h1 */
 .marketing h2 {
+  font-family: "Playfair Display", serif;
+  font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 1.08;
 }
 
-/* Marketing body remains Inter; keep it clean */
-.marketing p,
-.marketing span,
-.marketing li,
-.marketing a,
-.marketing button,
-.marketing input,
-.marketing textarea {
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-}
-
-/* Prevent accidental bold serif in hero/marketing */
-.marketing h1 strong,
-.marketing h2 strong,
-.marketing h1 b,
-.marketing h2 b {
-  font-weight: 500;
+.marketing p {
+  font-family: Inter, sans-serif;
+  font-weight: 400;
 }
 
 /* ==========================================================================

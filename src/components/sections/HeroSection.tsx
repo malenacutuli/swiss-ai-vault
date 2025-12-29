@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Lock, Database, Brain, Workflow, MessageSquare, Shield } from "lucide-react";
+import { ArrowRight, Lock, Database, Brain, Workflow, MessageSquare, Shield } from "@/icons";
 import { useState } from "react";
 import { EarlyAccessModal } from "@/components/EarlyAccessModal";
 import { DemoRequestModal } from "@/components/DemoRequestModal";
@@ -16,7 +16,12 @@ export const HeroSection = () => {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
         {/* Background */}
         <div className="absolute inset-0 bg-background" />
-        <div className="absolute inset-0 grid-pattern opacity-20" />
+        <div 
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: "radial-gradient(circle at 50% 50%, hsl(var(--border) / 0.4), transparent 70%)"
+          }}
+        />
 
         <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -24,7 +29,7 @@ export const HeroSection = () => {
             <div className="text-center lg:text-left">
 
               {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl md:text-6xl tracking-tight mb-6 animate-slide-up text-foreground">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl mb-6 animate-slide-up">
                 {t('home.hero.title')} {t('home.hero.titleHighlight')}
               </h1>
 
@@ -64,7 +69,7 @@ export const HeroSection = () => {
 
             {/* Right: Mock UI Preview */}
             <div className="relative animate-slide-up animate-delay-200">
-              <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-elevated">
+              <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-elevated">
                 {/* Window header */}
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
                   <div className="flex gap-1.5">
