@@ -295,18 +295,20 @@ export function GhostSidebar({
           </div>
         ) : (
           <>
-            <span className="text-[13px] truncate flex-1">{conv.title}</span>
-            {conv.isTemporary && (
-              <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
-                {t('ghost.sidebar.incognito', 'Incognito')}
-              </span>
-            )}
+            <div className="flex-1 min-w-0 flex items-center gap-1.5">
+              <span className="text-[13px] truncate">{conv.title}</span>
+              {conv.isTemporary && (
+                <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                  {t('ghost.sidebar.incognito', 'Incognito')}
+                </span>
+              )}
+            </div>
 
-            <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-0.5 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 opacity-60 hover:opacity-100"
                 onClick={() => {
                   setEditingChatId(conv.id);
                   setEditingChatTitle(conv.title);
@@ -318,7 +320,7 @@ export function GhostSidebar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 opacity-60 hover:opacity-100"
                 onClick={() => onExportConversation(conv.id)}
                 aria-label={t('ghost.sidebar.download', 'Download')}
               >
@@ -327,7 +329,7 @@ export function GhostSidebar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-destructive hover:text-destructive"
+                className="h-6 w-6 text-destructive opacity-60 hover:opacity-100"
                 onClick={() => onDeleteConversation(conv.id)}
                 aria-label={t('ghost.sidebar.delete', 'Delete')}
               >
@@ -390,14 +392,16 @@ export function GhostSidebar({
               </div>
             ) : (
               <>
-                <span className="text-[13px] truncate flex-1">{folder.name}</span>
-                {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" strokeWidth={1.5} />}
+                <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                  <span className="text-[13px] truncate">{folder.name}</span>
+                  {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" strokeWidth={1.5} />}
+                </div>
 
-                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-0.5 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-6 w-6 opacity-60 hover:opacity-100"
                     onClick={() => {
                       setEditingFolderId(folder.id);
                       setEditingFolderName(folder.name);
@@ -411,7 +415,7 @@ export function GhostSidebar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-6 w-6 opacity-60 hover:opacity-100"
                       onClick={() => onExportFolder(folder.id)}
                       aria-label={t('ghost.sidebar.downloadAll', 'Download all')}
                     >
@@ -422,7 +426,7 @@ export function GhostSidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-destructive hover:text-destructive"
+                    className="h-6 w-6 text-destructive opacity-60 hover:opacity-100"
                     onClick={async () => {
                       if (onDeleteFolder) await onDeleteFolder(folder.id);
                     }}
