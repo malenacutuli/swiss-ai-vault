@@ -1128,10 +1128,11 @@
       "storageClearedDescription": "All local data has been removed. You can start fresh."
     },
     "modes": {
-      "text": "Text",
+      "text": "Chat",
       "image": "Image",
       "video": "Video",
       "search": "Search",
+      "research": "Deep Research",
       "new": "New"
     },
     "input": {
