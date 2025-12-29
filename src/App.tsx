@@ -75,8 +75,8 @@ const App = () => {
   // Initialize Vault Chat encryption on app start
   useEffect(() => {
     chatEncryption.initialize()
-      .then(() => console.log('✅ Vault Chat encryption ready'))
-      .catch((err) => console.error('❌ Vault Chat encryption init failed:', err));
+      .then(() => console.log('[Vault Chat] Encryption ready'))
+      .catch((err) => console.error('[Vault Chat] Encryption init failed:', err));
   }, []);
 
   return (

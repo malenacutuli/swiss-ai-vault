@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, ArrowRight } from "@/icons";
+import { SwissIconTile } from "@/components/ui/swiss";
+import { getDomainIcon } from "@/lib/domain-icons";
 import type { TemplateSummary } from "@/hooks/useFinetuningTemplates";
 
 interface TemplateCardProps {
@@ -44,7 +46,14 @@ export const TemplateCard = ({ template, onClick }: TemplateCardProps) => {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{template.icon}</span>
+            {(() => {
+              const DomainIcon = getDomainIcon(template.domain);
+              return (
+                <SwissIconTile size="sm" variant="muted">
+                  <DomainIcon className="h-4 w-4" />
+                </SwissIconTile>
+              );
+            })()}
             <div>
               <CardTitle className="text-base group-hover:text-primary transition-colors">
                 {template.name}

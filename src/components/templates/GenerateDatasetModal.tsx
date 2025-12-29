@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sparkles, Loader2, CheckCircle, XCircle, AlertTriangle, ArrowRight } from "@/icons";
+import { SwissIconTile } from "@/components/ui/swiss";
+import { getDomainIcon } from "@/lib/domain-icons";
 import { useFinetuningTemplate, type FinetuningTemplate } from "@/hooks/useFinetuningTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -195,7 +197,14 @@ export const GenerateDatasetModal = ({ templateId, onClose }: GenerateDatasetMod
           </DialogTitle>
           {template && (
             <DialogDescription className="flex items-center gap-2 pt-1">
-              <span className="text-lg">{template.icon}</span>
+              {(() => {
+                const DomainIcon = getDomainIcon(template.domain);
+                return (
+                  <SwissIconTile size="xs" variant="muted">
+                    <DomainIcon className="h-3 w-3" />
+                  </SwissIconTile>
+                );
+              })()}
               <span>{template.name}</span>
               <Badge variant="outline" className="ml-1">{template.language}</Badge>
             </DialogDescription>

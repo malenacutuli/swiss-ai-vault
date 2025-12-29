@@ -45,7 +45,7 @@ export function ExportMarkdownDialog({
     markdown += `*Exported on ${date}*\n\n---\n\n`;
 
     for (const message of conversation.messages) {
-      const roleLabel = message.role === 'user' ? '## 👤 User' : '## 🤖 Assistant';
+      const roleLabel = message.role === 'user' ? '## User' : '## Assistant';
       markdown += `${roleLabel}\n\n${message.content}\n\n`;
     }
 

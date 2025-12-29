@@ -25,6 +25,8 @@ import {
   Clock,
   Cpu
 } from "@/icons";
+import { SwissIconTile } from "@/components/ui/swiss";
+import { getDomainIcon } from "@/lib/domain-icons";
 import { useFinetuningTemplate } from "@/hooks/useFinetuningTemplates";
 import { useToast } from "@/hooks/use-toast";
 
@@ -97,7 +99,14 @@ export const TemplateDetailModal = ({ templateId, onClose, onGenerateDataset }: 
           <>
             <DialogHeader>
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{template.icon}</span>
+                {(() => {
+                  const DomainIcon = getDomainIcon(template.domain);
+                  return (
+                    <SwissIconTile size="md" variant="muted">
+                      <DomainIcon className="h-5 w-5" />
+                    </SwissIconTile>
+                  );
+                })()}
                 <div>
                   <DialogTitle className="text-xl">{template.name}</DialogTitle>
                   <div className="flex gap-2 mt-1">

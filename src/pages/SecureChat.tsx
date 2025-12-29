@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Settings, MoreVertical, Trash2, Send, Shield } from '@/icons';
+import { Plus, Settings, MoreVertical, Trash2, Send, Shield, Lock } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
@@ -207,7 +207,7 @@ export default function SecureChat() {
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     {conv.isEncrypted && (
-                      <span className="text-xs text-green-600 dark:text-green-400">🔒</span>
+                      <Lock className="h-3 w-3 text-green-600 dark:text-green-400" />
                     )}
                     <span className="text-xs text-muted-foreground">
                       {new Date(conv.updatedAt).toLocaleDateString()}
