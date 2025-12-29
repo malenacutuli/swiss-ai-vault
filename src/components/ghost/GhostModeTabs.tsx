@@ -1,9 +1,9 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Image, Video, Globe } from '@/icons';
+import { MessageSquare, Image, Video, Globe, BookOpen } from '@/icons';
 import { useTranslation } from 'react-i18next';
 
-export type GhostMode = 'text' | 'image' | 'video' | 'search';
+export type GhostMode = 'text' | 'image' | 'video' | 'search' | 'research';
 
 interface GhostModeTabsProps {
   activeMode: GhostMode;
@@ -11,11 +11,12 @@ interface GhostModeTabsProps {
   className?: string;
 }
 
-const MODES: { id: GhostMode; labelKey: string; icon: React.ElementType; isNew?: boolean }[] = [
+const MODES: { id: GhostMode; labelKey: string; icon: React.ElementType; badge?: 'new' | 'pro' }[] = [
   { id: 'text', labelKey: 'ghost.modes.text', icon: MessageSquare },
-  { id: 'image', labelKey: 'ghost.modes.image', icon: Image, isNew: true },
-  { id: 'video', labelKey: 'ghost.modes.video', icon: Video, isNew: true },
+  { id: 'image', labelKey: 'ghost.modes.image', icon: Image, badge: 'new' },
+  { id: 'video', labelKey: 'ghost.modes.video', icon: Video, badge: 'new' },
   { id: 'search', labelKey: 'ghost.modes.search', icon: Globe },
+  { id: 'research', labelKey: 'ghost.modes.research', icon: BookOpen, badge: 'pro' },
 ];
 
 export function GhostModeTabs({
@@ -27,7 +28,7 @@ export function GhostModeTabs({
   
   return (
     <div className={cn('flex items-center gap-0.5 p-1 bg-muted/40 rounded-xl', className)}>
-      {MODES.map(({ id, labelKey, icon: Icon, isNew }) => (
+      {MODES.map(({ id, labelKey, icon: Icon, badge }) => (
         <Button
           key={id}
           variant="ghost"
@@ -42,9 +43,14 @@ export function GhostModeTabs({
         >
           <Icon className="w-4 h-4" />
           <span className="hidden sm:inline">{t(labelKey)}</span>
-          {isNew && (
+          {badge === 'new' && (
             <span className="absolute -top-1 -right-0.5 text-[9px] font-semibold text-primary bg-primary/10 px-1 rounded">
               {t('ghost.modes.new')}
+            </span>
+          )}
+          {badge === 'pro' && (
+            <span className="absolute -top-1 -right-0.5 text-[9px] font-semibold text-amber-600 bg-amber-500/10 px-1 rounded">
+              PRO
             </span>
           )}
         </Button>

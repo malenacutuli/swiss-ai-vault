@@ -107,3 +107,6 @@ verify_jwt = true
 
 [functions.ghost-finance-data]
 verify_jwt = true
+
+[functions.ghost-deep-research]
+verify_jwt = false
