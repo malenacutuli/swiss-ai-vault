@@ -1,5 +1,4 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { MarketingLayout } from "@/layouts/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { 
   Database, 
@@ -23,7 +22,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-
 const VaultLabsFeatures = () => {
   const { t } = useTranslation();
 
@@ -87,28 +85,26 @@ const VaultLabsFeatures = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
-      
+    <MarketingLayout>
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
         <div className="container mx-auto max-w-6xl text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             {t("vaultLabsFeatures.hero.title")}{" "}
             <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               {t("vaultLabsFeatures.hero.titleHighlight")}
             </span>
           </h1>
           
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
             {t("vaultLabsFeatures.hero.description")}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-gray-700/80 hover:bg-gray-800/90 text-white border-0 shadow-none" asChild>
+            <Button size="lg" asChild>
               <Link to="/auth">{t("vaultLabsFeatures.hero.requestAccess")}</Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
+            <Button size="lg" variant="outline" asChild>
               <Link to="/contact">{t("vaultLabsFeatures.hero.scheduleDemo")}</Link>
             </Button>
           </div>
@@ -119,7 +115,7 @@ const VaultLabsFeatures = () => {
       {sections.map((section, index) => (
         <section 
           key={section.id} 
-          className={`py-24 px-4 ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}
+          className={`py-24 px-4 ${index % 2 === 1 ? 'bg-muted/50' : 'bg-background'}`}
         >
           <div className="container mx-auto max-w-6xl">
             <div className={`grid md:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
@@ -130,11 +126,11 @@ const VaultLabsFeatures = () => {
                   {section.title}
                 </div>
                 
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
                   {section.subtitle}
                 </h2>
                 
-                <p className="text-lg text-gray-600 mb-8">
+                <p className="text-lg text-muted-foreground mb-8">
                   {section.description}
                 </p>
 
@@ -144,7 +140,7 @@ const VaultLabsFeatures = () => {
                       <div className={`p-1.5 rounded-lg bg-gradient-to-r ${section.gradient} text-white flex-shrink-0`}>
                         <feature.icon className="h-4 w-4" />
                       </div>
-                      <span className="text-gray-700">{feature.text}</span>
+                      <span className="text-foreground">{feature.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -196,28 +192,26 @@ const VaultLabsFeatures = () => {
       ))}
 
       {/* CTA Section */}
-      <section className="py-24 px-4 bg-gray-900">
+      <section className="py-24 px-4 bg-foreground">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-background mb-6">
             {t("vaultLabsFeatures.cta.title")}
           </h2>
-          <p className="text-xl text-gray-400 mb-10">
+          <p className="text-xl text-muted mb-10">
             {t("vaultLabsFeatures.cta.description")}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100" asChild>
+            <Button size="lg" variant="secondary" asChild>
               <Link to="/auth">{t("vaultLabsFeatures.cta.requestAccess")}</Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-gray-600 text-white hover:bg-gray-800" asChild>
+            <Button size="lg" variant="outline" className="border-muted text-background hover:bg-muted/20" asChild>
               <Link to="/contact">{t("vaultLabsFeatures.cta.talkToSales")}</Link>
             </Button>
           </div>
         </div>
       </section>
-
-      <Footer />
-    </div>
+    </MarketingLayout>
   );
 };
 
