@@ -1,8 +1,7 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Shield, Settings, Beaker, ArrowRight, ChevronLeft, ChevronRight } from "@/icons";
 import { cn } from "@/lib/utils";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
-import { SwissFlag } from "@/components/icons/SwissFlag";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { GhostModeToggle } from "@/components/ghost/GhostModeToggle";
 
@@ -67,22 +66,12 @@ export function SimpleSidebar({ collapsed, onToggle, onNavigate, hideHeader }: S
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out",
+        "flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out",
         collapsed ? "w-16" : "w-64",
-        hideHeader && "h-[calc(100vh-3.5rem)]"
+        // Height adjusts based on whether header is shown (ChatLayout always has header now)
+        "h-[calc(100vh-3.5rem)]"
       )}
     >
-      {/* Logo - hidden when hideHeader is true (mobile drawer has its own) */}
-      {!hideHeader && (
-        <div className={cn(
-          "flex h-16 items-center border-b border-sidebar-border px-4 flex-shrink-0",
-          collapsed ? "justify-center" : "justify-between"
-        )}>
-          <Link to="/chat" className="flex items-center" onClick={onNavigate}>
-            <SwissFlag className={cn("transition-all", collapsed ? "h-8" : "h-9")} />
-          </Link>
-        </div>
-      )}
 
       {/* Organization Switcher */}
       <div className={cn(
