@@ -8,15 +8,15 @@ import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { CategoryCard, LEGAL_CATEGORIES } from '@/components/ghost/CategoryCard';
 import { SearchModeSelector, SourcesDropdown, type SearchMode } from '@/components/ghost/discover';
 import { 
-  IconScale,
-  IconFileSearch,
-  IconBook2,
-  IconShieldCheck,
-  IconArrowRight,
-  IconLoader2,
-  IconExternalLink,
-  IconSearch
-} from '@tabler/icons-react';
+  Scale,
+  FileSearch,
+  BookOpen,
+  ShieldCheck,
+  ArrowRight,
+  Loader2,
+  ExternalLink,
+  Search
+} from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface Citation {
@@ -122,7 +122,7 @@ export default function GhostLegal() {
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center mb-4 shadow-sm">
-            <IconScale className="w-8 h-8 text-blue-600" stroke={1.5} />
+            <Scale className="w-8 h-8 text-blue-600" strokeWidth={1.5} />
           </div>
           <h1 className="text-2xl font-semibold text-slate-900">{t('ghost.modules.legal.title')}</h1>
         </div>
@@ -157,7 +157,7 @@ export default function GhostLegal() {
           
           {/* Search Input */}
           <div className="relative">
-            <IconSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" stroke={1.5} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
             <Input
               value={query}
               onChange={(e) => {
@@ -175,9 +175,9 @@ export default function GhostLegal() {
               className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#2A8C86] text-white hover:bg-[#2A8C86]/90 disabled:opacity-50 transition-colors"
             >
               {isSearching ? (
-                <IconLoader2 className="w-5 h-5 animate-spin" stroke={1.5} />
+                <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
               ) : (
-                <IconArrowRight className="w-5 h-5" stroke={1.5} />
+                <ArrowRight className="w-5 h-5" strokeWidth={1.5} />
               )}
             </button>
             
@@ -196,7 +196,7 @@ export default function GhostLegal() {
                     }}
                     className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 text-left text-sm text-slate-700 transition-colors border-b border-slate-50 last:border-b-0"
                   >
-                    <IconSearch className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" stroke={1.5} />
+                    <Search className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
                     <span className="line-clamp-2">{t(key, { jurisdiction: selectedJurisdiction })}</span>
                   </button>
                 ))}
@@ -217,7 +217,7 @@ export default function GhostLegal() {
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
-            <IconFileSearch className="w-4 h-4" stroke={1.5} />
+            <FileSearch className="w-4 h-4" strokeWidth={1.5} />
             {t('ghost.modules.legal.actions.regulatory')}
           </Button>
           <Button 
@@ -230,7 +230,7 @@ export default function GhostLegal() {
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
-            <IconBook2 className="w-4 h-4" stroke={1.5} />
+            <BookOpen className="w-4 h-4" strokeWidth={1.5} />
             {t('ghost.modules.legal.actions.caselaw')}
           </Button>
           <Button 
@@ -243,7 +243,7 @@ export default function GhostLegal() {
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
-            <IconShieldCheck className="w-4 h-4" stroke={1.5} />
+            <ShieldCheck className="w-4 h-4" strokeWidth={1.5} />
             {t('ghost.modules.legal.actions.compliance')}
           </Button>
         </div>
@@ -274,7 +274,7 @@ export default function GhostLegal() {
                     >
                       <span className="text-[#2A8C86] font-medium">[{citation.index}]</span>
                       <span className="truncate max-w-[120px]">{citation.domain}</span>
-                      <IconExternalLink className="w-3 h-3 flex-shrink-0" stroke={1.5} />
+                      <ExternalLink className="w-3 h-3 flex-shrink-0" strokeWidth={1.5} />
                     </a>
                   ))}
                 </div>
