@@ -52,12 +52,14 @@ interface GhostChatInputProps {
   className?: string;
 }
 
-const MODE_CONFIG: { id: GhostMode; labelKey: string; icon: React.ElementType; badge?: 'new' | 'pro' }[] = [
-  { id: 'text', labelKey: 'ghost.modes.text', icon: MessageSquare },
-  { id: 'image', labelKey: 'ghost.modes.image', icon: Image, badge: 'new' },
-  { id: 'video', labelKey: 'ghost.modes.video', icon: Video, badge: 'new' },
-  { id: 'search', labelKey: 'ghost.modes.search', icon: Globe },
-  { id: 'research', labelKey: 'ghost.modes.research', icon: BookOpen, badge: 'pro' },
+// Text mode is default - only show other modes in dropdown when in text mode
+// When in other modes, show "Chat" option to return
+const MODE_CONFIG: { id: GhostMode; labelKey: string; fallback: string; icon: React.ElementType; badge?: 'new' | 'pro' }[] = [
+  { id: 'text', labelKey: 'ghost.modes.text', fallback: 'Chat', icon: MessageSquare },
+  { id: 'image', labelKey: 'ghost.modes.image', fallback: 'Image', icon: Image, badge: 'new' },
+  { id: 'video', labelKey: 'ghost.modes.video', fallback: 'Video', icon: Video, badge: 'new' },
+  { id: 'search', labelKey: 'ghost.modes.search', fallback: 'Search', icon: Globe },
+  { id: 'research', labelKey: 'ghost.modes.research', fallback: 'Deep Research', icon: BookOpen, badge: 'pro' },
 ];
 
 const getPlaceholder = (mode: GhostMode, t: (key: string, fallback: string) => string): string => {
@@ -132,24 +134,35 @@ export function GhostChatInput({
       <div className={cn('w-full', className)}>
         {/* Mode & Model Selectors Row */}
         <div className="flex items-center gap-2 mb-2 px-1">
-          {/* Mode Selector Dropdown */}
+          {/* Mode Selector Dropdown - Only show when NOT in text mode, or show other modes when in text */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 h-8 px-3 bg-background">
                 <CurrentIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">{t(currentModeConfig.labelKey)}</span>
+                <span className="hidden sm:inline">{t(currentModeConfig.labelKey, currentModeConfig.fallback)}</span>
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48 bg-popover">
-              {MODE_CONFIG.map(({ id, labelKey, icon: Icon, badge }) => (
+              {/* When in text mode, don't show text option (it's redundant) */}
+              {/* When in other modes, show "Chat" option first to return */}
+              {mode !== 'text' && (
+                <DropdownMenuItem 
+                  onSelect={() => onModeChange('text')}
+                  className="gap-2 cursor-pointer"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="flex-1">{t('ghost.modes.text', 'Chat')}</span>
+                </DropdownMenuItem>
+              )}
+              {MODE_CONFIG.filter(m => m.id !== 'text' && m.id !== mode).map(({ id, labelKey, fallback, icon: Icon, badge }) => (
                 <DropdownMenuItem 
                   key={id}
                   onSelect={() => onModeChange(id)}
                   className="gap-2 cursor-pointer"
                 >
                   <Icon className="h-4 w-4" />
-                  <span className="flex-1">{t(labelKey)}</span>
+                  <span className="flex-1">{t(labelKey, fallback)}</span>
                   {badge === 'new' && (
                     <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">NEW</Badge>
                   )}

@@ -11,12 +11,12 @@ interface GhostModeTabsProps {
   className?: string;
 }
 
-const MODES: { id: GhostMode; labelKey: string; icon: React.ElementType; badge?: 'new' | 'pro' }[] = [
-  { id: 'text', labelKey: 'ghost.modes.text', icon: MessageSquare },
-  { id: 'image', labelKey: 'ghost.modes.image', icon: Image, badge: 'new' },
-  { id: 'video', labelKey: 'ghost.modes.video', icon: Video, badge: 'new' },
-  { id: 'search', labelKey: 'ghost.modes.search', icon: Globe },
-  { id: 'research', labelKey: 'ghost.modes.research', icon: BookOpen, badge: 'pro' },
+const MODES: { id: GhostMode; labelKey: string; fallback: string; icon: React.ElementType; badge?: 'new' | 'pro' }[] = [
+  { id: 'text', labelKey: 'ghost.modes.text', fallback: 'Chat', icon: MessageSquare },
+  { id: 'image', labelKey: 'ghost.modes.image', fallback: 'Image', icon: Image, badge: 'new' },
+  { id: 'video', labelKey: 'ghost.modes.video', fallback: 'Video', icon: Video, badge: 'new' },
+  { id: 'search', labelKey: 'ghost.modes.search', fallback: 'Search', icon: Globe },
+  { id: 'research', labelKey: 'ghost.modes.research', fallback: 'Deep Research', icon: BookOpen, badge: 'pro' },
 ];
 
 export function GhostModeTabs({
@@ -28,7 +28,7 @@ export function GhostModeTabs({
   
   return (
     <div className={cn('flex items-center gap-0.5 p-1 bg-muted/40 rounded-xl', className)}>
-      {MODES.map(({ id, labelKey, icon: Icon, badge }) => (
+      {MODES.map(({ id, labelKey, fallback, icon: Icon, badge }) => (
         <Button
           key={id}
           variant="ghost"
@@ -42,7 +42,7 @@ export function GhostModeTabs({
           )}
         >
           <Icon className="w-4 h-4" />
-          <span className="hidden sm:inline">{t(labelKey)}</span>
+          <span className="hidden sm:inline">{t(labelKey, fallback)}</span>
           {badge === 'new' && (
             <span className="absolute -top-1 -right-0.5 text-[9px] font-semibold text-primary bg-primary/10 px-1 rounded">
               {t('ghost.modes.new')}

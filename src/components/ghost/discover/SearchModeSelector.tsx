@@ -17,14 +17,14 @@ export function SearchModeSelector({ mode, onModeChange }: SearchModeSelectorPro
   const { t } = useTranslation();
   
   const modes = [
-    { id: 'search' as const, labelKey: 'ghost.discover.modes.search', icon: Search },
-    { id: 'research' as const, labelKey: 'ghost.discover.modes.research', icon: Brain },
-    { id: 'reason' as const, labelKey: 'ghost.discover.modes.reason', icon: Lightbulb },
+    { id: 'search' as const, labelKey: 'ghost.discover.modes.search', fallback: 'Search', icon: Search },
+    { id: 'research' as const, labelKey: 'ghost.discover.modes.research', fallback: 'Research', icon: Brain },
+    { id: 'reason' as const, labelKey: 'ghost.discover.modes.reason', fallback: 'Reason', icon: Lightbulb },
   ];
 
   return (
     <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
-      {modes.map(({ id, labelKey, icon: Icon }) => (
+      {modes.map(({ id, labelKey, fallback, icon: Icon }) => (
         <button
           key={id}
           onClick={() => onModeChange(id)}
@@ -36,7 +36,7 @@ export function SearchModeSelector({ mode, onModeChange }: SearchModeSelectorPro
           )}
         >
           <Icon className="w-4 h-4" strokeWidth={1.5} />
-          {t(labelKey)}
+          {t(labelKey, fallback)}
         </button>
       ))}
     </div>

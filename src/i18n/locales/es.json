@@ -1221,10 +1221,11 @@
       "storageClearedDescription": "Todos los datos locales han sido eliminados. Puedes empezar de nuevo."
     },
     "modes": {
-      "text": "Texto",
+      "text": "Chat",
       "image": "Imagen",
       "video": "Vídeo",
       "search": "Búsqueda",
+      "research": "Investigación Profunda",
       "new": "Nuevo"
     },
     "input": {
