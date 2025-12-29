@@ -34,6 +34,16 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 import { EyeOff, Shield, Menu, X, AlertTriangle, FileText, Moon, Sun, Ghost } from '@/icons';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { TEXT_MODELS } from '@/lib/ghost-models';
 
 // Default models per mode
@@ -213,6 +223,10 @@ function GhostChat() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState<'prompts' | 'images' | 'videos' | 'files' | 'searches' | 'model'>('prompts');
 
+  // Incognito warning dialog state
+  const [showIncognitoWarning, setShowIncognitoWarning] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ type: 'select' | 'new'; id?: string } | null>(null);
+
   // Model state per mode (persisted to localStorage)
   const [selectedModels, setSelectedModels] = useState<Record<GhostMode, string>>(() => {
     const saved = localStorage.getItem('ghost-selected-models');
@@ -306,6 +320,20 @@ function GhostChat() {
     return () => clearInterval(interval);
   }, [messages, resetStreamState]);
 
+  // Cleanup incognito chats on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Find and delete all incognito conversations
+      conversations.forEach(conv => {
+        if (conv.isTemporary) {
+          deleteConversation(conv.id);
+        }
+      });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [conversations, deleteConversation]);
   // Convert conversations for sidebar (temporary chats are already filtered out by listConversations)
   const sidebarConversations: GhostConversation[] = conversations.map(c => ({
     id: c.id,
@@ -318,14 +346,65 @@ function GhostChat() {
 
   // Handle new chat creation - accepts optional isTemporary parameter from sidebar
   const handleNewChat = useCallback((isTemporary?: boolean) => {
-    // Use passed parameter, or fall back to settings preference
+    // Check if currently in an incognito chat with messages
+    const currentConv = selectedConversation 
+      ? conversations.find(c => c.id === selectedConversation) 
+      : null;
+    
+    if (currentConv?.isTemporary && messages.length > 0) {
+      // Show warning and save pending action
+      setPendingAction({ type: 'new' });
+      setShowIncognitoWarning(true);
+      return;
+    }
+    
+    // Proceed with new chat creation
     const shouldBeTemporary = isTemporary ?? (settings?.start_temporary ?? false);
-    const id = createConversation('New Chat', shouldBeTemporary);
+    const id = createConversation(shouldBeTemporary ? 'Incognito Chat' : 'New Chat', shouldBeTemporary);
     if (id) {
       setSelectedConversation(id);
       setMessages([]);
     }
-  }, [createConversation, settings?.start_temporary]);
+  }, [createConversation, settings?.start_temporary, selectedConversation, conversations, messages.length]);
+
+  // Handle selecting a conversation - with incognito warning
+  const handleSelectConversation = useCallback((id: string) => {
+    // Check if currently in an incognito chat with messages
+    const currentConv = selectedConversation 
+      ? conversations.find(c => c.id === selectedConversation) 
+      : null;
+    
+    if (currentConv?.isTemporary && messages.length > 0 && id !== selectedConversation) {
+      // Show warning and save pending action
+      setPendingAction({ type: 'select', id });
+      setShowIncognitoWarning(true);
+      return;
+    }
+    
+    setSelectedConversation(id);
+  }, [selectedConversation, conversations, messages.length]);
+
+  // Handle confirming leave from incognito chat
+  const handleConfirmLeaveIncognito = useCallback(() => {
+    // Delete the current incognito conversation
+    if (selectedConversation) {
+      deleteConversation(selectedConversation);
+    }
+    
+    // Execute pending action
+    if (pendingAction?.type === 'select' && pendingAction.id) {
+      setSelectedConversation(pendingAction.id);
+    } else if (pendingAction?.type === 'new') {
+      const id = createConversation('New Chat', false);
+      if (id) {
+        setSelectedConversation(id);
+        setMessages([]);
+      }
+    }
+    
+    setPendingAction(null);
+    setShowIncognitoWarning(false);
+  }, [selectedConversation, pendingAction, deleteConversation, createConversation]);
 
   // Handle insufficient credits
   const handleInsufficientCredits = useCallback((reason: string) => {
@@ -1319,7 +1398,7 @@ function GhostChat() {
         conversations={sidebarConversations}
         folders={folders}
         selectedConversation={selectedConversation}
-        onSelectConversation={setSelectedConversation}
+        onSelectConversation={handleSelectConversation}
         onNewChat={handleNewChat}
         onDeleteConversation={handleDeleteConversation}
         onExportConversation={handleExportConversation}
@@ -1754,6 +1833,32 @@ function GhostChat() {
         limitType={upgradeReason === 'prompts' ? 'prompt' : upgradeReason === 'images' ? 'image' : upgradeReason === 'videos' ? 'video' : upgradeReason === 'files' ? 'file' : upgradeReason === 'searches' ? 'search' : 'prompt'}
         currentTier={tier}
       />
+
+      {/* Incognito Warning Dialog */}
+      <AlertDialog open={showIncognitoWarning} onOpenChange={setShowIncognitoWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <EyeOff className="h-5 w-5" />
+              {t('ghost.incognito.leaveTitle', 'Leave Incognito Chat?')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('ghost.incognito.leaveDescription', 'This incognito conversation will be permanently deleted. This cannot be undone.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingAction(null)}>
+              {t('ghost.incognito.stay', 'Stay')}
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmLeaveIncognito}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('ghost.incognito.leaveDelete', 'Leave & Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </GhostDropZone>
   );
 }
