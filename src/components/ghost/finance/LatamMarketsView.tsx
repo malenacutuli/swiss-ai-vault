@@ -40,8 +40,20 @@ export function LatamMarketsView() {
     );
   }
 
-  const markets = data?.markets || [];
+  const markets = (data?.markets || []).filter(m => m && m.symbol);
   const summary = data?.summary || '';
+
+  if (markets.length === 0) {
+    return (
+      <Card className="p-8 bg-white border-slate-200/60 text-center">
+        <p className="text-sm text-slate-500">No market data available</p>
+        <Button variant="outline" onClick={refresh} className="gap-2 mt-4">
+          <RefreshCw className="w-4 h-4" />
+          {t('common.retry')}
+        </Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
