@@ -613,34 +613,34 @@
       "subtitle": "Monitorear residencia de datos, estado de cumplimiento y controles de seguridad",
       "residency": {
         "title": "Residencia de Datos",
-        "description": "Todos los datos se almacenan exclusivamente en centros de datos suizos y de la UE",
+        "description": "Cuando decides entrenar tus modelos, todos los datos se almacenan y procesan exclusivamente en Suiza",
         "userData": "Datos de usuario",
         "datasets": "Conjuntos de datos",
         "modelCheckpoints": "Puntos de control de modelos",
         "inferenceLogs": "Registros de inferencia",
         "sovereigntyTitle": "Soberanía de Datos Suiza Garantizada",
-        "sovereigntyDesc": "Todos los datos se almacenan en AWS eu-central-2 (Zúrich, Suiza) y nunca salen de la jurisdicción suiza/UE.",
+        "sovereigntyDesc": "Todos los datos se almacenan en Suiza y nunca salen de la jurisdicción suiza/UE.",
         "location": "Zúrich, Suiza"
       },
       "checklist": {
         "title": "Lista de Cumplimiento",
         "description": "Estado actual de cumplimiento y certificaciones",
         "encryptionAtRest": "Cifrado en reposo",
-        "encryptionAtRestInfo": "AES-256 vía AWS SSE - Todos los datos cifrados usando cifrado AES-256 estándar de la industria",
+        "encryptionAtRestInfo": "Cifrado AES-256 para todos los datos almacenados",
         "encryptionInTransit": "Cifrado en tránsito",
-        "encryptionInTransitInfo": "TLS 1.3 para todas las conexiones - Todas las transferencias de API y datos aseguradas",
+        "encryptionInTransitInfo": "TLS 1.3 para todas las conexiones",
         "apiKeySecurity": "Seguridad de claves API",
-        "apiKeySecurityInfo": "Hash SHA-256 - Las claves nunca se almacenan en texto plano",
-        "rowLevelSecurity": "Seguridad a nivel de fila habilitada",
-        "rowLevelSecurityInfo": "Todas las tablas protegidas - Aislamiento de datos de usuario aplicado",
-        "auditLogging": "Registro de auditoría activo",
-        "auditLoggingInfo": "Seguimiento completo de eventos - Todas las acciones registradas e inmutables",
+        "apiKeySecurityInfo": "Hash SHA-256, nunca almacenadas en texto plano",
+        "rowLevelSecurity": "Seguridad a nivel de fila",
+        "rowLevelSecurityInfo": "Control de acceso a nivel de base de datos por usuario",
+        "auditLogging": "Registro de auditoría",
+        "auditLoggingInfo": "Seguimiento completo de actividad",
         "swissDataResidency": "Residencia de datos suiza",
-        "swissDataResidencyInfo": "AWS eu-central-2 (Zúrich) - Todos los datos almacenados exclusivamente en Suiza",
-        "soc2Info": "Auditoría en progreso - Esperado Q2 2025",
-        "iso27001Info": "Q3 2025 - Hoja de ruta de certificación activa",
+        "swissDataResidencyInfo": "Todos los datos almacenados en Zúrich, Suiza",
+        "soc2Info": "Auditoría SOC 2 Type II en progreso",
+        "iso27001Info": "Certificación ISO 27001 planificada",
         "gdprRecords": "Registros Artículo 30 GDPR",
-        "gdprRecordsInfo": "Disponible para exportar"
+        "gdprRecordsInfo": "Documentación completa de procesamiento de datos"
       },
       "audit": {
         "title": "Resumen de Auditoría",
@@ -652,14 +652,14 @@
         "viewFullLogs": "Ver Registros Completos de Auditoría"
       },
       "retention": {
-        "title": "Retención de Datos",
-        "description": "Configurar políticas de retención automática de datos",
-        "tracesRetention": "Retención de trazas (días)",
-        "tracesRetentionDesc": "Las trazas más antiguas que esto se eliminarán automáticamente",
-        "auditRetention": "Retención de registros de auditoría (días)",
-        "auditRetentionDesc": "Mínimo 365 días recomendado para cumplimiento",
-        "datasetsRetention": "Retención de conjuntos de datos inactivos (días)",
-        "datasetsRetentionDesc": "Los conjuntos de datos no accedidos dentro de este período se marcarán para revisión",
+        "title": "Configuración de Retención de Datos",
+        "description": "Configurar políticas de limpieza automática de datos",
+        "tracesRetention": "Retención de Trazas de Inferencia (días)",
+        "tracesRetentionDesc": "Cuánto tiempo mantener los registros de solicitudes de inferencia",
+        "auditRetention": "Retención de Registros de Auditoría (días)",
+        "auditRetentionDesc": "Cuánto tiempo mantener registros de auditoría (mínimo 365 recomendado)",
+        "datasetsRetention": "Retención de Conjuntos de Datos Inactivos (días)",
+        "datasetsRetentionDesc": "Eliminar automáticamente conjuntos de datos sin actividad",
         "saveSettings": "Guardar Configuración de Retención"
       },
       "gdprTools": {
@@ -679,8 +679,7 @@
         "deletingButton": "Procesando..."
       },
       "certifications": {
-        "title": "Certificaciones y Hoja de Ruta",
-        "description": "Certificaciones actuales y próximos hitos de cumplimiento"
+        "title": "Certificaciones"
       },
       "export": {
         "started": "Exportación iniciada",

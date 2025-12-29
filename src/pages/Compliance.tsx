@@ -48,10 +48,10 @@ interface AuditStats {
 }
 
 const certifications = [
-  { name: 'GDPR', status: 'certified', year: '2024' },
-  { name: 'SOC 2', status: 'in_progress', year: '2025' },
-  { name: 'ISO 27001', status: 'planned', year: '2025' },
-  { name: 'FINMA', status: 'planned', year: '2026' },
+  { name: 'GDPR', status: 'in_progress' },
+  { name: 'SOC 2', status: 'in_progress' },
+  { name: 'ISO 27001', status: 'planned' },
+  { name: 'FINMA', status: 'planned' },
 ];
 
 export default function Compliance() {
@@ -199,18 +199,17 @@ export default function Compliance() {
 
   // Translated data residency items
   const dataResidencyItemsTranslated = [
-    { type: t('compliance.dashboard.residency.userData'), location: 'Supabase (eu-central-2)', icon: Database },
-    { type: t('compliance.dashboard.residency.datasets'), location: 'AWS S3 (eu-central-2)', icon: HardDrive },
-    { type: t('compliance.dashboard.residency.modelCheckpoints'), location: 'AWS S3 (eu-central-2)', icon: Server },
-    { type: t('compliance.dashboard.residency.inferenceLogs'), location: 'Supabase (eu-central-2)', icon: Activity },
+    { type: t('compliance.dashboard.residency.userData'), icon: Database },
+    { type: t('compliance.dashboard.residency.datasets'), icon: HardDrive },
+    { type: t('compliance.dashboard.residency.modelCheckpoints'), icon: Server },
+    { type: t('compliance.dashboard.residency.inferenceLogs'), icon: Activity },
   ];
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <Shield className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold text-foreground">
             {t('compliance.dashboard.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -233,18 +232,17 @@ export default function Compliance() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col lg:flex-row gap-6">
-              {/* Swiss Map Visual */}
+            {/* Swiss Flag Visual */}
               <div className="flex-shrink-0 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/20">
                 <div className="relative">
                   <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
-                    <SwissFlag className="h-16 w-16" />
+                    <img src="/favicon.svg" alt="Swiss Flag" className="h-16 w-16" />
                   </div>
                   <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1.5">
                     <CheckCircle2 className="h-5 w-5 text-white" />
                   </div>
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="font-semibold text-foreground">AWS eu-central-2</p>
                   <p className="text-sm text-muted-foreground">{t('compliance.dashboard.residency.location')}</p>
                 </div>
               </div>
@@ -261,7 +259,6 @@ export default function Compliance() {
                     </div>
                     <div>
                       <p className="font-medium text-foreground">{item.type}</p>
-                      <p className="text-sm text-muted-foreground">{item.location}</p>
                     </div>
                   </div>
                 ))}
@@ -445,8 +442,7 @@ export default function Compliance() {
         {/* GDPR Tools */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
+            <CardTitle>
               {t('compliance.dashboard.gdprTools.title')}
             </CardTitle>
             <CardDescription>
@@ -512,13 +508,9 @@ export default function Compliance() {
         {/* Certifications */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
+            <CardTitle>
               {t('compliance.dashboard.certifications.title')}
             </CardTitle>
-            <CardDescription>
-              {t('compliance.dashboard.certifications.description')}
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -552,7 +544,6 @@ export default function Compliance() {
                   <div className="mt-2">
                     {getStatusBadge(cert.status)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">{cert.year}</p>
                 </div>
               ))}
             </div>
