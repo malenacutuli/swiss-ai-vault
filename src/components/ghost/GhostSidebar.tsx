@@ -42,6 +42,7 @@ import {
   IconPlane,
   IconActivity,
   IconCompass,
+  EyeOff,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -256,7 +257,7 @@ export function GhostSidebar({
       )}
     >
       {conv.isTemporary ? (
-        <IconClock className="w-4 h-4 text-warning shrink-0" strokeWidth={1.5} />
+        <EyeOff className="w-4 h-4 text-muted-foreground shrink-0" strokeWidth={1.5} />
       ) : (
         <IconMessage className="w-4 h-4 shrink-0" strokeWidth={1.5} />
       )}
@@ -295,6 +296,11 @@ export function GhostSidebar({
         ) : (
           <>
             <span className="text-[13px] truncate flex-1">{conv.title}</span>
+            {conv.isTemporary && (
+              <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                {t('ghost.sidebar.incognito', 'Incognito')}
+              </span>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button
@@ -513,12 +519,43 @@ export function GhostSidebar({
 
         {/* Top navigation */}
         <div className="flex flex-col gap-1 p-2">
-          {/* New Chat */}
-          <IconButton 
-            icon={IconPlus} 
-            label={t('ghost.sidebar.newChat')} 
-            onClick={() => onNewChat(false)} 
-          />
+          {/* New Chat with dropdown */}
+          {isExpanded ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start gap-3 px-2 py-2 h-auto text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                >
+                  <IconPlus className="w-5 h-5 shrink-0" />
+                  <span className="text-[13px] truncate flex-1 text-left">{t('ghost.sidebar.newChat')}</span>
+                  <IconChevronDown className="w-3 h-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 bg-popover z-50">
+                <DropdownMenuItem onClick={() => onNewChat(false)} className="flex items-start gap-3 py-2.5">
+                  <IconMessage className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-medium">{t('ghost.sidebar.normalChat', 'Normal Chat')}</span>
+                    <span className="text-xs text-muted-foreground">{t('ghost.sidebar.normalChatDesc', 'Saved to your device')}</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onNewChat(true)} className="flex items-start gap-3 py-2.5">
+                  <EyeOff className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-medium">{t('ghost.sidebar.incognitoChat', 'Incognito Chat')}</span>
+                    <span className="text-xs text-muted-foreground">{t('ghost.sidebar.incognitoChatDesc', 'Deleted when you leave')}</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <IconButton 
+              icon={IconPlus} 
+              label={t('ghost.sidebar.newChat')} 
+              onClick={() => onNewChat(false)} 
+            />
+          )}
 
           {/* New Folder */}
           <IconButton 
