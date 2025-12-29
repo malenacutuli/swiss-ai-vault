@@ -110,7 +110,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditCost: 0.5,
     creditMultiplier: 0.5,
     isPayPerUse: false,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'qwen2.5-coder-7b',
@@ -124,7 +124,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditCost: 1,
     creditMultiplier: 1,
     isPayPerUse: false,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'llama3.1-8b',
@@ -138,7 +138,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditCost: 1,
     creditMultiplier: 1,
     isPayPerUse: false,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'mistral-7b',
@@ -376,7 +376,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 2,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'claude-3.5-haiku',
@@ -391,7 +391,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 1,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'claude-opus-4.5',
@@ -406,7 +406,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 5,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'claude-sonnet-4',
@@ -421,7 +421,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 2,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
 
   // ============================================
@@ -564,7 +564,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 2,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'grok-2-vision',
@@ -579,7 +579,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 2,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
   {
     id: 'grok-3',
@@ -594,7 +594,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 3,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Temporarily disabled for beta
   },
 
   // ============================================
