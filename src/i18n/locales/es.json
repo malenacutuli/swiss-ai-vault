@@ -607,7 +607,99 @@
     "certifications": "Certificaciones",
     "auditLogs": "Registros de auditoría",
     "exportData": "Exportar todos los datos del usuario",
-    "deleteData": "Eliminar todos los datos del usuario"
+    "deleteData": "Eliminar todos los datos del usuario",
+    "dashboard": {
+      "title": "Panel de Cumplimiento",
+      "subtitle": "Monitorear residencia de datos, estado de cumplimiento y controles de seguridad",
+      "residency": {
+        "title": "Residencia de Datos",
+        "description": "Todos los datos se almacenan exclusivamente en centros de datos suizos y de la UE",
+        "userData": "Datos de usuario",
+        "datasets": "Conjuntos de datos",
+        "modelCheckpoints": "Puntos de control de modelos",
+        "inferenceLogs": "Registros de inferencia",
+        "sovereigntyTitle": "Soberanía de Datos Suiza Garantizada",
+        "sovereigntyDesc": "Todos los datos se almacenan en AWS eu-central-2 (Zúrich, Suiza) y nunca salen de la jurisdicción suiza/UE.",
+        "location": "Zúrich, Suiza"
+      },
+      "checklist": {
+        "title": "Lista de Cumplimiento",
+        "description": "Estado actual de cumplimiento y certificaciones",
+        "encryptionAtRest": "Cifrado en reposo",
+        "encryptionAtRestInfo": "AES-256 vía AWS SSE - Todos los datos cifrados usando cifrado AES-256 estándar de la industria",
+        "encryptionInTransit": "Cifrado en tránsito",
+        "encryptionInTransitInfo": "TLS 1.3 para todas las conexiones - Todas las transferencias de API y datos aseguradas",
+        "apiKeySecurity": "Seguridad de claves API",
+        "apiKeySecurityInfo": "Hash SHA-256 - Las claves nunca se almacenan en texto plano",
+        "rowLevelSecurity": "Seguridad a nivel de fila habilitada",
+        "rowLevelSecurityInfo": "Todas las tablas protegidas - Aislamiento de datos de usuario aplicado",
+        "auditLogging": "Registro de auditoría activo",
+        "auditLoggingInfo": "Seguimiento completo de eventos - Todas las acciones registradas e inmutables",
+        "swissDataResidency": "Residencia de datos suiza",
+        "swissDataResidencyInfo": "AWS eu-central-2 (Zúrich) - Todos los datos almacenados exclusivamente en Suiza",
+        "soc2Info": "Auditoría en progreso - Esperado Q2 2025",
+        "iso27001Info": "Q3 2025 - Hoja de ruta de certificación activa",
+        "gdprRecords": "Registros Artículo 30 GDPR",
+        "gdprRecordsInfo": "Disponible para exportar"
+      },
+      "audit": {
+        "title": "Resumen de Auditoría",
+        "description": "Resumen de actividad de registro de auditoría",
+        "totalEvents": "Eventos Totales",
+        "thisMonth": "Este Mes",
+        "topActions": "Principales Acciones",
+        "noEvents": "No hay eventos de auditoría registrados",
+        "viewFullLogs": "Ver Registros Completos de Auditoría"
+      },
+      "retention": {
+        "title": "Retención de Datos",
+        "description": "Configurar políticas de retención automática de datos",
+        "tracesRetention": "Retención de trazas (días)",
+        "tracesRetentionDesc": "Las trazas más antiguas que esto se eliminarán automáticamente",
+        "auditRetention": "Retención de registros de auditoría (días)",
+        "auditRetentionDesc": "Mínimo 365 días recomendado para cumplimiento",
+        "datasetsRetention": "Retención de conjuntos de datos inactivos (días)",
+        "datasetsRetentionDesc": "Los conjuntos de datos no accedidos dentro de este período se marcarán para revisión",
+        "saveSettings": "Guardar Configuración de Retención"
+      },
+      "gdprTools": {
+        "title": "Herramientas GDPR",
+        "description": "Portabilidad de datos y derecho al olvido",
+        "exportTitle": "Exportar Todos los Datos del Usuario",
+        "exportDesc": "Descargar un archivo ZIP con todos tus datos: conjuntos de datos, modelos, configuración y trazas.",
+        "exportButton": "Exportar Mis Datos",
+        "exportingButton": "Preparando Exportación...",
+        "deleteTitle": "Eliminar Todos los Datos del Usuario",
+        "deleteDesc": "Eliminar permanentemente todos tus datos. Esta acción no se puede deshacer.",
+        "deleteButton": "Solicitar Eliminación de Datos",
+        "deleteDialogTitle": "¿Estás absolutamente seguro?",
+        "deleteDialogDesc": "Esto eliminará permanentemente todos tus datos incluyendo conjuntos de datos, modelos ajustados, evaluaciones, trazas y configuración. Esta acción no se puede deshacer y se procesará dentro de 30 días según los requisitos de GDPR.",
+        "deleteDialogCancel": "Cancelar",
+        "deleteDialogConfirm": "Eliminar Todos los Datos",
+        "deletingButton": "Procesando..."
+      },
+      "certifications": {
+        "title": "Certificaciones y Hoja de Ruta",
+        "description": "Certificaciones actuales y próximos hitos de cumplimiento"
+      },
+      "export": {
+        "started": "Exportación iniciada",
+        "startedDesc": "Tu exportación de datos está siendo preparada. Recibirás un enlace de descarga por correo electrónico.",
+        "failed": "Exportación fallida",
+        "failedDesc": "Error al iniciar la exportación de datos. Por favor, inténtalo de nuevo."
+      },
+      "delete": {
+        "submitted": "Solicitud de eliminación enviada",
+        "submittedDesc": "Tu solicitud de eliminación de datos ha sido enviada y se procesará dentro de 30 días.",
+        "failed": "Eliminación fallida",
+        "failedDesc": "Error al enviar la solicitud de eliminación. Por favor, contacta con soporte."
+      },
+      "status": {
+        "certified": "Certificado",
+        "inProgress": "En Progreso",
+        "planned": "Planificado"
+      }
+    }
   },
   "errors": {
     "generic": "Algo salió mal",
