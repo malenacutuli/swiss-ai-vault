@@ -30,7 +30,7 @@ import {
   getModelsByModality,
 } from '@/lib/ghost-models';
 
-type GhostMode = 'text' | 'image' | 'video' | 'search';
+type GhostMode = 'text' | 'image' | 'video' | 'search' | 'research';
 
 interface GhostModelPickerProps {
   mode: GhostMode;
@@ -101,10 +101,10 @@ export function GhostModelPicker({
 }: GhostModelPickerProps) {
   const [open, setOpen] = useState(false);
 
-  // Get models for current mode (search uses text models)
+  // Get models for current mode (search and research use text models)
   const models = useMemo(() => {
-    if (mode === 'search') {
-      // For search, only show models suitable for search (could filter by specific tags)
+    if (mode === 'search' || mode === 'research') {
+      // For search/research, only show text models suitable for search
       return getModelsByModality('text', matureFilterEnabled);
     }
     return getModelsByModality(mode, matureFilterEnabled);

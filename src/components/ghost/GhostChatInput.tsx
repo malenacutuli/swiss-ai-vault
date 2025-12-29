@@ -4,6 +4,13 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { GhostModelPicker } from './GhostModelPicker';
 import { VoiceInputButton } from './VoiceInputButton';
 import {
@@ -12,12 +19,19 @@ import {
   Send,
   Square,
   Loader2,
+  MessageSquare,
+  Image,
+  Video,
+  Globe,
+  BookOpen,
+  ChevronDown,
 } from '@/icons';
 
-type GhostMode = 'text' | 'image' | 'video' | 'search';
+export type GhostMode = 'text' | 'image' | 'video' | 'search' | 'research';
 
 interface GhostChatInputProps {
   mode: GhostMode;
+  onModeChange: (mode: GhostMode) => void;
   selectedModel: string;
   onSelectModel: (modelId: string) => void;
   value: string;
@@ -38,6 +52,14 @@ interface GhostChatInputProps {
   className?: string;
 }
 
+const MODE_CONFIG: { id: GhostMode; labelKey: string; icon: React.ElementType; badge?: 'new' | 'pro' }[] = [
+  { id: 'text', labelKey: 'ghost.modes.text', icon: MessageSquare },
+  { id: 'image', labelKey: 'ghost.modes.image', icon: Image, badge: 'new' },
+  { id: 'video', labelKey: 'ghost.modes.video', icon: Video, badge: 'new' },
+  { id: 'search', labelKey: 'ghost.modes.search', icon: Globe },
+  { id: 'research', labelKey: 'ghost.modes.research', icon: BookOpen, badge: 'pro' },
+];
+
 const getPlaceholder = (mode: GhostMode, t: (key: string, fallback: string) => string): string => {
   switch (mode) {
     case 'text':
@@ -48,6 +70,8 @@ const getPlaceholder = (mode: GhostMode, t: (key: string, fallback: string) => s
       return t('ghost.input.videoPlaceholder', 'Describe the video you want to generate...');
     case 'search':
       return t('ghost.input.searchPlaceholder', 'Search the web privately...');
+    case 'research':
+      return t('ghost.input.researchPlaceholder', 'What would you like to research in depth?');
     default:
       return t('ghost.input.textPlaceholder', 'Ask anything privately...');
   }
@@ -55,6 +79,7 @@ const getPlaceholder = (mode: GhostMode, t: (key: string, fallback: string) => s
 
 export function GhostChatInput({
   mode,
+  onModeChange,
   selectedModel,
   onSelectModel,
   value,
@@ -73,6 +98,9 @@ export function GhostChatInput({
 }: GhostChatInputProps) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const currentModeConfig = MODE_CONFIG.find(m => m.id === mode) || MODE_CONFIG[0];
+  const CurrentIcon = currentModeConfig.icon;
 
   const handleVoiceTranscript = (text: string) => {
     onChange(value ? `${value} ${text}` : text);
@@ -102,16 +130,50 @@ export function GhostChatInput({
   return (
     <TooltipProvider delayDuration={300}>
       <div className={cn('w-full', className)}>
+        {/* Mode & Model Selectors Row */}
+        <div className="flex items-center gap-2 mb-2 px-1">
+          {/* Mode Selector Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 h-8 px-3 bg-background">
+                <CurrentIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">{t(currentModeConfig.labelKey)}</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 bg-popover">
+              {MODE_CONFIG.map(({ id, labelKey, icon: Icon, badge }) => (
+                <DropdownMenuItem 
+                  key={id}
+                  onSelect={() => onModeChange(id)}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="flex-1">{t(labelKey)}</span>
+                  {badge === 'new' && (
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">NEW</Badge>
+                  )}
+                  {badge === 'pro' && (
+                    <Badge className="text-[10px] px-1 py-0 h-4 bg-amber-500/20 text-amber-600 border-amber-500/30">PRO</Badge>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Model Selector */}
+          <GhostModelPicker
+            mode={mode}
+            selectedModel={selectedModel}
+            onSelectModel={onSelectModel}
+            matureFilterEnabled={matureFilterEnabled}
+          />
+        </div>
+
+        {/* Input Area */}
         <div className="relative flex items-end gap-2 bg-background border border-border rounded-2xl px-3 py-2.5 shadow-card focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all duration-150">
           {/* Left icons */}
           <div className="flex items-center gap-0.5 pb-0.5">
-            <GhostModelPicker
-              mode={mode}
-              selectedModel={selectedModel}
-              onSelectModel={onSelectModel}
-              matureFilterEnabled={matureFilterEnabled}
-            />
-
             {onAttach && (
               <Tooltip>
                 <TooltipTrigger asChild>
