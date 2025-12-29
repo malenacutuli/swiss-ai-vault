@@ -138,14 +138,19 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
         collapsed ? "w-16" : "w-[280px]"
       )}
     >
-      {/* Logo */}
+      {/* Toggle button area */}
       <div className={cn(
         "flex h-16 items-center border-b border-sidebar-border px-4 flex-shrink-0",
-        collapsed ? "justify-center" : "justify-between"
+        collapsed ? "justify-center" : "justify-end"
       )}>
-        <Link to="/labs" className="flex items-center">
-          <SwissFlag className={cn("transition-all", collapsed ? "h-8" : "h-9")} />
-        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggle}
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </Button>
       </div>
 
       {/* Organization Switcher */}

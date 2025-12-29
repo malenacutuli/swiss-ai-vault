@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
 import { LabsSidebar } from "@/components/layout/LabsSidebar";
+import { SwissFlag } from "@/components/icons/SwissFlag";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "@/icons";
 
@@ -79,12 +80,18 @@ export function LabsLayout() {
           collapsed ? "ml-16" : "ml-[280px]"
         )}
       >
-        {/* Optional header with breadcrumbs */}
-        {showBreadcrumbs && (
-          <header className="h-16 border-b border-border flex items-center px-6 flex-shrink-0">
-            <Breadcrumbs />
-          </header>
-        )}
+        {/* Header with logo and breadcrumbs */}
+        <header className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background/95 backdrop-blur sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <Link to="/" className="flex items-center">
+              <SwissFlag className="h-10" />
+            </Link>
+            {showBreadcrumbs && (
+              <div className="h-6 w-px bg-border" />
+            )}
+            {showBreadcrumbs && <Breadcrumbs />}
+          </div>
+        </header>
         
         <main className="flex-1">
           <Outlet />
