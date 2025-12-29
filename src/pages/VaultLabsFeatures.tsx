@@ -1,4 +1,3 @@
-import { MarketingLayout } from "@/layouts/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { 
   Database, 
@@ -81,8 +80,7 @@ const VaultLabsFeatures = () => {
   ];
 
   return (
-    <MarketingLayout>
-      {/* Hero Section */}
+    <>
       <section className="pt-32 pb-20 px-4">
         <div className="container mx-auto max-w-6xl text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
@@ -149,7 +147,7 @@ const VaultLabsFeatures = () => {
                     loop
                     muted
                     playsInline
-                    className="w-full h-auto bg-white"
+                    className="w-full h-auto bg-background"
                   />
                 ) : section.id === "finetuning" ? (
                   <video
@@ -158,7 +156,7 @@ const VaultLabsFeatures = () => {
                     loop
                     muted
                     playsInline
-                    className="w-full h-auto bg-white"
+                    className="w-full h-auto bg-background"
                   />
                 ) : section.id === "evaluations" ? (
                   <video
@@ -167,7 +165,7 @@ const VaultLabsFeatures = () => {
                     loop
                     muted
                     playsInline
-                    className="w-full h-auto bg-white"
+                    className="w-full h-auto bg-background"
                   />
                 ) : (
                   <video
@@ -176,7 +174,7 @@ const VaultLabsFeatures = () => {
                     loop
                     muted
                     playsInline
-                    className="w-full h-auto bg-white"
+                    className="w-full h-auto bg-background"
                   />
                 )}
               </div>
@@ -184,8 +182,7 @@ const VaultLabsFeatures = () => {
           </div>
         </section>
       ))}
-
-    </MarketingLayout>
+    </>
   );
 };
 
