@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, CheckCircle2, XCircle, Clock, Video } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Clock, Video } from '@/icons';
 import { Progress } from '@/components/ui/progress';
 import { SwissCard } from '@/components/ui/swiss';
 import { cn } from '@/lib/utils';

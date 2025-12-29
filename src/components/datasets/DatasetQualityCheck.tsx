@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Info } from '@/icons';
 
 interface QualityCheckProps {
   rows: any[];

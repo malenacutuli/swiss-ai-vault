@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, Brain, Clock } from 'lucide-react';
+import { ChevronDown, Brain, Clock } from '@/icons';
 import {
   DropdownMenu,
   DropdownMenuContent,

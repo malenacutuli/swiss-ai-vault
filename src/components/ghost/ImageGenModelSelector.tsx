@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Sparkles, Zap, Crown, Image as ImageIcon, Check } from 'lucide-react';
+import { ChevronDown, Sparkles, Zap, Crown, Image as ImageIcon, Check } from '@/icons';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

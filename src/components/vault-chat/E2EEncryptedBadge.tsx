@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from '@/icons';
 import {
   Tooltip,
   TooltipContent,

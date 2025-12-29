@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Shield, Clock, Archive, Database } from 'lucide-react';
+import { Shield, Clock, Archive, Database } from '@/icons';
 import {
   DropdownMenu,
   DropdownMenuContent,

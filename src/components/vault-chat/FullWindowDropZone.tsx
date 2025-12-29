@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { CloudUpload, FileText, Image, Code, Table } from 'lucide-react';
+import { CloudUpload, FileText, Image, Code, Table } from '@/icons';
 import { cn } from '@/lib/utils';
 import { getFileConfig } from '@/lib/supported-file-types';
 

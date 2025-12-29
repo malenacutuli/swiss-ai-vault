@@ -11,7 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Sparkles, AlertTriangle } from 'lucide-react';
+import { Sparkles, AlertTriangle } from '@/icons';
 import { useDatasetEnrichment } from '@/hooks/useDatasetEnrichment';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

@@ -16,7 +16,7 @@ import {
   Trophy,
   ChevronRight,
   RotateCcw,
-} from "lucide-react";
+} from "@/icons";
 
 interface ProjectSetupWizardProps {
   open: boolean;

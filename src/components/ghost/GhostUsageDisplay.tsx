@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Image, Crown, Clock } from 'lucide-react';
+import { Zap, Image, Crown, Clock } from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface GhostUsageDisplayProps {

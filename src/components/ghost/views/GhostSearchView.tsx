@@ -1,5 +1,5 @@
 import { SwissCard } from '@/components/ui/swiss';
-import { Globe, Shield, Search, ExternalLink, Sparkles } from 'lucide-react';
+import { Globe, Shield, Search, ExternalLink, Sparkles } from '@/icons';
 import ReactMarkdown from 'react-markdown';
 
 export interface SearchResult {

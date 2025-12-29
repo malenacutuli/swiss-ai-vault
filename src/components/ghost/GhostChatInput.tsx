@@ -12,7 +12,7 @@ import {
   Send,
   Square,
   Loader2,
-} from 'lucide-react';
+} from '@/icons';
 
 type GhostMode = 'text' | 'image' | 'video' | 'search';
 

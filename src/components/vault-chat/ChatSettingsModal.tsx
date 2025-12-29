@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Plug, Download, Key, Copy, Check, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Settings, Plug, Download, Key, Copy, Check, Eye, EyeOff, Trash2 } from '@/icons';
 import {
   Dialog,
   DialogContent,

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileImage, FileText } from 'lucide-react';
+import { Upload, FileImage, FileText } from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface GhostDropZoneProps {

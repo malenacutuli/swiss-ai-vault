@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Shield, Lock, Key, CheckCircle, AlertTriangle, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Shield, Lock, Key, CheckCircle, AlertTriangle, ArrowRight, ArrowLeft, Eye, EyeOff } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';

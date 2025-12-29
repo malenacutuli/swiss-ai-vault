@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Volume2, VolumeX, Loader2, Pause, Play } from 'lucide-react';
+import { Volume2, VolumeX, Loader2, Pause, Play } from '@/icons';
 
 interface ReadAloudButtonProps {
   messageId: string;

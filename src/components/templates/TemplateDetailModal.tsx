@@ -24,7 +24,7 @@ import {
   Play,
   Clock,
   Cpu
-} from "lucide-react";
+} from "@/icons";
 import { useFinetuningTemplate } from "@/hooks/useFinetuningTemplates";
 import { useToast } from "@/hooks/use-toast";
 

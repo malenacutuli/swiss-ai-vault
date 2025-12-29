@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Image, Video, Globe } from 'lucide-react';
+import { MessageSquare, Image, Video, Globe } from '@/icons';
 import { useTranslation } from 'react-i18next';
 
 export type GhostMode = 'text' | 'image' | 'video' | 'search';

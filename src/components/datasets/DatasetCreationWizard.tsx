@@ -44,7 +44,7 @@ import {
   Split,
   Database,
   CheckCircle,
-} from "lucide-react";
+} from "@/icons";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";

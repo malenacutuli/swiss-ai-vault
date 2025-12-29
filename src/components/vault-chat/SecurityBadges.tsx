@@ -3,7 +3,7 @@
  * Visual indicators for encryption status, zero-retention mode, and Swiss hosting.
  */
 
-import { Shield, Lock, EyeOff, Loader2, CheckCircle } from 'lucide-react';
+import { Shield, Lock, EyeOff, Loader2, CheckCircle } from '@/icons';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';

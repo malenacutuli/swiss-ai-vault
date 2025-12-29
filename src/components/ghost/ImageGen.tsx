@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Image, Wand2, Coins, Loader2, Upload, X } from 'lucide-react';
+import { Image, Wand2, Coins, Loader2, Upload, X } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';

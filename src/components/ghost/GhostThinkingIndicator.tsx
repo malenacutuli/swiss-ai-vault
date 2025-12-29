@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, Brain, Sparkles, Zap, Code, Lock, AlertTriangle, Clock } from 'lucide-react';
+import { Loader2, Brain, Sparkles, Zap, Code, Lock, AlertTriangle, Clock } from '@/icons';
 import { cn } from '@/lib/utils';
 import type { StreamStatus } from '@/hooks/useGhostInference';
 
