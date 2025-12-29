@@ -1,6 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import swissVaultLogo from '@/assets/swissvault-logo.png';
-import { SwissFlag } from '@/components/icons/SwissFlag';
+
+// Inline Swiss flag SVG matching the favicon
+const SwissFlagIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="32" height="32" rx="4" fill="#dc2626"/>
+    <path d="M14 8H18V14H24V18H18V24H14V18H8V14H14V8Z" fill="white"/>
+  </svg>
+);
 
 interface GhostTextViewProps {
   hasMessages: boolean;
@@ -34,7 +41,7 @@ export function GhostTextViewEmpty({ children }: GhostTextViewEmptyProps) {
       
       {/* Powered by text below input */}
       <div className="flex items-center gap-1.5 mt-6 text-xs text-muted-foreground/70">
-        <SwissFlag className="w-4 h-3" />
+        <SwissFlagIcon className="w-4 h-4" />
         <span>{t('ghost.welcome.poweredBy')}</span>
       </div>
       
