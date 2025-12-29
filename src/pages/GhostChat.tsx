@@ -32,8 +32,8 @@ import { GhostUpgradeModal } from '@/components/ghost/GhostUpgradeModal';
 import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
-import { SwissFlag } from '@/components/icons/SwissFlag';
-import { EyeOff, Shield, Menu, X, AlertTriangle, FileText, Moon, Sun, Ghost } from '@/icons';
+import { UnifiedHeader } from '@/components/layout/UnifiedHeader';
+import { EyeOff, Shield, AlertTriangle, FileText, Ghost, X } from '@/icons';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -137,21 +137,6 @@ function GhostChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false); // Prevent double submission
-  
-  // Theme state
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return true;
-  });
-  
-  const toggleTheme = useCallback(() => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    document.documentElement.classList.toggle('dark', newIsDark);
-    localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
-  }, [isDark]);
 
   // Get mode from URL or default to 'text'
   const mode = (searchParams.get('mode') as GhostMode) || 'text';
@@ -1505,79 +1490,12 @@ function GhostChat() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="flex-shrink-0 h-14 flex items-center justify-between px-4 lg:px-6 border-b border-border/60 bg-background/95 backdrop-blur sticky top-0 z-40">
-          {/* Left: Logo + Ghost Badge */}
-          <div className="flex items-center gap-3">
-            {/* Mobile menu toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden -ml-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-
-            {/* Logo */}
-            <a href="/" className="flex items-center">
-              <SwissFlag className="h-8 w-auto" />
-            </a>
-
-            {/* Ghost Badge */}
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded-full">
-              <Ghost className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-medium">Ghost</span>
-            </div>
-          </div>
-
-          {/* Center: Mode Tabs (desktop) */}
-          <div className="hidden md:flex">
-            <GhostModeTabs
-              activeMode={mode}
-              onModeChange={handleModeChange}
-            />
-          </div>
-
-          {/* Right: Status + Settings */}
-          <div className="flex items-center gap-2">
-            {/* Zero Retention Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success/60 opacity-50" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-              </span>
-              <span>{t('ghost.status.zeroRetention', 'Zero Retention')}</span>
-            </div>
-
-            {/* Language Switcher */}
-            <LanguageSwitcher />
-
-            {/* Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-
-            {/* Sign Up for non-authenticated users */}
-            {!user && (
-              <Button size="sm" onClick={() => navigate('/auth/ghost-signup')}>
-                {t('ghost.auth.signUp', 'Sign Up')}
-              </Button>
-            )}
-          </div>
-        </header>
-
-        {/* Mobile Mode Tabs */}
-        <div className="md:hidden border-b border-border/60 px-4 py-2">
-          <GhostModeTabs
-            activeMode={mode}
-            onModeChange={handleModeChange}
-          />
-        </div>
+        {/* Unified Header */}
+        <UnifiedHeader
+          product="ghost"
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+          isMenuOpen={sidebarOpen}
+        />
 
 
         {/* Corrupted Data Recovery Alert */}
