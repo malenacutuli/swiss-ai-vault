@@ -468,14 +468,20 @@
   font-weight: 500;
 }
 
+/* Ensure spans inside h1/h2 inherit the serif font */
+.marketing h1 span,
+.marketing h2 span {
+  font-family: inherit;
+}
+
 /* Ensure all other marketing text stays Inter (sans-serif) */
 .marketing h3,
 .marketing h4,
 .marketing h5,
 .marketing h6,
 .marketing p,
-.marketing span,
-.marketing div,
+.marketing > span,
+.marketing div:not(h1 *):not(h2 *),
 .marketing li,
 .marketing a,
 .marketing button,
