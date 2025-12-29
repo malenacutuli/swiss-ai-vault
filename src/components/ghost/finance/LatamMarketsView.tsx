@@ -1,19 +1,58 @@
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { RefreshCw, AlertCircle } from '@/icons';
 import { MarketSparkline } from '@/components/ghost/MarketSparkline';
+import { useFinanceData, RegionalMarketData } from '@/hooks/useFinanceData';
 import { cn } from '@/lib/utils';
 
-const latamMarkets = [
-  { symbol: 'BVSP', name: 'Brazil Bovespa', price: 127543.20, change: 1245.30, changePercent: 0.99 },
-  { symbol: 'IPC', name: 'Mexico IPC', price: 52892.45, change: -312.80, changePercent: -0.59 },
-  { symbol: 'MERV', name: 'Argentina Merval', price: 1892456.30, change: 45678.90, changePercent: 2.47 },
-  { symbol: 'IPSA', name: 'Chile IPSA', price: 6234.50, change: 28.45, changePercent: 0.46 },
-];
-
 export function LatamMarketsView() {
+  const { t } = useTranslation();
+  const { data, isLoading, error, refresh } = useFinanceData<RegionalMarketData>('markets', 'latam');
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="p-4 bg-white border-slate-200/60">
+              <Skeleton className="h-4 w-20 mb-2" />
+              <Skeleton className="h-12 w-full my-2" />
+              <Skeleton className="h-6 w-24" />
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-8 bg-white border-slate-200/60 text-center">
+        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+        <p className="text-sm text-slate-500 mb-4">{error}</p>
+        <Button variant="outline" onClick={refresh} className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          {t('common.retry')}
+        </Button>
+      </Card>
+    );
+  }
+
+  const markets = data?.markets || [];
+  const summary = data?.summary || '';
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" onClick={refresh} className="gap-2 h-8">
+          <RefreshCw className="w-3.5 h-3.5" />
+          {t('common.refresh')}
+        </Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {latamMarkets.map((ticker) => (
+        {markets.map((ticker) => (
           <Card key={ticker.symbol} className="p-4 bg-white border-slate-200/60 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-slate-500">{ticker.name}</span>
@@ -29,7 +68,7 @@ export function LatamMarketsView() {
             </div>
             <div className="flex items-end justify-between">
               <div className="text-xl font-semibold text-slate-900">
-                {ticker.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {ticker.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
               <p className={cn("text-sm font-medium", ticker.change >= 0 ? "text-green-600" : "text-red-600")}>
                 {ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(2)}
@@ -39,14 +78,12 @@ export function LatamMarketsView() {
         ))}
       </div>
       
-      <Card className="p-6 bg-white border-slate-200/60">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">LatAm Market Summary</h3>
-        <p className="text-slate-600 text-sm leading-relaxed">
-          Latin American markets show divergent trends. Argentina's Merval surges on political reform optimism. 
-          Brazil's Bovespa gains on commodity exports while Mexico faces pressure from peso volatility 
-          and trade policy uncertainty.
-        </p>
-      </Card>
+      {summary && (
+        <Card className="p-6 bg-white border-slate-200/60">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('ghost.modules.finance.views.markets.summary')}</h3>
+          <p className="text-slate-600 text-sm leading-relaxed">{summary}</p>
+        </Card>
+      )}
     </div>
   );
 }

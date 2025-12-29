@@ -7,9 +7,9 @@ import { MarketSparkline } from '@/components/ghost/MarketSparkline';
 import { useFinanceData, RegionalMarketData } from '@/hooks/useFinanceData';
 import { cn } from '@/lib/utils';
 
-export function AsiaMarketsView() {
+export function USMarketsView() {
   const { t } = useTranslation();
-  const { data, isLoading, error, refresh } = useFinanceData<RegionalMarketData>('markets', 'asia');
+  const { data, isLoading, error, refresh } = useFinanceData<RegionalMarketData>('markets', 'us');
 
   if (isLoading) {
     return (
