@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SwissFlag } from "@/components/icons/SwissFlag";
-import { Menu, X, ArrowRight, ChevronDown, Ghost } from "lucide-react";
+import { Menu, X, ArrowRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -40,13 +39,7 @@ export const Navbar = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-44">
                   <DropdownMenuItem asChild>
-                    <Link to="/ghost" className="flex items-center justify-between w-full">
-                      <span className="flex items-center gap-2">
-                        <Ghost className="h-4 w-4" />
-                        Ghost Chat
-                      </span>
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Try Free</Badge>
-                    </Link>
+                    <Link to="/ghost">Ghost Chat</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/features/vault-chat">
@@ -96,10 +89,8 @@ export const Navbar = () => {
           {isOpen && (
             <div className="md:hidden py-4 border-t border-border/50">
               <div className="flex flex-col gap-4">
-                <Link to="/ghost" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
-                  <Ghost className="h-4 w-4" />
+                <Link to="/ghost" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   Ghost Chat
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Try Free</Badge>
                 </Link>
                 <Link to="/features/vault-chat" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   Vault Chat
