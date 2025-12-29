@@ -304,12 +304,21 @@ export function GhostSidebar({
               )}
             </div>
 
-            <div className="flex items-center gap-0.5 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="flex items-center gap-0.5 shrink-0 ml-auto"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => {
+                // Prevent parent draggable/onClick from hijacking button interactions
+                e.stopPropagation();
+              }}
+            >
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 opacity-60 hover:opacity-100"
-                onClick={() => {
+                draggable={false}
+                onClick={(e) => {
+                  e.stopPropagation();
                   setEditingChatId(conv.id);
                   setEditingChatTitle(conv.title);
                 }}
@@ -321,7 +330,11 @@ export function GhostSidebar({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 opacity-60 hover:opacity-100"
-                onClick={() => onExportConversation(conv.id)}
+                draggable={false}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExportConversation(conv.id);
+                }}
                 aria-label={t('ghost.sidebar.download', 'Download')}
               >
                 <IconDownload className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -330,7 +343,11 @@ export function GhostSidebar({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-destructive opacity-60 hover:opacity-100"
-                onClick={() => onDeleteConversation(conv.id)}
+                draggable={false}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteConversation(conv.id);
+                }}
                 aria-label={t('ghost.sidebar.delete', 'Delete')}
               >
                 <IconTrash className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -397,12 +414,20 @@ export function GhostSidebar({
                   {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" strokeWidth={1.5} />}
                 </div>
 
-                <div className="flex items-center gap-0.5 shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="flex items-center gap-0.5 shrink-0 ml-auto"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 opacity-60 hover:opacity-100"
-                    onClick={() => {
+                    draggable={false}
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setEditingFolderId(folder.id);
                       setEditingFolderName(folder.name);
                     }}
@@ -416,7 +441,11 @@ export function GhostSidebar({
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 opacity-60 hover:opacity-100"
-                      onClick={() => onExportFolder(folder.id)}
+                      draggable={false}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onExportFolder(folder.id);
+                      }}
                       aria-label={t('ghost.sidebar.downloadAll', 'Download all')}
                     >
                       <IconDownload className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -427,7 +456,9 @@ export function GhostSidebar({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 text-destructive opacity-60 hover:opacity-100"
-                    onClick={async () => {
+                    draggable={false}
+                    onClick={async (e) => {
+                      e.stopPropagation();
                       if (onDeleteFolder) await onDeleteFolder(folder.id);
                     }}
                     aria-label={t('ghost.sidebar.delete', 'Delete')}
