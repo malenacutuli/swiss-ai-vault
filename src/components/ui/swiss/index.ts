@@ -4,3 +4,4 @@ export { SwissButton, swissButtonVariants, type SwissButtonProps } from "./Swiss
 export { SwissInput, type SwissInputProps } from "./SwissInput";
 export { SwissHeading } from "./SwissHeading";
 export { SwissBadge, swissBadgeVariants, getTagBadgeVariant, type SwissBadgeProps } from "./SwissBadge";
+export { SwissIconTile, type SwissIconTileProps } from "./SwissIconTile";
