@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Coins, Zap, Shield, Check } from "lucide-react";
+import { Coins, Zap, Shield, Check } from "@/icons";
 import { cn } from "@/lib/utils";
 
 interface BuyGhostCreditsModalProps {
