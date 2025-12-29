@@ -42,7 +42,7 @@ import {
   IconPlane,
   IconActivity,
   IconCompass,
-} from '@tabler/icons-react';
+} from '@/icons';
 import {
   DropdownMenu,
   DropdownMenuContent,

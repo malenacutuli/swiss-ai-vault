@@ -1,10 +1,10 @@
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { 
-  IconSearch, 
-  IconBrain, 
-  IconBulb 
-} from '@tabler/icons-react';
+  Search, 
+  Brain, 
+  Lightbulb 
+} from '@/icons';
 
 export type SearchMode = 'search' | 'research' | 'reason';
 
@@ -17,9 +17,9 @@ export function SearchModeSelector({ mode, onModeChange }: SearchModeSelectorPro
   const { t } = useTranslation();
   
   const modes = [
-    { id: 'search' as const, labelKey: 'ghost.discover.modes.search', icon: IconSearch },
-    { id: 'research' as const, labelKey: 'ghost.discover.modes.research', icon: IconBrain },
-    { id: 'reason' as const, labelKey: 'ghost.discover.modes.reason', icon: IconBulb },
+    { id: 'search' as const, labelKey: 'ghost.discover.modes.search', icon: Search },
+    { id: 'research' as const, labelKey: 'ghost.discover.modes.research', icon: Brain },
+    { id: 'reason' as const, labelKey: 'ghost.discover.modes.reason', icon: Lightbulb },
   ];
 
   return (
@@ -35,7 +35,7 @@ export function SearchModeSelector({ mode, onModeChange }: SearchModeSelectorPro
               : "text-slate-500 hover:text-slate-700"
           )}
         >
-          <Icon className="w-4 h-4" stroke={1.5} />
+          <Icon className="w-4 h-4" strokeWidth={1.5} />
           {t(labelKey)}
         </button>
       ))}

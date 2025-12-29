@@ -22,13 +22,13 @@ import {
   MENAMarketsView
 } from '@/components/ghost/finance';
 import { 
-  IconTrendingUp,
-  IconSearch,
-  IconBell,
-  IconArrowRight,
-  IconLoader2,
-  IconExternalLink
-} from '@tabler/icons-react';
+  TrendingUp,
+  Search,
+  Bell,
+  ArrowRight,
+  Loader2,
+  ExternalLink
+} from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface MarketTicker {
@@ -204,7 +204,7 @@ export default function GhostFinance() {
                       <a key={c.index} href={c.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 rounded-full text-xs text-slate-600">
                         <span className="text-[#2A8C86] font-medium">[{c.index}]</span>
                         <span className="truncate max-w-[120px]">{c.domain}</span>
-                        <IconExternalLink className="w-3 h-3" stroke={1.5} />
+                        <ExternalLink className="w-3 h-3" strokeWidth={1.5} />
                       </a>
                     ))}
                   </div>
@@ -227,12 +227,12 @@ export default function GhostFinance() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center shadow-sm">
-                  <IconTrendingUp className="w-5 h-5 text-green-600" stroke={1.5} />
+                  <TrendingUp className="w-5 h-5 text-green-600" strokeWidth={1.5} />
                 </div>
                 <h1 className="text-xl font-semibold text-slate-900">{t('ghost.modules.finance.title')}</h1>
               </div>
               <Button variant="outline" size="sm" className="gap-2 text-slate-500 border-slate-200">
-                <IconBell className="w-4 h-4" stroke={1.5} />{t('common.notifications')}
+                <Bell className="w-4 h-4" strokeWidth={1.5} />{t('common.notifications')}
               </Button>
             </div>
 
@@ -248,7 +248,7 @@ export default function GhostFinance() {
 
               {/* Search Input */}
               <div className="relative">
-                <IconSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" stroke={1.5} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
                 <Input 
                   value={query} 
                   onChange={(e) => {
@@ -263,7 +263,7 @@ export default function GhostFinance() {
                   className="pl-12 pr-12 h-14 text-base rounded-xl border-slate-200/60 bg-white shadow-sm" 
                 />
                 <button onClick={handleSearch} disabled={isSearching} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#2A8C86] text-white hover:bg-[#2A8C86]/90 disabled:opacity-50 transition-colors">
-                  {isSearching ? <IconLoader2 className="w-5 h-5 animate-spin" stroke={1.5} /> : <IconArrowRight className="w-5 h-5" stroke={1.5} />}
+                  {isSearching ? <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} /> : <ArrowRight className="w-5 h-5" strokeWidth={1.5} />}
                 </button>
 
                 {/* Suggestions Dropdown */}
@@ -281,7 +281,7 @@ export default function GhostFinance() {
                         }}
                         className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 text-left text-sm text-slate-700 transition-colors border-b border-slate-50 last:border-b-0"
                       >
-                        <IconSearch className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" stroke={1.5} />
+                        <Search className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
                         <span className="line-clamp-2">{t(key)}</span>
                       </button>
                     ))}

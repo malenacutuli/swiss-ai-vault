@@ -6,7 +6,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { IconWorld } from '@tabler/icons-react';
+import { Globe } from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface Source {
@@ -74,7 +74,7 @@ export function SourcesDropdown({ module }: SourcesDropdownProps) {
             "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
           )}
         >
-          <IconWorld className="w-4 h-4" stroke={1.5} />
+          <Globe className="w-4 h-4" strokeWidth={1.5} />
           <span className="text-xs font-medium">{activeCount}</span>
         </button>
       </PopoverTrigger>
