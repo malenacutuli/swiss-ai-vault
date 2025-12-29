@@ -14,10 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Times New Roman', 'serif'],
-        mono: ['JetBrains Mono', 'SF Mono', 'monospace'],
-        display: ['Playfair Display', 'Times New Roman', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Fraunces', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+        display: ['Fraunces', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
