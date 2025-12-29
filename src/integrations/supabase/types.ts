@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      anonymous_usage: {
+        Row: {
+          block_reason: string | null
+          created_at: string | null
+          daily_images_used: number | null
+          daily_prompts_used: number | null
+          daily_research_used: number | null
+          daily_reset_at: string | null
+          daily_videos_used: number | null
+          fingerprint_hash: string | null
+          first_seen_at: string | null
+          id: string
+          ip_hash: string
+          is_blocked: boolean | null
+          last_seen_at: string | null
+          max_daily_images: number | null
+          max_daily_prompts: number | null
+          max_daily_research: number | null
+          max_daily_videos: number | null
+          total_prompts_lifetime: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          block_reason?: string | null
+          created_at?: string | null
+          daily_images_used?: number | null
+          daily_prompts_used?: number | null
+          daily_research_used?: number | null
+          daily_reset_at?: string | null
+          daily_videos_used?: number | null
+          fingerprint_hash?: string | null
+          first_seen_at?: string | null
+          id?: string
+          ip_hash: string
+          is_blocked?: boolean | null
+          last_seen_at?: string | null
+          max_daily_images?: number | null
+          max_daily_prompts?: number | null
+          max_daily_research?: number | null
+          max_daily_videos?: number | null
+          total_prompts_lifetime?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          block_reason?: string | null
+          created_at?: string | null
+          daily_images_used?: number | null
+          daily_prompts_used?: number | null
+          daily_research_used?: number | null
+          daily_reset_at?: string | null
+          daily_videos_used?: number | null
+          fingerprint_hash?: string | null
+          first_seen_at?: string | null
+          id?: string
+          ip_hash?: string
+          is_blocked?: boolean | null
+          last_seen_at?: string | null
+          max_daily_images?: number | null
+          max_daily_prompts?: number | null
+          max_daily_research?: number | null
+          max_daily_videos?: number | null
+          total_prompts_lifetime?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           created_at: string | null
@@ -2866,6 +2932,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      check_anonymous_usage: {
+        Args: {
+          p_fingerprint?: string
+          p_ip_hash: string
+          p_usage_type?: string
+        }
+        Returns: Json
       }
       check_ghost_usage: {
         Args: { p_type: string; p_user_id: string }
