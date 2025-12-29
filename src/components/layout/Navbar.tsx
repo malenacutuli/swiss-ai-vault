@@ -27,7 +27,7 @@ export const Navbar = () => {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <SwissFlag className="h-10" />
+              <SwissFlag className="h-14" />
             </Link>
 
             {/* Desktop Nav */}
