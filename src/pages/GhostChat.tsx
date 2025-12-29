@@ -20,7 +20,7 @@ import { GhostModeTabs, type GhostMode } from '@/components/ghost/GhostModeTabs'
 import { GhostModeToggle } from '@/components/ghost/GhostModeToggle';
 import { GhostChatInput } from '@/components/ghost/GhostChatInput';
 import { GhostMessage as GhostMessageComponent } from '@/components/ghost/GhostMessage';
-import { GhostTextView, GhostImageView, GhostVideoView, GhostSearchView } from '@/components/ghost/views';
+import { GhostTextView, GhostTextViewEmpty, GhostImageView, GhostVideoView, GhostSearchView } from '@/components/ghost/views';
 import { BuyGhostCreditsModal } from '@/components/ghost/BuyGhostCreditsModal';
 import { GhostSettings } from '@/components/ghost/GhostSettings';
 import { GhostThinkingIndicator } from '@/components/ghost/GhostThinkingIndicator';
@@ -1451,8 +1451,75 @@ function GhostChat() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mode-specific view */}
           <div className="flex-1 flex flex-col overflow-hidden">
-          {mode === 'text' && (
-              <GhostTextView hasMessages={messages.length > 0}>
+          
+          {/* Text Mode - Empty state with centered input (Perplexity-style) */}
+          {mode === 'text' && messages.length === 0 && (
+            <GhostTextViewEmpty>
+              {/* Attachment preview above input */}
+              {attachedFiles.length > 0 && (
+                <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">
+                      {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={clearAllAttachments}
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {attachedFiles.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="group relative flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border/50"
+                      >
+                        {attachment.type === 'image' && attachment.base64 ? (
+                          <img src={attachment.base64} alt={attachment.name} className="w-8 h-8 object-cover rounded" />
+                        ) : (
+                          <FileText className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <span className="text-sm truncate max-w-[100px]">{attachment.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 opacity-0 group-hover:opacity-100 absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full"
+                          onClick={() => removeAttachment(attachment.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <GhostChatInput
+                mode={mode}
+                selectedModel={selectedModels[mode]}
+                onSelectModel={handleModelChange}
+                value={inputValue}
+                onChange={setInputValue}
+                onSubmit={handleSendMessage}
+                onCancel={cancelStream}
+                isStreaming={isStreaming}
+                elapsedTime={elapsedTime}
+                credits={balance}
+                enhancePrompt={enhancePrompt}
+                onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
+                onOpenSettings={() => setShowSettings(true)}
+                onAttach={handleFileAttach}
+                voiceLanguage={settings?.voice_language}
+                matureFilterEnabled={settings?.mature_filter_enabled ?? true}
+              />
+            </GhostTextViewEmpty>
+          )}
+          
+          {/* Text Mode - With messages (input at bottom) */}
+          {mode === 'text' && messages.length > 0 && (
+              <GhostTextView hasMessages={true}>
                 {/* Native scroll - more reliable than ScrollArea */}
                 <div className="flex-1 overflow-y-auto">
                   <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -1491,7 +1558,7 @@ function GhostChat() {
                       </div>
                     ))}
                     {/* Thinking indicator during streaming */}
-                    {isStreaming && mode === 'text' && (
+                    {isStreaming && (
                       <GhostThinkingIndicator
                         status={streamStatus}
                         elapsedTime={elapsedTime}
@@ -1504,6 +1571,7 @@ function GhostChat() {
                 </div>
             </GhostTextView>
           )}
+          
             {mode === 'image' && (
               <GhostImageView
                 onNavigateToVideo={(imageUrl) => {
@@ -1580,8 +1648,8 @@ function GhostChat() {
             )}
           </div>
 
-          {/* Input Area - Only for text and search modes (image/video have their own inputs) */}
-          {(mode === 'text' || mode === 'search') && (
+          {/* Input Area - Only when there are messages (text mode) or for search mode */}
+          {((mode === 'text' && messages.length > 0) || mode === 'search') && (
             <div className="flex-shrink-0 p-4 lg:p-6">
               <div className="max-w-3xl mx-auto">
                 {/* Multi-file attachment preview */}
