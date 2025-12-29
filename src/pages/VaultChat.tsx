@@ -37,7 +37,7 @@ import {
   Moon,
   Search,
   X
-} from 'lucide-react';
+} from '@/icons';
 import { useEncryptedDeepResearch } from '@/hooks/useEncryptedDeepResearch';
 import { ResearchProgress } from '@/components/vault-chat/ResearchProgress';
 import { ResearchResult } from '@/components/vault-chat/ResearchResult';

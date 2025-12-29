@@ -34,7 +34,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
-} from "lucide-react";
+} from "@/icons";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 

@@ -1,4 +1,4 @@
-import { Upload, Brain, Rocket, BarChart3 } from "lucide-react";
+import { Upload, Brain, Rocket, BarChart3 } from "@/icons";
 import { useTranslation } from "react-i18next";
 
 export const HowItWorksSection = () => {

@@ -1,4 +1,4 @@
-import { X, FileText, Image, FileSpreadsheet, Presentation, File, Loader2, Lock } from 'lucide-react';
+import { X, FileText, Image, FileSpreadsheet, Presentation, File, Loader2, Lock } from '@/icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 

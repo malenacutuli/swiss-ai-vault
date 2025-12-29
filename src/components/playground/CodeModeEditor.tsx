@@ -36,7 +36,7 @@ import {
   Sun,
   Moon,
   Loader2,
-} from "lucide-react";
+} from "@/icons";
 import { cn } from "@/lib/utils";
 
 const LANGUAGES = [

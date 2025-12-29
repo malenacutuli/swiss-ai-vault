@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Coins, AlertCircle, Sparkles, ImageIcon, Video, ChevronRight } from "lucide-react";
+import { Coins, AlertCircle, Sparkles, ImageIcon, Video, ChevronRight } from "@/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";

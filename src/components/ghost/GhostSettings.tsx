@@ -35,7 +35,7 @@ import {
   Shield,
   Volume2,
   Code,
-} from 'lucide-react';
+} from '@/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostSettings, type GhostSettings as GhostSettingsType } from '@/hooks/useGhostSettings';

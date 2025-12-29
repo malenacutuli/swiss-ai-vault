@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail } from "@/icons";
 
 interface EarlyAccessModalProps {
   open: boolean;

@@ -51,7 +51,7 @@ import {
   Database,
   Settings,
   TrendingDown,
-} from "lucide-react";
+} from "@/icons";
 
 interface DatasetSnapshot {
   id: string;

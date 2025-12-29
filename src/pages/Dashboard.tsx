@@ -18,7 +18,7 @@ import {
   ArrowUpRight,
   Clock,
   AlertCircle,
-} from "lucide-react";
+} from "@/icons";
 
 const Dashboard = () => {
   const { user } = useAuth();

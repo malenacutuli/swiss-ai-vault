@@ -40,7 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BarChart3, Download, TrendingUp, Zap, Brain, Database, Info } from "lucide-react";
+import { BarChart3, Download, TrendingUp, Zap, Brain, Database, Info } from "@/icons";
 import { format } from "date-fns";
 
 const CHART_COLORS = [

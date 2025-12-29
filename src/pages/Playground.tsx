@@ -53,7 +53,7 @@ import {
   Image as ImageIcon,
   Eye,
   Code,
-} from "lucide-react";
+} from "@/icons";
 import { PlaygroundModeToggle } from "@/components/playground/PlaygroundModeToggle";
 import { CodeModeEditor } from "@/components/playground/CodeModeEditor";
 import { useModels } from "@/hooks/useSupabase";

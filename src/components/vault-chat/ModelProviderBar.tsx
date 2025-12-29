@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, Brain } from 'lucide-react';
+import { Check, Brain } from '@/icons';
 import { ModelStatusIndicator } from './ModelStatusIndicator';
 
 // Import provider logos

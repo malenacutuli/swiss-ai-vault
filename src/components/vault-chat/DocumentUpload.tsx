@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { 
   Paperclip, X, FileText, Loader2, CheckCircle, AlertCircle, 
   Pause, Play, XCircle, RotateCcw, Clock, Zap, CloudUpload
-} from 'lucide-react';
+} from '@/icons';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,

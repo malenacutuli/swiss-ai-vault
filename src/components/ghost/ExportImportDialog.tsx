@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Lock, Download, Upload, FileArchive, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react';
+import { Lock, Download, Upload, FileArchive, AlertTriangle, Check, Eye, EyeOff } from '@/icons';
 import {
   Dialog,
   DialogContent,

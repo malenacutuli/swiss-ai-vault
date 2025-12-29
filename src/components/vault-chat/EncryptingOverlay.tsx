@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react';
+import { Lock } from '@/icons';
 import { cn } from '@/lib/utils';
 
 interface EncryptingOverlayProps {

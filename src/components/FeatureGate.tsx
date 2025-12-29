@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useFeatureAccess, FeatureAccess } from '@/hooks/useFeatureAccess';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/icons';
 
 interface FeatureGateProps {
   feature: keyof FeatureAccess;

@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Building2, ChevronDown, Plus, Check, Loader2, Settings } from "lucide-react";
+import { Building2, ChevronDown, Plus, Check, Loader2, Settings } from "@/icons";
 import { useOrganizationContext } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";

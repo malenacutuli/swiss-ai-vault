@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check } from "@/icons";
 
 const codeExamples = {
   inference: `from openai import OpenAI

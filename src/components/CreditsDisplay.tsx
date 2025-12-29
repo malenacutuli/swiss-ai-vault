@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Coins, AlertCircle } from "lucide-react";
+import { Coins, AlertCircle } from "@/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useUserCredits } from "@/hooks/useUserCredits";

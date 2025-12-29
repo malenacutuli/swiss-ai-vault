@@ -19,7 +19,7 @@ import {
   Trash2,
   ExternalLink,
   Loader2,
-} from "lucide-react";
+} from "@/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { GhostSettings } from './GhostSettings';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Menu, X, Sun, Moon } from '@/icons';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 

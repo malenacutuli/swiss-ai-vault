@@ -32,7 +32,7 @@ import {
   Check,
   Clock,
   Ban,
-} from 'lucide-react';
+} from '@/icons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';

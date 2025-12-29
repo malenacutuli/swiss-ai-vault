@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Lock, Mail, ArrowRight, Check, Shield, Zap, Image } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Check, Shield, Zap, Image } from '@/icons';
 import { toast } from 'sonner';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 
