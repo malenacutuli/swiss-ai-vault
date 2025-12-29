@@ -1621,5 +1621,93 @@
     },
     "proFeature": "Pro Feature",
     "upgradeToAccess": "Upgrade to access this feature"
+  },
+  "compliance": {
+    "dashboard": {
+      "title": "Compliance & Data Governance",
+      "subtitle": "Transparency and control over your data",
+      "residency": {
+        "title": "Data Residency",
+        "description": "All your data is stored and processed exclusively in Switzerland",
+        "location": "Zurich, Switzerland",
+        "userData": "User Data",
+        "datasets": "Datasets & Training Data",
+        "modelCheckpoints": "Model Checkpoints",
+        "inferenceLogs": "Inference Logs",
+        "sovereigntyTitle": "Fully Sovereign",
+        "sovereigntyDesc": "Your data never leaves Swiss jurisdiction. Subject only to Swiss privacy laws (DSG/FADP) - among the strongest in the world."
+      },
+      "checklist": {
+        "title": "Security Compliance Checklist",
+        "description": "Current status of security controls and certifications",
+        "encryptionAtRest": "Encryption at Rest",
+        "encryptionAtRestInfo": "AES-256 encryption for all stored data",
+        "encryptionInTransit": "Encryption in Transit",
+        "encryptionInTransitInfo": "TLS 1.3 for all data transmission",
+        "apiKeySecurity": "API Key Security",
+        "apiKeySecurityInfo": "SHA-256 hashed, never stored in plaintext",
+        "rowLevelSecurity": "Row-Level Security",
+        "rowLevelSecurityInfo": "Database-level access control per user",
+        "auditLogging": "Audit Logging",
+        "auditLoggingInfo": "Comprehensive activity tracking",
+        "swissDataResidency": "Swiss Data Residency",
+        "swissDataResidencyInfo": "All data stored in eu-central-2 (Zurich)",
+        "soc2Info": "SOC 2 Type II audit in progress",
+        "iso27001Info": "ISO 27001 certification planned for 2025",
+        "gdprRecords": "GDPR Records of Processing",
+        "gdprRecordsInfo": "Complete data processing documentation"
+      },
+      "audit": {
+        "title": "Audit Log Summary",
+        "description": "Overview of system activity and security events",
+        "totalEvents": "Total Events",
+        "thisMonth": "This Month",
+        "topActions": "Top Actions",
+        "noEvents": "No events recorded yet",
+        "viewFullLogs": "View Full Audit Logs"
+      },
+      "retention": {
+        "title": "Data Retention Settings",
+        "description": "Configure automatic data cleanup policies",
+        "tracesRetention": "Inference Traces Retention (days)",
+        "tracesRetentionDesc": "How long to keep inference request logs",
+        "auditRetention": "Audit Logs Retention (days)",
+        "auditRetentionDesc": "How long to keep audit logs (minimum 365 recommended)",
+        "datasetsRetention": "Inactive Datasets Retention (days)",
+        "datasetsRetentionDesc": "Auto-delete datasets with no activity",
+        "save": "Save Retention Settings"
+      },
+      "gdpr": {
+        "title": "GDPR Data Rights",
+        "description": "Exercise your data rights under GDPR",
+        "exportData": "Export All My Data",
+        "exportDataDesc": "Download a complete copy of all your data",
+        "deleteData": "Delete All My Data",
+        "deleteDataDesc": "Permanently delete all your data from our systems",
+        "deleteConfirmTitle": "Delete All User Data?",
+        "deleteConfirmDesc": "This will permanently delete all your data including projects, datasets, models, and traces. This action cannot be undone."
+      },
+      "certifications": {
+        "title": "Certifications & Compliance",
+        "description": "Current and planned security certifications"
+      },
+      "status": {
+        "certified": "Certified",
+        "inProgress": "In Progress",
+        "planned": "Planned"
+      },
+      "export": {
+        "started": "Export Started",
+        "startedDesc": "You will receive an email with download link when ready.",
+        "failed": "Export Failed",
+        "failedDesc": "Could not start data export. Please try again."
+      },
+      "delete": {
+        "submitted": "Deletion Request Submitted",
+        "submittedDesc": "Your data deletion request has been submitted and will be processed within 30 days.",
+        "failed": "Deletion Request Failed",
+        "failedDesc": "Could not submit deletion request. Please contact support."
+      }
+    }
   }
 }
