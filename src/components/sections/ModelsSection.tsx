@@ -62,7 +62,7 @@ export const ModelsSection = () => {
           <div className="p-6 rounded-2xl bg-card border border-border/60">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <SwissFlag className="h-5 w-5" />
+                <img src="/favicon.svg" alt="Swiss Flag" className="h-5 w-5" />
               </div>
               <h3 className="text-lg font-semibold">{t('home.models.sovereignOpenSource.title')}</h3>
             </div>
