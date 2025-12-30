@@ -800,49 +800,6 @@
         "description": "Rastrea uso, calidad y costos en tiempo real. Exporta registros para auditorías. Itera en conjuntos de datos, ajustes finos y barreras de protección."
       }
     },
-    "security": {
-      "badge": "Seguridad y Cumplimiento",
-      "title": "Arquitectura de Seguridad Diseñada para Auditores",
-      "subtitle": "Seguridad de nivel empresarial que satisface los requisitos de cumplimiento más exigentes.",
-      "e2e": {
-        "title": "Cifrado de Extremo a Extremo del Lado del Cliente",
-        "point1": "AES-256-GCM, claves por conversación, claves maestras derivadas de PBKDF2",
-        "point2": "Las claves nunca salen del navegador; los servidores solo ven texto cifrado"
-      },
-      "zeroTrust": {
-        "title": "Backend de Confianza Cero",
-        "point1": "Seguridad a nivel de fila en más de 40 tablas",
-        "point2": "Registros de auditoría inmutables con historial completo de cambios antes/después",
-        "point3": "Roles de organización estrictos (propietario, administrador, miembro)"
-      },
-      "swissResidency": {
-        "title": "Residencia de Datos Suiza",
-        "point1": "Todos los datos almacenados en bases de datos alojadas en Suiza",
-        "point2": "Modo opcional de retención cero para trazas de inferencia y muestras de evaluación"
-      },
-      "complianceRoadmap": {
-        "title": "Hoja de Ruta de Cumplimiento",
-        "point1": "Procesos alineados con GDPR implementados",
-        "point2": "SOC 2 Tipo II (en progreso), ISO 27001 y preparación FINMA en la hoja de ruta"
-      },
-      "architecture": {
-        "title": "Arquitectura de Conocimiento Cero",
-        "browser": {
-          "title": "Tu Navegador (Claves Aquí)",
-          "description": "Claves de cifrado AES-256-GCM almacenadas en IndexedDB. Todo el cifrado/descifrado ocurre del lado del cliente."
-        },
-        "backend": {
-          "title": "Backend de SwissVault",
-          "description": "Almacena solo texto cifrado + hashes de claves. Las políticas RLS imponen aislamiento de datos."
-        },
-        "infrastructure": {
-          "title": "Infraestructura Suiza",
-          "description": "Los datos nunca salen de la jurisdicción suiza."
-        }
-      },
-      "downloadWhitepaper": "Descargar Documento de Seguridad",
-      "talkToCISO": "Hablar con nuestro CISO"
-    },
     "models": {
       "title": "Usa los Mejores Modelos – Sin Perder Soberanía",
       "subtitle": "SwissVault abstrae los proveedores para que puedas elegir el modelo correcto para cada carga de trabajo manteniendo la gobernanza y los registros en un solo lugar.",
