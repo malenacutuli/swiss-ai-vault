@@ -13,11 +13,11 @@ const Index = () => {
   return (
     <>
       <HeroSection />
+      <ModelsSection />
       <WhySwissVaultSection />
       <FeaturesSection />
       <SolutionsSection />
       <HowItWorksSection />
-      <ModelsSection />
       <PricingSection />
       <SocialProofSection />
       <DeveloperSection />
