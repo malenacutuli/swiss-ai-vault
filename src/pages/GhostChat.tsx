@@ -134,6 +134,11 @@ function GhostChat() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+
+  // Add a lightweight `toast.info()` helper used for diagnostics / non-blocking feedback.
+  // (Our toast API is function-based, so we attach this convenience method.)
+  (toast as any).info ??= (description: string) => toast({ description });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false); // Prevent double submission
@@ -171,6 +176,14 @@ function GhostChat() {
 
   // Streaming inference hook
   const { streamResponse, cancelStream, resetStreamState, isStreaming, streamStatus, elapsedTime, lastResponseTime, lastTokenCount } = useGhostInference();
+
+  // Reset stale streaming state on mount
+  useEffect(() => {
+    if (isStreaming && streamStatus === 'idle') {
+      console.log('[GhostChat] Recovering from stale streaming state on mount');
+      resetStreamState();
+    }
+  }, []); // Only on mount
 
   // Web search hook
   const webSearch = useGhostSearch();
@@ -419,7 +432,17 @@ function GhostChat() {
     });
   }, [toast]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (content: string, attachments?: File[]) => {
+    console.log('[GhostChat] handleSendMessage called', {
+      contentLength: content?.length,
+      isStreaming,
+      streamStatus,
+      isSearching: webSearch.isSearching,
+      isResearching: ghostResearch.isResearching,
+      isSubmitting: isSubmittingRef.current,
+      hasUser: !!user,
+    });
+
     // Auto-recover if streaming state got stuck (prevents "can't send" deadlocks)
     const isStreamStateStuck =
       isStreaming &&
@@ -440,14 +463,37 @@ function GhostChat() {
     }
 
     // Prevent double submission - allow if we have attachments even without text
-    if (
-      (!inputValue.trim() && attachedFiles.length === 0) ||
-      (isStreaming && !isStreamStateStuck) ||
-      webSearch.isSearching ||
-      ghostResearch.isResearching ||
-      isSubmittingRef.current
-    )
+    if (!content?.trim() && attachedFiles.length === 0) return;
+
+    if (isStreaming && !isStreamStateStuck) {
+      console.log('[GhostChat] BLOCKED: isStreaming but not stuck');
+      (toast as any).info('Still generating response. Click Stop to cancel.');
       return;
+    }
+
+    if (webSearch.isSearching) {
+      console.log('[GhostChat] BLOCKED: webSearch in progress');
+      (toast as any).info('Search in progress. Please wait.');
+      return;
+    }
+
+    if (ghostResearch.isResearching) {
+      console.log('[GhostChat] BLOCKED: deep research in progress');
+      (toast as any).info('Research in progress. Please wait.');
+      return;
+    }
+
+    if (isSubmittingRef.current) {
+      console.log('[GhostChat] BLOCKED: isSubmittingRef is true');
+      // Auto-recover after 5 seconds of being stuck
+      setTimeout(() => {
+        if (isSubmittingRef.current) {
+          isSubmittingRef.current = false;
+          console.log('[GhostChat] Auto-recovered isSubmittingRef');
+        }
+      }, 5000);
+      return;
+    }
 
     isSubmittingRef.current = true;
 
@@ -567,18 +613,18 @@ function GhostChat() {
         }
         
         // Add user text + document context
-        const fullText = (inputValue.trim() + docContext).trim();
+        const fullText = (content.trim() + docContext).trim();
         if (fullText) {
           contentParts.push({ type: 'text', text: fullText });
         }
-        
+
         messageContent = contentParts;
       } else {
-        messageContent = inputValue.trim();
+        messageContent = content.trim();
       }
 
       // Create display message (always show text for UI)
-      const displayContent = inputValue.trim() || `[${attachedFiles.length} file(s) attached]`;
+      const displayContent = content.trim() || `[${attachedFiles.length} file(s) attached]`;
       const userMessage: GhostMessageData = {
         id: crypto.randomUUID(),
         role: 'user',
@@ -1605,9 +1651,10 @@ function GhostChat() {
                 onSelectModel={handleModelChange}
                 value={inputValue}
                 onChange={setInputValue}
-                onSubmit={handleSendMessage}
+                onSubmit={() => handleSendMessage(inputValue, attachedFiles.map(f => f.file))}
                 onCancel={cancelStream}
                 isStreaming={isStreaming}
+                streamStatus={streamStatus}
                 elapsedTime={elapsedTime}
                 credits={balance}
                 enhancePrompt={enhancePrompt}
@@ -1827,9 +1874,10 @@ function GhostChat() {
                     onSelectModel={handleModelChange}
                     value={inputValue}
                     onChange={setInputValue}
-                    onSubmit={handleSendMessage}
+                    onSubmit={() => handleSendMessage(inputValue, attachedFiles.map(f => f.file))}
                     onCancel={ghostResearch.cancelResearch}
                     isStreaming={ghostResearch.isResearching}
+                    streamStatus={streamStatus}
                     elapsedTime={0}
                     credits={balance}
                     enhancePrompt={false}
@@ -1927,9 +1975,10 @@ function GhostChat() {
                   onSelectModel={handleModelChange}
                   value={inputValue}
                   onChange={setInputValue}
-                  onSubmit={handleSendMessage}
+                  onSubmit={() => handleSendMessage(inputValue, attachedFiles.map(f => f.file))}
                   onCancel={mode === 'search' ? webSearch.cancelSearch : cancelStream}
                   isStreaming={isStreaming || webSearch.isSearching}
+                  streamStatus={streamStatus}
                   elapsedTime={elapsedTime}
                   credits={balance}
                   enhancePrompt={enhancePrompt}
