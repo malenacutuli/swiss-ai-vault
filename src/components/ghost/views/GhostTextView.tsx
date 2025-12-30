@@ -24,8 +24,8 @@ export function GhostTextViewEmpty({ children }: GhostTextViewEmptyProps) {
   return (
     <div className="flex-1 flex flex-col items-center px-4 pt-[15vh] pb-8">
       {/* Logo and welcome text - positioned above input */}
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 overflow-hidden">
-        <img src={swissVaultLogo} alt="SwissVault" className="w-14 h-14" />
+      <div className="flex items-center justify-center mb-4">
+        <img src={swissVaultLogo} alt="SwissVault" className="h-14 object-contain" />
       </div>
       <h2 className="text-xs text-muted-foreground uppercase tracking-wider font-sans text-center mb-2">
         {t('ghost.welcome.title')}
