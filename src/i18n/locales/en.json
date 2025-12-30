@@ -1064,6 +1064,7 @@
     "requestBody": "Request Body",
     "exampleRequest": "Example Request",
     "response": "Response",
+    "exampleResponse": "Example Response",
     "errorCodes": "Error Codes",
     "code": "Code",
     "message": "Message",
