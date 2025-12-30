@@ -2,13 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, FolderPlus, Folder, FolderOpen, MoreHorizontal, Pencil, Trash2 } from "@/icons";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { X, FolderPlus, Folder, FolderOpen, Pencil, Trash2 } from "@/icons";
 
 interface Folder {
   id: string;
@@ -58,7 +52,7 @@ export function FolderSidebar({ folders, selectedFolder, onSelectFolder, onClose
 
           {/* Folders list */}
           {folders.map((folder) => (
-            <div key={folder.id} className="group flex items-center">
+            <div key={folder.id} className="group flex items-center gap-1">
               <Button
                 variant={selectedFolder === folder.id ? "secondary" : "ghost"}
                 className="flex-1 justify-start gap-2 h-9"
@@ -69,27 +63,28 @@ export function FolderSidebar({ folders, selectedFolder, onSelectFolder, onClose
                 <span className="ml-auto text-xs text-muted-foreground">{folder.item_count}</span>
               </Button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 text-foreground/60 hover:text-foreground"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 text-foreground/50 hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // TODO: Implement rename
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 text-foreground/50 hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // TODO: Implement delete
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           ))}
 
