@@ -723,6 +723,7 @@
       "hostedInSwitzerland": "Alojado en Suiza",
       "noLoginRequired": "Sin Registro Requerido",
       "zeroDataStored": "Cero Datos Almacenados",
+      "anonymous": "100% Anónimo",
       "gdprReady": "Listo para GDPR",
       "e2eEncryption": "Cifrado E2E del lado del cliente"
     },
