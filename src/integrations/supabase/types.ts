@@ -2141,6 +2141,7 @@ export type Database = {
           owner_id: string | null
           settings: Json | null
           slug: string
+          subscription_id: string | null
           tier: string | null
           updated_at: string | null
         }
@@ -2153,6 +2154,7 @@ export type Database = {
           owner_id?: string | null
           settings?: Json | null
           slug: string
+          subscription_id?: string | null
           tier?: string | null
           updated_at?: string | null
         }
@@ -2165,10 +2167,19 @@ export type Database = {
           owner_id?: string | null
           settings?: Json | null
           slug?: string
+          subscription_id?: string | null
           tier?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "unified_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -2380,6 +2391,69 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_limits: {
+        Row: {
+          can_access_new_models: boolean | null
+          can_backup_history: boolean | null
+          can_train_models: boolean | null
+          can_use_api: boolean | null
+          can_use_integrations: boolean | null
+          can_use_vault_chat: boolean | null
+          can_use_vault_labs: boolean | null
+          created_at: string | null
+          deep_research_per_day: number | null
+          display_name: string
+          images_per_day: number | null
+          one_time_credit_grant: number | null
+          price_monthly_cents: number | null
+          price_yearly_cents: number | null
+          text_prompts_per_day: number | null
+          tier: string
+          updated_at: string | null
+          videos_per_day: number | null
+        }
+        Insert: {
+          can_access_new_models?: boolean | null
+          can_backup_history?: boolean | null
+          can_train_models?: boolean | null
+          can_use_api?: boolean | null
+          can_use_integrations?: boolean | null
+          can_use_vault_chat?: boolean | null
+          can_use_vault_labs?: boolean | null
+          created_at?: string | null
+          deep_research_per_day?: number | null
+          display_name: string
+          images_per_day?: number | null
+          one_time_credit_grant?: number | null
+          price_monthly_cents?: number | null
+          price_yearly_cents?: number | null
+          text_prompts_per_day?: number | null
+          tier: string
+          updated_at?: string | null
+          videos_per_day?: number | null
+        }
+        Update: {
+          can_access_new_models?: boolean | null
+          can_backup_history?: boolean | null
+          can_train_models?: boolean | null
+          can_use_api?: boolean | null
+          can_use_integrations?: boolean | null
+          can_use_vault_chat?: boolean | null
+          can_use_vault_labs?: boolean | null
+          created_at?: string | null
+          deep_research_per_day?: number | null
+          display_name?: string
+          images_per_day?: number | null
+          one_time_credit_grant?: number | null
+          price_monthly_cents?: number | null
+          price_yearly_cents?: number | null
+          text_prompts_per_day?: number | null
+          tier?: string
+          updated_at?: string | null
+          videos_per_day?: number | null
+        }
+        Relationships: []
+      }
       traces: {
         Row: {
           api_key_id: string | null
@@ -2455,6 +2529,134 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_credits: {
+        Row: {
+          allowance_resets_at: string | null
+          created_at: string | null
+          grant_balance: number | null
+          id: string
+          monthly_allowance: number | null
+          monthly_used: number | null
+          purchased_balance: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allowance_resets_at?: string | null
+          created_at?: string | null
+          grant_balance?: number | null
+          id?: string
+          monthly_allowance?: number | null
+          monthly_used?: number | null
+          purchased_balance?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allowance_resets_at?: string | null
+          created_at?: string | null
+          grant_balance?: number | null
+          id?: string
+          monthly_allowance?: number | null
+          monthly_used?: number | null
+          purchased_balance?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      unified_daily_usage: {
+        Row: {
+          created_at: string | null
+          deep_research: number | null
+          id: string
+          image_requests: number | null
+          text_prompts: number | null
+          usage_date: string | null
+          user_id: string
+          video_requests: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          deep_research?: number | null
+          id?: string
+          image_requests?: number | null
+          text_prompts?: number | null
+          usage_date?: string | null
+          user_id: string
+          video_requests?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          deep_research?: number | null
+          id?: string
+          image_requests?: number | null
+          text_prompts?: number | null
+          usage_date?: string | null
+          user_id?: string
+          video_requests?: number | null
+        }
+        Relationships: []
+      }
+      unified_subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          org_id: string | null
+          seats_purchased: number | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          org_id?: string | null
+          seats_purchased?: number | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          org_id?: string | null
+          seats_purchased?: number | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2945,6 +3147,10 @@ export type Database = {
         Args: { p_type: string; p_user_id: string }
         Returns: Json
       }
+      check_unified_usage: {
+        Args: { p_usage_type: string; p_user_id: string }
+        Returns: Json
+      }
       check_user_usage: {
         Args: {
           p_estimated_cost_cents?: number
@@ -2969,6 +3175,7 @@ export type Database = {
           owner_id: string | null
           settings: Json | null
           slug: string
+          subscription_id: string | null
           tier: string | null
           updated_at: string | null
         }
@@ -3037,6 +3244,7 @@ export type Database = {
         }[]
       }
       get_research_quota: { Args: never; Returns: Json }
+      get_subscription_status: { Args: { p_user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3046,6 +3254,10 @@ export type Database = {
       }
       increment_ghost_usage: {
         Args: { p_type: string; p_user_id: string }
+        Returns: Json
+      }
+      increment_unified_usage: {
+        Args: { p_usage_type: string; p_user_id: string }
         Returns: Json
       }
       increment_usage: {
