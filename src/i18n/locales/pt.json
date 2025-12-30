@@ -932,8 +932,8 @@
     "endpoints": {
       "listApiKeys": "Listar Chaves API",
       "listApiKeysDesc": "Recupere todas as chaves API associadas à sua conta. As chaves API são usadas para autenticar requisições à API do SwissVault.ai.",
-      "createChatCompletion": "Criar Completação de Chat",
-      "createChatCompletionDesc": "Gere uma completação de chat usando formato compatível com OpenAI. Suporta modelos base (GPT-4, Claude, Gemini) e seus modelos fine-tuned.",
+      "createChatCompletion": "Gerar resposta de chat",
+      "createChatCompletionDesc": "Gera uma resposta de chat em formato compatível com a OpenAI. Suporta modelos base (GPT-4, Claude, Gemini) e modelos personalizados (fine-tuned).",
       "createFinetuningJob": "Criar Job de Fine-tuning",
       "createFinetuningJobDesc": "Crie um novo job de fine-tuning. O job será colocado na fila para treinamento após a criação.",
       "listFinetuningJobs": "Listar Jobs de Fine-tuning",
