@@ -90,9 +90,9 @@ export function EarningsCalendarView() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                  <span className="text-sm font-bold text-swiss-teal">
                     {event.symbol.slice(0, 2)}
-                  </div>
+                  </span>
                   <div>
                     <p className="text-sm font-medium text-slate-900">{event.company}</p>
                     <p className="text-xs text-slate-500">{event.symbol}</p>
@@ -143,9 +143,9 @@ export function EarningsCalendarView() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                      <span className="text-sm font-bold text-swiss-teal">
                         {event.symbol.slice(0, 2)}
-                      </div>
+                      </span>
                       <div>
                         <p className="text-sm font-medium text-slate-900">{event.company}</p>
                         <p className="text-xs text-slate-500">{event.symbol} • {event.date}</p>

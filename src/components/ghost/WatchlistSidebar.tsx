@@ -117,11 +117,9 @@ export function WatchlistSidebar() {
               >
                 <div className="flex items-center gap-3">
                   {/* Professional monogram - no logos */}
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                    <span className="text-[10px] font-semibold text-slate-600">
-                      {item.symbol.substring(0, 2)}
-                    </span>
-                  </div>
+                  <span className="text-sm font-semibold text-swiss-teal">
+                    {item.symbol.substring(0, 2)}
+                  </span>
                   <div>
                     <p className="text-sm font-medium text-slate-700 leading-tight">{item.name}</p>
                     <p className="text-[11px] text-slate-400">{item.symbol}</p>
