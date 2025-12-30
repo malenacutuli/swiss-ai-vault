@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import swissvaultLogo from "@/assets/swissvault-logo-transparent.png";
+import swissvaultLogo from "@/assets/swissvault-logo-footer.png";
 
 const footerLinks = {
   products: [
@@ -69,7 +69,11 @@ export const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center mb-4">
-              <img src={swissvaultLogo} alt="SwissVault.ai" className="h-8" />
+              <img
+                src={swissvaultLogo}
+                alt="SwissVault.ai"
+                className="h-8 bg-transparent mix-blend-multiply"
+              />
             </div>
             <p className="text-sm text-gray-300 mb-4">
               {t('footer.description')}
@@ -122,7 +126,11 @@ export const Footer = () => {
             © {new Date().getFullYear()} Axessible Labs AG. {t('footer.allRightsReserved')}
           </p>
           <p className="text-sm text-gray-300 flex items-center gap-2">
-            <img src={swissvaultLogo} alt="SwissVault.ai" className="h-4" />
+            <img
+              src={swissvaultLogo}
+              alt="SwissVault.ai"
+              className="h-4 bg-transparent mix-blend-multiply"
+            />
             {t('footer.madeInSwitzerland')}
           </p>
         </div>
