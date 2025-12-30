@@ -23,19 +23,19 @@ export function SearchModeSelector({ mode, onModeChange }: SearchModeSelectorPro
   ];
 
   return (
-    <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+    <div className="flex items-center gap-4">
       {modes.map(({ id, labelKey, fallback, icon: Icon }) => (
         <button
           key={id}
           onClick={() => onModeChange(id)}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+            "flex items-center gap-1.5 text-sm font-medium transition-all",
             mode === id
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-500 hover:text-slate-700"
+              ? "text-swiss-teal"
+              : "text-muted-foreground hover:text-swiss-teal/80"
           )}
         >
-          <Icon className="w-4 h-4" strokeWidth={1.5} />
+          <Icon className="w-4 h-4 text-swiss-teal" strokeWidth={1.25} />
           {t(labelKey, fallback)}
         </button>
       ))}
