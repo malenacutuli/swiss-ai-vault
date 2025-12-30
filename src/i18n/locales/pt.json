@@ -923,7 +923,7 @@
     "downloadedYaml": "OpenAPI YAML baixado",
     "categories": {
       "authentication": "Autenticação",
-      "chatCompletions": "Completações de Chat",
+      "chatCompletions": "Resposta de chat",
       "finetuning": "Fine-tuning",
       "datasets": "Conjuntos de Dados",
       "evaluations": "Avaliações",
