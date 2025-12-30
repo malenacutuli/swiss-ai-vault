@@ -858,6 +858,26 @@ async function callDeepSeek(
   console.log('[DeepSeek] UI model:', model);
   console.log('[DeepSeek] API model:', actualModel);
   
+  // DeepSeek doesn't support image_url content - convert to text only
+  const sanitizedMessages = messages.map(msg => {
+    if (Array.isArray(msg.content)) {
+      // Filter out image_url parts and keep only text
+      const textParts = msg.content
+        .filter((part: any) => part.type === 'text')
+        .map((part: any) => part.text || '')
+        .join('\n');
+      
+      // If there were images, add a note about them
+      const hadImages = msg.content.some((part: any) => part.type === 'image_url');
+      const content = hadImages 
+        ? `${textParts}\n\n[Note: This message contained images/documents that cannot be processed by DeepSeek. Please use a vision-capable model for image analysis.]`
+        : textParts;
+      
+      return { ...msg, content: content || '[No text content]' };
+    }
+    return msg;
+  });
+  
   const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
@@ -866,7 +886,7 @@ async function callDeepSeek(
     },
     body: JSON.stringify({
       model: actualModel,  // Use mapped model ID
-      messages,
+      messages: sanitizedMessages,
       stream: options.stream || false,
       max_tokens: options.maxTokens || 4096,
       temperature: options.temperature || 0.7,

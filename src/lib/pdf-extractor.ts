@@ -1,12 +1,8 @@
 /**
  * PDF Text Extraction Utility
  * Extracts text content from PDF files using pdf.js
+ * Uses dynamic import to avoid top-level await build issues
  */
-
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Set the worker source for pdf.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export interface PDFExtractionResult {
   text: string;
@@ -17,11 +13,27 @@ export interface PDFExtractionResult {
 const MAX_PAGES = 50; // Limit to first 50 pages
 const MAX_TEXT_LENGTH = 100000; // ~25k tokens max
 
+// Cache the loaded library
+let pdfjsLibPromise: Promise<typeof import('pdfjs-dist')> | null = null;
+
+async function loadPdfJs() {
+  if (!pdfjsLibPromise) {
+    pdfjsLibPromise = import('pdfjs-dist').then((pdfjs) => {
+      // Set the worker source for pdf.js
+      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+      return pdfjs;
+    });
+  }
+  return pdfjsLibPromise;
+}
+
 /**
  * Extract text content from a PDF file
  */
 export async function extractTextFromPDF(file: File): Promise<PDFExtractionResult> {
   try {
+    const pdfjsLib = await loadPdfJs();
+    
     // Read file as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
