@@ -82,7 +82,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.ghost-inference]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ghost-image-gen]
 verify_jwt = true
