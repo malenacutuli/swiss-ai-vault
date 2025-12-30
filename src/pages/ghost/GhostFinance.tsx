@@ -192,9 +192,7 @@ export default function GhostFinance() {
           <div className="mb-8 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center shadow-sm">
-                  <TrendingUp className="w-5 h-5 text-green-600" strokeWidth={1.5} />
-                </div>
+                <TrendingUp className="w-6 h-6 text-swiss-teal" strokeWidth={1.25} />
                 <h1 className="text-xl font-semibold text-slate-900">{t('ghost.modules.finance.title')}</h1>
               </div>
               <Button variant="outline" size="sm" className="gap-2 text-slate-500 border-slate-200">
