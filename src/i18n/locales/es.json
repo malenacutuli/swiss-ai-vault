@@ -792,8 +792,8 @@
         "description": "Usa plantillas predefinidas o tus propios conjuntos de datos. Entrena adaptadores LoRA/QLoRA en modelos de código abierto o usa APIs comerciales. Evalúa con LLM-como-juez y métricas personalizadas antes de ir a producción."
       },
       "step3": {
-        "title": "Despliega Asistentes en Vault Chat y vía API",
-        "description": "Levanta asistentes cifrados para cada equipo o usa la API compatible con OpenAI de SwissVault en tus propias aplicaciones. Aplica políticas de modelo y retención por organización."
+        "title": "Despliegue Asistentes en Vault Chat o mediante API",
+        "description": "Active asistentes cifrados para cada equipo o integre la API de SwissVault —totalmente compatible con OpenAI— en sus propias aplicaciones. Gestione políticas de modelos y retención de datos a nivel organizacional."
       },
       "step4": {
         "title": "Monitoriza, Audita y Mejora",
