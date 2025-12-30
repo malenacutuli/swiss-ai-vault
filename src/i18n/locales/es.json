@@ -781,8 +781,8 @@
       "exploreSolutions": "Explorar todas las soluciones"
     },
     "howItWorks": {
-      "title": "De Datos Crudos a Asistentes de IA Gobernados",
-      "subtitle": "Un proceso simple de cuatro pasos para desplegar IA segura y auditable.",
+      "title": "Transforme sus Datos en Asistentes de IA Protegidos",
+      "subtitle": "Despliegue IA de nivel empresarial en cuatro pasos, con total seguridad y trazabilidad.",
       "step1": {
         "title": "Conecta e Ingesta Datos de Forma Segura",
         "description": "Sube documentos o conecta Slack, Notion, GitHub, Gmail. Todos los datos almacenados en centros de datos suizos con control de acceso a nivel de fila."
