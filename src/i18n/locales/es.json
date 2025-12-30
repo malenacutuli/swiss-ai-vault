@@ -802,7 +802,7 @@
     },
     "models": {
       "title": "Usa los Mejores Modelos – Sin Perder Soberanía",
-      "subtitle": "SwissVault abstrae los proveedores para que puedas elegir el modelo correcto para cada carga de trabajo manteniendo la gobernanza y los registros en un solo lugar.",
+      "subtitle": "SwissVault abstrae los proveedores para que puedas elegir el modelo correcto para cada carga de trabajo manteniendo la gobernanza y los registros en un solo lugar, o ser completamente anónimo con Ghost Chat.",
       "hybridCloud": {
         "title": "Nube Híbrida",
         "description": "GPT-4o, o1, Claude 3.5, Gemini 2.0 para cargas de trabajo permitidas para usar APIs estadounidenses. Enrutamiento, facturación y monitoreo centralizados."
