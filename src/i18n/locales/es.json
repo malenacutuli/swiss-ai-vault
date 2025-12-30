@@ -748,19 +748,19 @@
         "details": "Seguridad de Grado Militar: Cifrado AES-256-GCM en el cliente, claves por conversación y seguridad estricta a nivel de fila."
       },
       "swissResidency": {
-        "title": "Residencia de Datos y Gobernanza Suiza",
-        "description": "Todos los datos se almacenan en centros de datos suizos con rastros de auditoría completos y controles de acceso.",
-        "details": "Listo para GDPR hoy, SOC 2 / ISO 27001 / FINMA en la hoja de ruta."
+        "title": "Soberanía y Residencia de Datos en Suiza",
+        "description": "Datos alojados en centros de datos suizos con auditoría completa y control de accesos.",
+        "details": "Cumplimiento GDPR garantizado (SOC 2 / ISO 27001 / FINMA en hoja de ruta)."
       },
       "fullLifecycle": {
-        "title": "Ciclo Completo de IA en Una Plataforma Segura",
-        "description": "Ingesta, ajusta, evalúa y despliega asistentes – usando OpenAI, Anthropic, Gemini, o modelos de código abierto soberanos en GPUs suizas."
+        "title": "Ciclo Completo de IA",
+        "description": "Ingesta, ajuste (fine-tuning), evaluación y despliegue de asistentes con modelos propietarios o de código abierto en GPUs suizas."
       },
       "seeArchitecture": "Ver arquitectura de seguridad"
     },
     "solutions": {
-      "title": "Construido para Flujos de Trabajo Regulados",
-      "subtitle": "SwissVault se usa para potenciar asistentes internos donde la privacidad y la explicabilidad importan más que la experimentación pura.",
+      "title": "Flujos de Trabajo Regulados",
+      "subtitle": "SwissVault potencia asistentes internos donde la privacidad y la explicabilidad son prioritarias frente a la experimentación.",
       "compliance": {
         "title": "Asistentes de Cumplimiento y Políticas",
         "description": "Centraliza políticas internas, procedimientos y regulaciones.",
