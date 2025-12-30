@@ -204,7 +204,8 @@ export function useGhostInference() {
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated');
+        const isAnonymous = !session;
+        
         if (!isCurrent()) {
           console.log(`[Ghost Inference] [${capturedRequestId.slice(0, 8)}] Request became stale after auth`);
           return;
@@ -215,18 +216,25 @@ export function useGhostInference() {
           model,
           messageCount: messages.length,
           stream: true,
+          isAnonymous,
         });
+
+        // Build headers - include Authorization only if authenticated
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          'X-Request-ID': capturedRequestId,
+        };
+        
+        if (session) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
 
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`,
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              'X-Request-ID': capturedRequestId,
-            },
+            headers,
             body: JSON.stringify({
               messages,
               model,

@@ -444,34 +444,39 @@ function GhostChat() {
         research: 'search',
       };
 
-      // Check usage limit before proceeding (free tier enforcement)
-      const featureType = usageTypeMap[mode] || 'prompt';
-      if (!canUse[featureType]) {
-        setUpgradeReason(featureType === 'prompt' ? 'prompts' : 
-                         featureType === 'image' ? 'images' :
-                         featureType === 'video' ? 'videos' :
-                         featureType === 'search' ? 'searches' : 'prompts');
-        setShowUpgradeModal(true);
-        return;
-      }
+      // Skip client-side credit checks for anonymous users - the edge function handles anonymous usage limits via IP tracking
+      const isAnonymous = !user;
+      
+      if (!isAnonymous) {
+        // Check usage limit before proceeding (free tier enforcement)
+        const featureType = usageTypeMap[mode] || 'prompt';
+        if (!canUse[featureType]) {
+          setUpgradeReason(featureType === 'prompt' ? 'prompts' : 
+                           featureType === 'image' ? 'images' :
+                           featureType === 'video' ? 'videos' :
+                           featureType === 'search' ? 'searches' : 'prompts');
+          setShowUpgradeModal(true);
+          return;
+        }
 
-      // Increment usage
-      const allowed = await useFeature(featureType);
-      if (!allowed) {
-        setUpgradeReason(featureType === 'prompt' ? 'prompts' : 
-                         featureType === 'image' ? 'images' :
-                         featureType === 'video' ? 'videos' :
-                         featureType === 'search' ? 'searches' : 'prompts');
-        setShowUpgradeModal(true);
-        return;
-      }
+        // Increment usage
+        const allowed = await useFeature(featureType);
+        if (!allowed) {
+          setUpgradeReason(featureType === 'prompt' ? 'prompts' : 
+                           featureType === 'image' ? 'images' :
+                           featureType === 'video' ? 'videos' :
+                           featureType === 'search' ? 'searches' : 'prompts');
+          setShowUpgradeModal(true);
+          return;
+        }
 
-      // Check credits before proceeding (for Pro users)
-      const creditType = creditTypeMap[mode] || 'text';
-      const creditCheck = await checkCredits(creditType);
-      if (!creditCheck.allowed) {
-        handleInsufficientCredits(creditCheck.reason);
-        return;
+        // Check credits before proceeding (for authenticated users)
+        const creditType = creditTypeMap[mode] || 'text';
+        const creditCheck = await checkCredits(creditType);
+        if (!creditCheck.allowed) {
+          handleInsufficientCredits(creditCheck.reason);
+          return;
+        }
       }
 
       // Create conversation if none selected
