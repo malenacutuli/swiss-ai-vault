@@ -751,7 +751,7 @@
       "talkToCISO": "Talk to our CISO"
     },
     "models": {
-      "title": "Use the Best Models – Without Losing Sovereignty",
+      "title": "Use the Best Models – Without Losing Privacy",
       "subtitle": "SwissVault abstracts away providers so you can choose the right model for each workload while keeping governance and logging in one place, or be completely anonymous with Ghost Chat.",
       "hybridCloud": {
         "title": "Hybrid Cloud",
