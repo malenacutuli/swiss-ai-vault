@@ -41,6 +41,12 @@ export function useGhostInference() {
   const stuckCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const maxTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // IMPORTANT: avoid stale closures inside intervals/timeouts
+  const streamStatusRef = useRef<StreamStatus>('idle');
+  useEffect(() => {
+    streamStatusRef.current = streamStatus;
+  }, [streamStatus]);
+
   // Cleanup function to clear all timers
   const cleanup = useCallback(() => {
     if (stuckCheckIntervalRef.current) {
@@ -181,12 +187,13 @@ export function useGhostInference() {
         const now = Date.now();
         const lastActivity = lastTokenTimeRef.current || startTime;
         const timeSinceActivity = now - lastActivity;
+        const currentStatus = streamStatusRef.current;
 
         // Check for stuck state (no tokens for STUCK_DETECTION_MS)
-        if (streamStatus === 'generating' && timeSinceActivity > STUCK_DETECTION_MS) {
+        if (currentStatus === 'generating' && timeSinceActivity > STUCK_DETECTION_MS) {
           console.warn(`[Ghost Inference] [${capturedRequestId.slice(0, 8)}] Stuck detected: ${timeSinceActivity}ms without tokens`);
           setStreamStatus('stuck');
-          
+
           // If we have content, complete with it; otherwise, error
           if (fullContent.trim()) {
             markComplete(fullContent, 'stuck');
@@ -196,7 +203,7 @@ export function useGhostInference() {
         }
 
         // Check for connection timeout
-        if (streamStatus === 'connecting' && timeSinceActivity > CONNECTION_TIMEOUT_MS) {
+        if (currentStatus === 'connecting' && timeSinceActivity > CONNECTION_TIMEOUT_MS) {
           console.warn(`[Ghost Inference] [${capturedRequestId.slice(0, 8)}] Connection timeout: ${timeSinceActivity}ms`);
           markError(new Error('Connection timeout. Please check your network and try again.'));
         }
