@@ -85,7 +85,7 @@ const Security = () => {
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
-                  <Database className="w-6 h-6 text-primary" />
+                  <img src="/favicon.svg" alt="Swiss Flag" className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
