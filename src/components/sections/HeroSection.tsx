@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lock, Shield } from "@/icons";
-import { SwissFlag } from "@/components/icons/SwissFlag";
+
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -48,7 +48,10 @@ export const HeroSection = () => {
             {/* Trust micro-copy */}
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start text-sm text-muted-foreground animate-slide-up animate-delay-300">
               <div className="flex items-center gap-1.5">
-                <SwissFlag className="h-4 w-4" />
+                <svg viewBox="0 0 32 32" className="h-4 w-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="32" height="32" rx="4" fill="#dc2626"/>
+                  <path d="M14 8H18V14H24V18H18V24H14V18H8V14H14V8Z" fill="white"/>
+                </svg>
                 <span>{t('home.hero.hostedInSwitzerland')}</span>
               </div>
               <div className="flex items-center gap-1.5">
