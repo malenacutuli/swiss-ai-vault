@@ -67,15 +67,6 @@ export const WhySwissVaultSection = () => {
           ))}
         </div>
 
-        <div className="text-center mt-8">
-          <a 
-            href="#security" 
-            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            {t('home.whySwissVault.seeArchitecture')}
-            <ArrowRight className="h-4 w-4" />
-          </a>
-        </div>
       </div>
     </section>
   );
