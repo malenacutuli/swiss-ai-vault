@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Video, Film, Sparkles, Upload, Image as ImageIcon, Coins, Loader2, X } from '@/icons';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Video, Film, Sparkles, Upload, Image as ImageIcon, Coins, Loader2, X, ArrowLeft, MessageSquare } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -347,8 +348,30 @@ export function VideoGen({ initialImageUrl }: VideoGenProps) {
   // Active jobs (not completed)
   const activeJobs = jobs.filter(j => j.status === 'queued' || j.status === 'processing');
 
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const handleBackToChat = () => {
+    // Remove mode param to go back to chat
+    navigate('/ghost');
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Back to chat button */}
+      <div className="flex items-center gap-2 p-4 border-b border-border/30">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToChat}
+          className="gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <MessageSquare className="w-4 h-4" />
+          Back to Chat
+        </Button>
+      </div>
+
       {/* Results area */}
       <div className="flex-1 overflow-auto p-4 lg:p-6">
         {generatedVideos.length === 0 && activeJobs.length === 0 && !isGenerating ? (
