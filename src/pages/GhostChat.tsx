@@ -1439,13 +1439,7 @@ function GhostChat() {
     return () => document.removeEventListener('paste', handlePaste);
   }, [handleFilesDropped]);
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <p className="text-muted-foreground font-sans">Please log in to use Ghost Mode</p>
-      </div>
-    );
-  }
+  // Ghost Chat supports anonymous access - do not block unauthenticated users
 
   return (
     <GhostDropZone
