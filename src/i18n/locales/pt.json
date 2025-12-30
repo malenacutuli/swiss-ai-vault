@@ -1105,11 +1105,13 @@
       "signUp": "Cadastrar"
     },
     "alerts": {
-      "corruptedTitle": "Algumas conversas não puderam ser carregadas",
-      "corruptedDescription": "conversa(s) criptografada(s) com uma chave diferente não puderam ser descriptografadas.",
-      "clearCorruptedData": "Limpar dados corrompidos",
-      "storageCleared": "Armazenamento limpo",
-      "storageClearedDescription": "Todos os dados locais foram removidos. Você pode começar do zero."
+      "corruptedTitle": "Sua privacidade está protegida",
+      "corruptedDescription": "As conversas anteriores foram criptografadas com uma chave de sessão temporária. Na navegação anônima, essa chave muda quando os dados do navegador são limpos — mantendo seus dados privados por design.",
+      "signUpPrompt": "Quer conversas que persistam entre sessões?",
+      "signUpFree": "Cadastre-se grátis",
+      "clearCorruptedData": "Limpar dados anteriores",
+      "storageCleared": "Dados limpos",
+      "storageClearedDescription": "Seus dados locais foram limpos. Comece do zero com criptografia completa."
     },
     "modes": {
       "text": "Chat",

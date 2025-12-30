@@ -1125,11 +1125,13 @@
       "signUp": "Sign up"
     },
     "alerts": {
-      "corruptedTitle": "Some conversations couldn't be loaded",
-      "corruptedDescription": "conversation(s) encrypted with a different key could not be decrypted.",
-      "clearCorruptedData": "Clear corrupted data",
-      "storageCleared": "Storage cleared",
-      "storageClearedDescription": "All local data has been removed. You can start fresh."
+      "corruptedTitle": "Your privacy is protected",
+      "corruptedDescription": "Previous conversations were encrypted with a temporary session key. For anonymous browsing, this key changes when browser data is cleared — keeping your data private by design.",
+      "signUpPrompt": "Want conversations that persist across sessions?",
+      "signUpFree": "Sign up for free",
+      "clearCorruptedData": "Clear previous data",
+      "storageCleared": "Data cleared",
+      "storageClearedDescription": "Your local data has been cleared. Start fresh with full encryption."
     },
     "modes": {
       "text": "Chat",

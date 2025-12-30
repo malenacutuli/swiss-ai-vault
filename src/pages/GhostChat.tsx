@@ -1593,27 +1593,40 @@ function GhostChat() {
         />
 
 
-        {/* Corrupted Data Recovery Alert */}
+        {/* Privacy Protection Notice for Anonymous Users */}
         {corruptedCount > 0 && (
-          <Alert variant="destructive" className="m-4 border-destructive/50 bg-destructive/10">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>{t('ghost.alerts.corruptedTitle', "Some conversations couldn't be loaded")}</AlertTitle>
-            <AlertDescription className="mt-2">
-              {corruptedCount} {t('ghost.alerts.corruptedDescription', 'conversation(s) encrypted with a different key could not be decrypted.')}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-3 block"
-                onClick={() => {
-                  clearAllData();
-                  toast({ 
-                    title: t('ghost.alerts.storageCleared', 'Storage cleared'), 
-                    description: t('ghost.alerts.storageClearedDescription', 'All local data has been removed. You can start fresh.') 
-                  });
-                }}
-              >
-                {t('ghost.alerts.clearCorruptedData', 'Clear corrupted data')}
-              </Button>
+          <Alert className="m-4 border-purple-500/30 bg-purple-500/10">
+            <Shield className="h-4 w-4 text-purple-400" />
+            <AlertTitle className="text-purple-100">{t('ghost.alerts.corruptedTitle', 'Your privacy is protected')}</AlertTitle>
+            <AlertDescription className="mt-2 text-purple-200/80">
+              {t('ghost.alerts.corruptedDescription', 'Previous conversations were encrypted with a temporary session key. For anonymous browsing, this key changes when browser data is cleared — keeping your data private by design.')}
+              
+              <p className="mt-3 text-purple-300">{t('ghost.alerts.signUpPrompt', 'Want conversations that persist across sessions?')}</p>
+              
+              <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => navigate('/auth/ghost-signup')}
+                  className="bg-purple-600 hover:bg-purple-500 text-white"
+                >
+                  {t('ghost.alerts.signUpFree', 'Sign up for free')}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-purple-300 hover:text-purple-100 hover:bg-purple-500/20"
+                  onClick={() => {
+                    clearAllData();
+                    toast({ 
+                      title: t('ghost.alerts.storageCleared', 'Data cleared'), 
+                      description: t('ghost.alerts.storageClearedDescription', 'Your local data has been cleared. Start fresh with full encryption.') 
+                    });
+                  }}
+                >
+                  {t('ghost.alerts.clearCorruptedData', 'Clear previous data')}
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
         )}
