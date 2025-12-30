@@ -738,5 +738,48 @@
       "deleteModel": "Elimina Modello",
       "deleteModelDesc": "Elimina un modello fine-tuned. Questo rimuove anche il checkpoint del modello dallo storage."
     }
+  },
+  "securityPage": {
+    "badge": "Sicurezza e Conformità",
+    "title": "Architettura di Sicurezza Progettata per gli Auditor",
+    "subtitle": "Sicurezza di livello enterprise che soddisfa i requisiti di conformità più esigenti.",
+    "e2e": {
+      "title": "Crittografia End-to-End Lato Client",
+      "point1": "AES-256-GCM, chiavi per conversazione, chiavi master derivate PBKDF2",
+      "point2": "Le chiavi non lasciano mai il browser; i server vedono solo testo cifrato"
+    },
+    "zeroTrust": {
+      "title": "Backend Zero-Trust",
+      "point1": "Sicurezza a livello di riga su oltre 40 tabelle",
+      "point2": "Log di audit immutabili con cronologia completa delle modifiche",
+      "point3": "Ruoli organizzativi rigorosi (proprietario, admin, membro)"
+    },
+    "swissResidency": {
+      "title": "Residenza Dati in Svizzera",
+      "point1": "Tutti i dati archiviati in database ospitati in Svizzera",
+      "point2": "Modalità zero-retention opzionale per tracce di inferenza e campioni di valutazione"
+    },
+    "complianceRoadmap": {
+      "title": "Roadmap di Conformità",
+      "point1": "Processi allineati al GDPR implementati",
+      "point2": "SOC 2 Tipo II (in corso), ISO 27001 e preparazione FINMA nella roadmap"
+    },
+    "architecture": {
+      "title": "Architettura Zero-Knowledge",
+      "browser": {
+        "title": "Il Tuo Browser (Chiavi Qui)",
+        "description": "Chiavi di crittografia AES-256-GCM archiviate in IndexedDB. Tutta la crittografia/decrittografia avviene lato client."
+      },
+      "backend": {
+        "title": "Backend SwissVault",
+        "description": "Memorizza solo testo cifrato + hash delle chiavi. Le policy RLS impongono l'isolamento dei dati."
+      },
+      "infrastructure": {
+        "title": "Infrastruttura Svizzera",
+        "description": "I dati non lasciano mai la giurisdizione svizzera."
+      }
+    },
+    "downloadWhitepaper": "Scarica il Whitepaper sulla Sicurezza",
+    "talkToCISO": "Parla con il nostro CISO"
   }
 }

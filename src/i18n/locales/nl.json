@@ -738,5 +738,48 @@
       "deleteModel": "Model Verwijderen",
       "deleteModelDesc": "Verwijder een fine-tuned model. Dit verwijdert ook de model-checkpoint uit de opslag."
     }
+  },
+  "securityPage": {
+    "badge": "Beveiliging & Compliance",
+    "title": "Beveiligingsarchitectuur Ontworpen voor Auditors",
+    "subtitle": "Beveiligingsniveau voor ondernemingen dat voldoet aan de strengste compliance-eisen.",
+    "e2e": {
+      "title": "Client-side End-to-End Encryptie",
+      "point1": "AES-256-GCM, sleutels per gesprek, PBKDF2-afgeleide master keys",
+      "point2": "Sleutels verlaten nooit de browser; servers zien alleen versleutelde tekst"
+    },
+    "zeroTrust": {
+      "title": "Zero-Trust Backend",
+      "point1": "Row-Level Security op 40+ tabellen",
+      "point2": "Onveranderlijke audit logs met volledige wijzigingsgeschiedenis",
+      "point3": "Strikte organisatierollen (eigenaar, admin, lid)"
+    },
+    "swissResidency": {
+      "title": "Zwitserse Dataresidentie",
+      "point1": "Alle gegevens opgeslagen in Zwitserse databases",
+      "point2": "Optionele zero-retention modus voor inference traces en evaluatiesamples"
+    },
+    "complianceRoadmap": {
+      "title": "Compliance Roadmap",
+      "point1": "AVG-conforme processen geïmplementeerd",
+      "point2": "SOC 2 Type II (in uitvoering), ISO 27001 en FINMA-gereedheid op de roadmap"
+    },
+    "architecture": {
+      "title": "Zero-Knowledge Architectuur",
+      "browser": {
+        "title": "Uw Browser (Sleutels Hier)",
+        "description": "AES-256-GCM encryptiesleutels opgeslagen in IndexedDB. Alle encryptie/decryptie gebeurt client-side."
+      },
+      "backend": {
+        "title": "SwissVault Backend",
+        "description": "Slaat alleen versleutelde tekst + sleutelhashes op. RLS-beleid dwingt data-isolatie af."
+      },
+      "infrastructure": {
+        "title": "Zwitserse Infrastructuur",
+        "description": "Gegevens verlaten nooit de Zwitserse jurisdictie."
+      }
+    },
+    "downloadWhitepaper": "Download Beveiligings Whitepaper",
+    "talkToCISO": "Praat met onze CISO"
   }
 }

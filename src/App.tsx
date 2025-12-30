@@ -58,6 +58,7 @@ import TermsOfService from "./pages/TermsOfService";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import DPA from "./pages/DPA";
+import Security from "./pages/Security";
 import Status from "./pages/Status";
 import OAuthCallback from "./pages/OAuthCallback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
@@ -102,6 +103,7 @@ const App = () => {
                 <Route path="/about" element={<MarketingLayout><About /></MarketingLayout>} />
                 <Route path="/contact" element={<MarketingLayout><Contact /></MarketingLayout>} />
                 <Route path="/dpa" element={<MarketingLayout><DPA /></MarketingLayout>} />
+                <Route path="/security" element={<MarketingLayout><Security /></MarketingLayout>} />
                 <Route path="/status" element={<MarketingLayout><Status /></MarketingLayout>} />
                 <Route path="/features/vault-chat" element={<MarketingLayout><VaultChatFeatures /></MarketingLayout>} />
                 <Route path="/features/vault-labs" element={<MarketingLayout><VaultLabsFeatures /></MarketingLayout>} />
