@@ -226,16 +226,18 @@ export function useGhostInference() {
           isAnonymous,
         });
 
-        // Build headers - include Authorization only if authenticated
+        // Build headers
+        // - apikey is always required
+        // - Authorization is required because backend functions validate JWT by default
+        //   (anonymous users use the publishable "anon" JWT; authenticated users use their session JWT)
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: session
+            ? `Bearer ${session.access_token}`
+            : `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           'X-Request-ID': capturedRequestId,
         };
-        
-        if (session) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
 
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`,
