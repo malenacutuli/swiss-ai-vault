@@ -40,7 +40,11 @@ const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
   return key;
 };
 
+let memoryAnonId: string | null = null;
+
 function getOrCreateAnonymousId(): string {
+  // Prefer localStorage for persistence across browser restarts.
+  // Fall back to sessionStorage, then an in-memory singleton (still stable for this tab/runtime).
   try {
     const existing = localStorage.getItem(ANON_ID_KEY);
     if (existing) return existing;
@@ -48,8 +52,17 @@ function getOrCreateAnonymousId(): string {
     localStorage.setItem(ANON_ID_KEY, created);
     return created;
   } catch {
-    // Fallback (should be rare): still provide a stable-ish id for this session
-    return crypto.randomUUID();
+    try {
+      const existing = sessionStorage.getItem(ANON_ID_KEY);
+      if (existing) return existing;
+      const created = crypto.randomUUID();
+      sessionStorage.setItem(ANON_ID_KEY, created);
+      return created;
+    } catch {
+      if (memoryAnonId) return memoryAnonId;
+      memoryAnonId = crypto.randomUUID();
+      return memoryAnonId;
+    }
   }
 }
 
