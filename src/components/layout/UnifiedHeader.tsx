@@ -117,7 +117,7 @@ export function UnifiedHeader({
             <span className="hidden sm:inline">{t('ghost.auth.logout', 'Log out')}</span>
           </Button>
         ) : (
-          <Button size="sm" onClick={() => navigate('/auth/ghost-signup')}>
+          <Button size="sm" onClick={() => navigate('/auth?intent=ghost')}>
             {t('ghost.auth.signUp', 'Sign Up')}
           </Button>
         )}

@@ -1607,7 +1607,7 @@ function GhostChat() {
                 <Button 
                   variant="default" 
                   size="sm"
-                  onClick={() => navigate('/auth/ghost-signup')}
+                  onClick={() => navigate('/auth?intent=ghost')}
                   className="bg-purple-600 hover:bg-purple-500 text-white"
                 >
                   {t('ghost.alerts.signUpFree', 'Sign up for free')}
@@ -1946,7 +1946,7 @@ function GhostChat() {
                   tier={tier as 'anonymous' | 'free' | 'ghost' | 'pro' | 'ultra'}
                   onUpgrade={() => {
                     if (!user) {
-                      navigate('/auth/ghost-signup');
+                      navigate('/auth?intent=ghost');
                     } else {
                       setShowUpgradeModal(true);
                     }
