@@ -4,7 +4,6 @@ import { WhySwissVaultSection } from "@/components/sections/WhySwissVaultSection
 import { SolutionsSection } from "@/components/sections/SolutionsSection";
 import { HowItWorksSection } from "@/components/sections/HowItWorksSection";
 import { ModelsSection } from "@/components/sections/ModelsSection";
-import { LatestModelsCarousel } from "@/components/sections/LatestModelsCarousel";
 import { PricingSection } from "@/components/sections/PricingSection";
 import { SocialProofSection } from "@/components/sections/SocialProofSection";
 import { DeveloperSection } from "@/components/sections/DeveloperSection";
@@ -15,7 +14,6 @@ const Index = () => {
     <>
       <HeroSection />
       <ModelsSection />
-      <LatestModelsCarousel />
       <WhySwissVaultSection />
       <FeaturesSection />
       <SolutionsSection />
