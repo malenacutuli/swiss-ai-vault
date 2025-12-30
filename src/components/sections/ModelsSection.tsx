@@ -82,17 +82,9 @@ export const ModelsSection = () => {
               </div>
               <h3 className="text-lg font-semibold">{t('home.models.hybridCloud.title')}</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground">
               {t('home.models.hybridCloud.description')}
             </p>
-            <div className="flex flex-wrap gap-2">
-              {hybridModels.map((model) => (
-                <div key={model.name} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border/30">
-                  <img src={model.logo} alt={model.name} className="w-4 h-4 rounded object-cover" />
-                  <span className="text-xs font-medium">{model.name}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="p-6 rounded-2xl bg-card border border-border/60">
@@ -102,17 +94,9 @@ export const ModelsSection = () => {
               </div>
               <h3 className="text-lg font-semibold">{t('home.models.sovereignOpenSource.title')}</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground">
               {t('home.models.sovereignOpenSource.description')}
             </p>
-            <div className="flex flex-wrap gap-2">
-              {sovereignModels.map((model) => (
-                <div key={model.name} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                  <img src={model.logo} alt={model.name} className="w-4 h-4 rounded object-cover" />
-                  <span className="text-xs font-medium">{model.name}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
