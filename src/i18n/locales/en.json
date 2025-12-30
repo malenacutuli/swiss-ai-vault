@@ -752,7 +752,7 @@
     },
     "models": {
       "title": "Use the Best Models – Without Losing Sovereignty",
-      "subtitle": "SwissVault abstracts away providers so you can choose the right model for each workload while keeping governance and logging in one place.",
+      "subtitle": "SwissVault abstracts away providers so you can choose the right model for each workload while keeping governance and logging in one place, or be completely anonymous with Ghost Chat.",
       "hybridCloud": {
         "title": "Hybrid Cloud",
         "description": "GPT-4o, o1, Claude 3.5, Gemini 2.0 for workloads allowed to use US APIs. Centralised routing, billing and monitoring."
