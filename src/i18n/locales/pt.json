@@ -514,13 +514,17 @@
   },
   "home": {
     "hero": {
-      "title": "A Plataforma de IA Mais Privada",
-      "titleHighlight": "do Mundo",
+      "title": "Chat de IA Privado.",
+      "titleHighlight": "Sem Rastros.",
       "subtitle": "Criptografia de ponta a ponta. Sem rastro. Hospedado na Suíça.",
-      "description": "Confiada por indústrias reguladas e pelos indivíduos mais sensíveis à privacidade do mundo.",
-      "bookDemo": "Agendar demo empresarial",
-      "earlyAccess": "Solicitar acesso privado",
+      "description": "Experimente o assistente de IA mais privado. Suas conversas nunca tocam nossos servidores. Completamente anônimo. Completamente gratuito.",
+      "bookDemo": "Agendar Demo Empresarial",
+      "earlyAccess": "Solicitar Acesso Privado",
+      "tryGhostChat": "Experimente o Ghost Chat Grátis",
       "hostedInSwitzerland": "Hospedado na Suíça",
+      "noLoginRequired": "Sem Login Necessário",
+      "zeroDataStored": "Zero Dados Armazenados",
+      "anonymous": "100% Anônimo",
       "gdprReady": "Pronto para GDPR",
       "e2eEncryption": "Criptografia E2E do lado do cliente"
     },
@@ -539,6 +543,194 @@
       "evaluations": "Avaliações",
       "accuracy": "precisão",
       "ragSources": "Fontes RAG"
+    },
+    "whySwissVault": {
+      "title": "Por que SwissVault?",
+      "subtitle": "IA discreta para indivíduos e empresas que não podem se expor.",
+      "zeroKnowledge": {
+        "title": "Zero-Knowledge por Design",
+        "description": "Não podemos ler suas conversas criptografadas – e ninguém mais pode.",
+        "details": "AES-256-GCM do lado do cliente, chaves por conversa e segurança rigorosa em nível de linha."
+      },
+      "swissResidency": {
+        "title": "Residência de Dados e Governança Suíça",
+        "description": "Todos os dados são armazenados em data centers suíços com trilhas de auditoria completas e controles de acesso.",
+        "details": "Pronto para GDPR hoje, SOC 2 / ISO 27001 / FINMA no roadmap."
+      },
+      "fullLifecycle": {
+        "title": "Ciclo Completo de IA em Uma Plataforma Segura",
+        "description": "Ingira, ajuste, avalie e implante assistentes – usando OpenAI, Anthropic, Gemini, ou modelos open-source soberanos em GPUs suíças."
+      },
+      "seeArchitecture": "Ver arquitetura de segurança"
+    },
+    "solutions": {
+      "title": "Construído para Fluxos de Trabalho Regulados",
+      "subtitle": "SwissVault é usado para alimentar assistentes internos onde privacidade e explicabilidade importam mais que experimentação.",
+      "compliance": {
+        "title": "Assistentes de Compliance e Políticas",
+        "description": "Centralize políticas internas, procedimentos e regulamentos.",
+        "feature1": "Permita que funcionários façam perguntas em linguagem natural com logs de auditoria completos",
+        "feature2": "Aplique retenção zero e políticas rígidas de modelo"
+      },
+      "developer": {
+        "title": "Co-Pilotos Seguros para Desenvolvedores e Ops",
+        "description": "Conecte-se a repositórios GitHub privados, execute modelos code-aware em ambiente zero-trust.",
+        "feature1": "Mantenha código-fonte e credenciais fora de logs de terceiros"
+      },
+      "banking": {
+        "title": "Co-Pilotos de Conhecimento para Bancos e Seguradoras",
+        "description": "Ingira documentos de produtos, arquivos KYC e wikis internos.",
+        "feature1": "Forneça às equipes da linha de frente respostas instantâneas e rastreáveis",
+        "feature2": "Citações RAG e dashboards de avaliação"
+      },
+      "exploreSolutions": "Explorar todas as soluções"
+    },
+    "howItWorks": {
+      "title": "De Dados Brutos a Assistentes de IA Governados",
+      "subtitle": "Um processo simples de quatro etapas para implantar IA segura e auditável.",
+      "step1": {
+        "title": "Conecte e Ingira Dados com Segurança",
+        "description": "Carregue documentos ou conecte Slack, Notion, GitHub, Gmail. Todos os dados armazenados em data centers suíços com controle de acesso em nível de linha."
+      },
+      "step2": {
+        "title": "Ajuste e Avalie Modelos",
+        "description": "Use templates prontos ou seus próprios datasets. Treine adaptadores LoRA/QLoRA em modelos open-source ou use APIs comerciais. Avalie com LLM-as-judge e métricas personalizadas antes de ir ao ar."
+      },
+      "step3": {
+        "title": "Implante Assistentes no Vault Chat e via API",
+        "description": "Crie assistentes criptografados para cada equipe ou use a API compatível com OpenAI do SwissVault em seus próprios apps. Aplique políticas de modelo e retenção por organização."
+      },
+      "step4": {
+        "title": "Monitore, Audite e Melhore",
+        "description": "Acompanhe uso, qualidade e custos em tempo real. Exporte logs para auditorias. Itere em datasets, fine-tunes e guardrails."
+      }
+    },
+    "security": {
+      "badge": "Segurança e Conformidade",
+      "title": "Arquitetura de Segurança Projetada para Auditores",
+      "subtitle": "Segurança de nível empresarial que satisfaz os requisitos de conformidade mais exigentes.",
+      "e2e": {
+        "title": "Criptografia Ponta a Ponta do Lado do Cliente",
+        "point1": "AES-256-GCM, chaves por conversa, chaves mestras derivadas de PBKDF2",
+        "point2": "As chaves nunca saem do navegador; os servidores veem apenas texto cifrado"
+      },
+      "zeroTrust": {
+        "title": "Backend Zero-Trust",
+        "point1": "Segurança em nível de linha em mais de 40 tabelas",
+        "point2": "Logs de auditoria imutáveis com histórico completo de alterações",
+        "point3": "Funções de organização rígidas (proprietário, admin, membro)"
+      },
+      "swissResidency": {
+        "title": "Residência de Dados na Suíça",
+        "point1": "Todos os dados armazenados em bancos de dados hospedados na Suíça",
+        "point2": "Modo de retenção zero opcional para rastros de inferência e amostras de avaliação"
+      },
+      "complianceRoadmap": {
+        "title": "Roadmap de Conformidade",
+        "point1": "Processos alinhados ao GDPR implementados",
+        "point2": "SOC 2 Tipo II (em andamento), ISO 27001 e preparação FINMA no roadmap"
+      },
+      "architecture": {
+        "title": "Arquitetura Zero-Knowledge",
+        "browser": {
+          "title": "Seu Navegador (Chaves Aqui)",
+          "description": "Chaves de criptografia AES-256-GCM armazenadas no IndexedDB. Toda criptografia/descriptografia acontece no lado do cliente."
+        },
+        "backend": {
+          "title": "Backend SwissVault",
+          "description": "Armazena apenas texto cifrado + hashes de chaves. Políticas RLS impõem isolamento de dados."
+        },
+        "infrastructure": {
+          "title": "Infraestrutura Suíça",
+          "description": "Os dados nunca saem da jurisdição suíça."
+        }
+      },
+      "downloadWhitepaper": "Baixar Whitepaper de Segurança",
+      "talkToCISO": "Falar com nosso CISO"
+    },
+    "models": {
+      "title": "Use os Melhores Modelos – Sem Perder Privacidade",
+      "subtitle": "SwissVault abstrai os provedores para que você escolha o modelo certo para cada carga de trabalho mantendo governança e logs em um só lugar, ou seja completamente anônimo com o Ghost Chat.",
+      "hybridCloud": {
+        "title": "Nuvem Híbrida",
+        "description": "Roteamento centralizado, faturamento e monitoramento, opções anônimas e criptografadas."
+      },
+      "sovereignOpenSource": {
+        "title": "Open-Source Soberano",
+        "description": "Opção de restringir uma organização apenas a modelos open-source hospedados na Suíça."
+      },
+      "openaiCompatible": "Já usa OpenAI?",
+      "openaiCompatibleDesc": "Compatível drop-in com os SDKs Python e JS da OpenAI – basta mudar a URL base."
+    },
+    "pricing": {
+      "title": "Acesso Privado Agora. Poder Empresarial Quando Precisar",
+      "subtitle": "O acesso é limitado. Entrada por convite ou aprovação pessoal.",
+      "free": {
+        "name": "Grátis",
+        "price": "$0",
+        "period": "para sempre",
+        "description": "Para avaliação e pequenas equipes.",
+        "feature1": "10K chamadas API / mês",
+        "feature2": "2 jobs de fine-tuning / mês",
+        "feature3": "1GB de armazenamento de dados",
+        "feature4": "Suporte da comunidade",
+        "cta": "Começar"
+      },
+      "pro": {
+        "name": "Vault Chat Private Edition",
+        "price": "$200",
+        "period": "/mês",
+        "description": "Instância LLM criptografada pessoal",
+        "badge": "Apenas por Convite",
+        "feature1": "Chat privado ilimitado",
+        "feature2": "Análise de arquivos criptografados ilimitada",
+        "feature3": "Cofre de dados privado até 10 GB",
+        "feature4": "Acesso antecipado a novos modos criptográficos",
+        "feature5": "Computação prioritária",
+        "feature6": "Engenheiro de suporte na Suíça",
+        "feature7": "Direitos de convite (limitados)",
+        "cta": "Solicitar Acesso Privado"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Personalizado",
+        "description": "Para bancos, seguradoras, infraestrutura crítica.",
+        "feature1": "1M+ chamadas API / mês",
+        "feature2": "Jobs de fine-tuning ilimitados",
+        "feature3": "500GB+ de armazenamento",
+        "feature4": "Suporte dedicado e SLAs",
+        "feature5": "Integrações SSO e auditoria",
+        "feature6": "Nível OSS soberano opcional",
+        "cta": "Contatar Vendas"
+      },
+      "sovereignDeployment": "Precisa de on-premise ou suas próprias GPUs? Fale conosco sobre implantação soberana"
+    },
+    "socialProof": {
+      "title": "Confiado por Equipes Security-First",
+      "testimonial": "SwissVault nos permitiu implementar assistentes de IA internos sem enviar dados de clientes para nuvens americanas – isso era inegociável.",
+      "author": "CISO",
+      "company": "Instituição Financeira Suíça",
+      "industries": {
+        "swissBanks": "Bancos Suíços",
+        "healthcare": "Profissionais de Saúde",
+        "hnwi": "HNWI",
+        "crypto": "Gestores de Cripto",
+        "blockchain": "Blockchain",
+        "insurance": "Seguradoras",
+        "regtech": "Fornecedor RegTech",
+        "wealthManagers": "Gestores de Patrimônio",
+        "privateBank": "Banco Privado"
+      }
+    },
+    "developer": {
+      "title": "Amado por Desenvolvedores e Equipes de ML",
+      "feature1": "API compatível com OpenAI – drop-in para código existente",
+      "feature2": "SDKs para Python e TypeScript com async e streaming",
+      "feature3": "Webhooks para avaliações, jobs de fine-tuning e faturamento",
+      "viewApiDocs": "Ver Documentação da API"
+    },
+    "supportedBy": {
+      "title": "Empresa de IA Inovadora Apoiada por"
     }
   },
   "vaultChatFeatures": {
@@ -781,5 +973,578 @@
     },
     "downloadWhitepaper": "Baixar Whitepaper de Segurança",
     "talkToCISO": "Falar com nosso CISO"
+  },
+  "footer": {
+    "products": "Produtos",
+    "company": "Empresa",
+    "legal": "Legal",
+    "support": "Suporte",
+    "ghostChat": "Ghost Chat",
+    "vaultChat": "Vault Chat",
+    "vaultLabs": "Vault Labs",
+    "pricing": "Preços",
+    "apiReference": "Referência da API",
+    "about": "Sobre",
+    "contact": "Contato",
+    "privacyPolicy": "Política de Privacidade",
+    "termsOfService": "Termos de Serviço",
+    "dpa": "DPA",
+    "security": "Segurança",
+    "status": "Status",
+    "emailSupport": "Suporte por Email",
+    "description": "IA zero-trust para equipes reguladas. Residência de dados suíça, criptografia E2E, auditabilidade completa.",
+    "allSystemsOperational": "Todos os sistemas operacionais",
+    "madeInSwitzerland": "Feito na Suíça",
+    "allRightsReserved": "Todos os direitos reservados"
+  },
+  "modeToggle": {
+    "toVault": {
+      "title": "Mudar para Vault Chat?",
+      "description1": "Vault Chat armazena suas conversas nos servidores SwissVault (criptografadas).",
+      "description2": "Suas conversas Ghost permanecerão locais neste dispositivo.",
+      "confirm": "Deseja mudar?",
+      "cancel": "Ficar no Ghost",
+      "action": "Mudar para Vault Chat"
+    },
+    "toGhost": {
+      "title": "Entrando no Modo Ghost",
+      "description": "Modo Ghost não armazena nada nos servidores SwissVault.",
+      "feature1": "Conversas existem apenas no seu dispositivo",
+      "feature2": "Apenas modelos de IA hospedados na Suíça",
+      "feature3": "Exporte seus dados a qualquer momento",
+      "confirm": "Pronto para ficar invisível?",
+      "action": "Entrar no Modo Ghost"
+    }
+  },
+  "vaultChat": {
+    "title": "Vault Chat",
+    "newChat": "Novo chat",
+    "creating": "Criando...",
+    "searchPlaceholder": "Pesquisar seus chats...",
+    "conversations": "conversa(s)",
+    "matching": "correspondendo a \"{{query}}\"",
+    "noMatchingChats": "Nenhuma conversa corresponde à sua pesquisa",
+    "noConversationsYet": "Nenhuma conversa ainda",
+    "startFirstChat": "Inicie seu primeiro chat",
+    "newConversation": "Nova conversa",
+    "importChat": "Importar Chat",
+    "switchToLight": "Mudar para modo claro",
+    "switchToDark": "Mudar para modo escuro",
+    "security": {
+      "aes256": "Criptografado AES-256",
+      "swissHosted": "Hospedado na Suíça",
+      "zeroKnowledge": "Zero Knowledge"
+    },
+    "retention": {
+      "title": "Retenção de Dados",
+      "mode": "Modo",
+      "mostSecure": "MAIS SEGURO",
+      "zerotrace": {
+        "label": "ZeroTrace",
+        "description": "Sem retenção de dados. Criptografado e excluído imediatamente."
+      },
+      "1day": {
+        "label": "Manter 1 dia",
+        "description": "Mensagens criptografadas excluídas após 24 horas."
+      },
+      "1week": {
+        "label": "Manter 1 semana",
+        "description": "Mensagens criptografadas excluídas após 7 dias."
+      },
+      "90days": {
+        "label": "Manter 90 dias",
+        "description": "Mensagens criptografadas excluídas após 90 dias."
+      },
+      "forever": {
+        "label": "Manter para sempre",
+        "description": "Mensagens criptografadas armazenadas permanentemente."
+      }
+    },
+    "encryption": {
+      "badge": "Criptografado E2E",
+      "tooltip": "Suas mensagens são criptografadas de ponta a ponta usando AES-256-GCM. Apenas você pode lê-las."
+    },
+    "delete": {
+      "title": "Excluir Conversa?",
+      "description": "Tem certeza de que deseja excluir \"{{title}}\"? Isso excluirá permanentemente todas as mensagens e a chave de criptografia. Esta ação não pode ser desfeita.",
+      "deleting": "Excluindo..."
+    },
+    "research": {
+      "inProgress": "Pesquisa em Andamento",
+      "encryptedInProgress": "Pesquisa Criptografada em Andamento",
+      "stages": {
+        "encrypting": "Criptografando consulta",
+        "searching": "Pesquisando na web",
+        "analyzing": "Analisando fontes",
+        "synthesizing": "Sintetizando relatório",
+        "encryptingResults": "Criptografando resultados"
+      }
+    },
+    "modes": {
+      "zerotraceActivated": "Modo ZeroTrace Ativado",
+      "zerotraceDescription": "Mensagens serão armazenadas localmente e nunca enviadas aos nossos servidores",
+      "cloudActivated": "Modo Armazenamento em Nuvem Ativado",
+      "cloudDescription": "Mensagens serão armazenadas criptografadas na nuvem",
+      "updateError": "Falha ao atualizar modo de armazenamento"
+    }
+  },
+  "ghost": {
+    "title": "Ghost Chat",
+    "subtitle": "Seu assistente de IA privado",
+    "welcome": {
+      "title": "Chat de IA Privado",
+      "description": "Suas conversas são criptografadas localmente e nunca saem do seu dispositivo. Comece a digitar para iniciar uma conversa privada.",
+      "poweredBy": "Alimentado por modelos de IA hospedados na Suíça"
+    },
+    "status": {
+      "localOnly": "Apenas Local",
+      "zeroRetention": "Zero Retenção"
+    },
+    "auth": {
+      "signupBanner": "Cadastre-se grátis para salvar conversas",
+      "signUp": "Cadastrar"
+    },
+    "alerts": {
+      "corruptedTitle": "Algumas conversas não puderam ser carregadas",
+      "corruptedDescription": "conversa(s) criptografada(s) com uma chave diferente não puderam ser descriptografadas.",
+      "clearCorruptedData": "Limpar dados corrompidos",
+      "storageCleared": "Armazenamento limpo",
+      "storageClearedDescription": "Todos os dados locais foram removidos. Você pode começar do zero."
+    },
+    "modes": {
+      "text": "Chat",
+      "image": "Imagem",
+      "video": "Vídeo",
+      "search": "Pesquisa",
+      "research": "Pesquisa Profunda",
+      "new": "Novo"
+    },
+    "input": {
+      "textPlaceholder": "Pergunte qualquer coisa privadamente...",
+      "imagePlaceholder": "Descreva a imagem que deseja criar...",
+      "videoPlaceholder": "Descreva o vídeo que deseja gerar...",
+      "searchPlaceholder": "Pesquise na web privadamente...",
+      "attach": "Anexar",
+      "enhancePrompt": "Melhorar prompt",
+      "enhanced": "Melhorado",
+      "send": "enviar",
+      "newLine": "nova linha"
+    },
+    "chat": {
+      "placeholder": "Digite sua mensagem...",
+      "send": "Enviar",
+      "stop": "Parar",
+      "newChat": "Novo chat",
+      "clearChat": "Limpar chat",
+      "regenerate": "Regenerar",
+      "copy": "Copiar",
+      "copied": "Copiado!",
+      "edit": "Editar",
+      "delete": "Excluir",
+      "rename": "Renomear",
+      "download": "Baixar",
+      "export": "Exportar",
+      "import": "Importar",
+      "thinking": "Pensando...",
+      "generating": "Gerando...",
+      "searching": "Pesquisando...",
+      "typing": "Digitando...",
+      "noMessages": "Nenhuma mensagem ainda",
+      "startConversation": "Inicie uma conversa",
+      "enterMessage": "Digite uma mensagem para começar"
+    },
+    "sidebar": {
+      "newChat": "Novo Chat",
+      "home": "Início",
+      "searchPlaceholder": "Pesquisar...",
+      "folders": "Pastas",
+      "chats": "Chats",
+      "noMatches": "Sem correspondências",
+      "noChatsYet": "Nenhum chat ainda",
+      "viewFolders": "Ver Pastas",
+      "viewChats": "Ver Chats",
+      "discover": "Descobrir",
+      "more": "Mais",
+      "customizeSidebar": "Personalizar Barra Lateral",
+      "library": "Biblioteca",
+      "settings": "Configurações",
+      "collapseSidebar": "Recolher barra lateral",
+      "expandSidebar": "Expandir barra lateral",
+      "rename": "Renomear",
+      "download": "Baixar",
+      "downloadAll": "Baixar Tudo",
+      "delete": "Excluir",
+      "empty": "Vazio",
+      "chatRenamed": "Chat renomeado",
+      "movedTo": "Movido para",
+      "newFolder": "Nova pasta",
+      "signupRequired": "Cadastre-se grátis para criar pastas",
+      "signupDescription": "Pastas ajudam a organizar suas conversas",
+      "allChats": "Todos os chats",
+      "today": "Hoje",
+      "yesterday": "Ontem",
+      "thisWeek": "Esta semana",
+      "thisMonth": "Este mês",
+      "older": "Mais antigos",
+      "noChats": "Sem conversas",
+      "startNewChat": "Inicie um novo chat"
+    },
+    "modules": {
+      "finance": {
+        "title": "Finanças",
+        "description": "Mercados, cripto, patrimônio",
+        "placeholder": "Pergunte sobre mercados financeiros...",
+        "suggestedFor": "Perguntas sugeridas para {{market}}",
+        "tabs": {
+          "us": "Mercados EUA",
+          "european": "Europeus",
+          "swiss": "Suíços",
+          "latam": "LatAm",
+          "asia": "Ásia",
+          "mena": "MENA",
+          "crypto": "Cripto",
+          "earnings": "Resultados",
+          "predictions": "Previsões",
+          "screener": "Screener",
+          "watchlist": "Watchlist"
+        },
+        "suggestions": {
+          "markets": "Como estão os mercados americanos hoje?",
+          "crypto": "Me dê um resumo do mercado cripto",
+          "stocks": "Analise as ações de tecnologia mais ativas",
+          "earnings": "Quais empresas divulgam resultados esta semana?"
+        }
+      },
+      "legal": {
+        "title": "Jurídico",
+        "description": "Compliance, regulamentos",
+        "placeholder": "Pergunte sobre tópicos jurídicos e compliance...",
+        "exploreByCategory": "Explorar por Categoria",
+        "regulationsIn": "Regulamentos de {{category}} em {{jurisdiction}}",
+        "inJurisdiction": "em {{jurisdiction}}",
+        "jurisdictions": {
+          "eu": "UE",
+          "us": "EUA",
+          "ch": "CH",
+          "uk": "RU"
+        },
+        "actions": {
+          "regulatory": "Pesquisa Regulatória",
+          "caselaw": "Jurisprudência",
+          "compliance": "Verificação de Compliance"
+        }
+      },
+      "patents": {
+        "title": "Patentes",
+        "description": "Pesquisa de PI, arte prévia",
+        "placeholder": "Pergunte sobre patentes e propriedade intelectual...",
+        "exploreByCategory": "Explorar por Categoria",
+        "landscapeFor": "Panorama de patentes para {{category}}",
+        "actions": {
+          "patentability": "Patenteabilidade",
+          "landscape": "Panorama Tecnológico",
+          "rnd": "P&D"
+        }
+      },
+      "research": {
+        "title": "Pesquisa",
+        "description": "Acadêmica, clínica",
+        "placeholder": "Pesquise estudos acadêmicos e clínicos...",
+        "exploreByCategory": "Explorar por Categoria",
+        "latestResearchIn": "Últimas pesquisas em {{category}}",
+        "actions": {
+          "academic": "Artigos Acadêmicos",
+          "clinical": "Ensaios Clínicos",
+          "preprints": "Preprints"
+        },
+        "filters": {
+          "all": "Todos",
+          "peerReviewed": "Revisado por pares",
+          "preprints": "Preprints",
+          "openAccess": "Acesso Aberto",
+          "highImpact": "Alto Impacto"
+        }
+      },
+      "security": {
+        "title": "Segurança",
+        "description": "Cyber, ferramentas de privacidade"
+      },
+      "health": {
+        "title": "Saúde",
+        "description": "Longevidade, clínica"
+      },
+      "travel": {
+        "title": "Viagem",
+        "description": "Privado, exclusivo"
+      },
+      "realestate": {
+        "title": "Imóveis",
+        "description": "Propriedades de luxo"
+      }
+    },
+    "discover": {
+      "modes": {
+        "search": "Pesquisa",
+        "research": "Pesquisa",
+        "reason": "Raciocínio"
+      },
+      "sources": "Fontes"
+    },
+    "categories": {
+      "lifeSciences": "Ciências da Vida",
+      "computerScience": "Ciência da Computação",
+      "physicsMathematics": "Física e Matemática",
+      "socialSciences": "Ciências Sociais",
+      "computersSoftware": "Computadores e Software",
+      "medicalHealthcare": "Médico e Saúde",
+      "industrialManufacturing": "Industrial e Manufatura",
+      "financialRegulations": "Regulamentos Financeiros",
+      "dataProtection": "Proteção de Dados",
+      "corporateSecurities": "Corporativo e Valores Mobiliários",
+      "crossBorderCompliance": "Compliance Transfronteiriço"
+    },
+    "search": {
+      "placeholder": "Pesquisar na web...",
+      "getStarted": "Começar com",
+      "exploreCategories": "Explorar por Categoria",
+      "sources": "Fontes",
+      "citations": "Citações",
+      "viewSource": "Ver fonte",
+      "modes": {
+        "search": "Pesquisa",
+        "research": "Pesquisa",
+        "analyze": "Analisar"
+      }
+    },
+    "image": {
+      "title": "Geração de Imagem",
+      "placeholder": "Descreva a imagem que deseja criar...",
+      "generate": "Gerar",
+      "generating": "Gerando imagem...",
+      "download": "Baixar",
+      "regenerate": "Regenerar",
+      "settings": {
+        "aspectRatio": "Proporção",
+        "style": "Estilo",
+        "quality": "Qualidade"
+      },
+      "aspectRatios": {
+        "square": "Quadrado (1:1)",
+        "landscape": "Paisagem (16:9)",
+        "portrait": "Retrato (9:16)",
+        "wide": "Largo (21:9)"
+      }
+    },
+    "video": {
+      "title": "Geração de Vídeo",
+      "placeholder": "Descreva o vídeo que deseja criar...",
+      "generate": "Gerar",
+      "generating": "Gerando vídeo...",
+      "download": "Baixar",
+      "settings": {
+        "duration": "Duração",
+        "resolution": "Resolução",
+        "style": "Estilo"
+      }
+    },
+    "models": {
+      "title": "Modelos",
+      "free": "Grátis",
+      "pro": "Pro",
+      "selectModel": "Selecionar modelo",
+      "swissHosted": "Hospedado na Suíça",
+      "commercial": "Comercial",
+      "categories": {
+        "swiss": "Modelos Suíços",
+        "commercial": "Modelos Comerciais",
+        "opensource": "Open Source"
+      }
+    },
+    "settings": {
+      "title": "Configurações Ghost",
+      "general": "Geral",
+      "appearance": "Aparência",
+      "privacy": "Privacidade",
+      "voice": "Voz",
+      "systemPrompt": "Prompt do Sistema",
+      "systemPromptPlaceholder": "Instruções personalizadas para a IA...",
+      "temperature": "Temperatura",
+      "topP": "Top P",
+      "enterSubmits": "Enter envia mensagem",
+      "showDates": "Mostrar datas das mensagens",
+      "webEnabled": "Pesquisa web habilitada",
+      "voiceEnabled": "Respostas por voz habilitadas",
+      "theme": {
+        "title": "Tema",
+        "light": "Claro",
+        "dark": "Escuro",
+        "system": "Sistema"
+      }
+    },
+    "library": {
+      "title": "Biblioteca",
+      "images": "Imagens",
+      "videos": "Vídeos",
+      "all": "Todos",
+      "favorites": "Favoritos",
+      "noItems": "Nenhum item na biblioteca",
+      "generateFirst": "Gere sua primeira imagem ou vídeo"
+    },
+    "upgrade": {
+      "title": "Upgrade para Pro",
+      "description": "Desbloqueie acesso ao GPT-4o, Claude e Gemini",
+      "features": {
+        "unlimitedChats": "Chats ilimitados",
+        "commercialModels": "Modelos comerciais",
+        "priorityAccess": "Acesso prioritário",
+        "advancedFeatures": "Recursos avançados"
+      },
+      "cta": "Fazer upgrade agora"
+    },
+    "credits": {
+      "title": "Créditos",
+      "remaining": "Restantes",
+      "daily": "Créditos diários",
+      "paid": "Créditos pagos",
+      "buyMore": "Comprar mais",
+      "unlimited": "Ilimitado"
+    },
+    "errors": {
+      "failed": "Falha ao processar solicitação",
+      "rateLimit": "Limite de taxa atingido. Tente novamente mais tarde.",
+      "noCredits": "Sem créditos restantes",
+      "modelUnavailable": "Modelo indisponível no momento",
+      "networkError": "Erro de rede. Verifique sua conexão."
+    },
+    "actions": {
+      "copyCode": "Copiar código",
+      "readAloud": "Ler em voz alta",
+      "stopReading": "Parar leitura",
+      "shareChat": "Compartilhar chat",
+      "exportMarkdown": "Exportar como Markdown",
+      "exportJson": "Exportar como JSON"
+    },
+    "proFeature": "Recurso Pro",
+    "upgradeToAccess": "Faça upgrade para acessar este recurso"
+  },
+  "ghostSignup": {
+    "title": "Criar Conta Ghost",
+    "subtitle": "Ganhe 15 prompts + 3 imagens por dia, grátis para sempre",
+    "benefitsTitle": "Ghost Grátis inclui:",
+    "benefit1": "15 prompts de IA por dia com SwissVault 1.0",
+    "benefit2": "3 gerações de imagem por dia",
+    "benefit3": "Upload de arquivos e análise de imagens",
+    "benefit4": "Histórico de conversas criptografado",
+    "benefit5": "Privacidade suíça - zero retenção de dados",
+    "continueWithGoogle": "Continuar com Google",
+    "email": "Email",
+    "emailPlaceholder": "voce@exemplo.com",
+    "password": "Senha",
+    "passwordPlaceholder": "••••••••",
+    "passwordHint": "Mínimo 8 caracteres",
+    "createAccount": "Criar Conta Grátis",
+    "creatingAccount": "Criando conta...",
+    "termsAgreement": "Ao se cadastrar, você concorda com nossos",
+    "terms": "Termos",
+    "privacyPolicy": "Política de Privacidade",
+    "alreadyHaveAccount": "Já tem uma conta?",
+    "signIn": "Entrar",
+    "continueWithoutAccount": "← Continuar sem conta (5 prompts/dia)",
+    "successMessage": "Conta criada! Redirecionando para Ghost Chat...",
+    "signupFailed": "Falha no cadastro",
+    "oauthFailed": "Falha no cadastro OAuth"
+  },
+  "compliance": {
+    "dashboard": {
+      "title": "Painel de Compliance",
+      "subtitle": "Monitore residência de dados, status de conformidade e controles de segurança",
+      "residency": {
+        "title": "Residência de Dados",
+        "description": "Quando você decide treinar seus modelos, todos os seus dados são armazenados e processados exclusivamente na Suíça",
+        "location": "Zurique, Suíça",
+        "userData": "Dados do Usuário",
+        "datasets": "Datasets e Dados de Treinamento",
+        "modelCheckpoints": "Checkpoints de Modelo",
+        "inferenceLogs": "Logs de Inferência",
+        "sovereigntyTitle": "Soberania de Dados Suíça Garantida",
+        "sovereigntyDesc": "Todos os dados são armazenados na Suíça e nunca saem da jurisdição suíça/UE."
+      },
+      "checklist": {
+        "title": "Lista de Verificação de Compliance",
+        "description": "Status atual de conformidade e certificações",
+        "encryptionAtRest": "Criptografia em Repouso",
+        "encryptionAtRestInfo": "Criptografia AES-256 para todos os dados armazenados",
+        "encryptionInTransit": "Criptografia em Trânsito",
+        "encryptionInTransitInfo": "TLS 1.3 para toda transmissão de dados",
+        "apiKeySecurity": "Segurança de Chave API",
+        "apiKeySecurityInfo": "Hash SHA-256, nunca armazenada em texto simples",
+        "rowLevelSecurity": "Segurança em Nível de Linha",
+        "rowLevelSecurityInfo": "Controle de acesso em nível de banco de dados por usuário",
+        "auditLogging": "Log de Auditoria",
+        "auditLoggingInfo": "Rastreamento abrangente de atividades",
+        "swissDataResidency": "Residência de Dados Suíça",
+        "swissDataResidencyInfo": "Todos os dados armazenados em Zurique, Suíça",
+        "soc2Info": "Auditoria SOC 2 Tipo II em andamento",
+        "iso27001Info": "Certificação ISO 27001 planejada",
+        "gdprRecords": "Registros de Processamento GDPR",
+        "gdprRecordsInfo": "Documentação completa de processamento de dados"
+      },
+      "audit": {
+        "title": "Resumo de Log de Auditoria",
+        "description": "Visão geral de atividade do sistema e eventos de segurança",
+        "totalEvents": "Total de Eventos",
+        "thisMonth": "Este Mês",
+        "topActions": "Principais Ações",
+        "noEvents": "Nenhum evento registrado ainda",
+        "viewFullLogs": "Ver Logs de Auditoria Completos"
+      },
+      "retention": {
+        "title": "Configurações de Retenção de Dados",
+        "description": "Configure políticas de limpeza automática de dados",
+        "tracesRetention": "Retenção de Rastros de Inferência (dias)",
+        "tracesRetentionDesc": "Por quanto tempo manter logs de solicitação de inferência",
+        "auditRetention": "Retenção de Logs de Auditoria (dias)",
+        "auditRetentionDesc": "Por quanto tempo manter logs de auditoria (mínimo de 365 recomendado)",
+        "datasetsRetention": "Retenção de Datasets Inativos (dias)",
+        "datasetsRetentionDesc": "Excluir automaticamente datasets sem atividade",
+        "saveSettings": "Salvar Configurações de Retenção"
+      },
+      "gdprTools": {
+        "title": "Ferramentas GDPR",
+        "description": "Portabilidade de dados e direito ao esquecimento",
+        "exportTitle": "Exportar Todos os Dados do Usuário",
+        "exportDesc": "Baixe um arquivo ZIP com todos os seus dados: datasets, modelos, configuração e rastros.",
+        "exportButton": "Exportar Meus Dados",
+        "exportingButton": "Preparando Exportação...",
+        "deleteTitle": "Excluir Todos os Dados do Usuário",
+        "deleteDesc": "Excluir permanentemente todos os seus dados. Esta ação não pode ser desfeita.",
+        "deleteButton": "Solicitar Exclusão de Dados",
+        "deleteDialogTitle": "Você tem absoluta certeza?",
+        "deleteDialogDesc": "Isso excluirá permanentemente todos os seus dados incluindo datasets, modelos ajustados, avaliações, rastros e configuração. Esta ação não pode ser desfeita e será processada em até 30 dias conforme requisitos do GDPR.",
+        "deleteDialogCancel": "Cancelar",
+        "deleteDialogConfirm": "Excluir Todos os Dados",
+        "deletingButton": "Processando..."
+      },
+      "certifications": {
+        "title": "Certificações"
+      },
+      "status": {
+        "certified": "Certificado",
+        "inProgress": "Em Andamento",
+        "planned": "Planejado"
+      },
+      "export": {
+        "started": "Exportação Iniciada",
+        "startedDesc": "Você receberá um email com link de download quando estiver pronto.",
+        "failed": "Falha na Exportação",
+        "failedDesc": "Não foi possível iniciar a exportação de dados. Tente novamente."
+      },
+      "delete": {
+        "submitted": "Solicitação de Exclusão Enviada",
+        "submittedDesc": "Sua solicitação de exclusão de dados foi enviada e será processada em até 30 dias.",
+        "failed": "Falha na Solicitação de Exclusão",
+        "failedDesc": "Não foi possível enviar a solicitação de exclusão. Entre em contato com o suporte."
+      }
+    }
   }
 }
