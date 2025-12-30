@@ -264,12 +264,9 @@ export function GhostMessageActions({
                   variant="ghost"
                   size="sm"
                   onClick={onCreateImage}
-                  className="h-7 px-2 text-muted-foreground hover:text-foreground relative"
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
                 >
                   <Image className="w-3.5 h-3.5" />
-                  <span className="absolute -top-0.5 -right-0.5 text-[8px] bg-swiss-sapphire text-white px-1 rounded">
-                    New
-                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Create image from this</TooltipContent>
@@ -284,12 +281,9 @@ export function GhostMessageActions({
                   variant="ghost"
                   size="sm"
                   onClick={onCreateVideo}
-                  className="h-7 px-2 text-muted-foreground hover:text-foreground relative"
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
                 >
                   <Video className="w-3.5 h-3.5" />
-                  <span className="absolute -top-0.5 -right-0.5 text-[8px] bg-swiss-sapphire text-white px-1 rounded">
-                    New
-                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Create video from this</TooltipContent>
