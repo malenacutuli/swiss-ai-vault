@@ -1175,11 +1175,13 @@
       "signUp": "Registrarse"
     },
     "alerts": {
-      "corruptedTitle": "Algunas conversaciones no se pudieron cargar",
-      "corruptedDescription": "conversación(es) cifrada(s) con una clave diferente no se pudieron descifrar.",
-      "clearCorruptedData": "Limpiar datos corruptos",
-      "storageCleared": "Almacenamiento limpiado",
-      "storageClearedDescription": "Todos los datos locales han sido eliminados. Puedes empezar de nuevo."
+      "corruptedTitle": "Tu privacidad está protegida",
+      "corruptedDescription": "Las conversaciones anteriores fueron cifradas con una clave de sesión temporal. En navegación anónima, esta clave cambia cuando se borran los datos del navegador — manteniendo tus datos privados por diseño.",
+      "signUpPrompt": "¿Quieres conversaciones que persistan entre sesiones?",
+      "signUpFree": "Regístrate gratis",
+      "clearCorruptedData": "Limpiar datos anteriores",
+      "storageCleared": "Datos limpiados",
+      "storageClearedDescription": "Tus datos locales han sido limpiados. Comienza de nuevo con cifrado completo."
     },
     "modes": {
       "text": "Chat",
