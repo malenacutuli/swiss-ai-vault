@@ -420,8 +420,35 @@ function GhostChat() {
   }, [toast]);
 
   const handleSendMessage = async () => {
+    // Auto-recover if streaming state got stuck (prevents "can't send" deadlocks)
+    const isStreamStateStuck =
+      isStreaming &&
+      (streamStatus === 'idle' ||
+        streamStatus === 'error' ||
+        streamStatus === 'timeout' ||
+        streamStatus === 'stuck' ||
+        streamStatus === 'complete');
+
+    if (isStreamStateStuck) {
+      console.warn('[GhostChat] Detected stuck streaming state, resetting...', {
+        streamStatus,
+      });
+      resetStreamState();
+      setMessages((prev) =>
+        prev.map((m) => (m.role === 'assistant' && m.isStreaming ? { ...m, isStreaming: false } : m))
+      );
+    }
+
     // Prevent double submission - allow if we have attachments even without text
-    if ((!inputValue.trim() && attachedFiles.length === 0) || isStreaming || webSearch.isSearching || ghostResearch.isResearching || isSubmittingRef.current) return;
+    if (
+      (!inputValue.trim() && attachedFiles.length === 0) ||
+      (isStreaming && !isStreamStateStuck) ||
+      webSearch.isSearching ||
+      ghostResearch.isResearching ||
+      isSubmittingRef.current
+    )
+      return;
+
     isSubmittingRef.current = true;
 
     try {
