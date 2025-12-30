@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Image, Wand2, Coins, Loader2, Upload, X } from '@/icons';
+import { useNavigate } from 'react-router-dom';
+import { Image, Wand2, Coins, Loader2, Upload, X, ArrowLeft, MessageSquare } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -323,8 +324,28 @@ export function ImageGen({ onNavigateToVideo, globalSettings }: ImageGenProps) {
     }
   }, [mediaStorageReady]);
 
+  const navigate = useNavigate();
+
+  const handleBackToChat = () => {
+    navigate('/ghost');
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Back to chat button */}
+      <div className="flex items-center gap-2 p-4 border-b border-border/30">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToChat}
+          className="gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <MessageSquare className="w-4 h-4" />
+          Back to Chat
+        </Button>
+      </div>
+
       {/* Results area */}
       <div className="flex-1 overflow-auto">
         {generatedImages.length === 0 && !isGenerating ? (
