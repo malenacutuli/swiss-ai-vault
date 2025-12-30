@@ -1371,7 +1371,7 @@
         }
       },
       "legal": {
-        "title": "Legal & Compliance",
+        "title": "Legal",
         "description": "Compliance, regulations",
         "placeholder": "Ask about legal and compliance topics...",
         "exploreByCategory": "Explore by Category",
@@ -1427,7 +1427,7 @@
         }
       },
       "research": {
-        "title": "Academic Research",
+        "title": "Research",
         "description": "Academic, clinical",
         "placeholder": "Search academic research and clinical studies...",
         "exploreByCategory": "Explore by Category",

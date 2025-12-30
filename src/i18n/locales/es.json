@@ -1406,7 +1406,7 @@
         }
       },
       "legal": {
-        "title": "Legal y Cumplimiento",
+        "title": "Legal",
         "description": "Cumplimiento, regulaciones",
         "placeholder": "Pregunta sobre temas legales y de cumplimiento...",
         "exploreByCategory": "Explorar por Categoría",
@@ -1462,7 +1462,7 @@
         }
       },
       "research": {
-        "title": "Investigación Académica",
+        "title": "Investigación",
         "description": "Académico, clínico",
         "placeholder": "Busca investigación académica y estudios clínicos...",
         "exploreByCategory": "Explorar por Categoría",
