@@ -755,11 +755,11 @@
       "subtitle": "SwissVault abstracts away providers so you can choose the right model for each workload while keeping governance and logging in one place, or be completely anonymous with Ghost Chat.",
       "hybridCloud": {
         "title": "Hybrid Cloud",
-        "description": "GPT-4o, o1, Claude 3.5, Gemini 2.0 for workloads allowed to use US APIs. Centralised routing, billing and monitoring."
+        "description": "Centralised routing, billing and monitoring, anonymous and encrypted options."
       },
       "sovereignOpenSource": {
         "title": "Sovereign Open-Source",
-        "description": "Llama, Mistral, Qwen, Gemma and more, hosted on Swiss GPUs via vLLM. Option to restrict an organisation to Swiss-hosted open-source models only."
+        "description": "Option to restrict an organisation to Swiss-hosted open-source models only."
       },
       "openaiCompatible": "Already using OpenAI?",
       "openaiCompatibleDesc": "Drop-in compatible with the OpenAI Python and JS SDKs – just change the base URL."
