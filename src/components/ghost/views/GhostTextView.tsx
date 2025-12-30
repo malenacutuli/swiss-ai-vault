@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import swissVaultLogo from '@/assets/swissvault-logo.png';
+import swissVaultLogo from '@/assets/swissvault-logo-transparent.png';
 
 // Inline Swiss flag SVG matching the favicon
 const SwissFlagIcon = ({ className }: { className?: string }) => (

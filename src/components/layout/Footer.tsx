@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import swissvaultLogo from "@/assets/swissvault-logo-footer.png";
+import swissvaultLogo from "@/assets/swissvault-logo-transparent.png";
 
 const footerLinks = {
   products: [
@@ -72,7 +72,7 @@ export const Footer = () => {
               <img
                 src={swissvaultLogo}
                 alt="SwissVault.ai"
-                className="h-8 bg-transparent mix-blend-multiply"
+                className="h-8"
               />
             </div>
             <p className="text-sm text-gray-300 mb-4">
@@ -129,7 +129,7 @@ export const Footer = () => {
             <img
               src={swissvaultLogo}
               alt="SwissVault.ai"
-              className="h-4 bg-transparent mix-blend-multiply"
+              className="h-4"
             />
             {t('footer.madeInSwitzerland')}
           </p>

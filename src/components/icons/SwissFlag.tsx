@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import swissVaultLogo from "@/assets/swissvault-logo-full.png";
+import swissVaultLogo from "@/assets/swissvault-logo-transparent.png";
 
 interface SwissFlagProps {
   className?: string;
