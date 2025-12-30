@@ -675,10 +675,70 @@ async function callGoogle(
 
   const googleModel = modelMap[model] || model;
 
-  // Convert to Gemini format
+  /**
+   * Convert OpenAI message content format to Google Gemini parts format
+   * Handles both string content and multimodal array content
+   */
+  function convertToGeminiParts(content: string | any[]): any[] {
+    // Simple string content
+    if (typeof content === 'string') {
+      return [{ text: content }];
+    }
+    
+    // Not an array - convert to string
+    if (!Array.isArray(content)) {
+      return [{ text: String(content) }];
+    }
+    
+    // Array content (multimodal)
+    const parts: any[] = [];
+    
+    for (const item of content) {
+      // Text content
+      if (item.type === 'text' && item.text) {
+        parts.push({ text: item.text });
+      } 
+      // Image content (base64 data URL)
+      else if (item.type === 'image_url' && item.image_url?.url) {
+        const url = item.image_url.url;
+        
+        if (url.startsWith('data:')) {
+          // Parse base64 data URL: data:mime/type;base64,DATA
+          const match = url.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            const mimeType = match[1];
+            const base64Data = match[2];
+            
+            // Only include supported image types
+            // Skip application/pdf - Gemini can't process raw PDF binary
+            if (mimeType.startsWith('image/')) {
+              parts.push({
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Data
+                }
+              });
+            } else if (mimeType === 'application/pdf') {
+              // PDF was sent as base64 - add note that text should have been extracted
+              parts.push({ text: '[PDF document - text extraction may have failed]' });
+            }
+          }
+        }
+      }
+    }
+    
+    // Ensure at least one part exists (Google requires non-empty parts)
+    if (parts.length === 0) {
+      parts.push({ text: '[Empty content]' });
+    }
+    
+    return parts;
+  }
+
+  // Convert to Gemini format with proper multimodal support
   const contents = messages.filter(m => m.role !== 'system').map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
+    parts: convertToGeminiParts(m.content),
   }));
 
   const systemInstruction = messages.find(m => m.role === 'system');
