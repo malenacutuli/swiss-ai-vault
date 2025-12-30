@@ -741,11 +741,11 @@
     },
     "whySwissVault": {
       "title": "¿Por qué SwissVault?",
-      "subtitle": "IA con discreción primero para individuos y empresas que no pueden permitirse la exposición.",
+      "subtitle": "Inteligencia Artificial con discreción absoluta: para quienes no pueden permitirse riesgos de exposición.",
       "zeroKnowledge": {
-        "title": "Diseño de Conocimiento Cero",
-        "description": "No podemos leer tus conversaciones cifradas – y nadie más puede hacerlo.",
-        "details": "AES-256-GCM del lado del cliente, claves por conversación y seguridad estricta a nivel de fila."
+        "title": "Arquitectura de Conocimiento Cero",
+        "description": "No podemos leer tus conversaciones cifradas. Nadie más puede hacerlo.",
+        "details": "Seguridad de Grado Militar: Cifrado AES-256-GCM en el cliente, claves por conversación y seguridad estricta a nivel de fila."
       },
       "swissResidency": {
         "title": "Residencia de Datos y Gobernanza Suiza",
