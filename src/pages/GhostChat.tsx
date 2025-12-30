@@ -46,6 +46,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TEXT_MODELS } from '@/lib/ghost-models';
+import { extractTextFromPDF, isPDFFile } from '@/lib/pdf-extractor';
 
 // Default models per mode
 const DEFAULT_MODELS: Record<GhostMode, string> = {
@@ -1352,13 +1353,31 @@ function GhostChat() {
       }
     }
 
-    // PDF files - send as base64 for vision models
-    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+    // PDF files - extract text content for all models
+    if (isPDFFile(file)) {
       try {
+        const { text, pageCount, truncated } = await extractTextFromPDF(file);
+        console.log(`[GhostChat] PDF extracted: ${pageCount} pages, ${text.length} chars, truncated: ${truncated}`);
+        
+        if (!text || text.trim().length === 0) {
+          // Fallback to base64 if no text could be extracted (scanned PDF)
+          const base64 = await fileToBase64(file);
+          return { id, file, base64, name: file.name, type: 'document', size: file.size };
+        }
+        
+        return { 
+          id, 
+          file, 
+          text: truncated ? `${text}\n\n[Document truncated - showing first ${pageCount > 50 ? 50 : pageCount} pages]` : text, 
+          name: file.name, 
+          type: 'document', 
+          size: file.size 
+        };
+      } catch (error) {
+        console.error('[GhostChat] PDF extraction failed:', error);
+        // Fallback to base64 for vision models
         const base64 = await fileToBase64(file);
         return { id, file, base64, name: file.name, type: 'document', size: file.size };
-      } catch {
-        return null;
       }
     }
 
