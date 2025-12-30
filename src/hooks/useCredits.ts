@@ -64,12 +64,12 @@ export function useCredits() {
     mutationFn: async ({ amount, source }: { amount: number; source: string }) => {
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .rpc('deduct_unified_credits', {
-          p_user_id: user.id,
-          p_amount: amount,
-          p_source: source,
-        });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('deduct_unified_credits', {
+        p_user_id: user.id,
+        p_amount: amount,
+        p_source: source,
+      });
 
       if (error) throw error;
 

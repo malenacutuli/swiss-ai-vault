@@ -3203,6 +3203,14 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      deduct_unified_credits: {
+        Args: { p_amount: number; p_source: string; p_user_id: string }
+        Returns: {
+          error_message: string
+          remaining: number
+          success: boolean
+        }[]
+      }
       get_ghost_tier: { Args: { p_user_id: string }; Returns: Json }
       get_ghost_usage: {
         Args: { p_user_id: string }
