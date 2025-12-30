@@ -29,7 +29,7 @@ const TIERS = [
       'End-to-end encryption',
     ],
     cta: 'Sign Up Free',
-    href: '/auth/ghost-signup',
+    href: '/auth?intent=ghost',
   },
   {
     name: 'Ghost Pro',
@@ -44,7 +44,7 @@ const TIERS = [
       'Priority support',
     ],
     cta: 'Get Pro',
-    href: '/auth/ghost-signup?plan=ghost_pro',
+    href: '/auth?intent=ghost&plan=ghost_pro',
   },
   {
     name: 'SwissVault Pro',
@@ -58,7 +58,7 @@ const TIERS = [
       'API access',
     ],
     cta: 'Get SwissVault',
-    href: '/auth/ghost-signup?plan=swissvault_pro',
+    href: '/auth?intent=ghost&plan=swissvault_pro',
   },
 ];
 

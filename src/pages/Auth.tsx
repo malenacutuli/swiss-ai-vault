@@ -101,7 +101,7 @@ export default function Auth() {
       const tier = data?.[0]?.tier || 'ghost_free';
       
       // Priority 1: Return to original protected route
-      if (from && !['/auth', '/', '/auth/ghost-signup'].includes(from)) {
+      if (from && !['/auth', '/', '/auth?intent=ghost'].includes(from)) {
         navigate(from, { replace: true });
         return;
       }
