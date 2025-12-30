@@ -738,5 +738,48 @@
       "deleteModel": "Supprimer le modèle",
       "deleteModelDesc": "Supprimer un modèle fine-tuned. Cela supprime également le checkpoint du modèle du stockage."
     }
+  },
+  "securityPage": {
+    "badge": "Sécurité & Conformité",
+    "title": "Architecture de Sécurité Conçue pour les Auditeurs",
+    "subtitle": "Sécurité de niveau entreprise qui satisfait les exigences de conformité les plus strictes.",
+    "e2e": {
+      "title": "Chiffrement de Bout en Bout Côté Client",
+      "point1": "AES-256-GCM, clés par conversation, clés maîtres dérivées PBKDF2",
+      "point2": "Les clés ne quittent jamais le navigateur ; les serveurs ne voient que le texte chiffré"
+    },
+    "zeroTrust": {
+      "title": "Backend Zero-Trust",
+      "point1": "Sécurité au niveau des lignes sur plus de 40 tables",
+      "point2": "Journaux d'audit immuables avec historique complet des modifications",
+      "point3": "Rôles d'organisation stricts (propriétaire, admin, membre)"
+    },
+    "swissResidency": {
+      "title": "Résidence des Données en Suisse",
+      "point1": "Toutes les données stockées dans des bases de données hébergées en Suisse",
+      "point2": "Mode de rétention zéro optionnel pour les traces d'inférence et les échantillons d'évaluation"
+    },
+    "complianceRoadmap": {
+      "title": "Feuille de Route de Conformité",
+      "point1": "Processus alignés RGPD en place",
+      "point2": "SOC 2 Type II (en cours), ISO 27001 et préparation FINMA sur la feuille de route"
+    },
+    "architecture": {
+      "title": "Architecture Zero-Knowledge",
+      "browser": {
+        "title": "Votre Navigateur (Clés Ici)",
+        "description": "Clés de chiffrement AES-256-GCM stockées dans IndexedDB. Tout le chiffrement/déchiffrement se fait côté client."
+      },
+      "backend": {
+        "title": "Backend SwissVault",
+        "description": "Stocke uniquement le texte chiffré + hachages de clés. Les politiques RLS imposent l'isolation des données."
+      },
+      "infrastructure": {
+        "title": "Infrastructure Suisse",
+        "description": "Les données ne quittent jamais la juridiction suisse."
+      }
+    },
+    "downloadWhitepaper": "Télécharger le Livre Blanc Sécurité",
+    "talkToCISO": "Parler à notre RSSI"
   }
 }

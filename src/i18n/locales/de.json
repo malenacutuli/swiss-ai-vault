@@ -738,5 +738,48 @@
       "deleteModel": "Modell löschen",
       "deleteModelDesc": "Löschen Sie ein fine-tuned Modell. Dies entfernt auch den Modell-Checkpoint aus dem Speicher."
     }
+  },
+  "securityPage": {
+    "badge": "Sicherheit & Compliance",
+    "title": "Sicherheitsarchitektur für Auditoren konzipiert",
+    "subtitle": "Unternehmenssicherheit, die die anspruchsvollsten Compliance-Anforderungen erfüllt.",
+    "e2e": {
+      "title": "Client-seitige Ende-zu-Ende-Verschlüsselung",
+      "point1": "AES-256-GCM, Schlüssel pro Konversation, PBKDF2-abgeleitete Master-Schlüssel",
+      "point2": "Schlüssel verlassen niemals den Browser; Server sehen nur Chiffretext"
+    },
+    "zeroTrust": {
+      "title": "Zero-Trust-Backend",
+      "point1": "Row-Level Security auf über 40 Tabellen",
+      "point2": "Unveränderliche Audit-Logs mit vollständigem Änderungsverlauf",
+      "point3": "Strikte Organisationsrollen (Eigentümer, Admin, Mitglied)"
+    },
+    "swissResidency": {
+      "title": "Schweizer Datenresidenz",
+      "point1": "Alle Daten in schweizerischen Datenbanken gespeichert",
+      "point2": "Optionaler Null-Aufbewahrungsmodus für Inferenzspuren und Evaluierungsproben"
+    },
+    "complianceRoadmap": {
+      "title": "Compliance-Roadmap",
+      "point1": "DSGVO-konforme Prozesse implementiert",
+      "point2": "SOC 2 Typ II (in Arbeit), ISO 27001 und FINMA-Bereitschaft auf der Roadmap"
+    },
+    "architecture": {
+      "title": "Zero-Knowledge-Architektur",
+      "browser": {
+        "title": "Ihr Browser (Schlüssel hier)",
+        "description": "AES-256-GCM-Verschlüsselungsschlüssel in IndexedDB gespeichert. Alle Ver-/Entschlüsselung erfolgt clientseitig."
+      },
+      "backend": {
+        "title": "SwissVault-Backend",
+        "description": "Speichert nur verschlüsselten Chiffretext + Schlüssel-Hashes. RLS-Richtlinien erzwingen Datenisolation."
+      },
+      "infrastructure": {
+        "title": "Schweizer Infrastruktur",
+        "description": "Daten verlassen niemals die Schweizer Jurisdiktion."
+      }
+    },
+    "downloadWhitepaper": "Sicherheits-Whitepaper herunterladen",
+    "talkToCISO": "Mit unserem CISO sprechen"
   }
 }

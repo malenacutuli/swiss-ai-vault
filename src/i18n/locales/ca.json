@@ -738,5 +738,48 @@
       "deleteModel": "Eliminar Model",
       "deleteModelDesc": "Elimina un model fine-tuned. Això també elimina el checkpoint del model de l'emmagatzematge."
     }
+  },
+  "securityPage": {
+    "badge": "Seguretat i Compliment",
+    "title": "Arquitectura de Seguretat Dissenyada per a Auditors",
+    "subtitle": "Seguretat de nivell empresarial que satisfà els requisits de compliment més exigents.",
+    "e2e": {
+      "title": "Xifrat de Cap a Cap del Costat del Client",
+      "point1": "AES-256-GCM, claus per conversa, claus mestres derivades de PBKDF2",
+      "point2": "Les claus mai surten del navegador; els servidors només veuen text xifrat"
+    },
+    "zeroTrust": {
+      "title": "Backend de Confiança Zero",
+      "point1": "Seguretat a nivell de fila en més de 40 taules",
+      "point2": "Registres d'auditoria immutables amb historial complet de canvis",
+      "point3": "Rols d'organització estrictes (propietari, admin, membre)"
+    },
+    "swissResidency": {
+      "title": "Residència de Dades a Suïssa",
+      "point1": "Totes les dades emmagatzemades en bases de dades allotjades a Suïssa",
+      "point2": "Mode de retenció zero opcional per a traces d'inferència i mostres d'avaluació"
+    },
+    "complianceRoadmap": {
+      "title": "Full de Ruta de Compliment",
+      "point1": "Processos alineats amb GDPR implementats",
+      "point2": "SOC 2 Tipus II (en curs), ISO 27001 i preparació FINMA al full de ruta"
+    },
+    "architecture": {
+      "title": "Arquitectura de Coneixement Zero",
+      "browser": {
+        "title": "El Teu Navegador (Claus Aquí)",
+        "description": "Claus de xifrat AES-256-GCM emmagatzemades a IndexedDB. Tot el xifrat/desxifrat passa al costat del client."
+      },
+      "backend": {
+        "title": "Backend de SwissVault",
+        "description": "Emmagatzema només text xifrat + hashes de claus. Les polítiques RLS imposen aïllament de dades."
+      },
+      "infrastructure": {
+        "title": "Infraestructura Suïssa",
+        "description": "Les dades mai surten de la jurisdicció suïssa."
+      }
+    },
+    "downloadWhitepaper": "Descarregar Document de Seguretat",
+    "talkToCISO": "Parlar amb el nostre CISO"
   }
 }

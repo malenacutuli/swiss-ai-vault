@@ -1715,5 +1715,48 @@
         "failedDesc": "Could not submit deletion request. Please contact support."
       }
     }
+  },
+  "securityPage": {
+    "badge": "Security & Compliance",
+    "title": "Security Architecture Designed for Auditors",
+    "subtitle": "Enterprise-grade security that satisfies the most demanding compliance requirements.",
+    "e2e": {
+      "title": "Client-Side End-to-End Encryption",
+      "point1": "AES-256-GCM, per-conversation keys, PBKDF2-derived master keys",
+      "point2": "Keys never leave the browser; servers see only ciphertext"
+    },
+    "zeroTrust": {
+      "title": "Zero-Trust Backend",
+      "point1": "Row-Level Security on 40+ tables",
+      "point2": "Immutable audit logs with full before/after change history",
+      "point3": "Strict organisation roles (owner, admin, member)"
+    },
+    "swissResidency": {
+      "title": "Swiss Data Residency",
+      "point1": "All data stored in Switzerland hosted databases",
+      "point2": "Optional zero-retention mode for inference traces and evaluation samples"
+    },
+    "complianceRoadmap": {
+      "title": "Compliance Roadmap",
+      "point1": "GDPR-aligned processes in place",
+      "point2": "SOC 2 Type II (in progress), ISO 27001 and FINMA readiness on the roadmap"
+    },
+    "architecture": {
+      "title": "Zero-Knowledge Architecture",
+      "browser": {
+        "title": "Your Browser (Keys Here)",
+        "description": "AES-256-GCM encryption keys stored in IndexedDB. All encryption/decryption happens client-side."
+      },
+      "backend": {
+        "title": "SwissVault Backend",
+        "description": "Stores only encrypted ciphertext + key hashes. RLS policies enforce data isolation."
+      },
+      "infrastructure": {
+        "title": "Swiss Infrastructure",
+        "description": "Data never leaves Swiss jurisdiction."
+      }
+    },
+    "downloadWhitepaper": "Download Security Whitepaper",
+    "talkToCISO": "Talk to our CISO"
   }
 }

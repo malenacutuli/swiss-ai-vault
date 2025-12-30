@@ -738,5 +738,48 @@
       "deleteModel": "Excluir Modelo",
       "deleteModelDesc": "Exclua um modelo fine-tuned. Isso também remove o checkpoint do modelo do armazenamento."
     }
+  },
+  "securityPage": {
+    "badge": "Segurança e Conformidade",
+    "title": "Arquitetura de Segurança Projetada para Auditores",
+    "subtitle": "Segurança de nível empresarial que satisfaz os requisitos de conformidade mais exigentes.",
+    "e2e": {
+      "title": "Criptografia Ponta a Ponta do Lado do Cliente",
+      "point1": "AES-256-GCM, chaves por conversa, chaves mestras derivadas de PBKDF2",
+      "point2": "As chaves nunca saem do navegador; os servidores veem apenas texto cifrado"
+    },
+    "zeroTrust": {
+      "title": "Backend Zero-Trust",
+      "point1": "Segurança a nível de linha em mais de 40 tabelas",
+      "point2": "Logs de auditoria imutáveis com histórico completo de alterações",
+      "point3": "Funções de organização rígidas (proprietário, admin, membro)"
+    },
+    "swissResidency": {
+      "title": "Residência de Dados na Suíça",
+      "point1": "Todos os dados armazenados em bancos de dados hospedados na Suíça",
+      "point2": "Modo de retenção zero opcional para rastros de inferência e amostras de avaliação"
+    },
+    "complianceRoadmap": {
+      "title": "Roadmap de Conformidade",
+      "point1": "Processos alinhados ao GDPR implementados",
+      "point2": "SOC 2 Tipo II (em andamento), ISO 27001 e preparação FINMA no roadmap"
+    },
+    "architecture": {
+      "title": "Arquitetura Zero-Knowledge",
+      "browser": {
+        "title": "Seu Navegador (Chaves Aqui)",
+        "description": "Chaves de criptografia AES-256-GCM armazenadas no IndexedDB. Toda criptografia/descriptografia acontece no lado do cliente."
+      },
+      "backend": {
+        "title": "Backend SwissVault",
+        "description": "Armazena apenas texto cifrado + hashes de chaves. Políticas RLS impõem isolamento de dados."
+      },
+      "infrastructure": {
+        "title": "Infraestrutura Suíça",
+        "description": "Os dados nunca saem da jurisdição suíça."
+      }
+    },
+    "downloadWhitepaper": "Baixar Whitepaper de Segurança",
+    "talkToCISO": "Falar com nosso CISO"
   }
 }

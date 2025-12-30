@@ -18,7 +18,7 @@ const footerLinks = {
     { labelKey: "footer.privacyPolicy", href: "/privacy-policy" },
     { labelKey: "footer.termsOfService", href: "/terms-of-service" },
     { labelKey: "footer.dpa", href: "/dpa" },
-    { labelKey: "footer.security", href: "/#security" },
+    { labelKey: "footer.security", href: "/security" },
   ],
   support: [
     { labelKey: "footer.status", href: "/status" },
