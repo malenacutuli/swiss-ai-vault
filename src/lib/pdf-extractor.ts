@@ -13,14 +13,15 @@ export interface PDFExtractionResult {
 const MAX_PAGES = 50; // Limit to first 50 pages
 const MAX_TEXT_LENGTH = 100000; // ~25k tokens max
 
-// Cache the loaded library
-let pdfjsLibPromise: Promise<typeof import('pdfjs-dist')> | null = null;
+// Cache the loaded library - use 'any' type for legacy build compatibility
+let pdfjsLibPromise: Promise<any> | null = null;
 
 async function loadPdfJs() {
   if (!pdfjsLibPromise) {
-    pdfjsLibPromise = import('pdfjs-dist').then((pdfjs) => {
-      // Set the worker source for pdf.js
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+    pdfjsLibPromise = import('pdfjs-dist/legacy/build/pdf.mjs').then((pdfjs: any) => {
+      // Use CDN worker for legacy build (version 4.0.379)
+      pdfjs.GlobalWorkerOptions.workerSrc = 
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
       return pdfjs;
     });
   }

@@ -1,12 +1,11 @@
+/* === IMPORTS MUST BE FIRST === */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import './styles/swiss-luxury.css';
+
+/* === THEN TAILWIND === */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Research-First Typography - Inter everywhere */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-/* Swiss Luxury Styles */
-@import './styles/swiss-luxury.css';
 
 @layer base {
   :root {
