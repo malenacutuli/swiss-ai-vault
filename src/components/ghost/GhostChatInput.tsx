@@ -40,6 +40,8 @@ interface GhostChatInputProps {
   onCancel?: () => void;
   isLoading?: boolean;
   isStreaming?: boolean;
+  // Mirrors StreamStatus from useGhostInference
+  streamStatus?: 'idle' | 'connecting' | 'generating' | 'complete' | 'error' | 'stuck' | 'timeout';
   elapsedTime?: number;
   credits?: number;
   enhancePrompt?: boolean;
@@ -90,6 +92,7 @@ export function GhostChatInput({
   onCancel,
   isLoading = false,
   isStreaming = false,
+  streamStatus = 'idle',
   enhancePrompt = false,
   onToggleEnhance,
   onAttach,
@@ -128,6 +131,8 @@ export function GhostChatInput({
   };
 
   const canSubmit = value.trim().length > 0 && !disabled && !isLoading;
+
+  const isActuallyStreaming = isStreaming && ['connecting', 'generating'].includes(streamStatus);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -249,7 +254,7 @@ export function GhostChatInput({
               />
             )}
 
-            {isStreaming && onCancel ? (
+            {isActuallyStreaming && onCancel ? (
               <Button
                 size="icon"
                 variant="ghost"
