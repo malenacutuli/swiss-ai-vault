@@ -61,7 +61,16 @@ export const useGhostFolders = () => {
   
   // Create folder with optimistic update and toast
   const createFolder = useCallback(async (name: string = 'New Folder'): Promise<GhostFolder | null> => {
-    if (!user?.id) return null;
+    if (!user?.id) {
+      toast.error('Sign up free to create folders', {
+        description: 'Folders help you organize your conversations',
+        action: {
+          label: 'Sign Up',
+          onClick: () => window.location.href = '/auth',
+        },
+      });
+      return null;
+    }
     
     const newFolder = {
       user_id: user.id,
