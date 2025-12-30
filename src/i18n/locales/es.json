@@ -713,13 +713,16 @@
   },
   "home": {
     "hero": {
-      "title": "La Plataforma de IA Más Privada",
-      "titleHighlight": "del Mundo",
+      "title": "Chat de IA Privado.",
+      "titleHighlight": "Sin Rastro.",
       "subtitle": "Cifrado de extremo a extremo. Sin rastro. Alojado en Suiza.",
-      "description": "Respaldado por industrias bajo estricta regulación y por las personas con mayores estándares de privacidad.",
+      "description": "Experimenta el asistente de IA más privado. Tus conversaciones nunca tocan nuestros servidores. Completamente anónimo. Completamente gratis.",
       "bookDemo": "Reservar Demo Empresarial",
       "earlyAccess": "Solicitar Acceso Privado",
+      "tryGhostChat": "Prueba Ghost Chat Gratis",
       "hostedInSwitzerland": "Alojado en Suiza",
+      "noLoginRequired": "Sin Registro Requerido",
+      "zeroDataStored": "Cero Datos Almacenados",
       "gdprReady": "Listo para GDPR",
       "e2eEncryption": "Cifrado E2E del lado del cliente"
     },
