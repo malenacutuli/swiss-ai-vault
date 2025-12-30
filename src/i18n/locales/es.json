@@ -1700,5 +1700,32 @@
     },
     "downloadWhitepaper": "Descargar Documento de Seguridad",
     "talkToCISO": "Hablar con nuestro CISO"
+  },
+  "ghostSignup": {
+    "title": "Crear Cuenta Ghost",
+    "subtitle": "Obtén 15 prompts + 3 imágenes al día, gratis para siempre",
+    "benefitsTitle": "Ghost Free incluye:",
+    "benefit1": "15 prompts de IA al día con SwissVault 1.0",
+    "benefit2": "3 generaciones de imágenes al día",
+    "benefit3": "Carga de archivos y análisis de imágenes",
+    "benefit4": "Historial de conversaciones encriptado",
+    "benefit5": "Privacidad suiza - cero retención de datos",
+    "continueWithGoogle": "Continuar con Google",
+    "email": "Correo electrónico",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "password": "Contraseña",
+    "passwordPlaceholder": "••••••••",
+    "passwordHint": "Mínimo 8 caracteres",
+    "createAccount": "Crear Cuenta Gratuita",
+    "creatingAccount": "Creando cuenta...",
+    "termsAgreement": "Al registrarte, aceptas nuestros",
+    "terms": "Términos",
+    "privacyPolicy": "Política de Privacidad",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "signIn": "Iniciar sesión",
+    "continueWithoutAccount": "← Continuar sin cuenta (5 prompts/día)",
+    "successMessage": "¡Cuenta creada! Redirigiendo a Ghost Chat...",
+    "signupFailed": "Error al registrarse",
+    "oauthFailed": "Error en registro OAuth"
   }
 }
