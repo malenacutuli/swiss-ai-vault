@@ -620,13 +620,16 @@
   },
   "home": {
     "hero": {
-      "title": "The World's Most Private",
-      "titleHighlight": "AI Platform",
+      "title": "Private AI Chat.",
+      "titleHighlight": "No Trace Left Behind.",
       "subtitle": "End-to-end encrypted. Zero-trace. Swiss-hosted.",
-      "description": "Trusted by regulated industries and the world's most privacy-sensitive individuals.",
+      "description": "Experience the most private AI assistant. Your conversations never touch our servers. Completely anonymous. Completely free.",
       "bookDemo": "Book Enterprise Demo",
       "earlyAccess": "Request Private Access",
+      "tryGhostChat": "Try Ghost Chat Now for Free",
       "hostedInSwitzerland": "Hosted in Switzerland",
+      "noLoginRequired": "No Login Required",
+      "zeroDataStored": "Zero Data Stored",
       "gdprReady": "GDPR-ready",
       "e2eEncryption": "Client-side E2E encryption"
     },

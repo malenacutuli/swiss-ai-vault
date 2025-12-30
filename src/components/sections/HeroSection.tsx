@@ -25,21 +25,20 @@ export const HeroSection = () => {
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-normal tracking-[-0.055em] leading-[1.02] mb-6 animate-slide-up text-foreground">
-              Private AI Chat.{" "}
-              <span className="text-primary">No Trace Left Behind.</span>
+              {t('home.hero.title')}{" "}
+              <span className="text-primary">{t('home.hero.titleHighlight')}</span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-slide-up animate-delay-100">
-              Experience the most private AI assistant. Your conversations never touch our servers. 
-              Completely anonymous. Completely free.
+              {t('home.hero.description')}
             </p>
 
             {/* CTA Button */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 animate-slide-up animate-delay-200">
               <Button variant="hero" size="xl" asChild>
                 <Link to="/ghost">
-                  Try Ghost Chat Now for Free
+                  {t('home.hero.tryGhostChat')}
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
@@ -56,11 +55,11 @@ export const HeroSection = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <Shield className="h-4 w-4 text-success" />
-                <span>No Login Required</span>
+                <span>{t('home.hero.noLoginRequired')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Lock className="h-4 w-4 text-primary" />
-                <span>Zero Data Stored</span>
+                <span>{t('home.hero.zeroDataStored')}</span>
               </div>
             </div>
           </div>
