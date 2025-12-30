@@ -1194,6 +1194,8 @@
       "chatRenamed": "Chat renamed",
       "movedTo": "Moved to",
       "newFolder": "New folder",
+      "signupRequired": "Sign up free to create folders",
+      "signupDescription": "Folders help you organize your conversations",
       "allChats": "All chats",
       "today": "Today",
       "yesterday": "Yesterday",

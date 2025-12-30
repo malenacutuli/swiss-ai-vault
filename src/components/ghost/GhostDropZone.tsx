@@ -24,9 +24,13 @@ export function GhostDropZone({
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     if (disabled) return;
     
+    // Only handle file drags, not custom data transfers (like chat-to-folder drags)
+    const isFileDrag = e.dataTransfer.types.includes('Files');
+    if (!isFileDrag) return;
+    
+    e.stopPropagation();
     setDragCounter(prev => prev + 1);
     
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
@@ -36,8 +40,11 @@ export function GhostDropZone({
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     
+    // Only handle if we're actively tracking a file drag
+    if (!isDragActive && dragCounter === 0) return;
+    
+    e.stopPropagation();
     setDragCounter(prev => {
       const newCount = prev - 1;
       if (newCount === 0) {
@@ -45,17 +52,27 @@ export function GhostDropZone({
       }
       return newCount;
     });
-  }, []);
+  }, [isDragActive, dragCounter]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
+    // Only prevent default for file drags
+    const isFileDrag = e.dataTransfer.types.includes('Files');
+    if (!isFileDrag) return;
+    
     e.preventDefault();
     e.stopPropagation();
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     
+    // Only handle file drops, not custom data transfers
+    const isFileDrag = e.dataTransfer.types.includes('Files');
+    if (!isFileDrag) {
+      return; // Let other drop handlers (like folder drops) handle this
+    }
+    
+    e.stopPropagation();
     setIsDragActive(false);
     setDragCounter(0);
     
