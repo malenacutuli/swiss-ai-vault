@@ -1467,7 +1467,7 @@ function GhostChat() {
         onRenameFolder={renameFolder}
         onDeleteFolder={deleteFolder}
         onExportFolder={handleExportFolder}
-        userName={user.email?.split('@')[0] || 'User'}
+        userName={user?.email?.split('@')[0] || 'Guest'}
         userCredits={balance}
         isPro={isPro}
         onOpenSettings={() => setShowSettings(true)}
