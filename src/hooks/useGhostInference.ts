@@ -25,7 +25,7 @@ export type StreamStatus = 'idle' | 'connecting' | 'generating' | 'complete' | '
 // Timeout constants
 const MAX_STREAM_TIMEOUT_MS = 120000; // 2 minutes max for entire stream
 const STUCK_DETECTION_MS = 30000; // 30 seconds without tokens = stuck
-const CONNECTION_TIMEOUT_MS = 15000; // 15 seconds to connect
+const CONNECTION_TIMEOUT_MS = 30000; // 30 seconds to connect (increased for Edge Function cold starts)
 
 export function useGhostInference() {
   const [isStreaming, setIsStreaming] = useState(false);
