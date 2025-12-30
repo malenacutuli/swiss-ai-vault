@@ -66,7 +66,22 @@
     "logout": "Abmelden",
     "login": "Anmelden",
     "signup": "Registrieren",
-    "or": "oder"
+    "or": "oder",
+    "and": "und",
+    "total": "Gesamt",
+    "thisMonth": "diesen Monat",
+    "viewAll": "Alle anzeigen",
+    "collapse": "Einklappen",
+    "expand": "Ausklappen",
+    "upgradeToPro": "Auf Pro upgraden",
+    "notifications": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "noNotifications": "Keine Benachrichtigungen",
+    "profile": "Profil",
+    "billing": "Abrechnung",
+    "user": "Benutzer",
+    "there": "dort",
+    "tryAgain": "Erneut versuchen"
   },
   "nav": {
     "home": "Startseite",
@@ -87,24 +102,165 @@
     "apiDocs": "API-Dokumentation",
     "compliance": "Compliance",
     "auditLogs": "Audit-Logs",
-    "admin": "Administration"
+    "admin": "Administration",
+    "catalog": "Katalog",
+    "products": "Produkte",
+    "pricing": "Preise",
+    "signIn": "Anmelden",
+    "getStarted": "Loslegen",
+    "earlyAccess": "Bewerben"
+  },
+  "footer": {
+    "products": "Produkte",
+    "company": "Unternehmen",
+    "legal": "Rechtliches",
+    "support": "Support",
+    "ghostChat": "Ghost Chat",
+    "vaultChat": "Vault Chat",
+    "vaultLabs": "Vault Labs",
+    "pricing": "Preise",
+    "apiReference": "API-Referenz",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "privacyPolicy": "Datenschutzrichtlinie",
+    "termsOfService": "Nutzungsbedingungen",
+    "dpa": "DPA",
+    "security": "Sicherheit",
+    "status": "Status",
+    "emailSupport": "E-Mail-Support",
+    "description": "Zero-Trust-KI für regulierte Teams. Schweizer Datenspeicherort, E2E-Verschlüsselung, vollständige Auditierbarkeit.",
+    "allSystemsOperational": "Alle Systeme betriebsbereit",
+    "madeInSwitzerland": "Made in Switzerland",
+    "allRightsReserved": "Alle Rechte vorbehalten"
+  },
+  "modeToggle": {
+    "toVault": {
+      "title": "Zu Vault Chat wechseln?",
+      "description1": "Vault Chat speichert Ihre Unterhaltungen auf SwissVault-Servern (verschlüsselt).",
+      "description2": "Ihre Ghost-Unterhaltungen bleiben lokal auf diesem Gerät.",
+      "confirm": "Möchten Sie wechseln?",
+      "cancel": "In Ghost bleiben",
+      "action": "Zu Vault Chat wechseln"
+    },
+    "toGhost": {
+      "title": "Ghost-Modus aktivieren",
+      "description": "Ghost-Modus speichert nichts auf SwissVault-Servern.",
+      "feature1": "Unterhaltungen existieren nur auf Ihrem Gerät",
+      "feature2": "Nur in der Schweiz gehostete KI-Modelle",
+      "feature3": "Exportieren Sie Ihre Daten jederzeit",
+      "confirm": "Bereit unsichtbar zu werden?",
+      "action": "Ghost-Modus aktivieren"
+    }
+  },
+  "vaultChat": {
+    "title": "Vault Chat",
+    "newChat": "Neuer Chat",
+    "creating": "Wird erstellt...",
+    "searchPlaceholder": "Ihre Chats durchsuchen...",
+    "conversations": "Unterhaltung(en)",
+    "matching": "entspricht \"{{query}}\"",
+    "noMatchingChats": "Keine Unterhaltungen entsprechen Ihrer Suche",
+    "noConversationsYet": "Noch keine Unterhaltungen",
+    "startFirstChat": "Starten Sie Ihren ersten Chat",
+    "newConversation": "Neue Unterhaltung",
+    "importChat": "Chat importieren",
+    "switchToLight": "Zum hellen Modus wechseln",
+    "switchToDark": "Zum dunklen Modus wechseln",
+    "security": {
+      "aes256": "AES-256 Verschlüsselt",
+      "swissHosted": "Schweiz gehostet",
+      "zeroKnowledge": "Zero Knowledge"
+    },
+    "retention": {
+      "title": "Datenspeicherung",
+      "mode": "Modus",
+      "mostSecure": "AM SICHERSTEN",
+      "zerotrace": {
+        "label": "ZeroTrace",
+        "description": "Keine Datenspeicherung. Sofort verschlüsselt & gelöscht."
+      },
+      "1day": {
+        "label": "1 Tag behalten",
+        "description": "Verschlüsselte Nachrichten werden nach 24 Stunden gelöscht."
+      },
+      "1week": {
+        "label": "1 Woche behalten",
+        "description": "Verschlüsselte Nachrichten werden nach 7 Tagen gelöscht."
+      },
+      "90days": {
+        "label": "90 Tage behalten",
+        "description": "Verschlüsselte Nachrichten werden nach 90 Tagen gelöscht."
+      },
+      "forever": {
+        "label": "Für immer behalten",
+        "description": "Verschlüsselte Nachrichten werden dauerhaft gespeichert."
+      }
+    },
+    "encryption": {
+      "badge": "E2E Verschlüsselt",
+      "tooltip": "Ihre Nachrichten sind Ende-zu-Ende mit AES-256-GCM verschlüsselt. Nur Sie können sie lesen."
+    },
+    "delete": {
+      "title": "Unterhaltung löschen?",
+      "description": "Sind Sie sicher, dass Sie \"{{title}}\" löschen möchten? Dies löscht alle Nachrichten und den Verschlüsselungsschlüssel dauerhaft. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "deleting": "Wird gelöscht..."
+    },
+    "research": {
+      "inProgress": "Recherche läuft",
+      "encryptedInProgress": "Verschlüsselte Recherche läuft",
+      "stages": {
+        "encrypting": "Anfrage verschlüsseln",
+        "searching": "Web durchsuchen",
+        "analyzing": "Quellen analysieren",
+        "synthesizing": "Bericht erstellen",
+        "encryptingResults": "Ergebnisse verschlüsseln"
+      }
+    },
+    "modes": {
+      "zerotraceActivated": "ZeroTrace-Modus aktiviert",
+      "zerotraceDescription": "Nachrichten werden lokal gespeichert und niemals an unsere Server gesendet",
+      "cloudActivated": "Cloud-Speichermodus aktiviert",
+      "cloudDescription": "Nachrichten werden verschlüsselt in der Cloud gespeichert",
+      "updateError": "Speichermodus konnte nicht aktualisiert werden"
+    }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "projects": "Projekte",
+    "datasets": "Datensätze",
+    "finetuning": "Feinabstimmung",
+    "models": "Modelle",
+    "catalog": "Katalog",
+    "evaluations": "Evaluierungen",
+    "playground": "Spielwiese",
+    "templates": "Vorlagen",
+    "traces": "Traces",
+    "stats": "Nutzungsstatistiken",
+    "billing": "Abrechnung",
+    "settings": "Einstellungen",
+    "compliance": "Compliance"
   },
   "auth": {
+    "welcomeTitle": "Willkommen bei SwissVault.ai",
+    "welcomeSubtitle": "Sichere KI-Feinabstimmung mit Schweizer Datenspeicherort",
     "welcomeBack": "Willkommen zurück",
     "signInToContinue": "Melden Sie sich an, um zu SwissVault fortzufahren",
     "createAccount": "Konto erstellen",
     "getStarted": "Starten Sie mit SwissVault",
     "email": "E-Mail",
+    "emailPlaceholder": "sie@unternehmen.com",
     "password": "Passwort",
     "confirmPassword": "Passwort bestätigen",
     "fullName": "Vollständiger Name",
+    "fullNamePlaceholder": "Ihr vollständiger Name",
     "signIn": "Anmelden",
     "signUp": "Registrieren",
+    "logIn": "Einloggen",
     "signingIn": "Anmeldung...",
     "signingUp": "Registrierung...",
     "continueWithGoogle": "Mit Google fortfahren",
-    "continueWithGithub": "Mit GitHub fortfahren",
-    "orContinueWithEmail": "oder mit E-Mail fortfahren",
+    "continueWithGitHub": "Mit GitHub fortfahren",
+    "orContinueWithEmail": "ODER MIT E-MAIL FORTFAHREN",
     "alreadyHaveAccount": "Bereits ein Konto?",
     "dontHaveAccount": "Noch kein Konto?",
     "forgotPassword": "Passwort vergessen?",
@@ -114,6 +270,27 @@
     "sendResetLink": "Link zum Zurücksetzen senden",
     "resetEmailSent": "E-Mail zum Zurücksetzen gesendet",
     "resetEmailSentDesc": "Überprüfen Sie Ihre E-Mail auf einen Link zum Zurücksetzen Ihres Passworts.",
+    "backToHome": "Zurück zur Startseite",
+    "signedOut": "Abgemeldet",
+    "signedOutDescription": "Sie wurden erfolgreich abgemeldet",
+    "logOut": "Abmelden",
+    "dataResidency": "Ihre Daten werden sicher in der Schweiz gespeichert",
+    "termsPrefix": "Durch Fortfahren stimmen Sie unseren",
+    "termsOfService": "Nutzungsbedingungen",
+    "privacyPolicy": "Datenschutzrichtlinie",
+    "fillAllFields": "Bitte füllen Sie alle Felder aus",
+    "fillRequiredFields": "Bitte füllen Sie alle erforderlichen Felder aus",
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "invalidCredentials": "Ungültige E-Mail oder Passwort",
+    "loginSuccess": "Sie wurden erfolgreich angemeldet",
+    "passwordsNoMatch": "Passwörter stimmen nicht überein",
+    "passwordMinLength": "Passwort muss mindestens 6 Zeichen lang sein",
+    "accountExists": "Konto existiert bereits",
+    "accountExistsDesc": "Bitte melden Sie sich mit Ihrem bestehenden Konto an",
+    "signupFailed": "Registrierung fehlgeschlagen",
+    "accountCreated": "Konto erstellt",
+    "accountCreatedDesc": "Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu verifizieren",
+    "oauthError": "Authentifizierungsfehler",
     "setNewPassword": "Neues Passwort festlegen",
     "setNewPasswordDesc": "Geben Sie unten Ihr neues Passwort ein.",
     "newPassword": "Neues Passwort",
@@ -125,15 +302,27 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Willkommen zurück",
+    "welcomeBack": "Willkommen zurück",
+    "welcomeMessage": "Hier ist, was heute mit Ihren KI-Projekten passiert.",
     "overview": "Übersicht",
     "recentActivity": "Letzte Aktivitäten",
     "quickActions": "Schnellaktionen",
     "totalProjects": "Projekte gesamt",
     "totalDatasets": "Datensatzzeilen gesamt",
+    "datasetRows": "Datensatzzeilen",
     "finetuningJobs": "Feinabgestimmte Modelle",
+    "finetunedModels": "Feinabgestimmte Modelle",
     "apiCalls": "API-Aufrufe diesen Monat",
     "noActivity": "Keine aktuellen Aktivitäten",
-    "createFirstProject": "Erstellen Sie Ihr erstes Projekt, um zu beginnen"
+    "noActivityDesc": "Starten Sie ein Projekt, um hier Aktivitäten zu sehen",
+    "createFirstProject": "Erstellen Sie Ihr erstes Projekt, um zu beginnen",
+    "createProject": "Projekt erstellen",
+    "createProjectDesc": "Neues KI-Projekt starten",
+    "uploadDataset": "Datensatz hochladen",
+    "uploadDatasetDesc": "Trainingsdaten hinzufügen",
+    "viewModels": "Modelle anzeigen",
+    "viewModelsDesc": "Ihre feinabgestimmten Modelle sehen",
+    "apiDocsDesc": "API erkunden"
   },
   "projects": {
     "title": "Projekte",
@@ -143,8 +332,28 @@
     "projectName": "Projektname",
     "projectDescription": "Projektbeschreibung",
     "noProjects": "Noch keine Projekte",
+    "noProjectsYet": "Noch keine Projekte",
     "createFirstProject": "Erstellen Sie Ihr erstes Projekt, um zu beginnen",
     "deleteConfirm": "Sind Sie sicher, dass Sie dieses Projekt löschen möchten?",
+    "deleteProject": "Projekt löschen",
+    "deleteWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Alle mit diesem Projekt verbundenen Datensätze, Modelle und Evaluierungen werden dauerhaft gelöscht.",
+    "deleting": "Wird gelöscht...",
+    "noMatchingProjects": "Keine passenden Projekte",
+    "adjustFilters": "Versuchen Sie, Ihre Suche oder Filter anzupassen",
+    "noDescription": "Keine Beschreibung",
+    "datasets": "Datensätze",
+    "models": "Modelle",
+    "created": "Erstellt",
+    "failedToLoad": "Projekte konnten nicht geladen werden",
+    "filters": {
+      "searchPlaceholder": "Projekte suchen...",
+      "sortBy": "Sortieren nach",
+      "allStatus": "Alle Status",
+      "newest": "Neueste zuerst",
+      "oldest": "Älteste zuerst",
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)"
+    },
     "status": {
       "setup": "Einrichtung",
       "dataset": "Datensatz",
@@ -218,6 +427,7 @@
     "catalog": "Modellkatalog",
     "catalogSubtitle": "Verfügbare Basismodelle durchsuchen",
     "noModels": "Noch keine Modelle",
+    "noModelsYet": "Noch keine Modelle",
     "trainFirst": "Trainieren Sie Ihr erstes Modell, um es hier zu sehen",
     "deploy": "Bereitstellen",
     "undeploy": "Bereitstellung aufheben",
@@ -344,7 +554,7 @@
     "deleteAccount": "Konto löschen",
     "deleteAccountWarning": "Diese Aktion kann nicht rückgängig gemacht werden",
     "saveChanges": "Änderungen speichern",
-    "apiKeys": {
+    "apiKeysSection": {
       "title": "API-Schlüssel",
       "create": "API-Schlüssel erstellen",
       "name": "Schlüsselname",
@@ -395,7 +605,98 @@
     "certifications": "Zertifizierungen",
     "auditLogs": "Audit-Logs",
     "exportData": "Alle Benutzerdaten exportieren",
-    "deleteData": "Alle Benutzerdaten löschen"
+    "deleteData": "Alle Benutzerdaten löschen",
+    "dashboard": {
+      "title": "Compliance-Dashboard",
+      "subtitle": "Überwachen Sie Datenspeicherort, Compliance-Status und Sicherheitskontrollen",
+      "residency": {
+        "title": "Datenspeicherort",
+        "description": "Wenn Sie Ihre Modelle trainieren, werden alle Daten ausschließlich in der Schweiz gespeichert und verarbeitet",
+        "location": "Zürich, Schweiz",
+        "userData": "Benutzerdaten",
+        "datasets": "Datensätze & Trainingsdaten",
+        "modelCheckpoints": "Modell-Checkpoints",
+        "inferenceLogs": "Inferenz-Logs",
+        "sovereigntyTitle": "Schweizer Datensouveränität garantiert",
+        "sovereigntyDesc": "Alle Daten werden in der Schweiz gespeichert und verlassen niemals die Schweizer/EU-Rechtsprechung."
+      },
+      "checklist": {
+        "title": "Compliance-Checkliste",
+        "description": "Aktueller Compliance-Status und Zertifizierungen",
+        "encryptionAtRest": "Verschlüsselung im Ruhezustand",
+        "encryptionAtRestInfo": "AES-256-Verschlüsselung für alle gespeicherten Daten",
+        "encryptionInTransit": "Verschlüsselung bei Übertragung",
+        "encryptionInTransitInfo": "TLS 1.3 für alle Datenübertragungen",
+        "apiKeySecurity": "API-Schlüssel-Sicherheit",
+        "apiKeySecurityInfo": "SHA-256 gehasht, niemals im Klartext gespeichert",
+        "rowLevelSecurity": "Row-Level Security",
+        "rowLevelSecurityInfo": "Zugangskontrolle auf Datenbankebene pro Benutzer",
+        "auditLogging": "Audit-Protokollierung",
+        "auditLoggingInfo": "Umfassende Aktivitätsverfolgung",
+        "swissDataResidency": "Schweizer Datenspeicherort",
+        "swissDataResidencyInfo": "Alle Daten in Zürich, Schweiz gespeichert",
+        "soc2Info": "SOC 2 Type II Audit in Arbeit",
+        "iso27001Info": "ISO 27001 Zertifizierung geplant",
+        "gdprRecords": "DSGVO-Verarbeitungsverzeichnis",
+        "gdprRecordsInfo": "Vollständige Datenverarbeitungsdokumentation"
+      },
+      "audit": {
+        "title": "Audit-Log-Zusammenfassung",
+        "description": "Übersicht über Systemaktivitäten und Sicherheitsereignisse",
+        "totalEvents": "Ereignisse gesamt",
+        "thisMonth": "Diesen Monat",
+        "topActions": "Top-Aktionen",
+        "noEvents": "Noch keine Ereignisse aufgezeichnet",
+        "viewFullLogs": "Vollständige Audit-Logs anzeigen"
+      },
+      "retention": {
+        "title": "Datenspeicherungs-Einstellungen",
+        "description": "Automatische Datenbereinigungsrichtlinien konfigurieren",
+        "tracesRetention": "Inferenz-Traces-Aufbewahrung (Tage)",
+        "tracesRetentionDesc": "Wie lange Inferenz-Anfrage-Logs aufbewahrt werden",
+        "auditRetention": "Audit-Logs-Aufbewahrung (Tage)",
+        "auditRetentionDesc": "Wie lange Audit-Logs aufbewahrt werden (mindestens 365 empfohlen)",
+        "datasetsRetention": "Inaktive Datensätze-Aufbewahrung (Tage)",
+        "datasetsRetentionDesc": "Automatisches Löschen von Datensätzen ohne Aktivität",
+        "saveSettings": "Aufbewahrungseinstellungen speichern"
+      },
+      "gdprTools": {
+        "title": "DSGVO-Tools",
+        "description": "Datenportabilität und Recht auf Vergessenwerden",
+        "exportTitle": "Alle Benutzerdaten exportieren",
+        "exportDesc": "Laden Sie eine ZIP-Datei mit allen Ihren Daten herunter: Datensätze, Modelle, Konfiguration und Traces.",
+        "exportButton": "Meine Daten exportieren",
+        "exportingButton": "Export wird vorbereitet...",
+        "deleteTitle": "Alle Benutzerdaten löschen",
+        "deleteDesc": "Alle Ihre Daten dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "deleteButton": "Datenlöschung beantragen",
+        "deleteDialogTitle": "Sind Sie absolut sicher?",
+        "deleteDialogDesc": "Dies löscht dauerhaft alle Ihre Daten einschließlich Datensätze, feinabgestimmte Modelle, Evaluierungen, Traces und Konfiguration. Diese Aktion kann nicht rückgängig gemacht werden und wird innerhalb von 30 Tagen gemäß DSGVO-Anforderungen verarbeitet.",
+        "deleteDialogCancel": "Abbrechen",
+        "deleteDialogConfirm": "Alle Daten löschen",
+        "deletingButton": "Wird verarbeitet..."
+      },
+      "certifications": {
+        "title": "Zertifizierungen"
+      },
+      "status": {
+        "certified": "Zertifiziert",
+        "inProgress": "In Arbeit",
+        "planned": "Geplant"
+      },
+      "export": {
+        "started": "Export gestartet",
+        "startedDesc": "Sie erhalten eine E-Mail mit Download-Link, wenn bereit.",
+        "failed": "Export fehlgeschlagen",
+        "failedDesc": "Datenexport konnte nicht gestartet werden. Bitte versuchen Sie es erneut."
+      },
+      "delete": {
+        "submitted": "Löschungsanfrage eingereicht",
+        "submittedDesc": "Ihre Datenlöschungsanfrage wurde eingereicht und wird innerhalb von 30 Tagen verarbeitet.",
+        "failed": "Löschungsanfrage fehlgeschlagen",
+        "failedDesc": "Löschungsanfrage konnte nicht eingereicht werden. Bitte kontaktieren Sie den Support."
+      }
+    }
   },
   "errors": {
     "generic": "Etwas ist schief gelaufen",
@@ -405,43 +706,158 @@
     "networkError": "Netzwerkfehler",
     "serverError": "Serverfehler",
     "validationError": "Validierungsfehler",
-    "tryAgain": "Bitte versuchen Sie es erneut"
+    "tryAgain": "Bitte versuchen Sie es erneut",
+    "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten"
   },
-  "landing": {
+  "home": {
     "hero": {
-      "badge": "Schweizer Datenspeicherort garantiert",
-      "title": "KI-Modelle mit Schweizer Präzision feinabstimmen",
-      "subtitle": "Enterprise-KI-Feinabstimmungsplattform mit garantiertem Schweizer Datenspeicherort. Trainieren, evaluieren und bereitstellen Sie benutzerdefinierte Modelle mit vollständiger Datensouveränität.",
-      "cta": "Kostenlose Testversion starten",
-      "docs": "Dokumentation anzeigen"
+      "title": "Privater KI-Chat.",
+      "titleHighlight": "Keine Spur hinterlassen.",
+      "subtitle": "Ende-zu-Ende verschlüsselt. Spurlos. Schweizer Hosting.",
+      "description": "Erleben Sie den privatesten KI-Assistenten. Ihre Unterhaltungen berühren niemals unsere Server. Völlig anonym. Völlig kostenlos.",
+      "bookDemo": "Enterprise-Demo buchen",
+      "earlyAccess": "Privaten Zugang anfragen",
+      "tryGhostChat": "Ghost Chat jetzt kostenlos testen",
+      "hostedInSwitzerland": "Gehostet in der Schweiz",
+      "noLoginRequired": "Keine Anmeldung erforderlich",
+      "zeroDataStored": "Keine Datenspeicherung",
+      "anonymous": "100% Anonym",
+      "gdprReady": "DSGVO-konform",
+      "e2eEncryption": "Client-seitige E2E-Verschlüsselung"
     },
-    "features": {
-      "title": "Enterprise-Funktionen",
-      "subtitle": "Alles, was Sie brauchen, um KI-Modelle im großen Maßstab feinzuabstimmen und bereitzustellen",
-      "dataset": {
-        "title": "Dataset-Verwaltung",
-        "description": "Laden, verarbeiten und verwalten Sie Ihre Trainingsdatensätze mit integrierter Validierung und Qualitätskontrollen."
+    "mockUI": {
+      "workspaceTitle": "SwissVault Assistent Arbeitsbereich",
+      "complianceCopilot": "Compliance Co-Pilot",
+      "complianceCopilotDesc": "Finanzregulierungs-Assistent",
+      "e2eEncrypted": "E2E Verschlüsselt",
+      "sampleQuestion": "Was sind die KYC-Anforderungen für Hochrisiko-Kunden?",
+      "sampleAnswer": "Basierend auf Ihren internen Richtlinien erfordern Hochrisiko-Kunden erweiterte Sorgfaltspflichten einschließlich...",
+      "encryptedResponse": "Verschlüsselte Antwort",
+      "datasets": "Datensätze",
+      "sources": "Quellen",
+      "fineTuned": "Feinabgestimmt",
+      "modelsCount": "Modelle",
+      "evaluations": "Bewertungen",
+      "accuracy": "Genauigkeit",
+      "ragSources": "RAG-Quellen"
+    },
+    "whySwissVault": {
+      "title": "Warum SwissVault?",
+      "subtitle": "Diskretion-zuerst-KI für Einzelpersonen und Unternehmen, die sich keine Offenlegung leisten können.",
+      "zeroKnowledge": {
+        "title": "Zero-Knowledge by Design",
+        "description": "Wir können Ihre verschlüsselten Unterhaltungen nicht lesen – und niemand anderes kann das auch.",
+        "details": "Client-seitiges AES-256-GCM, Schlüssel pro Unterhaltung und strenge Row-Level Security."
       },
-      "finetuning": {
-        "title": "Modell-Feinabstimmung",
-        "description": "Trainieren Sie benutzerdefinierte Modelle mit LoRA, QLoRA oder vollständiger Feinabstimmung mit optimierten Hyperparametern."
+      "swissResidency": {
+        "title": "Schweizer Datenspeicherort & Governance",
+        "description": "Alle Daten werden in Schweizer Rechenzentren mit vollständigen Audit-Trails und Zugriffskontrollen gespeichert.",
+        "details": "DSGVO-konform heute, SOC 2 / ISO 27001 / FINMA auf der Roadmap."
       },
-      "evaluation": {
-        "title": "Modell-Evaluierung",
-        "description": "Bewerten Sie die Modellleistung mit integrierten Metriken und benutzerdefinierten Evaluierungspipelines."
+      "fullLifecycle": {
+        "title": "Vollständiger KI-Lebenszyklus in einer sicheren Plattform",
+        "description": "Erfassen, feinabstimmen, evaluieren und Assistenten bereitstellen – mit OpenAI, Anthropic, Gemini oder souveränen Open-Source-Modellen auf Schweizer GPUs."
       },
-      "swiss": {
-        "title": "Schweizer Datenspeicherort",
-        "description": "Alle Daten werden in der Schweiz mit vollständiger GDPR-Konformität und Datensouveränität gespeichert."
+      "seeArchitecture": "Sicherheitsarchitektur anzeigen"
+    },
+    "solutions": {
+      "title": "Entwickelt für regulierte Arbeitsabläufe",
+      "subtitle": "SwissVault wird verwendet, um interne Assistenten zu betreiben, bei denen Datenschutz und Erklärbarkeit wichtiger sind als reine Experimente.",
+      "compliance": {
+        "title": "Compliance- & Richtlinien-Assistenten",
+        "description": "Zentralisieren Sie interne Richtlinien, Verfahren und Vorschriften.",
+        "feature1": "Mitarbeiter können Fragen in natürlicher Sprache mit vollständigen Audit-Logs stellen",
+        "feature2": "Null-Aufbewahrung und strenge Modellrichtlinien durchsetzen"
       },
-      "inference": {
-        "title": "Schnelle Inferenz",
-        "description": "Stellen Sie Modelle mit niedriger Latenz über unsere OpenAI-kompatible API bereit."
+      "developer": {
+        "title": "Sichere Entwickler- & Ops-Co-Pilots",
+        "description": "Verbindung zu privaten GitHub-Repos, Code-bewusste Modelle in einer Zero-Trust-Umgebung ausführen.",
+        "feature1": "Quellcode und Anmeldedaten aus Drittanbieter-Logs fernhalten"
       },
-      "sdk": {
-        "title": "Entwickler-SDKs",
-        "description": "Integrieren Sie mit Python- und TypeScript-SDKs für nahtlose Entwicklungsabläufe."
+      "banking": {
+        "title": "Wissens-Co-Pilots für Banking & Versicherung",
+        "description": "Produktdokumente, KYC-Dateien und interne Wikis erfassen.",
+        "feature1": "Frontline-Teams mit sofortigen, nachverfolgbaren Antworten versorgen",
+        "feature2": "RAG-Zitierungen und Evaluierungs-Dashboards"
+      },
+      "exploreSolutions": "Alle Lösungen erkunden"
+    },
+    "howItWorks": {
+      "title": "Von Rohdaten zu gesteuerten KI-Assistenten",
+      "subtitle": "Ein einfacher vierstufiger Prozess zur Bereitstellung sicherer, auditierbarer KI.",
+      "step1": {
+        "title": "Daten sicher verbinden & erfassen",
+        "description": "Dokumente hochladen oder Slack, Notion, GitHub, Gmail verbinden. Alle Daten in Schweizer Rechenzentren mit Row-Level-Zugangskontrolle gespeichert."
+      },
+      "step2": {
+        "title": "Modelle feinabstimmen & evaluieren",
+        "description": "Vorgefertigte Vorlagen oder eigene Datensätze verwenden. LoRA/QLoRA-Adapter auf Open-Source-Modellen trainieren oder kommerzielle APIs nutzen. Mit LLM-as-Judge und benutzerdefinierten Metriken vor dem Go-Live evaluieren."
+      },
+      "step3": {
+        "title": "Assistenten in Vault Chat & per API bereitstellen",
+        "description": "Verschlüsselte Assistenten für jedes Team starten oder SwissVaults OpenAI-kompatible API in eigenen Apps nutzen. Modell- und Aufbewahrungsrichtlinien pro Organisation durchsetzen."
+      },
+      "step4": {
+        "title": "Überwachen, auditieren & verbessern",
+        "description": "Nutzung, Qualität und Kosten in Echtzeit verfolgen. Logs für Audits exportieren. Datensätze, Feinabstimmungen und Leitplanken iterieren."
       }
+    },
+    "security": {
+      "badge": "Sicherheit & Compliance",
+      "title": "Sicherheitsarchitektur für Auditoren konzipiert",
+      "subtitle": "Unternehmenssicherheit, die die anspruchsvollsten Compliance-Anforderungen erfüllt.",
+      "e2e": {
+        "title": "Client-seitige Ende-zu-Ende-Verschlüsselung",
+        "point1": "AES-256-GCM, Schlüssel pro Konversation, PBKDF2-abgeleitete Master-Schlüssel",
+        "point2": "Schlüssel verlassen niemals den Browser; Server sehen nur Chiffretext"
+      },
+      "zeroTrust": {
+        "title": "Zero-Trust-Backend",
+        "point1": "Row-Level Security auf über 40 Tabellen",
+        "point2": "Unveränderliche Audit-Logs mit vollständigem Änderungsverlauf",
+        "point3": "Strikte Organisationsrollen (Eigentümer, Admin, Mitglied)"
+      },
+      "swissResidency": {
+        "title": "Schweizer Datenspeicherort",
+        "point1": "Alle Daten in schweizerischen Datenbanken gespeichert",
+        "point2": "Optionaler Null-Aufbewahrungsmodus für Inferenzspuren und Evaluierungsproben"
+      },
+      "complianceRoadmap": {
+        "title": "Compliance-Roadmap",
+        "point1": "DSGVO-konforme Prozesse implementiert",
+        "point2": "SOC 2 Typ II (in Arbeit), ISO 27001 und FINMA-Bereitschaft auf der Roadmap"
+      },
+      "architecture": {
+        "title": "Zero-Knowledge-Architektur",
+        "browser": {
+          "title": "Ihr Browser (Schlüssel hier)",
+          "description": "AES-256-GCM-Verschlüsselungsschlüssel in IndexedDB gespeichert. Alle Ver-/Entschlüsselung erfolgt clientseitig."
+        },
+        "backend": {
+          "title": "SwissVault-Backend",
+          "description": "Speichert nur verschlüsselten Chiffretext + Schlüssel-Hashes. RLS-Richtlinien erzwingen Datenisolation."
+        },
+        "infrastructure": {
+          "title": "Schweizer Infrastruktur",
+          "description": "Daten verlassen niemals die Schweizer Jurisdiktion."
+        }
+      },
+      "downloadWhitepaper": "Sicherheits-Whitepaper herunterladen",
+      "talkToCISO": "Mit unserem CISO sprechen"
+    },
+    "models": {
+      "title": "Die besten Modelle nutzen – ohne Datenschutz zu verlieren",
+      "subtitle": "SwissVault abstrahiert Anbieter, damit Sie das richtige Modell für jede Arbeitslast wählen können, während Governance und Protokollierung an einem Ort bleiben, oder mit Ghost Chat völlig anonym sein.",
+      "hybridCloud": {
+        "title": "Hybrid Cloud",
+        "description": "Zentralisiertes Routing, Abrechnung und Überwachung, anonyme und verschlüsselte Optionen."
+      },
+      "sovereignOpenSource": {
+        "title": "Souveränes Open-Source",
+        "description": "Option, eine Organisation auf nur in der Schweiz gehostete Open-Source-Modelle zu beschränken."
+      },
+      "openaiCompatible": "Bereits OpenAI nutzen?",
+      "openaiCompatibleDesc": "Drop-in-kompatibel mit OpenAI Python und JS SDKs – ändern Sie einfach die Basis-URL."
     },
     "pricing": {
       "title": "Privater Zugang jetzt. Enterprise-Power, wenn Sie sie brauchen",
@@ -486,59 +902,32 @@
       },
       "sovereignDeployment": "Benötigen Sie On-Premise oder eigene GPUs? Sprechen Sie mit uns über souveräne Bereitstellung"
     },
-    "trust": {
-      "title": "Schweizer Datensouveränität",
-      "subtitle": "Ihre Daten verlassen niemals die Schweiz"
+    "socialProof": {
+      "title": "Vertraut von sicherheitsbewussten Teams",
+      "testimonial": "SwissVault ermöglichte uns, interne KI-Assistenten bereitzustellen, ohne Kundendaten an US-Clouds zu senden – das war nicht verhandelbar.",
+      "author": "CISO",
+      "company": "Schweizer Finanzinstitut",
+      "industries": {
+        "swissBanks": "Schweizer Banken",
+        "healthcare": "Gesundheitsfachkräfte",
+        "hnwi": "HNWI",
+        "crypto": "Krypto-Manager",
+        "blockchain": "Blockchain",
+        "insurance": "Versicherungsunternehmen",
+        "regtech": "RegTech-Anbieter",
+        "wealthManagers": "Vermögensverwalter",
+        "privateBank": "Privatbank"
+      }
     },
-    "cta": {
-      "title": "Bereit loszulegen?",
-      "subtitle": "Beginnen Sie heute mit der Feinabstimmung Ihrer Modelle",
-      "button": "Kostenlos starten"
+    "developer": {
+      "title": "Geliebt von Entwicklern und ML-Teams",
+      "feature1": "OpenAI-kompatible API – Drop-in für bestehenden Code",
+      "feature2": "SDKs für Python und TypeScript mit Async und Streaming",
+      "feature3": "Webhooks für Evaluierungen, Feinabstimmungsjobs und Abrechnung",
+      "viewApiDocs": "API-Dokumentation anzeigen"
     },
-    "footer": {
-      "product": "Produkt",
-      "company": "Unternehmen",
-      "legal": "Rechtliches",
-      "support": "Support",
-      "about": "Über uns",
-      "blog": "Blog",
-      "careers": "Karriere",
-      "contact": "Kontakt",
-      "privacy": "Datenschutzrichtlinie",
-      "terms": "Nutzungsbedingungen",
-      "cookies": "Cookie-Richtlinie",
-      "documentation": "Dokumentation",
-      "status": "Systemstatus",
-      "madeInSwitzerland": "Made in Switzerland"
-    }
-  },
-  "home": {
-    "hero": {
-      "title": "Die Privateste KI-Plattform",
-      "titleHighlight": "der Welt",
-      "subtitle": "Ende-zu-Ende-verschlüsselt. Spurlos. Schweizer Hosting.",
-      "description": "Vertraut von regulierten Branchen und den datenschutzbewusstesten Menschen der Welt.",
-      "bookDemo": "Enterprise-Demo buchen",
-      "earlyAccess": "Privaten Zugang anfragen",
-      "hostedInSwitzerland": "Gehostet in der Schweiz",
-      "gdprReady": "DSGVO-konform",
-      "e2eEncryption": "Client-seitige E2E-Verschlüsselung"
-    },
-    "mockUI": {
-      "workspaceTitle": "SwissVault Assistent Arbeitsbereich",
-      "complianceCopilot": "Compliance Co-Pilot",
-      "complianceCopilotDesc": "Finanzregulierungs-Assistent",
-      "e2eEncrypted": "E2E Verschlüsselt",
-      "sampleQuestion": "Was sind die KYC-Anforderungen für Hochrisiko-Kunden?",
-      "sampleAnswer": "Basierend auf Ihren internen Richtlinien erfordern Hochrisiko-Kunden erweiterte Sorgfaltspflichten einschließlich...",
-      "encryptedResponse": "Verschlüsselte Antwort",
-      "datasets": "Datensätze",
-      "sources": "Quellen",
-      "fineTuned": "Feinabgestimmt",
-      "modelsCount": "Modelle",
-      "evaluations": "Bewertungen",
-      "accuracy": "Genauigkeit",
-      "ragSources": "RAG-Quellen"
+    "supportedBy": {
+      "title": "KI-Innovatives Unternehmen unterstützt von"
     }
   },
   "vaultChatFeatures": {
@@ -608,6 +997,77 @@
         "onPremises": "On-Premises-Bereitstellung verfügbar"
       },
       "cta": "Exklusiven Zugang beantragen"
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "Schweizer Datenspeicherort garantiert",
+      "title": "KI-Modelle mit Schweizer Präzision feinabstimmen",
+      "subtitle": "Enterprise-KI-Feinabstimmungsplattform mit garantiertem Schweizer Datenspeicherort. Trainieren, evaluieren und bereitstellen Sie benutzerdefinierte Modelle mit vollständiger Datensouveränität.",
+      "cta": "Kostenlose Testversion starten",
+      "docs": "Dokumentation anzeigen",
+      "earlyAccess": "Privaten Zugang anfragen",
+      "scheduleDemo": "Demo planen"
+    },
+    "features": {
+      "title": "Enterprise-Funktionen",
+      "subtitle": "Alles, was Sie brauchen, um KI-Modelle im großen Maßstab feinzuabstimmen und bereitzustellen",
+      "dataset": {
+        "title": "Dataset-Verwaltung",
+        "description": "Laden, verarbeiten und verwalten Sie Ihre Trainingsdatensätze mit integrierter Validierung und Qualitätskontrollen."
+      },
+      "finetuning": {
+        "title": "Modell-Feinabstimmung",
+        "description": "Trainieren Sie benutzerdefinierte Modelle mit LoRA, QLoRA oder vollständiger Feinabstimmung mit optimierten Hyperparametern."
+      },
+      "evaluation": {
+        "title": "Modell-Evaluierung",
+        "description": "Bewerten Sie die Modellleistung mit integrierten Metriken und benutzerdefinierten Evaluierungspipelines."
+      },
+      "swiss": {
+        "title": "Schweizer Datenspeicherort",
+        "description": "Alle Daten werden in der Schweiz mit vollständiger GDPR-Konformität und Datensouveränität gespeichert."
+      },
+      "inference": {
+        "title": "Schnelle Inferenz",
+        "description": "Stellen Sie Modelle mit niedriger Latenz über unsere OpenAI-kompatible API bereit."
+      },
+      "sdk": {
+        "title": "Entwickler-SDKs",
+        "description": "Integrieren Sie mit Python- und TypeScript-SDKs für nahtlose Entwicklungsabläufe."
+      }
+    },
+    "pricing": {
+      "title": "Einfache, transparente Preise",
+      "subtitle": "Kostenlos starten, skalieren wenn Sie wachsen"
+    },
+    "trust": {
+      "title": "Schweizer Datensouveränität",
+      "subtitle": "Ihre Daten verlassen niemals die Schweiz"
+    },
+    "cta": {
+      "title": "Bereit zur Feinabstimmung mit",
+      "subtitle": "Gehören Sie zu den Ersten, die Enterprise-Grade-KI-Feinabstimmung mit Schweizer Datensouveränität erleben.",
+      "button": "Kostenlos starten",
+      "earlyAccess": "Privaten Zugang anfragen",
+      "demo": "Demo planen",
+      "noCard": "Begrenzte Plätze verfügbar • Seien Sie ganz vorne dabei"
+    },
+    "footer": {
+      "product": "Produkt",
+      "company": "Unternehmen",
+      "legal": "Rechtliches",
+      "support": "Support",
+      "about": "Über uns",
+      "blog": "Blog",
+      "careers": "Karriere",
+      "contact": "Kontakt",
+      "privacy": "Datenschutzrichtlinie",
+      "terms": "Nutzungsbedingungen",
+      "cookies": "Cookie-Richtlinie",
+      "documentation": "Dokumentation",
+      "status": "Systemstatus",
+      "madeInSwitzerland": "Made in Switzerland"
     }
   },
   "vaultLabsFeatures": {
@@ -695,6 +1155,7 @@
     "requestBody": "Anfrage-Body",
     "exampleRequest": "Beispielanfrage",
     "response": "Antwort",
+    "exampleResponse": "Beispielantwort",
     "errorCodes": "Fehlercodes",
     "code": "Code",
     "message": "Nachricht",
@@ -704,7 +1165,7 @@
     "downloadedYaml": "OpenAPI YAML heruntergeladen",
     "categories": {
       "authentication": "Authentifizierung",
-      "chatCompletions": "Chat-Vervollständigungen",
+      "chatCompletions": "Chat-Antwort",
       "finetuning": "Fine-tuning",
       "datasets": "Datensätze",
       "evaluations": "Bewertungen",
@@ -713,8 +1174,8 @@
     "endpoints": {
       "listApiKeys": "API-Schlüssel auflisten",
       "listApiKeysDesc": "Rufen Sie alle mit Ihrem Konto verknüpften API-Schlüssel ab. API-Schlüssel werden zur Authentifizierung von Anfragen an die SwissVault.ai API verwendet.",
-      "createChatCompletion": "Chat-Vervollständigung erstellen",
-      "createChatCompletionDesc": "Generieren Sie eine Chat-Vervollständigung im OpenAI-kompatiblen Format. Unterstützt Basismodelle (GPT-4, Claude, Gemini) und Ihre fine-tuned Modelle.",
+      "createChatCompletion": "Chat-Antwort generieren",
+      "createChatCompletionDesc": "Generieren Sie eine Chat-Antwort im OpenAI-kompatiblen Format. Unterstützt Basismodelle (GPT-4, Claude, Gemini) und Ihre personalisierten Modelle (fine-tuned).",
       "createFinetuningJob": "Fine-tuning-Job erstellen",
       "createFinetuningJobDesc": "Erstellen Sie einen neuen Fine-tuning-Job. Der Job wird nach der Erstellung für das Training in die Warteschlange gestellt.",
       "listFinetuningJobs": "Fine-tuning-Jobs auflisten",
@@ -739,6 +1200,369 @@
       "deleteModelDesc": "Löschen Sie ein fine-tuned Modell. Dies entfernt auch den Modell-Checkpoint aus dem Speicher."
     }
   },
+  "ghost": {
+    "title": "Ghost Chat",
+    "subtitle": "Ihr privater KI-Assistent",
+    "welcome": {
+      "title": "Privater KI-Chat",
+      "description": "Ihre Unterhaltungen werden lokal verschlüsselt und verlassen niemals Ihr Gerät. Beginnen Sie zu tippen, um eine private Unterhaltung zu starten.",
+      "poweredBy": "Betrieben von in der Schweiz gehosteten KI-Modellen"
+    },
+    "status": {
+      "localOnly": "Nur lokal",
+      "zeroRetention": "Null Aufbewahrung"
+    },
+    "auth": {
+      "signupBanner": "Kostenlos registrieren, um Unterhaltungen zu speichern",
+      "signUp": "Registrieren"
+    },
+    "alerts": {
+      "corruptedTitle": "Ihr Datenschutz ist geschützt",
+      "corruptedDescription": "Vorherige Unterhaltungen wurden mit einem temporären Sitzungsschlüssel verschlüsselt. Für anonymes Surfen ändert sich dieser Schlüssel, wenn Browserdaten gelöscht werden — so bleiben Ihre Daten privat by Design.",
+      "signUpPrompt": "Möchten Sie Unterhaltungen, die über Sitzungen hinweg bestehen?",
+      "signUpFree": "Kostenlos registrieren",
+      "clearCorruptedData": "Vorherige Daten löschen",
+      "storageCleared": "Daten gelöscht",
+      "storageClearedDescription": "Ihre lokalen Daten wurden gelöscht. Starten Sie frisch mit voller Verschlüsselung."
+    },
+    "modes": {
+      "text": "Chat",
+      "image": "Bild",
+      "video": "Video",
+      "search": "Suche",
+      "research": "Deep Research",
+      "new": "Neu"
+    },
+    "input": {
+      "textPlaceholder": "Fragen Sie privat alles...",
+      "imagePlaceholder": "Beschreiben Sie das Bild, das Sie erstellen möchten...",
+      "videoPlaceholder": "Beschreiben Sie das Video, das Sie generieren möchten...",
+      "searchPlaceholder": "Das Web privat durchsuchen...",
+      "attach": "Anhängen",
+      "enhancePrompt": "Prompt verbessern",
+      "enhanced": "Verbessert",
+      "send": "Senden",
+      "newLine": "Neue Zeile"
+    },
+    "chat": {
+      "placeholder": "Ihre Nachricht eingeben...",
+      "send": "Senden",
+      "stop": "Stopp",
+      "newChat": "Neuer Chat",
+      "clearChat": "Chat leeren",
+      "regenerate": "Regenerieren",
+      "copy": "Kopieren",
+      "copied": "Kopiert!",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "rename": "Umbenennen",
+      "download": "Herunterladen",
+      "export": "Exportieren",
+      "import": "Importieren",
+      "thinking": "Denkt nach...",
+      "generating": "Generiert...",
+      "searching": "Sucht...",
+      "typing": "Tippt...",
+      "noMessages": "Noch keine Nachrichten",
+      "startConversation": "Starten Sie eine Unterhaltung",
+      "enterMessage": "Geben Sie eine Nachricht ein, um zu beginnen"
+    },
+    "sidebar": {
+      "newChat": "Neuer Chat",
+      "home": "Startseite",
+      "searchPlaceholder": "Suchen...",
+      "folders": "Ordner",
+      "chats": "Chats",
+      "noMatches": "Keine Treffer",
+      "noChatsYet": "Noch keine Chats",
+      "viewFolders": "Ordner anzeigen",
+      "viewChats": "Chats anzeigen",
+      "discover": "Entdecken",
+      "more": "Mehr",
+      "customizeSidebar": "Seitenleiste anpassen",
+      "library": "Bibliothek",
+      "settings": "Einstellungen",
+      "collapseSidebar": "Seitenleiste einklappen",
+      "expandSidebar": "Seitenleiste ausklappen",
+      "rename": "Umbenennen",
+      "download": "Herunterladen",
+      "downloadAll": "Alle herunterladen",
+      "delete": "Löschen",
+      "empty": "Leer",
+      "chatRenamed": "Chat umbenannt",
+      "movedTo": "Verschoben nach",
+      "newFolder": "Neuer Ordner",
+      "signupRequired": "Kostenlos registrieren, um Ordner zu erstellen",
+      "signupDescription": "Ordner helfen Ihnen, Ihre Unterhaltungen zu organisieren",
+      "allChats": "Alle Chats",
+      "today": "Heute",
+      "yesterday": "Gestern",
+      "thisWeek": "Diese Woche",
+      "thisMonth": "Diesen Monat",
+      "older": "Älter",
+      "noChats": "Keine Unterhaltungen",
+      "startNewChat": "Neuen Chat starten"
+    },
+    "modules": {
+      "finance": {
+        "title": "Finanzen",
+        "description": "Märkte, Krypto, Vermögen",
+        "placeholder": "Fragen Sie über Finanzmärkte...",
+        "suggestedFor": "Vorgeschlagene Fragen für {{market}}",
+        "tabs": {
+          "us": "US-Märkte",
+          "european": "Europa",
+          "swiss": "Schweiz",
+          "latam": "Lateinamerika",
+          "asia": "Asien",
+          "mena": "MENA",
+          "crypto": "Krypto",
+          "earnings": "Earnings",
+          "predictions": "Prognosen",
+          "screener": "Screener",
+          "watchlist": "Watchlist"
+        },
+        "suggestions": {
+          "markets": "Wie entwickeln sich die US-Märkte heute?",
+          "crypto": "Geben Sie mir eine Krypto-Marktübersicht",
+          "stocks": "Analysieren Sie die aktivsten Tech-Aktien",
+          "earnings": "Welche Unternehmen berichten diese Woche Earnings?",
+          "us": {
+            "1": "Was sind die besten S&P 500-Aktien diese Woche?",
+            "2": "Analyse der Auswirkungen der Fed-Zinsentscheidung",
+            "3": "Tech-Sektor Earnings-Vorschau für Q4 2024"
+          },
+          "european": {
+            "1": "Wie beeinflusst die EZB-Politik die europäischen Märkte?",
+            "2": "Top-performende europäische Aktien 2024",
+            "3": "Euro Stoxx 50 technische Analyse"
+          },
+          "swiss": {
+            "1": "SMI-Index-Performance und Ausblick",
+            "2": "Auswirkung des Schweizer Frankens auf Schweizer Aktien",
+            "3": "Top Schweizer Dividendenaktien für 2024"
+          },
+          "crypto": {
+            "1": "Bitcoin-Preisvorhersage und Analyse",
+            "2": "Top Altcoins zum Beobachten 2024",
+            "3": "Auswirkung von ETF-Genehmigungen auf Krypto-Märkte"
+          },
+          "default": {
+            "1": "Was sind die besten Investmentmöglichkeiten gerade?",
+            "2": "Marktstimmungsanalyse für diese Woche",
+            "3": "Portfolio-Diversifikationsstrategien"
+          }
+        },
+        "marketSummary": {
+          "title": "Marktübersicht",
+          "updated": "Vor 12 Min. aktualisiert"
+        }
+      },
+      "legal": {
+        "title": "Recht",
+        "description": "Compliance, Vorschriften",
+        "placeholder": "Fragen Sie über Recht und Compliance...",
+        "exploreByCategory": "Nach Kategorie erkunden",
+        "regulationsIn": "{{category}}-Vorschriften in {{jurisdiction}}",
+        "inJurisdiction": "in {{jurisdiction}}",
+        "jurisdictions": {
+          "eu": "EU",
+          "us": "USA",
+          "ch": "CH",
+          "uk": "UK"
+        },
+        "actions": {
+          "regulatory": "Regulatorische Suche",
+          "caselaw": "Rechtsprechung",
+          "compliance": "Compliance-Check"
+        }
+      },
+      "patents": {
+        "title": "Patente",
+        "description": "IP-Suche, Stand der Technik",
+        "placeholder": "Fragen Sie über Patente und geistiges Eigentum...",
+        "exploreByCategory": "Nach Kategorie erkunden",
+        "landscapeFor": "Patentlandschaft für {{category}}",
+        "actions": {
+          "patentability": "Patentierbarkeit",
+          "landscape": "Technologielandschaft",
+          "rnd": "F&E"
+        }
+      },
+      "research": {
+        "title": "Forschung",
+        "description": "Akademisch, klinisch",
+        "placeholder": "Akademische Forschung und klinische Studien durchsuchen...",
+        "exploreByCategory": "Nach Kategorie erkunden",
+        "latestResearchIn": "Neueste Forschung in {{category}}",
+        "actions": {
+          "academic": "Akademische Arbeiten",
+          "clinical": "Klinische Studien",
+          "preprints": "Preprints"
+        }
+      },
+      "security": {
+        "title": "Sicherheit",
+        "description": "Cyber, Datenschutz-Tools"
+      },
+      "health": {
+        "title": "Gesundheit",
+        "description": "Langlebigkeit, klinisch"
+      },
+      "travel": {
+        "title": "Reisen",
+        "description": "Privat, exklusiv"
+      },
+      "realestate": {
+        "title": "Immobilien",
+        "description": "Luxusimmobilien"
+      }
+    },
+    "discover": {
+      "modes": {
+        "search": "Suche",
+        "research": "Forschung",
+        "reason": "Begründung"
+      },
+      "sources": "Quellen"
+    },
+    "categories": {
+      "lifeSciences": "Biowissenschaften",
+      "computerScience": "Informatik",
+      "physicsMathematics": "Physik & Mathematik",
+      "socialSciences": "Sozialwissenschaften",
+      "computersSoftware": "Computer & Software",
+      "medicalHealthcare": "Medizin & Gesundheitswesen",
+      "industrialManufacturing": "Industrie & Fertigung",
+      "financialRegulations": "Finanzvorschriften",
+      "dataProtection": "Datenschutz",
+      "corporateSecurities": "Unternehmen & Wertpapiere",
+      "crossBorderCompliance": "Grenzüberschreitende Compliance"
+    },
+    "search": {
+      "placeholder": "Das Web durchsuchen...",
+      "getStarted": "Starten Sie mit",
+      "exploreCategories": "Nach Kategorie erkunden",
+      "sources": "Quellen",
+      "citations": "Zitierungen",
+      "viewSource": "Quelle anzeigen",
+      "modes": {
+        "search": "Suche",
+        "research": "Forschung",
+        "analyze": "Analysieren"
+      }
+    },
+    "image": {
+      "title": "Bildgenerierung",
+      "placeholder": "Beschreiben Sie das Bild, das Sie erstellen möchten...",
+      "generate": "Generieren",
+      "generating": "Bild wird generiert...",
+      "download": "Herunterladen",
+      "regenerate": "Neu generieren",
+      "settings": {
+        "aspectRatio": "Seitenverhältnis",
+        "style": "Stil",
+        "quality": "Qualität"
+      },
+      "aspectRatios": {
+        "square": "Quadrat (1:1)",
+        "landscape": "Querformat (16:9)",
+        "portrait": "Hochformat (9:16)",
+        "wide": "Breit (21:9)"
+      }
+    },
+    "video": {
+      "title": "Videogenerierung",
+      "placeholder": "Beschreiben Sie das Video, das Sie erstellen möchten...",
+      "generate": "Generieren",
+      "generating": "Video wird generiert...",
+      "download": "Herunterladen",
+      "settings": {
+        "duration": "Dauer",
+        "resolution": "Auflösung",
+        "style": "Stil"
+      }
+    },
+    "models": {
+      "title": "Modelle",
+      "free": "Kostenlos",
+      "pro": "Pro",
+      "selectModel": "Modell auswählen",
+      "swissHosted": "Schweiz gehostet",
+      "commercial": "Kommerziell",
+      "categories": {
+        "swiss": "Schweizer Modelle",
+        "commercial": "Kommerzielle Modelle",
+        "opensource": "Open Source"
+      }
+    },
+    "settings": {
+      "title": "Ghost-Einstellungen",
+      "general": "Allgemein",
+      "appearance": "Erscheinung",
+      "privacy": "Datenschutz",
+      "voice": "Stimme",
+      "systemPrompt": "System-Prompt",
+      "systemPromptPlaceholder": "Benutzerdefinierte Anweisungen für die KI...",
+      "temperature": "Temperatur",
+      "topP": "Top P",
+      "enterSubmits": "Enter sendet Nachricht",
+      "showDates": "Nachrichtendaten anzeigen",
+      "webEnabled": "Websuche aktiviert",
+      "voiceEnabled": "Sprachantworten aktiviert",
+      "theme": {
+        "title": "Design",
+        "light": "Hell",
+        "dark": "Dunkel",
+        "system": "System"
+      }
+    },
+    "library": {
+      "title": "Bibliothek",
+      "images": "Bilder",
+      "videos": "Videos",
+      "all": "Alle",
+      "favorites": "Favoriten",
+      "noItems": "Keine Elemente in der Bibliothek",
+      "generateFirst": "Generieren Sie Ihr erstes Bild oder Video"
+    },
+    "upgrade": {
+      "title": "Auf Pro upgraden",
+      "description": "Zugang zu GPT-4o, Claude und Gemini freischalten",
+      "features": {
+        "unlimitedChats": "Unbegrenzte Chats",
+        "commercialModels": "Kommerzielle Modelle",
+        "priorityAccess": "Prioritätszugang",
+        "advancedFeatures": "Erweiterte Funktionen"
+      },
+      "cta": "Jetzt upgraden"
+    },
+    "credits": {
+      "title": "Credits",
+      "remaining": "Verbleibend",
+      "daily": "Tägliche Credits",
+      "paid": "Bezahlte Credits",
+      "buyMore": "Mehr kaufen",
+      "unlimited": "Unbegrenzt"
+    },
+    "errors": {
+      "failed": "Anfrage konnte nicht verarbeitet werden",
+      "rateLimit": "Ratenlimit erreicht. Bitte versuchen Sie es später erneut.",
+      "noCredits": "Keine Credits mehr vorhanden",
+      "modelUnavailable": "Modell derzeit nicht verfügbar",
+      "networkError": "Netzwerkfehler. Überprüfen Sie Ihre Verbindung."
+    },
+    "actions": {
+      "copyCode": "Code kopieren",
+      "readAloud": "Vorlesen",
+      "stopReading": "Vorlesen stoppen",
+      "shareChat": "Chat teilen",
+      "exportMarkdown": "Als Markdown exportieren",
+      "exportJson": "Als JSON exportieren"
+    },
+    "proFeature": "Pro-Funktion",
+    "upgradeToAccess": "Upgraden Sie, um auf diese Funktion zuzugreifen"
+  },
   "securityPage": {
     "badge": "Sicherheit & Compliance",
     "title": "Sicherheitsarchitektur für Auditoren konzipiert",
@@ -755,7 +1579,7 @@
       "point3": "Strikte Organisationsrollen (Eigentümer, Admin, Mitglied)"
     },
     "swissResidency": {
-      "title": "Schweizer Datenresidenz",
+      "title": "Schweizer Datenspeicherort",
       "point1": "Alle Daten in schweizerischen Datenbanken gespeichert",
       "point2": "Optionaler Null-Aufbewahrungsmodus für Inferenzspuren und Evaluierungsproben"
     },
@@ -781,5 +1605,51 @@
     },
     "downloadWhitepaper": "Sicherheits-Whitepaper herunterladen",
     "talkToCISO": "Mit unserem CISO sprechen"
+  },
+  "ghostSignup": {
+    "title": "Ghost Chat beitreten",
+    "subtitle": "100% privater KI-Chat mit Schweizer Hosting",
+    "features": {
+      "noLogs": "Keine Logs, keine Verfolgung",
+      "localEncryption": "Lokale Verschlüsselung",
+      "swissModels": "Schweizer KI-Modelle"
+    },
+    "form": {
+      "email": "E-Mail",
+      "emailPlaceholder": "ihre@email.com",
+      "password": "Passwort",
+      "passwordPlaceholder": "Sicheres Passwort wählen",
+      "submit": "Konto erstellen",
+      "submitting": "Wird erstellt...",
+      "orContinueWith": "Oder fortfahren mit",
+      "continueWithGoogle": "Mit Google fortfahren",
+      "haveAccount": "Bereits ein Konto?",
+      "signIn": "Anmelden"
+    },
+    "benefits": {
+      "title": "Warum Ghost Chat?",
+      "privacy": {
+        "title": "Totale Privatsphäre",
+        "description": "Unterhaltungen werden lokal verschlüsselt"
+      },
+      "swiss": {
+        "title": "Schweizer Hosting",
+        "description": "Alle KI-Modelle in der Schweiz gehostet"
+      },
+      "free": {
+        "title": "Für immer kostenlos",
+        "description": "Kernfunktionen sind völlig kostenlos"
+      }
+    },
+    "errors": {
+      "emailRequired": "E-Mail ist erforderlich",
+      "passwordRequired": "Passwort ist erforderlich",
+      "passwordLength": "Passwort muss mindestens 6 Zeichen lang sein",
+      "generic": "Konto konnte nicht erstellt werden"
+    },
+    "success": {
+      "title": "Konto erstellt!",
+      "description": "Überprüfen Sie Ihre E-Mail, um Ihr Konto zu verifizieren"
+    }
   }
 }
