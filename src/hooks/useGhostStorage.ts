@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getGhostStorage, resetGhostStorage, GhostConversation } from '@/lib/ghost/ghost-storage';
 import { useAuth } from '@/contexts/AuthContext';
 
+const ANON_ID_KEY = 'ghost_anon_user_id_v1';
+
 /**
  * Derive a stable encryption key from user ID using PBKDF2
  * This ensures the same key is always derived for the same user,
@@ -11,7 +13,7 @@ const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
   // Create a stable salt from user ID
   const encoder = new TextEncoder();
   const salt = encoder.encode(`swissvault_ghost_${userId}_stable_salt_v1`);
-  
+
   // Import user ID as key material
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -20,7 +22,7 @@ const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
     false,
     ['deriveBits', 'deriveKey']
   );
-  
+
   // Derive the actual encryption key
   const key = await crypto.subtle.deriveKey(
     {
@@ -34,9 +36,22 @@ const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
     false, // not extractable for security
     ['encrypt', 'decrypt']
   );
-  
+
   return key;
 };
+
+function getOrCreateAnonymousId(): string {
+  try {
+    const existing = localStorage.getItem(ANON_ID_KEY);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem(ANON_ID_KEY, created);
+    return created;
+  } catch {
+    // Fallback (should be rare): still provide a stable-ish id for this session
+    return crypto.randomUUID();
+  }
+}
 
 export function useGhostStorage() {
   const { user } = useAuth();
@@ -44,14 +59,17 @@ export function useGhostStorage() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [corruptedCount, setCorruptedCount] = useState(0);
-  
+
+  // Anonymous users need a stable local identifier to initialize encrypted local storage.
+  const [anonId] = useState<string>(() => (typeof window !== 'undefined' ? getOrCreateAnonymousId() : 'anon'));
+
   // Prevent double initialization in React Strict Mode / HMR
   const initializingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
 
   // Initialize storage with stable encryption key derived from user ID
   // IMPORTANT: Depend on user?.id (string) not user (object) to prevent re-init on object identity changes
-  const userId = user?.id;
+  const userId = user?.id || anonId;
 
   useEffect(() => {
     console.log('[Ghost Storage Hook] effect', {

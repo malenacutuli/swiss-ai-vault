@@ -443,7 +443,13 @@ function GhostChat() {
       hasUser: !!user,
     });
 
-    // Auto-recover if streaming state got stuck (prevents "can't send" deadlocks)
+    if (!isInitialized) {
+      console.log('[GhostChat] BLOCKED: storage not initialized yet');
+      (toast as any).info('Initializing secure local storage… please try again in a moment.');
+      return;
+    }
+
+    // Auto-recover if streaming state got stuck (prevents "can\'t send" deadlocks)
     const isStreamStateStuck =
       isStreaming &&
       (streamStatus === 'idle' ||
@@ -464,12 +470,6 @@ function GhostChat() {
 
     // Prevent double submission - allow if we have attachments even without text
     if (!content?.trim() && attachedFiles.length === 0) return;
-
-    if (isStreaming && !isStreamStateStuck) {
-      console.log('[GhostChat] BLOCKED: isStreaming but not stuck');
-      (toast as any).info('Still generating response. Click Stop to cancel.');
-      return;
-    }
 
     if (webSearch.isSearching) {
       console.log('[GhostChat] BLOCKED: webSearch in progress');
@@ -560,7 +560,11 @@ function GhostChat() {
           setSelectedConversation(convId);
         }
       }
-      if (!convId) return;
+      if (!convId) {
+        console.log('[GhostChat] BLOCKED: could not create conversation (storage not ready)');
+        (toast as any).info('Chat is still initializing. Please try again in a moment.');
+        return;
+      }
 
       // Build multimodal content if we have attachments
       const hasImages = attachedFiles.some(f => f.type === 'image' && f.base64);
@@ -1661,6 +1665,7 @@ function GhostChat() {
                 onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
                 onOpenSettings={() => setShowSettings(true)}
                 onAttach={handleFileAttach}
+                disabled={!isInitialized}
                 voiceLanguage={settings?.voice_language}
                 matureFilterEnabled={settings?.mature_filter_enabled ?? true}
               />
@@ -1884,6 +1889,7 @@ function GhostChat() {
                     onToggleEnhance={() => {}}
                     onOpenSettings={() => setShowSettings(true)}
                     onAttach={() => {}}
+                    disabled={!isInitialized}
                     voiceLanguage={settings?.voice_language}
                     matureFilterEnabled={settings?.mature_filter_enabled ?? true}
                   />
@@ -1985,6 +1991,7 @@ function GhostChat() {
                   onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
                   onOpenSettings={() => setShowSettings(true)}
                   onAttach={handleFileAttach}
+                  disabled={!isInitialized}
                   voiceLanguage={settings?.voice_language}
                   matureFilterEnabled={settings?.mature_filter_enabled ?? true}
                 />
