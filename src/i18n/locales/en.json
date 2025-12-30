@@ -630,6 +630,7 @@
       "hostedInSwitzerland": "Hosted in Switzerland",
       "noLoginRequired": "No Login Required",
       "zeroDataStored": "Zero Data Stored",
+      "anonymous": "100% Anonymous",
       "gdprReady": "GDPR-ready",
       "e2eEncryption": "Client-side E2E encryption"
     },
