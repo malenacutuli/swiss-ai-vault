@@ -64,7 +64,7 @@ import OAuthCallback from "./pages/OAuthCallback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
-import GhostSignup from "./pages/auth/GhostSignup";
+
 import GhostFinance from "./pages/ghost/GhostFinance";
 import GhostPatents from "./pages/ghost/GhostPatents";
 import GhostLegal from "./pages/ghost/GhostLegal";
@@ -125,8 +125,8 @@ const App = () => {
                 <Route path="/ghost/legal" element={<GhostLegal />} />
                 <Route path="/ghost/research" element={<GhostResearch />} />
                 
-                {/* Ghost Auth routes */}
-                <Route path="/auth/ghost-signup" element={<GhostSignup />} />
+                {/* Ghost Auth routes - redirect to unified auth */}
+                <Route path="/auth/ghost-signup" element={<Navigate to="/auth?intent=ghost" replace />} />
 
                 {/* Legacy chat routes - redirect to new paths with toast */}
                 <Route path="/vault-chat" element={<LegacyRedirect to="/chat" message="Vault Chat has moved to /chat" />} />
