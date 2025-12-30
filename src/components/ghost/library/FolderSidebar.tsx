@@ -97,7 +97,11 @@ export function FolderSidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100"
+                    className="h-7 w-7 shrink-0 text-foreground/60 hover:text-foreground bg-muted/30 hover:bg-muted rounded-md"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    aria-label="Folder actions"
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
