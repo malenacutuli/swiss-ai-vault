@@ -913,6 +913,7 @@
     "requestBody": "Corpo da Requisição",
     "exampleRequest": "Exemplo de Requisição",
     "response": "Resposta",
+    "exampleResponse": "Exemplo de Resposta",
     "errorCodes": "Códigos de Erro",
     "code": "Código",
     "message": "Mensagem",

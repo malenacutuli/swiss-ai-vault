@@ -1114,6 +1114,7 @@
     "requestBody": "Cuerpo de la Solicitud",
     "exampleRequest": "Ejemplo de Solicitud",
     "response": "Respuesta",
+    "exampleResponse": "Ejemplo de Respuesta",
     "errorCodes": "Códigos de Error",
     "code": "Código",
     "message": "Mensaje",

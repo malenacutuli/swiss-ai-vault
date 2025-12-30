@@ -985,6 +985,35 @@ export default function ApiDocs() {
   const currentCategory = categories.find(c => c.id === activeCategory);
   const currentEndpoint = currentCategory?.endpoints.find(e => e.id === activeEndpoint);
 
+  // Mapping from endpoint IDs to translation keys
+  const endpointKeyMap: Record<string, string> = {
+    'auth-overview': 'listApiKeys',
+    'chat-completions': 'createChatCompletion',
+    'create-job': 'createFinetuningJob',
+    'list-jobs': 'listFinetuningJobs',
+    'start-training': 'startTraining',
+    'upload-dataset': 'uploadDataset',
+    'list-datasets': 'listDatasets',
+    'create-snapshot': 'createSnapshot',
+    'create-eval': 'createEvaluation',
+    'run-eval': 'runEvaluation',
+    'get-results': 'getResults',
+    'list-models': 'listModels',
+    'delete-model': 'deleteModel',
+  };
+
+  const categoryKeyMap: Record<string, string> = {
+    'auth': 'authentication',
+    'chat': 'chatCompletions',
+    'finetuning': 'finetuning',
+    'datasets': 'datasets',
+    'evaluations': 'evaluations',
+    'models': 'models',
+  };
+
+  const getEndpointTranslationKey = (endpointId: string) => endpointKeyMap[endpointId] || endpointId;
+  const getCategoryTranslationKey = (categoryId: string) => categoryKeyMap[categoryId] || categoryId;
+
   const handleCopy = async (text: string, id: string) => {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -1219,7 +1248,7 @@ export default function ApiDocs() {
                   )}
                 >
                   <category.icon className="h-4 w-4" />
-                  {category.name}
+                  {t(`apiDocs.categories.${getCategoryTranslationKey(category.id)}`, category.name)}
                 </button>
                 {activeCategory === category.id && (
                   <div className="ml-6 mt-1 space-y-0.5">
@@ -1235,13 +1264,14 @@ export default function ApiDocs() {
                         )}
                       >
                         <ChevronRight className="h-3 w-3" />
-                        {endpoint.title}
+                        {t(`apiDocs.endpoints.${getEndpointTranslationKey(endpoint.id)}`, endpoint.title)}
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             ))}
+
           </div>
 
           {/* API Key Input */}
@@ -1273,8 +1303,15 @@ export default function ApiDocs() {
                     {currentEndpoint.path}
                   </code>
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">{currentEndpoint.title}</h1>
-                <p className="text-muted-foreground mt-2">{currentEndpoint.description}</p>
+                {(() => {
+                  const translationKey = getEndpointTranslationKey(currentEndpoint.id);
+                  return (
+                    <>
+                      <h1 className="text-2xl font-bold text-foreground">{t(`apiDocs.endpoints.${translationKey}`, currentEndpoint.title)}</h1>
+                      <p className="text-muted-foreground mt-2">{t(`apiDocs.endpoints.${translationKey}Desc`, currentEndpoint.description)}</p>
+                    </>
+                  );
+                })()}
                 {currentEndpoint.auth && (
                   <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
                     <Key className="h-4 w-4" />
@@ -1399,7 +1436,7 @@ export default function ApiDocs() {
 
               {/* Response Example */}
               <div>
-                <h2 className="text-lg font-semibold text-foreground mb-3">Example Response</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-3">{t('apiDocs.exampleResponse', 'Example Response')}</h2>
                 <div className="relative">
                   <pre className="bg-muted/50 border border-border rounded-lg p-4 overflow-x-auto text-sm font-mono">
                     <code>{currentEndpoint.responseExample}</code>
@@ -1422,14 +1459,14 @@ export default function ApiDocs() {
               {/* Error Codes */}
               {currentEndpoint.errorCodes && currentEndpoint.errorCodes.length > 0 && (
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground mb-3">Error Codes</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-3">{t('apiDocs.errorCodes', 'Error Codes')}</h2>
                   <div className="border border-border rounded-lg overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50">
                         <tr>
-                          <th className="text-left px-4 py-2 font-medium text-foreground">Code</th>
-                          <th className="text-left px-4 py-2 font-medium text-foreground">Message</th>
-                          <th className="text-left px-4 py-2 font-medium text-foreground">Description</th>
+                          <th className="text-left px-4 py-2 font-medium text-foreground">{t('apiDocs.code', 'Code')}</th>
+                          <th className="text-left px-4 py-2 font-medium text-foreground">{t('apiDocs.message', 'Message')}</th>
+                          <th className="text-left px-4 py-2 font-medium text-foreground">{t('apiDocs.description', 'Description')}</th>
                         </tr>
                       </thead>
                       <tbody>
