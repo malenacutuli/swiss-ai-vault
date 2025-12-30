@@ -1758,5 +1758,32 @@
     },
     "downloadWhitepaper": "Download Security Whitepaper",
     "talkToCISO": "Talk to our CISO"
+  },
+  "ghostSignup": {
+    "title": "Create Ghost Account",
+    "subtitle": "Get 15 prompts + 3 images per day, free forever",
+    "benefitsTitle": "Ghost Free includes:",
+    "benefit1": "15 AI prompts per day with SwissVault 1.0",
+    "benefit2": "3 image generations per day",
+    "benefit3": "File uploads & image analysis",
+    "benefit4": "Encrypted conversation history",
+    "benefit5": "Swiss privacy - zero data retention",
+    "continueWithGoogle": "Continue with Google",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "passwordHint": "Minimum 8 characters",
+    "createAccount": "Create Free Account",
+    "creatingAccount": "Creating account...",
+    "termsAgreement": "By signing up, you agree to our",
+    "terms": "Terms",
+    "privacyPolicy": "Privacy Policy",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "continueWithoutAccount": "← Continue without account (5 prompts/day)",
+    "successMessage": "Account created! Redirecting to Ghost Chat...",
+    "signupFailed": "Signup failed",
+    "oauthFailed": "OAuth signup failed"
   }
 }

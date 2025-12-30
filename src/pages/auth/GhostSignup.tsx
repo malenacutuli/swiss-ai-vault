@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 import { SwissFlag } from '@/components/icons/SwissFlag';
 
 export default function GhostSignup() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,11 +36,11 @@ export default function GhostSignup() {
       if (error) throw error;
 
       if (data.user) {
-        toast.success('Account created! Redirecting to Ghost Chat...');
+        toast.success(t('ghostSignup.successMessage'));
         navigate('/ghost/chat');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Signup failed');
+      toast.error(error.message || t('ghostSignup.signupFailed'));
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export default function GhostSignup() {
       });
       if (error) throw error;
     } catch (error: any) {
-      toast.error(error.message || 'OAuth signup failed');
+      toast.error(error.message || t('ghostSignup.oauthFailed'));
     }
   };
 
@@ -67,36 +69,36 @@ export default function GhostSignup() {
             <SwissFlag className="h-10" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">
-            Create Ghost Account
+            {t('ghostSignup.title')}
           </h1>
           <p className="text-muted-foreground">
-            Get 15 prompts + 3 images per day, free forever
+            {t('ghostSignup.subtitle')}
           </p>
         </div>
 
         {/* Benefits */}
         <div className="bg-muted/50 rounded-lg p-4 border border-border">
-          <p className="text-sm font-medium text-foreground mb-3">Ghost Free includes:</p>
+          <p className="text-sm font-medium text-foreground mb-3">{t('ghostSignup.benefitsTitle')}</p>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary" />
-              15 AI prompts per day with SwissVault 1.0
+              {t('ghostSignup.benefit1')}
             </li>
             <li className="flex items-center gap-2">
               <Image className="h-4 w-4 text-primary" />
-              3 image generations per day
+              {t('ghostSignup.benefit2')}
             </li>
             <li className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
-              File uploads & image analysis
+              {t('ghostSignup.benefit3')}
             </li>
             <li className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-primary" />
-              Encrypted conversation history
+              {t('ghostSignup.benefit4')}
             </li>
             <li className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-primary" />
-              Swiss privacy - zero data retention
+              {t('ghostSignup.benefit5')}
             </li>
           </ul>
         </div>
@@ -129,27 +131,27 @@ export default function GhostSignup() {
                   fill="#EA4335"
                 />
               </svg>
-              Continue with Google
+              {t('ghostSignup.continueWithGoogle')}
             </Button>
           </div>
 
           <div className="relative">
             <Separator />
             <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-              or
+              {t('common.or')}
             </span>
           </div>
 
           {/* Email Form */}
           <form onSubmit={handleEmailSignup} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('ghostSignup.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('ghostSignup.emailPlaceholder')}
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -159,13 +161,13 @@ export default function GhostSignup() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('ghostSignup.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder={t('ghostSignup.passwordPlaceholder')}
                   className="pl-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -174,33 +176,33 @@ export default function GhostSignup() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Minimum 8 characters
+                {t('ghostSignup.passwordHint')}
               </p>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Free Account'}
+              {loading ? t('ghostSignup.creatingAccount') : t('ghostSignup.createAccount')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
 
           <p className="text-xs text-center text-muted-foreground">
-            By signing up, you agree to our{' '}
+            {t('ghostSignup.termsAgreement')}{' '}
             <Link to="/terms" className="underline hover:text-foreground">
-              Terms
+              {t('ghostSignup.terms')}
             </Link>
-            {' '}and{' '}
+            {' '}{t('common.and')}{' '}
             <Link to="/privacy" className="underline hover:text-foreground">
-              Privacy Policy
+              {t('ghostSignup.privacyPolicy')}
             </Link>
           </p>
         </div>
 
         {/* Login Link */}
         <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
+          {t('ghostSignup.alreadyHaveAccount')}{' '}
           <Link to="/auth" className="text-primary hover:underline font-medium">
-            Sign in
+            {t('ghostSignup.signIn')}
           </Link>
         </p>
 
@@ -210,7 +212,7 @@ export default function GhostSignup() {
             to="/ghost/chat"
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            ← Continue without account (5 prompts/day)
+            {t('ghostSignup.continueWithoutAccount')}
           </Link>
         </div>
       </div>
