@@ -2395,6 +2395,7 @@ export type Database = {
         Row: {
           can_access_new_models: boolean | null
           can_backup_history: boolean | null
+          can_manage_org: boolean | null
           can_train_models: boolean | null
           can_use_api: boolean | null
           can_use_integrations: boolean | null
@@ -2415,6 +2416,7 @@ export type Database = {
         Insert: {
           can_access_new_models?: boolean | null
           can_backup_history?: boolean | null
+          can_manage_org?: boolean | null
           can_train_models?: boolean | null
           can_use_api?: boolean | null
           can_use_integrations?: boolean | null
@@ -2435,6 +2437,7 @@ export type Database = {
         Update: {
           can_access_new_models?: boolean | null
           can_backup_history?: boolean | null
+          can_manage_org?: boolean | null
           can_train_models?: boolean | null
           can_use_api?: boolean | null
           can_use_integrations?: boolean | null
@@ -3245,6 +3248,16 @@ export type Database = {
       }
       get_research_quota: { Args: never; Returns: Json }
       get_subscription_status: { Args: { p_user_id: string }; Returns: Json }
+      get_user_tier: {
+        Args: { p_user_id: string }
+        Returns: {
+          is_org_member: boolean
+          org_id: string
+          org_name: string
+          tier: string
+          tier_display_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
