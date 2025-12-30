@@ -4,9 +4,10 @@ import { SwissFlag } from '@/components/icons/SwissFlag';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Ghost, Shield, Sun, Moon, Menu, X } from '@/icons';
+import { Ghost, Shield, Sun, Moon, Menu, X, LogOut } from '@/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UnifiedHeaderProps {
   product: 'ghost' | 'vault';
@@ -101,8 +102,21 @@ export function UnifiedHeader({
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
-        {/* Sign Up for non-authenticated users */}
-        {user ? null : (
+        {/* Auth: Sign Up or Logout */}
+        {user ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate('/');
+            }}
+            className="text-muted-foreground hover:text-foreground gap-1.5"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('ghost.auth.logout', 'Log out')}</span>
+          </Button>
+        ) : (
           <Button size="sm" onClick={() => navigate('/auth/ghost-signup')}>
             {t('ghost.auth.signUp', 'Sign Up')}
           </Button>
