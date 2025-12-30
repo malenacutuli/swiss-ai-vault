@@ -121,9 +121,7 @@ export default function GhostLegal() {
       <div className="flex-1 flex flex-col items-center justify-start pt-24 px-6">
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center mb-4 shadow-sm">
-            <Scale className="w-8 h-8 text-blue-600" strokeWidth={1.5} />
-          </div>
+          <Scale className="w-10 h-10 text-swiss-teal mb-4" strokeWidth={1.25} />
           <h1 className="text-2xl font-semibold text-slate-900">{t('ghost.modules.legal.title')}</h1>
         </div>
 
