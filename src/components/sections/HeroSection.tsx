@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Lock, Shield, Ghost } from "@/icons";
+import { ArrowRight, Lock, Shield } from "@/icons";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -22,11 +22,6 @@ export const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Content */}
           <div className="text-center lg:text-left">
-            {/* Ghost Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6 animate-slide-up">
-              <Ghost className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Ghost Mode: Zero Data Retention</span>
-            </div>
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-normal tracking-[-0.055em] leading-[1.02] mb-6 animate-slide-up text-foreground">
