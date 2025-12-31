@@ -17,8 +17,29 @@ const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/notion-oauth/callback`;
 const NOTION_AUTH_URL = 'https://api.notion.com/v1/oauth/authorize';
 const NOTION_TOKEN_URL = 'https://api.notion.com/v1/oauth/token';
 
-function encryptToken(token: string): string {
-  return btoa(token);
+// Proper AES-GCM encryption for tokens
+async function encryptToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(token);
+  // Use a portion of NOTION_CLIENT_SECRET as key material (padded to 32 bytes for AES-256)
+  const keyMaterial = encoder.encode((NOTION_CLIENT_SECRET || '').slice(0, 32).padEnd(32, '0'));
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyMaterial,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    dataBuffer
+  );
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  return btoa(String.fromCharCode(...combined));
 }
 
 serve(async (req) => {
@@ -194,13 +215,12 @@ serve(async (req) => {
       }
 
       const tokenData = await tokenResponse.json();
-      console.log('[notion-oauth] Token exchange successful:', {
-        workspace_id: tokenData.workspace_id,
-        workspace_name: tokenData.workspace_name,
-        bot_id: tokenData.bot_id,
-      });
+      console.log('[notion-oauth] Token exchange successful for user', user_id);
 
       const { access_token, workspace_id, workspace_name, bot_id } = tokenData;
+
+      // Encrypt token with AES-GCM
+      const encryptedAccessToken = await encryptToken(access_token);
 
       // Store integration in database
       const { data: existing } = await supabase
@@ -214,7 +234,7 @@ serve(async (req) => {
         user_id,
         integration_type: 'notion',
         integration_name: workspace_name || 'Notion Workspace',
-        encrypted_access_token: encryptToken(access_token),
+        encrypted_access_token: encryptedAccessToken,
         metadata: { workspace_id, workspace_name, bot_id },
         is_active: true,
         updated_at: new Date().toISOString(),

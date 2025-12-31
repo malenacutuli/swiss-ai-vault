@@ -23,8 +23,29 @@ const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 
-function encryptToken(token: string): string {
-  return btoa(token);
+// Proper AES-GCM encryption for tokens
+async function encryptToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(token);
+  // Use a portion of GOOGLE_CLIENT_SECRET as key material (padded to 32 bytes for AES-256)
+  const keyMaterial = encoder.encode((GOOGLE_CLIENT_SECRET || '').slice(0, 32).padEnd(32, '0'));
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyMaterial,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    dataBuffer
+  );
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  return btoa(String.fromCharCode(...combined));
 }
 
 serve(async (req) => {
@@ -217,7 +238,7 @@ serve(async (req) => {
       const email = userInfo.email;
       const tokenExpiry = new Date(Date.now() + (expires_in * 1000)).toISOString();
 
-      console.log(`[gmail-oauth] Connected for: ${email}`);
+      console.log(`[gmail-oauth] Connected successfully for user ${user_id}`);
 
       // Store integration in database
       const { data: existing } = await supabase
@@ -227,12 +248,16 @@ serve(async (req) => {
         .eq('integration_type', 'gmail')
         .maybeSingle();
 
+      // Encrypt tokens with AES-GCM
+      const encryptedAccessToken = await encryptToken(access_token);
+      const encryptedRefreshToken = refresh_token ? await encryptToken(refresh_token) : null;
+
       const integrationData = {
         user_id,
         integration_type: 'gmail',
         integration_name: email,
-        encrypted_access_token: encryptToken(access_token),
-        encrypted_refresh_token: refresh_token ? encryptToken(refresh_token) : null,
+        encrypted_access_token: encryptedAccessToken,
+        encrypted_refresh_token: encryptedRefreshToken,
         token_expires_at: tokenExpiry,
         metadata: { email, token_expiry: tokenExpiry },
         is_active: true,
