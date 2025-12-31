@@ -16,7 +16,7 @@ interface Source {
 }
 
 interface SourcesDropdownProps {
-  module: 'patents' | 'legal' | 'research' | 'finance' | 'security';
+  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health';
 }
 
 const getDefaultSources = (module: string): Source[] => {
@@ -56,6 +56,14 @@ const getDefaultSources = (module: string): Source[] => {
         { id: 'threatIntel', label: 'Threat Intelligence', enabled: true },
         { id: 'news', label: 'Security News', enabled: true },
         { id: 'darkweb', label: 'Dark Web Monitoring', enabled: false },
+      ];
+    case 'health':
+      return [
+        { id: 'pubmed', label: 'PubMed', enabled: true },
+        { id: 'clinicaltrials', label: 'ClinicalTrials.gov', enabled: true },
+        { id: 'fda', label: 'FDA Database', enabled: true },
+        { id: 'cochrane', label: 'Cochrane Library', enabled: true },
+        { id: 'who', label: 'WHO Reports', enabled: false },
       ];
     default:
       return [];
