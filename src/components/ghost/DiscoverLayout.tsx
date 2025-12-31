@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 
 interface DiscoverLayoutProps {
   children: React.ReactNode;
-  activeModule: 'finance' | 'legal' | 'patents' | 'research';
+  activeModule: 'finance' | 'legal' | 'patents' | 'research' | 'security';
 }
 
 export function DiscoverLayout({ children, activeModule }: DiscoverLayoutProps) {
@@ -28,6 +28,7 @@ export function DiscoverLayout({ children, activeModule }: DiscoverLayoutProps) 
     legal: t('ghost.modules.legal.title'),
     patents: t('ghost.modules.patents.title'),
     research: t('ghost.modules.research.title'),
+    security: t('ghost.modules.security.title'),
   };
 
   useEffect(() => {

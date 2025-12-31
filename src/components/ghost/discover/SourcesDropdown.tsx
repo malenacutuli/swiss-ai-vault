@@ -16,7 +16,7 @@ interface Source {
 }
 
 interface SourcesDropdownProps {
-  module: 'patents' | 'legal' | 'research' | 'finance';
+  module: 'patents' | 'legal' | 'research' | 'finance' | 'security';
 }
 
 const getDefaultSources = (module: string): Source[] => {
@@ -48,6 +48,14 @@ const getDefaultSources = (module: string): Source[] => {
         { id: 'news', label: 'Financial News', enabled: true },
         { id: 'analyst', label: 'Analyst Reports', enabled: false },
         { id: 'social', label: 'Social Sentiment', enabled: false },
+      ];
+    case 'security':
+      return [
+        { id: 'cve', label: 'CVE Database', enabled: true },
+        { id: 'cisa', label: 'CISA Advisories', enabled: true },
+        { id: 'threatIntel', label: 'Threat Intelligence', enabled: true },
+        { id: 'news', label: 'Security News', enabled: true },
+        { id: 'darkweb', label: 'Dark Web Monitoring', enabled: false },
       ];
     default:
       return [];
