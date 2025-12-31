@@ -16,7 +16,7 @@ interface Source {
 }
 
 interface SourcesDropdownProps {
-  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health' | 'travel' | 'realestate';
+  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health' | 'travel' | 'realestate' | 'art';
 }
 
 const getDefaultSources = (module: string): Source[] => {
@@ -78,8 +78,16 @@ const getDefaultSources = (module: string): Source[] => {
         { id: 'mls', label: 'MLS Listings', enabled: true },
         { id: 'luxury-portfolio', label: 'Luxury Portfolio', enabled: true },
         { id: 'market-data', label: 'Market Data', enabled: true },
-        { id: 'reits', label: 'REIT Analysis', enabled: true },
-        { id: 'international', label: 'International Markets', enabled: false },
+        { id: 'news', label: 'Real Estate News', enabled: true },
+        { id: 'analytics', label: 'Analytics', enabled: false },
+      ];
+    case 'art':
+      return [
+        { id: 'christies', label: "Christie's", enabled: true },
+        { id: 'sothebys', label: "Sotheby's", enabled: true },
+        { id: 'phillips', label: 'Phillips', enabled: true },
+        { id: 'artnet', label: 'Artnet', enabled: true },
+        { id: 'artprice', label: 'Artprice', enabled: false },
       ];
     default:
       return [];

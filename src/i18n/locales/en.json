@@ -1608,6 +1608,42 @@
             "3": "Industrial property investment trends"
           }
         }
+      },
+      "art": {
+        "title": "Art",
+        "subtitle": "Art investment & auction intelligence",
+        "description": "Auction insights, artist analysis, and art market trends",
+        "placeholder": "Search artists, auctions, market trends...",
+        "exploreByCategory": "Explore by Category",
+        "upcomingAuctions": "Upcoming Auctions",
+        "marketTrendsIn": "Market trends in {{category}}",
+        "proRequired": {
+          "title": "Art Intelligence is a Pro Feature",
+          "description": "Access auction insights, artist market analysis, and art investment intelligence with Ghost Pro.",
+          "upgrade": "Upgrade to Pro"
+        },
+        "actions": {
+          "auctions": "Auctions",
+          "artists": "Artists",
+          "investment": "Investment"
+        },
+        "suggestions": {
+          "auctions": {
+            "1": "Upcoming Christie's and Sotheby's contemporary art auctions",
+            "2": "Recent record-breaking auction sales in modern art",
+            "3": "Asian art auction results from Hong Kong sales"
+          },
+          "artists": {
+            "1": "Emerging artists to watch in 2025",
+            "2": "Price trends for Basquiat works over the last 5 years",
+            "3": "Most collected contemporary artists by museums"
+          },
+          "investment": {
+            "1": "Art market performance compared to S&P 500",
+            "2": "Blue-chip artists with consistent appreciation",
+            "3": "Art investment funds and fractional ownership options"
+          }
+        }
       }
     },
     "discover": {
@@ -1653,7 +1689,13 @@
       "industrial": "Industrial",
       "land": "Land",
       "international": "International",
-      "reits": "REITs"
+      "reits": "REITs",
+      "contemporaryArt": "Contemporary Art",
+      "modernArt": "Modern Art",
+      "oldMasters": "Old Masters",
+      "photography": "Photography",
+      "sculpture": "Sculpture",
+      "digitalArt": "Digital Art & NFTs"
     },
     "search": {
       "placeholder": "Search the web...",

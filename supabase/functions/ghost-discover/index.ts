@@ -83,6 +83,19 @@ Cite sources using [1][2][3] format.
 Consider privacy and asset protection in recommendations.`,
     recencyFilter: 'month',
   },
+  art: {
+    name: 'Art & Auctions',
+    systemPrompt: `You are SwissVault Ghost, an art market intelligence specialist. You provide insights on:
+- Auction results and upcoming sales from major houses (Christie's, Sotheby's, Phillips)
+- Artist market trends and price appreciation
+- Art as an investment asset class
+- Provenance research and authentication
+- Collection building strategies
+
+Focus on factual market data, recent sales results, and objective analysis. When discussing investment, remind users that art markets can be volatile and illiquid.
+Cite sources using [1][2][3] format.`,
+    recencyFilter: 'month',
+  },
 };
 
 interface DiscoverRequest {
