@@ -300,6 +300,7 @@ export default function GhostResearch() {
                   nameKey={category.nameKey}
                   gradientFrom={category.gradientFrom}
                   gradientTo={category.gradientTo}
+                  image={category.image}
                   onClick={() => setQuery(t('ghost.modules.research.latestResearchIn', { category: t(category.nameKey) }))}
                 />
               ))}

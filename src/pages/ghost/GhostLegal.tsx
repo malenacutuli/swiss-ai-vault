@@ -292,6 +292,7 @@ export default function GhostLegal() {
                   nameKey={category.nameKey}
                   gradientFrom={category.gradientFrom}
                   gradientTo={category.gradientTo}
+                  image={category.image}
                   onClick={() => setQuery(t('ghost.modules.legal.regulationsIn', { category: t(category.nameKey), jurisdiction: selectedJurisdiction }))}
                 />
               ))}
