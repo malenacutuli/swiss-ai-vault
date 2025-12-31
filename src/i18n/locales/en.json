@@ -1472,7 +1472,33 @@
       },
       "security": {
         "title": "Security",
-        "description": "Cyber, privacy tools"
+        "subtitle": "Cybersecurity intelligence & threat analysis",
+        "description": "Track cyber threats, vulnerabilities, and privacy risks",
+        "placeholder": "Search security threats, CVEs, breaches...",
+        "exploreByCategory": "Explore by threat category",
+        "threatsIn": "Latest {{category}} threats and incidents",
+        "actions": {
+          "threats": "Threat Intel",
+          "vulnerabilities": "CVE Search",
+          "privacy": "Privacy Risks"
+        },
+        "suggestions": {
+          "threats": {
+            "1": "Latest ransomware attacks targeting financial institutions",
+            "2": "APT groups actively targeting European organizations",
+            "3": "Recent supply chain attacks in the software industry"
+          },
+          "vulnerabilities": {
+            "1": "Critical CVEs in enterprise software this week",
+            "2": "Zero-day vulnerabilities being actively exploited",
+            "3": "Security patches required for cloud infrastructure"
+          },
+          "privacy": {
+            "1": "Recent data breaches affecting consumer data",
+            "2": "Privacy regulation enforcement actions in {{region}}",
+            "3": "Personal data exposure risks in AI systems"
+          }
+        }
       },
       "health": {
         "title": "Health",
@@ -1506,7 +1532,13 @@
       "financialRegulations": "Financial Regulations",
       "dataProtection": "Data Protection",
       "corporateSecurities": "Corporate & Securities",
-      "crossBorderCompliance": "Cross-Border Compliance"
+      "crossBorderCompliance": "Cross-Border Compliance",
+      "ransomware": "Ransomware",
+      "dataBreaches": "Data Breaches",
+      "phishing": "Phishing & Social Engineering",
+      "zeroDay": "Zero-Day Exploits",
+      "nationState": "Nation-State Threats",
+      "cryptoSecurity": "Crypto Security"
     },
     "search": {
       "placeholder": "Search the web...",
