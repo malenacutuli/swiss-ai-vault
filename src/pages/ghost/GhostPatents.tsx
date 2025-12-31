@@ -278,6 +278,7 @@ export default function GhostPatents() {
                   nameKey={category.nameKey}
                   gradientFrom={category.gradientFrom}
                   gradientTo={category.gradientTo}
+                  image={category.image}
                   onClick={() => setQuery(t('ghost.modules.patents.landscapeFor', { category: t(category.nameKey) }))}
                 />
               ))}
