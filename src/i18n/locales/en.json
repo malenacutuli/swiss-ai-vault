@@ -1502,7 +1502,40 @@
       },
       "health": {
         "title": "Health",
-        "description": "Longevity, clinical"
+        "subtitle": "Private healthcare intelligence",
+        "description": "Clinical trials, treatments, and medical research",
+        "placeholder": "Search conditions, treatments, clinical trials...",
+        "exploreByCategory": "Explore by specialty",
+        "researchIn": "Latest research in {{category}}",
+        "privacyNotice": "Your health queries are encrypted and never stored",
+        "disclaimer": "This information is for educational purposes only. Always consult with qualified healthcare professionals for medical advice.",
+        "proRequired": {
+          "title": "Health Intelligence is a Pro Feature",
+          "description": "Access private healthcare intelligence, clinical trials, and medical research with Ghost Pro.",
+          "upgrade": "Upgrade to Pro"
+        },
+        "actions": {
+          "conditions": "Conditions",
+          "treatments": "Treatments",
+          "trials": "Clinical Trials"
+        },
+        "suggestions": {
+          "conditions": {
+            "1": "Latest research on Type 2 diabetes management",
+            "2": "Advances in Alzheimer's disease treatment",
+            "3": "New findings on autoimmune conditions"
+          },
+          "treatments": {
+            "1": "GLP-1 medications for metabolic health",
+            "2": "Immunotherapy advances in cancer treatment",
+            "3": "Stem cell therapy current applications"
+          },
+          "trials": {
+            "1": "Active Phase 3 trials for cardiovascular disease",
+            "2": "Recruiting clinical trials for longevity research",
+            "3": "Gene therapy trials accepting participants"
+          }
+        }
       },
       "travel": {
         "title": "Travel",
@@ -1538,7 +1571,13 @@
       "phishing": "Phishing & Social Engineering",
       "zeroDay": "Zero-Day Exploits",
       "nationState": "Nation-State Threats",
-      "cryptoSecurity": "Crypto Security"
+      "cryptoSecurity": "Crypto Security",
+      "cardiology": "Cardiology",
+      "oncology": "Oncology",
+      "neurology": "Neurology",
+      "longevity": "Longevity",
+      "mentalHealth": "Mental Health",
+      "preventive": "Preventive Care"
     },
     "search": {
       "placeholder": "Search the web...",
