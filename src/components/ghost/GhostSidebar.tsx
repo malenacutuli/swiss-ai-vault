@@ -43,6 +43,7 @@ import {
   IconActivity,
   IconCompass,
   IconPalette,
+  IconRocket,
   EyeOff,
 } from '@/icons';
 import {
@@ -243,6 +244,7 @@ const ALL_DISCOVER_MODULES: DiscoverModule[] = [
   { id: 'travel', nameKey: 'ghost.modules.travel.title', icon: IconPlane, descriptionKey: 'ghost.modules.travel.description', route: '/ghost/travel', isPro: true },
   { id: 'realestate', nameKey: 'ghost.modules.realestate.title', icon: IconHome, descriptionKey: 'ghost.modules.realestate.description', route: '/ghost/realestate', isPro: true },
   { id: 'art', nameKey: 'ghost.modules.art.title', icon: IconPalette, descriptionKey: 'ghost.modules.art.description', route: '/ghost/art', isPro: true },
+  { id: 'vc', nameKey: 'ghost.modules.vc.title', icon: IconRocket, descriptionKey: 'ghost.modules.vc.description', route: '/ghost/vc', isPro: true },
 ];
 
 const DEFAULT_ENABLED_MODULES = ['finance', 'legal', 'patents', 'research'];

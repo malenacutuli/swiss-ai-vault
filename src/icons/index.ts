@@ -66,4 +66,5 @@ export {
   Copy as IconCopy,
   Info as IconInfo,
   ArrowLeft as IconArrowLeft,
+  Rocket as IconRocket,
 } from "lucide-react";
