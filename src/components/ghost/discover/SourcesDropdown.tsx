@@ -16,7 +16,7 @@ interface Source {
 }
 
 interface SourcesDropdownProps {
-  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health' | 'travel' | 'realestate' | 'art';
+  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health' | 'travel' | 'realestate' | 'art' | 'vc';
 }
 
 const getDefaultSources = (module: string): Source[] => {
@@ -88,6 +88,13 @@ const getDefaultSources = (module: string): Source[] => {
         { id: 'phillips', label: 'Phillips', enabled: true },
         { id: 'artnet', label: 'Artnet', enabled: true },
         { id: 'artprice', label: 'Artprice', enabled: false },
+      ];
+    case 'vc':
+      return [
+        { id: 'crunchbase', label: 'Crunchbase', enabled: true },
+        { id: 'pitchbook', label: 'PitchBook', enabled: true },
+        { id: 'techcrunch', label: 'TechCrunch', enabled: true },
+        { id: 'news', label: 'Startup News', enabled: true },
       ];
     default:
       return [];

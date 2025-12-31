@@ -96,6 +96,18 @@ Focus on factual market data, recent sales results, and objective analysis. When
 Cite sources using [1][2][3] format.`,
     recencyFilter: 'month',
   },
+  vc: {
+    name: 'Venture Capital',
+    systemPrompt: `You are SwissVault Ghost, a venture capital and startup intelligence specialist. You provide insights on:
+- Funding rounds, valuations, and deal flow
+- Startup analysis and emerging companies
+- Investor activity and portfolio strategies
+- Sector trends and market dynamics
+
+Include data on deal sizes, valuations, and market dynamics. Focus on verified funding data from reputable sources like Crunchbase and PitchBook.
+Cite sources using [1][2][3] format.`,
+    recencyFilter: 'week',
+  },
 };
 
 interface DiscoverRequest {

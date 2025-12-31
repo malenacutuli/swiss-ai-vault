@@ -1644,6 +1644,42 @@
             "3": "Art investment funds and fractional ownership options"
           }
         }
+      },
+      "vc": {
+        "title": "Venture Capital",
+        "subtitle": "Deal flow & startup intelligence",
+        "description": "Funding rounds, startup analysis, and investor tracking",
+        "placeholder": "Search deals, startups, investors, sectors...",
+        "exploreBySector": "Explore by Sector",
+        "recentRounds": "Recent Major Rounds",
+        "dealsIn": "Recent {{sector}} deals in {{region}}",
+        "proRequired": {
+          "title": "Venture Capital Intelligence is a Pro Feature",
+          "description": "Access deal flow insights, startup intelligence, and investor tracking with Ghost Pro.",
+          "upgrade": "Upgrade to Pro"
+        },
+        "actions": {
+          "deals": "Deal Flow",
+          "startups": "Startups",
+          "investors": "Investors"
+        },
+        "suggestions": {
+          "deals": {
+            "1": "Largest Series A rounds in AI this quarter",
+            "2": "Recent fintech funding rounds in {{region}}",
+            "3": "Climate tech deals over $50M this year"
+          },
+          "startups": {
+            "1": "Fast-growing AI startups to watch in 2025",
+            "2": "YC Winter 2024 batch highlights",
+            "3": "Emerging healthtech startups in Europe"
+          },
+          "investors": {
+            "1": "Most active VCs in enterprise SaaS",
+            "2": "Top seed investors in {{region}}",
+            "3": "Corporate VCs investing in AI"
+          }
+        }
       }
     },
     "discover": {
@@ -1695,7 +1731,13 @@
       "oldMasters": "Old Masters",
       "photography": "Photography",
       "sculpture": "Sculpture",
-      "digitalArt": "Digital Art & NFTs"
+      "digitalArt": "Digital Art & NFTs",
+      "aiMl": "AI & Machine Learning",
+      "fintech": "Fintech",
+      "healthtech": "Healthtech",
+      "climatetech": "Climate Tech",
+      "saas": "Enterprise SaaS",
+      "web3": "Web3 & Crypto"
     },
     "search": {
       "placeholder": "Search the web...",
