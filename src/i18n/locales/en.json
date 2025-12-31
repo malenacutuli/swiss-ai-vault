@@ -1575,7 +1575,39 @@
       },
       "realestate": {
         "title": "Real Estate",
-        "description": "Luxury properties"
+        "subtitle": "Property investment intelligence",
+        "description": "Luxury properties, market analysis, and investment insights",
+        "placeholder": "Search properties, markets, investments...",
+        "featuredMarkets": "Featured Markets",
+        "exploreByCategory": "Explore by Category",
+        "categorySearch": "{{category}} properties in {{region}}",
+        "proRequired": {
+          "title": "Real Estate Intelligence is a Pro Feature",
+          "description": "Access property market analysis, investment insights, and luxury real estate data with Ghost Pro.",
+          "upgrade": "Upgrade to Pro"
+        },
+        "actions": {
+          "properties": "Properties",
+          "market": "Market Analysis",
+          "investment": "Investment"
+        },
+        "suggestions": {
+          "properties": {
+            "1": "Luxury residential properties in Swiss Alps",
+            "2": "Waterfront estates in Mediterranean",
+            "3": "Penthouse apartments in major financial centers"
+          },
+          "market": {
+            "1": "Commercial real estate market trends in London",
+            "2": "Residential market forecast for {{region}} 2025",
+            "3": "Emerging property markets in Southeast Asia"
+          },
+          "investment": {
+            "1": "REIT performance analysis for Q4 2024",
+            "2": "Best real estate investment opportunities in {{region}}",
+            "3": "Industrial property investment trends"
+          }
+        }
       }
     },
     "discover": {
@@ -1615,7 +1647,13 @@
       "caribbean": "Caribbean",
       "middleEast": "Middle East",
       "africa": "Africa",
-      "oceania": "Oceania"
+      "oceania": "Oceania",
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "industrial": "Industrial",
+      "land": "Land",
+      "international": "International",
+      "reits": "REITs"
     },
     "search": {
       "placeholder": "Search the web...",

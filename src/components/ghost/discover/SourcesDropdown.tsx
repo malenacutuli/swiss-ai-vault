@@ -16,7 +16,7 @@ interface Source {
 }
 
 interface SourcesDropdownProps {
-  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health' | 'travel';
+  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health' | 'travel' | 'realestate';
 }
 
 const getDefaultSources = (module: string): Source[] => {
@@ -72,6 +72,14 @@ const getDefaultSources = (module: string): Source[] => {
         { id: 'travel-advisories', label: 'Travel Advisories', enabled: true },
         { id: 'michelin', label: 'Michelin Guide', enabled: true },
         { id: 'conde-nast', label: 'Condé Nast', enabled: false },
+      ];
+    case 'realestate':
+      return [
+        { id: 'mls', label: 'MLS Listings', enabled: true },
+        { id: 'luxury-portfolio', label: 'Luxury Portfolio', enabled: true },
+        { id: 'market-data', label: 'Market Data', enabled: true },
+        { id: 'reits', label: 'REIT Analysis', enabled: true },
+        { id: 'international', label: 'International Markets', enabled: false },
       ];
     default:
       return [];
