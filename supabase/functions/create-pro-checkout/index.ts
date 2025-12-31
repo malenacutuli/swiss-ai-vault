@@ -9,9 +9,10 @@ const corsHeaders = {
 
 // Product price IDs for different tiers
 const TIER_PRICES: Record<string, { priceId: string; name: string }> = {
-  'vault_pro': { priceId: 'price_1Sd2izCAKg7jOuBKAeTfXgcp', name: 'Vault Chat Private Edition' },
-  'ghost_pro': { priceId: 'price_ghost_pro_monthly', name: 'Ghost Pro' },
-  'swissvault_pro': { priceId: 'price_swissvault_pro_monthly', name: 'SwissVault Pro' },
+  'ghost_pro': { priceId: 'price_1Sk87oCAKg7jOuBKiPEBZCFY', name: 'Ghost Pro' },  // $18/mo
+  'ghost_pro_annual': { priceId: 'price_1Sk88kCAKg7jOuBK4FV2xhAe', name: 'Ghost Pro Annual' },  // $151.20/yr
+  'swissvault_pro': { priceId: 'price_1ScM8JCAKg7jOuBKkUh2zShm', name: 'SwissVault Pro' },  // $49/mo
+  'vault_pro': { priceId: 'price_1ScM8JCAKg7jOuBKkUh2zShm', name: 'SwissVault Pro' },  // Alias for backward compat
 };
 
 serve(async (req) => {
@@ -31,19 +32,33 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Parse request body to get tier (defaults to vault_pro for backward compatibility)
-    let tier = 'vault_pro';
+    // Parse request body to get tier and billing period
+    let tier = 'ghost_pro';
+    let billingPeriod = 'monthly';
     try {
       const body = await req.json();
-      if (body.tier && TIER_PRICES[body.tier]) {
+      if (body.tier) {
         tier = body.tier;
       }
+      if (body.billing_period === 'annual') {
+        billingPeriod = 'annual';
+      }
     } catch {
-      // No body or invalid JSON, use default tier
+      // No body or invalid JSON, use defaults
+    }
+    
+    // Map tier + billing period to correct price ID
+    let priceKey = tier;
+    if (tier === 'ghost_pro' && billingPeriod === 'annual') {
+      priceKey = 'ghost_pro_annual';
+    }
+    
+    if (!TIER_PRICES[priceKey]) {
+      throw new Error(`Unknown tier: ${tier}`);
     }
 
-    const tierConfig = TIER_PRICES[tier];
-    console.log(`[create-pro-checkout] Creating checkout for tier: ${tier}`);
+    const tierConfig = TIER_PRICES[priceKey];
+    console.log(`[create-pro-checkout] Creating checkout for tier: ${tier}, billing: ${billingPeriod}, priceKey: ${priceKey}`);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
