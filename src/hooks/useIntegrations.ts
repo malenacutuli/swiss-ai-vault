@@ -75,6 +75,15 @@ export const INTEGRATION_DEFINITIONS: IntegrationDefinition[] = [
     available: true,
   },
   {
+    type: 'googledrive',
+    name: 'Google Drive',
+    description: 'Import files and documents',
+    icon: 'google-drive',
+    oauthEndpoint: 'googledrive-oauth',
+    syncEndpoint: 'googledrive-import',
+    available: true,
+  },
+  {
     type: 'google_docs',
     name: 'Google Docs',
     description: 'Sync documents and sheets',
