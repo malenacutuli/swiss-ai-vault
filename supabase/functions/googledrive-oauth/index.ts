@@ -11,6 +11,31 @@ const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+// Proper AES-GCM encryption for tokens
+async function encryptToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(token);
+  // Use a portion of GOOGLE_CLIENT_SECRET as key material (padded to 32 bytes for AES-256)
+  const keyMaterial = encoder.encode((GOOGLE_CLIENT_SECRET || '').slice(0, 32).padEnd(32, '0'));
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyMaterial,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    dataBuffer
+  );
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  return btoa(String.fromCharCode(...combined));
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -91,6 +116,10 @@ serve(async (req) => {
       });
       const userInfo = await userInfoResponse.json();
 
+      // Encrypt tokens with AES-GCM before storage
+      const encryptedAccessToken = await encryptToken(tokens.access_token);
+      const encryptedRefreshToken = tokens.refresh_token ? await encryptToken(tokens.refresh_token) : null;
+
       // Store integration
       const expiresAt = tokens.expires_in 
         ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
@@ -102,11 +131,11 @@ serve(async (req) => {
           user_id: stateData.user_id,
           integration_type: 'googledrive',
           integration_name: userInfo.email || 'Google Drive',
-          encrypted_access_token: tokens.access_token,
-          encrypted_refresh_token: tokens.refresh_token || null,
+          encrypted_access_token: encryptedAccessToken,
+          encrypted_refresh_token: encryptedRefreshToken,
           token_expires_at: expiresAt,
           is_active: true,
-          metadata: { email: userInfo.email, scope: tokens.scope },
+          metadata: { scope: tokens.scope },
         }, {
           onConflict: 'user_id,integration_type',
         });
