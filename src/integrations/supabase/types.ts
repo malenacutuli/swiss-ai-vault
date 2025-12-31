@@ -3069,6 +3069,325 @@ export type Database = {
           },
         ]
       }
+      vault_mail_accounts: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email_address: string
+          encrypted_access_token: string
+          encrypted_refresh_token: string | null
+          id: string
+          last_sync_error: string | null
+          last_synced_at: string | null
+          profile_picture: string | null
+          provider: string
+          scopes: string[] | null
+          sync_cursor: string | null
+          sync_enabled: boolean | null
+          token_expires_at: string | null
+          total_emails_synced: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email_address: string
+          encrypted_access_token: string
+          encrypted_refresh_token?: string | null
+          id?: string
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          profile_picture?: string | null
+          provider: string
+          scopes?: string[] | null
+          sync_cursor?: string | null
+          sync_enabled?: boolean | null
+          token_expires_at?: string | null
+          total_emails_synced?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email_address?: string
+          encrypted_access_token?: string
+          encrypted_refresh_token?: string | null
+          id?: string
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          profile_picture?: string | null
+          provider?: string
+          scopes?: string[] | null
+          sync_cursor?: string | null
+          sync_enabled?: boolean | null
+          token_expires_at?: string | null
+          total_emails_synced?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vault_mail_drafts: {
+        Row: {
+          account_id: string | null
+          ai_model: string | null
+          body_html: string | null
+          body_text: string | null
+          cc_addresses: Json | null
+          created_at: string | null
+          id: string
+          sent_at: string | null
+          status: string | null
+          subject: string | null
+          thread_id: string | null
+          to_addresses: Json | null
+          tone: string | null
+          updated_at: string | null
+          user_id: string
+          user_intent: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          ai_model?: string | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: Json | null
+          created_at?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_addresses?: Json | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id: string
+          user_intent?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          ai_model?: string | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: Json | null
+          created_at?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_addresses?: Json | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id?: string
+          user_intent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_mail_drafts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "vault_mail_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_mail_drafts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "vault_mail_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_mail_messages: {
+        Row: {
+          attachment_count: number | null
+          attachments: Json | null
+          body_html: string | null
+          body_text: string | null
+          cc_addresses: Json | null
+          created_at: string | null
+          from_address: string
+          from_name: string | null
+          id: string
+          in_reply_to: string | null
+          is_sent_by_user: boolean | null
+          message_id: string
+          sent_at: string | null
+          subject: string | null
+          thread_id: string
+          to_addresses: Json | null
+        }
+        Insert: {
+          attachment_count?: number | null
+          attachments?: Json | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: Json | null
+          created_at?: string | null
+          from_address: string
+          from_name?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_sent_by_user?: boolean | null
+          message_id: string
+          sent_at?: string | null
+          subject?: string | null
+          thread_id: string
+          to_addresses?: Json | null
+        }
+        Update: {
+          attachment_count?: number | null
+          attachments?: Json | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: Json | null
+          created_at?: string | null
+          from_address?: string
+          from_name?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_sent_by_user?: boolean | null
+          message_id?: string
+          sent_at?: string | null
+          subject?: string | null
+          thread_id?: string
+          to_addresses?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_mail_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "vault_mail_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_mail_style_profiles: {
+        Row: {
+          average_length: number | null
+          closing_patterns: Json | null
+          common_phrases: Json | null
+          created_at: string | null
+          greeting_patterns: Json | null
+          id: string
+          last_analyzed_at: string | null
+          samples_analyzed: number | null
+          signature: string | null
+          tone_markers: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          average_length?: number | null
+          closing_patterns?: Json | null
+          common_phrases?: Json | null
+          created_at?: string | null
+          greeting_patterns?: Json | null
+          id?: string
+          last_analyzed_at?: string | null
+          samples_analyzed?: number | null
+          signature?: string | null
+          tone_markers?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          average_length?: number | null
+          closing_patterns?: Json | null
+          common_phrases?: Json | null
+          created_at?: string | null
+          greeting_patterns?: Json | null
+          id?: string
+          last_analyzed_at?: string | null
+          samples_analyzed?: number | null
+          signature?: string | null
+          tone_markers?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vault_mail_threads: {
+        Row: {
+          account_id: string
+          category: string | null
+          category_confidence: number | null
+          category_set_by: string | null
+          created_at: string | null
+          first_message_at: string | null
+          has_attachments: boolean | null
+          id: string
+          is_archived: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          is_trashed: boolean | null
+          labels: string[] | null
+          latest_message_at: string | null
+          message_count: number | null
+          snippet: string | null
+          subject: string | null
+          suggested_action: string | null
+          thread_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          category?: string | null
+          category_confidence?: number | null
+          category_set_by?: string | null
+          created_at?: string | null
+          first_message_at?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          is_trashed?: boolean | null
+          labels?: string[] | null
+          latest_message_at?: string | null
+          message_count?: number | null
+          snippet?: string | null
+          subject?: string | null
+          suggested_action?: string | null
+          thread_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          category?: string | null
+          category_confidence?: number | null
+          category_set_by?: string | null
+          created_at?: string | null
+          first_message_at?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          is_trashed?: boolean | null
+          labels?: string[] | null
+          latest_message_at?: string | null
+          message_count?: number | null
+          snippet?: string | null
+          subject?: string | null
+          suggested_action?: string | null
+          thread_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_mail_threads_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "vault_mail_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       template_summary: {
