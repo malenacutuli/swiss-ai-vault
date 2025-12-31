@@ -34,8 +34,8 @@ const PERSONAL_TIERS = [
   {
     name: 'Ghost Pro',
     tagline: 'For power users who need more',
-    monthlyPrice: 20,
-    annualPrice: 17,
+    monthlyPrice: 18,
+    annualPrice: 12.60,
     isPopular: true,
     ctaText: 'Get Ghost Pro',
     tier: 'ghost_pro',
@@ -54,8 +54,8 @@ const PERSONAL_TIERS = [
   {
     name: 'Vault Pro',
     tagline: 'Enterprise-grade privacy & integrations',
-    monthlyPrice: 60,
-    annualPrice: 49,
+    monthlyPrice: 49,
+    annualPrice: 40.83,
     ctaText: 'Get Vault Pro',
     tier: 'vault_pro',
     features: [
