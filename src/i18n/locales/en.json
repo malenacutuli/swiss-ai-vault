@@ -1539,7 +1539,39 @@
       },
       "travel": {
         "title": "Travel",
-        "description": "Private, exclusive"
+        "subtitle": "Luxury travel intelligence",
+        "description": "Luxury destinations, hotels, and exclusive experiences",
+        "placeholder": "Search destinations, hotels, experiences...",
+        "trendingDestinations": "Trending Destinations",
+        "inspiration": "Inspiration",
+        "exploreRegion": "Explore luxury travel in {{region}}",
+        "proRequired": {
+          "title": "Travel Intelligence is a Pro Feature",
+          "description": "Access luxury travel planning, destination insights, and exclusive experiences with Ghost Pro.",
+          "upgrade": "Upgrade to Pro"
+        },
+        "actions": {
+          "destinations": "Destinations",
+          "hotels": "Luxury Hotels",
+          "experiences": "Experiences"
+        },
+        "suggestions": {
+          "destinations": {
+            "1": "Best luxury destinations in Europe for winter 2025",
+            "2": "Secluded private island resorts in the Maldives",
+            "3": "Top wellness retreats in Southeast Asia"
+          },
+          "hotels": {
+            "1": "Best Aman resorts for a first-time visitor",
+            "2": "Top-rated palace hotels in India for luxury travelers",
+            "3": "New luxury hotel openings in 2025"
+          },
+          "experiences": {
+            "1": "Private safari experiences in East Africa",
+            "2": "Exclusive culinary journeys in Japan",
+            "3": "VIP access to cultural events in Europe"
+          }
+        }
       },
       "realestate": {
         "title": "Real Estate",
@@ -1577,7 +1609,13 @@
       "neurology": "Neurology",
       "longevity": "Longevity",
       "mentalHealth": "Mental Health",
-      "preventive": "Preventive Care"
+      "preventive": "Preventive Care",
+      "europe": "Europe",
+      "asia": "Asia",
+      "caribbean": "Caribbean",
+      "middleEast": "Middle East",
+      "africa": "Africa",
+      "oceania": "Oceania"
     },
     "search": {
       "placeholder": "Search the web...",

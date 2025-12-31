@@ -16,7 +16,7 @@ interface Source {
 }
 
 interface SourcesDropdownProps {
-  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health';
+  module: 'patents' | 'legal' | 'research' | 'finance' | 'security' | 'health' | 'travel';
 }
 
 const getDefaultSources = (module: string): Source[] => {
@@ -64,6 +64,14 @@ const getDefaultSources = (module: string): Source[] => {
         { id: 'fda', label: 'FDA Database', enabled: true },
         { id: 'cochrane', label: 'Cochrane Library', enabled: true },
         { id: 'who', label: 'WHO Reports', enabled: false },
+      ];
+    case 'travel':
+      return [
+        { id: 'luxury-hotels', label: 'Luxury Hotels', enabled: true },
+        { id: 'private-aviation', label: 'Private Aviation', enabled: true },
+        { id: 'travel-advisories', label: 'Travel Advisories', enabled: true },
+        { id: 'michelin', label: 'Michelin Guide', enabled: true },
+        { id: 'conde-nast', label: 'Condé Nast', enabled: false },
       ];
     default:
       return [];
