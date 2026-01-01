@@ -31,10 +31,14 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { VerifiedSearchResult, WebSource, TrustLevel, SourceType } from '@/lib/trust/verified-search';
+import { SaveToMemoryButton } from './SaveToMemoryButton';
+import { SaveAllSourcesButton } from './SaveAllSourcesButton';
 
 interface VerifiedSourcesDisplayProps {
   result: VerifiedSearchResult;
   onSourceClick?: (source: WebSource) => void;
+  folders?: Array<{ id: string; name: string }>;
+  onSourceSaved?: (sourceId: string) => void;
 }
 
 const trustConfig: Record<TrustLevel, {
@@ -90,7 +94,9 @@ const sourceTypeIcons: Record<SourceType, typeof Building2> = {
 
 export function VerifiedSourcesDisplay({ 
   result, 
-  onSourceClick 
+  onSourceClick,
+  folders,
+  onSourceSaved
 }: VerifiedSourcesDisplayProps) {
   const [showSources, setShowSources] = useState(true);
   const [showMethodology, setShowMethodology] = useState(false);
@@ -159,15 +165,23 @@ export function VerifiedSourcesDisplay({
       
       {/* Sources */}
       <Collapsible open={showSources} onOpenChange={setShowSources}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-full justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              {result.sources.length} Sources Referenced
-            </div>
-            {showSources ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </CollapsibleTrigger>
+        <div className="flex items-center justify-between mb-1">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="justify-start">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                {result.sources.length} Sources Referenced
+              </div>
+              {showSources ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+            </Button>
+          </CollapsibleTrigger>
+          <SaveAllSourcesButton
+            sources={result.sources}
+            query={result.query}
+            folders={folders}
+            onComplete={() => onSourceSaved?.('')}
+          />
+        </div>
         <CollapsibleContent>
           <div className="space-y-2 pt-2">
             {result.sources.map((source, i) => {
@@ -209,19 +223,27 @@ export function VerifiedSourcesDisplay({
                       <p className="text-xs text-muted-foreground line-clamp-2">
                         {source.snippet}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary" className="text-[10px]">
-                          {source.domain}
-                        </Badge>
-                        <Badge 
-                          variant="outline" 
-                          className={cn("text-[10px]", sourceTrust.color)}
-                        >
-                          {source.sourceType}
-                        </Badge>
-                        <span className={cn("text-[10px]", sourceTrust.color)}>
-                          {(source.trustScore * 100).toFixed(0)}% trust
-                        </span>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {source.domain}
+                          </Badge>
+                          <Badge 
+                            variant="outline" 
+                            className={cn("text-[10px]", sourceTrust.color)}
+                          >
+                            {source.sourceType}
+                          </Badge>
+                          <span className={cn("text-[10px]", sourceTrust.color)}>
+                            {(source.trustScore * 100).toFixed(0)}% trust
+                          </span>
+                        </div>
+                        <SaveToMemoryButton
+                          source={source}
+                          variant="icon"
+                          folders={folders}
+                          onSaved={onSourceSaved}
+                        />
                       </div>
                       {source.warnings && source.warnings.length > 0 && (
                         <div className="mt-2 text-[10px] text-amber-600 dark:text-amber-400">
