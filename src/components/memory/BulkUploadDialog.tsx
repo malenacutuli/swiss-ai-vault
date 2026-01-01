@@ -6,7 +6,10 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Loader2,
-  FolderOpen
+  FolderOpen,
+  FileSpreadsheet,
+  Presentation,
+  FileType
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -29,13 +32,28 @@ import {
 } from '@/components/ui/select';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
+import { 
+  processDocument, 
+  getAcceptedFileTypes, 
+  getSupportedFormatsText,
+  detectFileType,
+  type SupportedFileType
+} from '@/lib/memory/document-processor';
 
 interface FileToUpload {
   file: File;
   content?: string;
-  status: 'pending' | 'reading' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'extracting' | 'uploading' | 'success' | 'error';
+  progress?: number;
   error?: string;
   chunksAdded?: number;
+  metadata?: {
+    fileType: SupportedFileType;
+    pageCount?: number;
+    slideCount?: number;
+    sheetCount?: number;
+    wordCount?: number;
+  };
 }
 
 interface BulkUploadDialogProps {
@@ -46,6 +64,21 @@ interface BulkUploadDialogProps {
     files: Array<{ content: string; filename: string }>,
     folderId?: string
   ) => Promise<{ successful: number; failed: number }>;
+}
+
+function getFileIcon(fileType: SupportedFileType) {
+  switch (fileType) {
+    case 'xlsx':
+      return <FileSpreadsheet className="h-4 w-4 text-green-600" />;
+    case 'pptx':
+      return <Presentation className="h-4 w-4 text-orange-600" />;
+    case 'pdf':
+      return <FileType className="h-4 w-4 text-red-600" />;
+    case 'docx':
+      return <FileText className="h-4 w-4 text-blue-600" />;
+    default:
+      return <FileText className="h-4 w-4 text-muted-foreground" />;
+  }
 }
 
 export function BulkUploadDialog({
@@ -64,25 +97,63 @@ export function BulkUploadDialog({
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newFiles: FileToUpload[] = acceptedFiles.map(file => ({
       file,
-      status: 'pending' as const
+      status: 'pending' as const,
+      metadata: { fileType: detectFileType(file) }
     }));
     
     setFiles(prev => [...prev, ...newFiles]);
     
+    // Process each file to extract content
     for (const fileObj of newFiles) {
       try {
         setFiles(prev => prev.map(f => 
-          f.file === fileObj.file ? { ...f, status: 'reading' } : f
+          f.file === fileObj.file ? { ...f, status: 'extracting', progress: 0 } : f
         ));
         
-        const content = await fileObj.file.text();
+        const result = await processDocument(fileObj.file, (progress) => {
+          setFiles(prev => prev.map(f => 
+            f.file === fileObj.file ? { 
+              ...f, 
+              status: progress.stage === 'complete' ? 'pending' : 'extracting',
+              progress: progress.percent 
+            } : f
+          ));
+        });
         
-        setFiles(prev => prev.map(f => 
-          f.file === fileObj.file ? { ...f, content, status: 'pending' } : f
-        ));
+        if (result.success) {
+          setFiles(prev => prev.map(f => 
+            f.file === fileObj.file ? { 
+              ...f, 
+              content: result.content, 
+              status: 'pending',
+              progress: undefined,
+              metadata: {
+                fileType: result.metadata.fileType,
+                pageCount: result.metadata.pageCount,
+                slideCount: result.metadata.slideCount,
+                sheetCount: result.metadata.sheetCount,
+                wordCount: result.metadata.wordCount
+              }
+            } : f
+          ));
+        } else {
+          setFiles(prev => prev.map(f => 
+            f.file === fileObj.file ? { 
+              ...f, 
+              status: 'error', 
+              progress: undefined,
+              error: result.error || 'Extraction failed' 
+            } : f
+          ));
+        }
       } catch (error) {
         setFiles(prev => prev.map(f => 
-          f.file === fileObj.file ? { ...f, status: 'error', error: 'Failed to read file' } : f
+          f.file === fileObj.file ? { 
+            ...f, 
+            status: 'error', 
+            progress: undefined,
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          } : f
         ));
       }
     }
@@ -90,12 +161,7 @@ export function BulkUploadDialog({
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'text/plain': ['.txt'],
-      'text/markdown': ['.md'],
-      'application/json': ['.json'],
-      'text/csv': ['.csv']
-    },
+    accept: getAcceptedFileTypes(),
     multiple: true
   });
   
@@ -147,6 +213,7 @@ export function BulkUploadDialog({
   };
   
   const pendingCount = files.filter(f => f.status === 'pending' && f.content).length;
+  const extractingCount = files.filter(f => f.status === 'extracting').length;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -157,7 +224,7 @@ export function BulkUploadDialog({
             Upload Documents
           </DialogTitle>
           <DialogDescription>
-            Upload multiple documents to your AI memory. Supported formats: .txt, .md, .json, .csv
+            Supported: {getSupportedFormatsText()}
           </DialogDescription>
         </DialogHeader>
         
@@ -208,17 +275,33 @@ export function BulkUploadDialog({
                 <div className="space-y-2">
                   {files.map((f, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="flex-1 text-sm truncate">{f.file.name}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {f.status === 'reading' && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                      {f.metadata?.fileType ? getFileIcon(f.metadata.fileType) : <FileText className="h-4 w-4 text-muted-foreground shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm truncate block">{f.file.name}</span>
+                        {f.metadata && f.status === 'pending' && (
+                          <span className="text-xs text-muted-foreground">
+                            {f.metadata.pageCount && `${f.metadata.pageCount} pages • `}
+                            {f.metadata.slideCount && `${f.metadata.slideCount} slides • `}
+                            {f.metadata.sheetCount && `${f.metadata.sheetCount} sheets • `}
+                            {f.metadata.wordCount && `${f.metadata.wordCount.toLocaleString()} words`}
+                          </span>
+                        )}
+                        {f.status === 'extracting' && f.progress !== undefined && (
+                          <Progress value={f.progress} className="h-1 mt-1" />
+                        )}
+                        {f.status === 'error' && f.error && (
+                          <span className="text-xs text-destructive">{f.error}</span>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        {f.status === 'extracting' && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
                         {f.status === 'uploading' && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
                         {f.status === 'success' && <CheckCircle2 className="h-3 w-3 mr-1 text-green-500" />}
                         {f.status === 'error' && <AlertCircle className="h-3 w-3 mr-1 text-destructive" />}
-                        {f.status}
+                        {f.status === 'extracting' ? 'extracting' : f.status}
                       </Badge>
-                      {f.status === 'pending' && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(f.file)}>
+                      {(f.status === 'pending' || f.status === 'error') && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeFile(f.file)}>
                           <X className="h-3 w-3" />
                         </Button>
                       )}
@@ -260,11 +343,19 @@ export function BulkUploadDialog({
               <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button onClick={handleUpload} disabled={isUploading || pendingCount === 0}>
+              <Button 
+                onClick={handleUpload} 
+                disabled={isUploading || pendingCount === 0 || extractingCount > 0}
+              >
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     Uploading...
+                  </>
+                ) : extractingCount > 0 ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Extracting...
                   </>
                 ) : (
                   <>
