@@ -87,6 +87,7 @@ interface GhostMessageData {
   content: string;
   timestamp: number;
   isStreaming?: boolean;
+  isError?: boolean;
   imageUrl?: string;
   responseTimeMs?: number;
   tokenCount?: number;
@@ -214,13 +215,33 @@ function GhostChat() {
     preWarmStorage();
   }, []);
 
-  // Track when storage becomes ready
+  // Track when storage becomes ready or fails
   useEffect(() => {
     if (isInitialized) {
       setInitPhase('ready');
       console.log('[GhostChat] ✅ Secure storage ready');
     }
   }, [isInitialized]);
+
+  // === STORAGE INITIALIZATION TIMEOUT ===
+  // If storage doesn't initialize within 15 seconds, show error
+  useEffect(() => {
+    if (initPhase !== 'connecting') return;
+    
+    const timeout = setTimeout(() => {
+      if (!isInitialized) {
+        console.error('[GhostChat] ❌ Storage initialization timeout');
+        setInitPhase('error');
+        toast({
+          title: 'Connection Error',
+          description: 'Unable to connect to secure storage. Please refresh the page.',
+          variant: 'destructive',
+        });
+      }
+    }, 15000); // 15 second timeout
+    
+    return () => clearTimeout(timeout);
+  }, [initPhase, isInitialized, toast]);
 
   // Debug: track mode changes and storage state (helps diagnose UI "snap back")
   useEffect(() => {
@@ -241,7 +262,7 @@ function GhostChat() {
       // Check if message is too old (> 30 seconds = user probably gave up)
       const messageAge = Date.now() - pendingMessage.timestamp;
       if (messageAge > 30000) {
-        console.log('[GhostChat] ⏰ Queued message too old, discarding');
+        console.warn('[GhostChat] Queued message expired');
         setPendingMessage(null);
         // Remove the status message
         setMessages(prev => prev.filter(m => !m.isStreaming || m.content !== 'Connecting to secure storage...'));
@@ -822,11 +843,17 @@ function GhostChat() {
                         }
                       },
                       onError: (error) => {
+                        console.error('[GhostChat] All retries failed:', error);
                         retryCountRef.current = 0;
                         setMessages((prev) =>
                           prev.map((msg) =>
                             msg.id === assistantId
-                              ? { ...msg, content: `Error: ${error.message}`, isStreaming: false }
+                              ? { 
+                                  ...msg, 
+                                  content: 'Unable to get response. Please try again.',
+                                  isStreaming: false,
+                                  isError: true,
+                                }
                               : msg
                           )
                         );
@@ -897,20 +924,22 @@ function GhostChat() {
               }
             },
             onError: (error) => {
+              console.error('[GhostChat] Stream error:', error);
               toast({
                 title: 'Error',
                 description: error.message || 'Failed to generate response',
                 variant: 'destructive',
               });
 
-              // Keep the assistant message visible (no blank state)
+              // Keep the assistant message visible with error state
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === assistantId
                     ? {
                         ...msg,
-                        content: `Error: ${error.message || 'Failed to generate response'}`,
+                        content: 'Unable to get response. Please try again.',
                         isStreaming: false,
+                        isError: true,
                       }
                     : msg
                 )
