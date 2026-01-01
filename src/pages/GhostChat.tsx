@@ -1970,6 +1970,8 @@ function GhostChat() {
                 disabled={!isInitialized}
                 voiceLanguage={settings?.voice_language}
                 matureFilterEnabled={settings?.mature_filter_enabled ?? true}
+                initPhase={initPhase}
+                hasPendingMessage={!!pendingMessage}
               />
             </GhostTextViewEmpty>
           )}
@@ -2194,6 +2196,8 @@ function GhostChat() {
                     disabled={!isInitialized}
                     voiceLanguage={settings?.voice_language}
                     matureFilterEnabled={settings?.mature_filter_enabled ?? true}
+                    initPhase={initPhase}
+                    hasPendingMessage={!!pendingMessage}
                   />
                 </GhostTextViewEmpty>
               )
@@ -2296,6 +2300,8 @@ function GhostChat() {
                   disabled={!isInitialized}
                   voiceLanguage={settings?.voice_language}
                   matureFilterEnabled={settings?.mature_filter_enabled ?? true}
+                  initPhase={initPhase}
+                  hasPendingMessage={!!pendingMessage}
                 />
               </div>
             </div>
