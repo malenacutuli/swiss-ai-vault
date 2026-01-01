@@ -272,57 +272,63 @@ function GhostChat() {
   // === LAYER 4: AUTO-SEND QUEUED MESSAGES WHEN READY ===
   useEffect(() => {
     const sendQueuedMessage = async () => {
-      if (!isInitialized || !pendingMessage || isSubmittingRef.current) {
+      if (!isInitialized || !pendingMessage) {
         return;
       }
-      
+
+      // If a submission is in-flight, retry shortly (refs don't trigger re-renders)
+      if (isSubmittingRef.current) {
+        setTimeout(() => {
+          setPendingMessage((prev) => (prev ? { ...prev } : prev));
+        }, 150);
+        return;
+      }
+
       // Check if message is too old (> 30 seconds = user probably gave up)
       const messageAge = Date.now() - pendingMessage.timestamp;
       if (messageAge > 30000) {
         console.warn('[GhostChat] Queued message expired');
         setPendingMessage(null);
         // Remove the status message
-        setMessages(prev => prev.filter(m => !m.isStreaming || m.content !== 'Connecting to secure storage...'));
+        setMessages((prev) => prev.filter((m) => !m.isStreaming || m.content !== 'Connecting to secure storage...'));
         return;
       }
-      
+
       console.log('[GhostChat] 🚀 Storage ready, sending queued message...');
-      
+
       // Remove the "connecting" status message
-      setMessages(prev => prev.filter(m => !m.isStreaming || m.content !== 'Connecting to secure storage...'));
-      
-      // Capture and clear pending message
+      setMessages((prev) => prev.filter((m) => !m.isStreaming || m.content !== 'Connecting to secure storage...'));
+
       const { content, attachments } = pendingMessage;
+
+      // If ref isn't ready yet, retry shortly without dropping the pending message
+      if (!handleSendMessageRef.current) {
+        setTimeout(() => {
+          setPendingMessage((prev) => (prev ? { ...prev } : prev));
+        }, 150);
+        return;
+      }
+
+      // Clear pending message only once we can actually send
       setPendingMessage(null);
-      
+
       // Restore attachments if any
       if (attachments.length > 0) {
         setAttachedFiles(attachments);
       }
-      
+
       // Small delay to ensure state is settled
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       // Reset retry count for fresh attempt
       retryCountRef.current = 0;
-      
-      // USE REF TO AVOID STALE CLOSURE
-      if (handleSendMessageRef.current) {
-        await handleSendMessageRef.current(content);
-      } else {
-        console.error('[GhostChat] ❌ handleSendMessageRef not initialized');
-        // Fallback: restore message to input
-        setInputValue(content);
-        toast({
-          title: 'Error',
-          description: 'Please try sending your message again.',
-          variant: 'destructive',
-        });
-      }
+
+      await handleSendMessageRef.current(content);
     };
-    
+
     sendQueuedMessage();
-  }, [isInitialized, pendingMessage, toast]); // DO NOT add handleSendMessage here
+  }, [isInitialized, pendingMessage, toast]);
+
 
 
   // Ghost credits hook
