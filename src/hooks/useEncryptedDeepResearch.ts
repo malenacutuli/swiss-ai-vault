@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useEncryption } from './useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { useZeroRetentionMode } from './useZeroRetentionMode';
 import { toast } from 'sonner';
 
@@ -37,7 +37,7 @@ type ResearchStage = 'idle' | 'encrypting' | 'searching' | 'analyzing' | 'synthe
 
 export function useEncryptedDeepResearch() {
   const { data: isZeroTraceEnabled = false } = useZeroRetentionMode();
-  const { encryptMessage, decryptMessage, isUnlocked } = useEncryption();
+  const { encryptMessage, decryptMessage, isUnlocked } = useEncryptionContext();
   
   const [isResearching, setIsResearching] = useState(false);
   const [stage, setStage] = useState<ResearchStage>('idle');

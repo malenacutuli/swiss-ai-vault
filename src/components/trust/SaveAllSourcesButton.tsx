@@ -28,7 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { getMasterKey } from '@/lib/crypto/key-vault';
 import { 
   saveMultipleSourcesToMemory, 
@@ -50,7 +50,7 @@ export function SaveAllSourcesButton({
   onComplete
 }: SaveAllSourcesButtonProps) {
   const { toast } = useToast();
-  const { isUnlocked } = useEncryption();
+  const { isUnlocked } = useEncryptionContext();
   
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);

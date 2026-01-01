@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import * as conversationService from '@/services/encrypted-conversations';
 import type { 
   DecryptedConversation, 
@@ -46,7 +46,7 @@ export function useEncryptedChat(): UseEncryptedChatReturn {
   const [isEncrypting, setIsEncrypting] = useState(false);
   
   const { toast } = useToast();
-  const encryption = useEncryption();
+  const encryption = useEncryptionContext();
   const subscriptionRef = useRef<ReturnType<typeof conversationService.subscribeToMessages> | null>(null);
   const messagesRef = useRef<DecryptedMessage[]>([]);
   

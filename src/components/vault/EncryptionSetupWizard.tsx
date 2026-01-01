@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 
 interface EncryptionSetupWizardProps {
   onComplete: () => void;
@@ -28,7 +28,7 @@ export function EncryptionSetupWizard({ onComplete, onSkip }: EncryptionSetupWiz
   const [error, setError] = useState('');
   const [isSettingUp, setIsSettingUp] = useState(false);
   
-  const { setupEncryption } = useEncryption();
+  const { setupEncryption } = useEncryptionContext();
   
   const passwordStrength = getPasswordStrength(password);
   
