@@ -494,19 +494,65 @@ function GhostChat() {
   }, [toast]);
 
   const handleSendMessage = async (content: string, attachments?: File[]) => {
+    const messageContent = content?.trim() || '';
+    
     console.log('[GhostChat] handleSendMessage called', {
-      contentLength: content?.length,
+      contentLength: messageContent?.length,
       isStreaming,
       streamStatus,
       isSearching: webSearch.isSearching,
       isResearching: ghostResearch.isResearching,
       isSubmitting: isSubmittingRef.current,
       hasUser: !!user,
+      isInitialized,
+      initPhase,
     });
 
-    if (!isInitialized) {
-      console.log('[GhostChat] BLOCKED: storage not initialized yet');
-      (toast as any).info('Initializing secure local storage… please try again in a moment.');
+    // Basic validation first
+    if (!messageContent && attachedFiles.length === 0) return;
+
+    // === LAYER 2: QUEUE IF STORAGE NOT READY ===
+    if (!isInitialized || initPhase === 'connecting') {
+      console.log('[GhostChat] 📥 Storage initializing, queuing message...');
+      
+      // Store the message for later
+      setPendingMessage({
+        content: messageContent,
+        attachments: [...attachedFiles],
+        timestamp: Date.now(),
+      });
+      
+      // Clear input immediately so user sees their message was received
+      setInputValue('');
+      setAttachedFiles([]);
+      
+      // Add visual feedback in the chat
+      const userMsgId = `queued-user-${Date.now()}`;
+      const statusMsgId = `queued-status-${Date.now()}`;
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          id: userMsgId,
+          role: 'user' as const,
+          content: messageContent,
+          timestamp: Date.now(),
+          attachments: attachedFiles.length > 0 ? attachedFiles.map(f => ({
+            name: f.name,
+            type: f.type,
+            size: f.size,
+          })) : undefined,
+        },
+        {
+          id: statusMsgId,
+          role: 'assistant' as const,
+          content: 'Connecting to secure storage...',
+          timestamp: Date.now(),
+          isStreaming: true,
+        },
+      ]);
+      
+      // Don't proceed - the auto-send effect will handle it
       return;
     }
 
@@ -530,7 +576,7 @@ function GhostChat() {
     }
 
     // Prevent double submission - allow if we have attachments even without text
-    if (!content?.trim() && attachedFiles.length === 0) return;
+    if (!messageContent && attachedFiles.length === 0) return;
 
     if (webSearch.isSearching) {
       console.log('[GhostChat] BLOCKED: webSearch in progress');
