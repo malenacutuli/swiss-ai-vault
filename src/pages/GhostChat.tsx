@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useGhostStorage } from '@/hooks/useGhostStorage';
+import { getGhostStorage } from '@/lib/ghost/ghost-storage';
 import { useGhostCredits } from '@/hooks/useGhostCredits';
 import { useGhostInference } from '@/hooks/useGhostInference';
 import { useGhostSearch, type SearchResult } from '@/hooks/useGhostSearch';
@@ -181,6 +182,7 @@ function GhostChat() {
     updateConversationTitle,
     moveToFolder,
     clearAllData,
+    refreshConversations,
   } = useGhostStorage();
 
   // === LAYER 1: PRE-WARM STORAGE ON MOUNT ===
@@ -467,19 +469,47 @@ function GhostChat() {
   }, [messages, resetStreamState]);
 
   // Cleanup incognito chats on page unload
+  // Cleanup incognito chats on page unload (synchronous for reliability)
   useEffect(() => {
     const handleBeforeUnload = () => {
-      // Find and delete all incognito conversations
-      conversations.forEach(conv => {
-        if (conv.isTemporary) {
-          deleteConversation(conv.id);
-        }
-      });
+      // Use synchronous method - async operations are unreliable in beforeunload
+      const storage = getGhostStorage();
+      if (storage) {
+        storage.clearAllTemporarySync();
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [conversations, deleteConversation]);
+  }, []); // Empty deps - storage is accessed via singleton
+
+  // Cleanup incognito chats when leaving Ghost Chat (component unmount)
+  useEffect(() => {
+    return () => {
+      const storage = getGhostStorage();
+      if (storage) {
+        const tempIds = storage.listTemporaryConversationIds();
+        if (tempIds.length > 0) {
+          console.log(`[GhostChat] Unmount cleanup: ${tempIds.length} temporary chats`);
+          storage.clearAllTemporarySync();
+        }
+      }
+    };
+  }, []); // Empty deps - runs only on unmount
+
+  // Cleanup incognito chats when user changes (logout/login)
+  useEffect(() => {
+    const storage = getGhostStorage();
+    if (storage && isInitialized) {
+      // On user change, clear any leftover temporary chats
+      const tempIds = storage.listTemporaryConversationIds();
+      if (tempIds.length > 0) {
+        console.log(`[GhostChat] User change cleanup: ${tempIds.length} temporary chats`);
+        storage.clearAllTemporarySync();
+        refreshConversations();
+      }
+    }
+  }, [user?.id, isInitialized, refreshConversations]); // Trigger when user changes
   // Convert conversations for sidebar (temporary chats are already filtered out by listConversations)
   const sidebarConversations: GhostConversation[] = conversations.map(c => ({
     id: c.id,

@@ -441,6 +441,64 @@ export class GhostStorageManager {
   }
 
   /**
+   * Synchronously delete a conversation from hot store only.
+   * Use this in beforeunload where async operations are unreliable.
+   */
+  deleteConversationSync(convId: string): void {
+    console.log(`[GhostStorage] Sync delete: ${convId}`);
+    
+    // Cancel any pending debounced writes
+    const timeout = this.saveTimeouts.get(convId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.saveTimeouts.delete(convId);
+    }
+    
+    // Remove from hot storage (synchronous)
+    this.hotStore.delete(convId);
+  }
+
+  /**
+   * Synchronously clear ALL temporary/incognito conversations.
+   * Called on beforeunload and component unmount.
+   */
+  clearAllTemporarySync(): void {
+    console.log('[GhostStorage] Clearing all temporary conversations...');
+    
+    let clearedCount = 0;
+    
+    for (const [id, conv] of this.hotStore.entries()) {
+      if (conv.isTemporary) {
+        // Cancel pending writes
+        const timeout = this.saveTimeouts.get(id);
+        if (timeout) {
+          clearTimeout(timeout);
+          this.saveTimeouts.delete(id);
+        }
+        
+        // Remove from hot store
+        this.hotStore.delete(id);
+        clearedCount++;
+      }
+    }
+    
+    console.log(`[GhostStorage] Cleared ${clearedCount} temporary conversations`);
+  }
+
+  /**
+   * Get IDs of all temporary conversations (for cleanup verification)
+   */
+  listTemporaryConversationIds(): string[] {
+    const tempIds: string[] = [];
+    for (const [id, conv] of this.hotStore.entries()) {
+      if (conv.isTemporary) {
+        tempIds.push(id);
+      }
+    }
+    return tempIds;
+  }
+
+  /**
    * Delete a conversation from both tiers
    */
   async deleteConversation(convId: string): Promise<void> {
@@ -792,5 +850,24 @@ export function resetGhostStorage(): void {
   if (ghostStorageInstance) {
     ghostStorageInstance.destroy();
     ghostStorageInstance = null;
+  }
+}
+
+/**
+ * Properly reset storage with awaited cleanup.
+ * Use this when changing users to avoid race conditions.
+ */
+export async function resetGhostStorageAsync(): Promise<void> {
+  if (ghostStorageInstance) {
+    console.log('[GhostStorage] Async reset starting...');
+    
+    // First, synchronously clear temporary chats
+    ghostStorageInstance.clearAllTemporarySync();
+    
+    // Then await the full destroy
+    await ghostStorageInstance.destroy();
+    
+    ghostStorageInstance = null;
+    console.log('[GhostStorage] Async reset complete');
   }
 }
