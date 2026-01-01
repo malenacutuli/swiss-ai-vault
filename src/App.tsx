@@ -54,6 +54,7 @@ import GhostChat from "./pages/GhostChat";
 import GhostPricing from "./pages/GhostPricing";
 import GhostLibrary from "./pages/GhostLibrary";
 import MemoryDashboard from "./pages/MemoryDashboard";
+import ResearchDashboard from "./pages/ResearchDashboard";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import About from "./pages/About";
@@ -128,6 +129,7 @@ const App = () => {
                 <Route path="/ghost/pricing" element={<GhostPricing />} />
                 <Route path="/ghost/library" element={<ProtectedRoute><GhostLibrary /></ProtectedRoute>} />
                 <Route path="/ghost/memory" element={<ProtectedRoute><MemoryDashboard /></ProtectedRoute>} />
+                <Route path="/ghost/research-library" element={<ProtectedRoute><ResearchDashboard /></ProtectedRoute>} />
                 <Route path="/ghost/finance" element={<GhostFinance />} />
                 <Route path="/ghost/patents" element={<GhostPatents />} />
                 <Route path="/ghost/legal" element={<GhostLegal />} />

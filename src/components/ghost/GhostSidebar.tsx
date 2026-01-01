@@ -46,6 +46,7 @@ import {
   IconRocket,
   EyeOff,
   IconBrain,
+  Library,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -959,6 +960,11 @@ export function GhostSidebar({
             icon={IconBrain} 
             label={t('ghost.sidebar.memory')} 
             onClick={() => navigate('/ghost/memory')} 
+          />
+          <IconButton 
+            icon={Library} 
+            label="Research Library" 
+            onClick={() => navigate('/ghost/research-library')} 
           />
           <IconButton 
             icon={IconPhoto} 
