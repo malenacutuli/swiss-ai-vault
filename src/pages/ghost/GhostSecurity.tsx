@@ -33,37 +33,49 @@ interface SearchResult {
 
 type ActionType = 'threats' | 'vulnerabilities' | 'privacy';
 
-// Security-specific category cards
+// Security-specific category cards with images
 export const SECURITY_CATEGORIES = [
   { 
     nameKey: 'ghost.categories.ransomware', 
     gradientFrom: '#1a1a2e', 
     gradientTo: '#16213e',
+    image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&h=300&fit=crop',
+    tagline: 'Threat intelligence'
   },
   { 
     nameKey: 'ghost.categories.dataBreaches', 
     gradientFrom: '#0f3460', 
     gradientTo: '#1a1a2e',
+    image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=300&fit=crop',
+    tagline: 'Incident response'
   },
   { 
     nameKey: 'ghost.categories.phishing', 
     gradientFrom: '#1e3a5f', 
     gradientTo: '#2d5a87',
+    image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=300&fit=crop',
+    tagline: 'Social engineering'
   },
   { 
     nameKey: 'ghost.categories.zeroDay', 
     gradientFrom: '#2c3e50', 
     gradientTo: '#34495e',
+    image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop',
+    tagline: 'Vulnerability research'
   },
   { 
     nameKey: 'ghost.categories.nationState', 
     gradientFrom: '#1a252f', 
     gradientTo: '#2c3e50',
+    image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=300&fit=crop',
+    tagline: 'APT analysis'
   },
   { 
     nameKey: 'ghost.categories.cryptoSecurity', 
     gradientFrom: '#0d1b2a', 
     gradientTo: '#1b263b',
+    image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&h=300&fit=crop',
+    tagline: 'Blockchain security'
   },
 ];
 
@@ -332,6 +344,8 @@ export default function GhostSecurity() {
                   nameKey={category.nameKey}
                   gradientFrom={category.gradientFrom}
                   gradientTo={category.gradientTo}
+                  image={category.image}
+                  tagline={category.tagline}
                   onClick={() => setQuery(t('ghost.modules.security.threatsIn', { category: t(category.nameKey) }))}
                 />
               ))}

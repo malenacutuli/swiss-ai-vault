@@ -80,9 +80,9 @@ const ART_CATEGORIES = [
 ];
 
 const UPCOMING_AUCTIONS = [
-  { house: "Christie's", title: 'Post-War & Contemporary Art', date: 'Jan 15, 2025', location: 'New York' },
-  { house: "Sotheby's", title: 'Impressionist & Modern Art', date: 'Jan 22, 2025', location: 'London' },
-  { house: 'Phillips', title: '20th Century & Contemporary', date: 'Feb 3, 2025', location: 'Hong Kong' },
+  { house: "Christie's", title: 'Post-War & Contemporary Art', date: 'Jan 15, 2026', location: 'New York' },
+  { house: "Sotheby's", title: 'Impressionist & Modern Art', date: 'Jan 22, 2026', location: 'London' },
+  { house: 'Phillips', title: '20th Century & Contemporary', date: 'Feb 3, 2026', location: 'Hong Kong' },
 ];
 
 const getSuggestionKeys = (action: ActionType): string[] => {

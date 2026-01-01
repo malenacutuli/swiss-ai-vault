@@ -5,6 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Get current date for real-time validation
+function getCurrentDate(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+function getCurrentYear(): number {
+  return new Date().getFullYear();
+}
+
 // Module configurations with specialized prompts
 const MODULES: Record<string, {
   name: string;
@@ -138,10 +147,15 @@ serve(async (req: Request) => {
   try {
     const { module, query, reformatWithClaude = true, language = 'en' } = await req.json() as DiscoverRequest;
     
+    const currentDate = getCurrentDate();
+    const currentYear = getCurrentYear();
     const languageName = LANGUAGE_NAMES[language] || 'English';
     const languageInstruction = language !== 'en' 
       ? `\n\nIMPORTANT: You MUST respond entirely in ${languageName}. All your analysis, explanations, and text must be in ${languageName}.`
       : '';
+    
+    // Current date validation instruction
+    const dateValidation = `\n\nCRITICAL: Today's date is ${currentDate}. The current year is ${currentYear}. You MUST provide ONLY current, real-time data. Do NOT return any historical data from previous years (2024, 2025, etc.) unless explicitly discussing historical context. All event dates, upcoming events, and market data must be from ${currentYear} or later.`;
     
     // Validate module
     const moduleConfig = MODULES[module];
@@ -160,7 +174,7 @@ serve(async (req: Request) => {
       throw new Error('PERPLEXITY_API_KEY not configured');
     }
 
-    console.log('[Discover] Module:', module, 'Language:', language, 'Query:', query.substring(0, 50) + '...');
+    console.log('[Discover] Module:', module, 'Language:', language, 'Date:', currentDate, 'Query:', query.substring(0, 50) + '...');
 
     // Step 1: Call Perplexity for real-time search with citations
     const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -172,7 +186,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         model: 'sonar',
         messages: [
-          { role: 'system', content: moduleConfig.systemPrompt + languageInstruction },
+          { role: 'system', content: moduleConfig.systemPrompt + dateValidation + languageInstruction },
           { role: 'user', content: query },
         ],
         search_recency_filter: moduleConfig.recencyFilter,
