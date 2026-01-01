@@ -39,7 +39,7 @@ export interface AddDocumentResult {
 export interface ContextSnippet {
   id: string;
   content: string;
-  source: string;
+  source: MemorySource;
   score: number;
   metadata: MemoryItem['metadata'];
 }
@@ -385,24 +385,10 @@ export async function getContext(
       break;
     }
     
-    // Generate source label
-    let source: string;
-    if (item.metadata.source === 'document') {
-      source = item.metadata.filename || 'Document';
-    } else if (item.metadata.source === 'url') {
-      source = item.metadata.title || item.metadata.url || 'Web page';
-    } else if (item.metadata.source === 'note') {
-      source = item.metadata.title || 'Note';
-    } else if (item.metadata.source === 'chat') {
-      source = 'Previous conversation';
-    } else {
-      source = 'Memory';
-    }
-    
     snippets.push({
       id: item.id,
       content: item.content,
-      source,
+      source: item.metadata.source,
       score,
       metadata: item.metadata
     });

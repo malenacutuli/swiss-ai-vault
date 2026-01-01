@@ -3,7 +3,17 @@
 // Uses existing SwissVault encryption from zerotrace-crypto.ts
 
 import { encrypt, decrypt, type EncryptedData } from '@/lib/crypto/zerotrace-crypto';
-import { similarity } from './embedding-engine';
+
+// Cosine similarity function - defined locally to avoid circular deps with embedding-engine
+function similarity(a: number[], b: number[]): number {
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
 
 // IndexedDB Configuration - separate from key vault
 const DB_NAME = 'SwissVaultMemory';

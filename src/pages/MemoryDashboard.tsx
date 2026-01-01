@@ -69,6 +69,7 @@ export default function MemoryDashboard() {
   const { isUnlocked, isInitialized: vaultInitialized } = useEncryption();
   const memory = useMemory();
   
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ContextSnippet[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -82,7 +83,10 @@ export default function MemoryDashboard() {
   const [noteContent, setNoteContent] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
   
-  // Initialize memory system
+  // Wait for component to mount before rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   useEffect(() => {
     if (isUnlocked && !memory.isInitialized) {
       memory.initialize();
@@ -231,6 +235,15 @@ export default function MemoryDashboard() {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  // Loading state while mounting
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
