@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,13 +37,31 @@ import {
   Sun,
   Moon,
   Search,
-  X
+  X,
+  CheckCircle2,
+  AlertTriangle
 } from '@/icons';
 import { useEncryptedDeepResearch } from '@/hooks/useEncryptedDeepResearch';
 import { ResearchProgress } from '@/components/vault-chat/ResearchProgress';
 import { ResearchResult } from '@/components/vault-chat/ResearchResult';
 import { cn } from '@/lib/utils';
 import { ConversationListView } from '@/components/vault-chat/ConversationListView';
+import {
+  classifyQuery,
+  generateGroundingPrompt,
+  processResponseForVerification,
+  generateUncertaintyResponse,
+  type GroundedResponse,
+  type SourceCitation
+} from '@/lib/trust/grounded-response';
+import { GroundedResponseDisplay } from '@/components/trust/GroundedResponseDisplay';
+import { UncertaintyDisplay } from '@/components/trust/UncertaintyDisplay';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // Matches encrypted_conversations table schema
 interface Conversation {
@@ -79,6 +97,22 @@ interface Message {
 interface DecryptedMessage extends Message {
   content: string;
   decrypted: boolean;
+  groundedResponse?: GroundedResponse;
+  metadata?: {
+    type?: string;
+    citations?: any[];
+    model?: string;
+    usage?: any;
+    processingTime?: number;
+    isEncrypted?: boolean;
+  };
+}
+
+// Uncertainty dialog state
+interface UncertaintyDialogState {
+  query: string;
+  domains: string[];
+  searchAttempted: boolean;
 }
 // Helper function to insert message with retry on sequence collision
 async function insertMessageWithRetry(
@@ -122,6 +156,7 @@ async function insertMessageWithRetry(
 }
 
 const VaultChat = () => {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,6 +174,10 @@ const VaultChat = () => {
   const [conversationToExport, setConversationToExport] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('claude-3-5-sonnet-20241022');
   const [zeroRetention, setZeroRetention] = useState(false);
+  
+  // Grounded/Verified mode state
+  const [groundedMode, setGroundedMode] = useState(true); // Default ON for safety
+  const [uncertaintyDialog, setUncertaintyDialog] = useState<UncertaintyDialogState | null>(null);
   const [integrations, setIntegrations] = useState([
     { type: 'slack', isConnected: false, isActive: false },
     { type: 'notion', isConnected: false, isActive: false },
@@ -957,20 +996,81 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
       setIsEncrypting(true);
       const encryptionStart = Date.now();
 
-      // Get RAG context if enabled
+      // 1. Classify the query for grounding
+      const queryClassification = classifyQuery(messageContent);
+      
+      // 2. Search for relevant sources (RAG context)
       let ragContext: string | undefined;
+      let memorySources: SourceCitation[] = [];
       
       if ((hasContext || integrations.some(i => i.isActive)) && contextEnabled) {
         console.log('[Vault Chat] 🔍 Searching for relevant context...');
-        const relevantChunks = await searchContext(messageContent, 5);
+        const relevantChunks = await searchContext(messageContent, 10);
         
         if (relevantChunks.length > 0) {
           ragContext = getContextPrompt(relevantChunks);
           console.log(`[Vault Chat] 📚 Found ${relevantChunks.length} relevant chunks`);
+          
+          // Convert to SourceCitation format for grounding
+          memorySources = relevantChunks.map((chunk, idx) => ({
+            id: chunk.id || `chunk-${idx}`,
+            documentId: chunk.id || `doc-${idx}`,
+            documentName: chunk.filename || 'Document',
+            pageNumber: chunk.metadata?.page_number,
+            chunkIndex: chunk.chunkIndex || idx,
+            excerpt: chunk.content?.slice(0, 200) || '',
+            relevanceScore: chunk.similarity || 0.5,
+            timestamp: Date.now()
+          }));
         }
       }
       
-      // Add user profile context for personalization
+      // 3. Check if we should show "I don't know" (grounded mode + requires grounding)
+      if (groundedMode && queryClassification.requiresGrounding) {
+        const uncertaintyResponse = generateUncertaintyResponse(
+          messageContent,
+          memorySources,
+          queryClassification.domains
+        );
+        
+        if (uncertaintyResponse) {
+          // Show uncertainty UI instead of sending to AI
+          setIsEncrypting(false);
+          setUncertaintyDialog({
+            query: messageContent,
+            domains: queryClassification.domains,
+            searchAttempted: memorySources.length > 0
+          });
+          return;
+        }
+      }
+      
+      // 4. Build grounding prompt if in grounded mode
+      let groundingContext: string | undefined;
+      if (groundedMode && queryClassification.requiresGrounding) {
+        const availableSources = memorySources.map(s => ({
+          name: s.documentName,
+          type: 'document'
+        }));
+        
+        groundingContext = generateGroundingPrompt(
+          queryClassification.domains,
+          availableSources
+        );
+        
+        // Add source content to context
+        if (memorySources.length > 0) {
+          groundingContext += '\n\n=== RELEVANT SOURCES FROM USER DOCUMENTS ===\n';
+          for (const source of memorySources.slice(0, 5)) {
+            groundingContext += `\n[${source.documentName}]:\n"${source.excerpt}"\n`;
+          }
+          groundingContext += '\n=== END SOURCES ===\n';
+        }
+        
+        console.log('[Vault Chat] 🔒 Grounded mode active with', memorySources.length, 'sources');
+      }
+      
+      // 5. Add user profile context for personalization
       let profileContext: string | undefined;
       if (userProfile.isReady) {
         profileContext = userProfile.getContextPrompt();
@@ -978,6 +1078,11 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
           console.log('[Vault Chat] 👤 Adding user profile context');
         }
       }
+      
+      // Combine all context
+      const combinedContext = [groundingContext, ragContext, profileContext]
+        .filter(Boolean)
+        .join('\n\n');
 
       // Encrypt user message
       const encryptedUserMessage = await chatEncryption.encryptMessage(messageContent, key);
@@ -1059,8 +1164,8 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
             model: modelToUse,
             messages: messageHistory,
             max_tokens: 2048,
-            temperature: 0.7,
-            rag_context: ragContext,
+            temperature: groundedMode ? 0.3 : 0.7, // Lower temperature for grounded mode
+            rag_context: combinedContext || ragContext,
             profile_context: profileContext,
             zero_retention: retentionToUse === 'zerotrace',
           }),
@@ -1118,6 +1223,18 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         sequence_number: assistantSeqNum
       });
 
+      // 6. Process response for verification if in grounded mode
+      let groundedResponse: GroundedResponse | undefined;
+      if (groundedMode && queryClassification.requiresGrounding) {
+        groundedResponse = processResponseForVerification(
+          assistantContent,
+          memorySources,
+          queryClassification
+        );
+        groundedResponse.metadata.modelUsed = modelUsed || modelToUse;
+        console.log('[Vault Chat] 🔒 Grounded response:', groundedResponse.overallConfidence, 'confidence');
+      }
+
       // Add to UI
       const assistantMsgData: DecryptedMessage = {
         id: assistantMsgId,
@@ -1131,7 +1248,8 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         created_at: new Date().toISOString(),
         expires_at: null,
         content: assistantContent,
-        decrypted: true
+        decrypted: true,
+        groundedResponse
       };
       setMessages(prev => [...prev, assistantMsgData]);
 
@@ -1456,20 +1574,62 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                 </div>
               ) : (
                 <div className="max-w-4xl mx-auto">
+                  {/* Uncertainty Dialog */}
+                  {uncertaintyDialog && (
+                    <div className="mb-4">
+                      <UncertaintyDisplay
+                        query={uncertaintyDialog.query}
+                        domains={uncertaintyDialog.domains}
+                        searchAttempted={uncertaintyDialog.searchAttempted}
+                        onUploadDocuments={() => {
+                          setUncertaintyDialog(null);
+                          navigate('/ghost/memory');
+                        }}
+                        onRephrase={() => {
+                          setUncertaintyDialog(null);
+                        }}
+                        onAskAnyway={async () => {
+                          // Temporarily disable grounded mode and resend
+                          const query = uncertaintyDialog.query;
+                          setUncertaintyDialog(null);
+                          setGroundedMode(false);
+                          // Re-send the message with grounded mode off
+                          setTimeout(() => {
+                            handleSendMessage(query);
+                            setGroundedMode(true); // Re-enable after sending
+                          }, 100);
+                        }}
+                      />
+                    </div>
+                  )}
+                  
                   {messages.map((message) => {
-                    const msgWithMeta = message as DecryptedMessage & { metadata?: any };
-                    const isResearchResult = msgWithMeta.metadata?.type === 'research';
+                    const isResearchResult = message.metadata?.type === 'research';
                     
                     if (isResearchResult && message.role === 'assistant') {
                       return (
                         <div key={message.id} className="mb-4">
                           <ResearchResult
                             content={message.content}
-                            citations={msgWithMeta.metadata.citations || []}
-                            isEncrypted={msgWithMeta.metadata.isEncrypted || false}
-                            model={msgWithMeta.metadata.model || 'unknown'}
-                            processingTime={msgWithMeta.metadata.processingTime || 0}
-                            usage={msgWithMeta.metadata.usage || { inputTokens: 0, outputTokens: 0, searchQueries: 0 }}
+                            citations={message.metadata?.citations || []}
+                            isEncrypted={message.metadata?.isEncrypted || false}
+                            model={message.metadata?.model || 'unknown'}
+                            processingTime={message.metadata?.processingTime || 0}
+                            usage={message.metadata?.usage || { inputTokens: 0, outputTokens: 0, searchQueries: 0 }}
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    // Show grounded response display for messages with grounding
+                    if (message.groundedResponse && message.role === 'assistant') {
+                      return (
+                        <div key={message.id} className="mb-4">
+                          <GroundedResponseDisplay
+                            response={message.groundedResponse}
+                            onSourceClick={(source) => {
+                              navigate(`/ghost/memory?highlight=${source.documentId}`);
+                            }}
                           />
                         </div>
                       );
@@ -1569,8 +1729,47 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
             {/* Message Input */}
             <div className="border-t border-border p-4 bg-card">
               <div className="max-w-4xl mx-auto">
-                {/* Deep Research Toggle */}
+                {/* Mode Toggles */}
                 <div className="flex items-center gap-2 mb-3">
+                  {/* Grounded/Verified Mode Toggle */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setGroundedMode(!groundedMode)}
+                          className={cn(
+                            "gap-2 transition-all duration-200",
+                            groundedMode
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 ring-2 ring-green-500/20"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {groundedMode ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4" />
+                          )}
+                          <span className="hidden sm:inline">
+                            {groundedMode ? "Verified Mode" : "Standard Mode"}
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="font-medium mb-1">
+                          {groundedMode ? "Verified Mode Active" : "Standard Mode"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {groundedMode 
+                            ? "AI must cite sources from your documents. Best for legal, medical, financial questions."
+                            : "AI uses general knowledge. May include unverified claims."}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  {/* Deep Research Toggle */}
                   <Button
                     variant="ghost"
                     size="sm"
