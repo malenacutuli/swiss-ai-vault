@@ -58,7 +58,8 @@ import { useToast } from '@/hooks/use-toast';
 import { VaultUnlockDialog } from '@/components/vault-chat/VaultUnlockDialog';
 import { MemorySyncSettings } from '@/components/memory/MemorySyncSettings';
 import { SyncStatusIndicator } from '@/components/memory/SyncStatusIndicator';
-
+import { MemoryRestoreDialog } from '@/components/memory/MemoryRestoreDialog';
+import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 interface MemoryStats {
   count: number;
   sizeEstimateBytes: number;
@@ -72,6 +73,7 @@ export default function MemoryDashboard() {
   const { toast } = useToast();
   const { isUnlocked, isInitialized: vaultInitialized } = useEncryption();
   const memory = useMemory();
+  const { shouldShowRestore, dismissRestore } = useNewDeviceDetection();
   
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -559,6 +561,17 @@ export default function MemoryDashboard() {
           open={showUnlock}
           onOpenChange={setShowUnlock}
           onUnlocked={() => setShowUnlock(false)}
+        />
+        
+        {/* Memory Restore Dialog */}
+        <MemoryRestoreDialog
+          open={shouldShowRestore}
+          onOpenChange={(open) => {
+            if (!open) dismissRestore();
+          }}
+          onComplete={() => {
+            memory.getStats().then(setStats);
+          }}
         />
       </div>
     </div>
