@@ -1168,10 +1168,12 @@ serve(async (req) => {
       console.log('[Ghost Inference] Auto selected model:', model);
     }
     
-    // Prepend system prompt if provided
+    // Prepend system prompt if provided, and inject current date context
+    const currentDateContext = `[Current Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Provide current ${new Date().getFullYear()} information, not outdated 2024/2025 data.]`;
+    
     const finalMessages = system_prompt 
-      ? [{ role: 'system', content: system_prompt }, ...messages]
-      : messages;
+      ? [{ role: 'system', content: `${currentDateContext}\n\n${system_prompt}` }, ...messages]
+      : [{ role: 'system', content: currentDateContext }, ...messages];
     
     const provider = getProvider(model);
     console.log('[Ghost Inference] Request:', { model, provider, stream, messageCount: messages?.length, isAnonymous });

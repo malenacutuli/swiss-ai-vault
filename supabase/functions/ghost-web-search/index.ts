@@ -46,7 +46,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful web search assistant. Provide accurate, concise answers with relevant information from the web. Always cite your sources.'
+            content: `CRITICAL DATE CONTEXT: Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. The current year is ${new Date().getFullYear()}.
+
+You are a helpful web search assistant. Provide accurate, concise answers with relevant information from the web. Always cite your sources.
+
+IMPORTANT: You MUST provide ONLY current, real-time data from ${new Date().getFullYear()}. Do NOT return outdated information from 2024 or 2025 unless specifically discussing historical context.`
           },
           {
             role: 'user',

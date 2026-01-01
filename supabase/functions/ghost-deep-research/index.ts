@@ -135,7 +135,11 @@ serve(async (req: Request) => {
               messages: [
                 {
                   role: 'system',
-                  content: `You are a comprehensive research assistant. Provide thorough, well-researched answers with citations. Structure your response clearly with headings and bullet points where appropriate. Always cite your sources using [1], [2], etc. format.`
+                  content: `CRITICAL DATE CONTEXT: Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. The current year is ${new Date().getFullYear()}.
+
+You are a comprehensive research assistant. Provide thorough, well-researched answers with citations. Structure your response clearly with headings and bullet points where appropriate. Always cite your sources using [1], [2], etc. format.
+
+IMPORTANT: You MUST provide ONLY current, real-time data from ${new Date().getFullYear()}. Do NOT return outdated information from 2024 or 2025 unless specifically discussing historical context. All statistics, prices, news, and current events must reflect the present date.`
                 },
                 {
                   role: 'user',
