@@ -144,6 +144,9 @@ function GhostChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false); // Prevent double submission
+  
+  // Ref to always have the latest handleSendMessage (avoids stale closure in auto-send effect)
+  const handleSendMessageRef = useRef<((content?: string) => Promise<void>) | null>(null);
 
   // === ENTERPRISE-GRADE INITIALIZATION STATE ===
   // Message queue for messages sent before storage is ready
@@ -289,13 +292,23 @@ function GhostChat() {
       // Reset retry count for fresh attempt
       retryCountRef.current = 0;
       
-      // Now send the message properly - call handleSendMessage
-      // The queue check won't trigger again since isInitialized is now true
-      handleSendMessage(content);
+      // USE REF TO AVOID STALE CLOSURE
+      if (handleSendMessageRef.current) {
+        await handleSendMessageRef.current(content);
+      } else {
+        console.error('[GhostChat] ❌ handleSendMessageRef not initialized');
+        // Fallback: restore message to input
+        setInputValue(content);
+        toast({
+          title: 'Error',
+          description: 'Please try sending your message again.',
+          variant: 'destructive',
+        });
+      }
     };
     
     sendQueuedMessage();
-  }, [isInitialized, pendingMessage]);
+  }, [isInitialized, pendingMessage, toast]); // DO NOT add handleSendMessage here
 
 
   // Ghost credits hook
@@ -1202,6 +1215,11 @@ function GhostChat() {
     // Execute the core send logic
     await executeMessageSend(messageContent, attachedFiles);
   };
+
+  // Keep handleSendMessageRef updated to avoid stale closures in auto-send effect
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
 
   // Export - open dialog with options
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
