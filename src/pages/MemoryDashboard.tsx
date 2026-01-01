@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -59,7 +58,11 @@ import { VaultUnlockDialog } from '@/components/vault-chat/VaultUnlockDialog';
 import { MemorySyncSettings } from '@/components/memory/MemorySyncSettings';
 import { SyncStatusIndicator } from '@/components/memory/SyncStatusIndicator';
 import { MemoryRestoreDialog } from '@/components/memory/MemoryRestoreDialog';
+import { MemoryErrorBoundary } from '@/components/memory/MemoryErrorBoundary';
+import { MemoryLoadingState } from '@/components/memory/MemoryLoadingState';
+import { MemoryOfflineIndicator } from '@/components/memory/MemoryOfflineIndicator';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
+
 interface MemoryStats {
   count: number;
   sizeEstimateBytes: number;
@@ -68,7 +71,7 @@ interface MemoryStats {
   newestTimestamp: number | null;
 }
 
-export default function MemoryDashboard() {
+function MemoryDashboardContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isUnlocked, isInitialized: vaultInitialized } = useEncryption();
@@ -346,17 +349,19 @@ export default function MemoryDashboard() {
           </TabsList>
           
           <TabsContent value="memory" className="space-y-6">
+            {/* Offline Indicator */}
+            <MemoryOfflineIndicator />
+            
             {/* Loading State */}
-            {memory.isLoading && (
-              <Card>
-                <CardContent className="py-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">{memory.progress.message || 'Initializing...'}</span>
-                  </div>
-                  <Progress value={memory.progress.percent} className="h-1" />
-                </CardContent>
-              </Card>
+            {memory.isLoading && !memory.isInitialized && (
+              <MemoryLoadingState
+                stage={
+                  memory.progress.percent < 20 ? 'initializing' : 
+                  memory.progress.percent < 80 ? 'downloading' : 'loading'
+                }
+                progress={memory.progress.percent}
+                message={memory.progress.message}
+              />
             )}
             
             {/* Stats Cards */}
@@ -575,5 +580,14 @@ export default function MemoryDashboard() {
         />
       </div>
     </div>
+  );
+}
+
+// Wrap with error boundary
+export default function MemoryDashboard() {
+  return (
+    <MemoryErrorBoundary>
+      <MemoryDashboardContent />
+    </MemoryErrorBoundary>
   );
 }
