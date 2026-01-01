@@ -80,37 +80,26 @@ const DEFAULT_USAGE: UsageToday = {
 export function useSubscription() {
   const { user } = useAuth();
 
-  // Check if user has admin role (bypasses all tier restrictions)
-  const { data: isAdmin } = useQuery({
-    queryKey: ['user-admin-role', user?.id],
-    queryFn: async (): Promise<boolean> => {
-      if (!user) return false;
-      
-      const { data, error } = await supabase.rpc('has_role', {
-        _user_id: user.id,
-        _role: 'admin'
-      });
-      
-      if (error) {
-        console.error('Error checking admin role:', error);
-        return false;
-      }
-      
-      return data === true;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Fetch subscription and tier info
+  // Fetch subscription, tier info, AND admin status in a single query to avoid hooks order issues
   const { 
     data: subscriptionData, 
     isLoading: isLoadingSubscription, 
     refetch 
   } = useQuery({
     queryKey: ['unified-subscription', user?.id],
-    queryFn: async (): Promise<{ subscription: Subscription; limits: TierLimits }> => {
-      if (!user) return { subscription: DEFAULT_SUBSCRIPTION, limits: DEFAULT_LIMITS };
+    queryFn: async (): Promise<{ subscription: Subscription; limits: TierLimits; isAdmin: boolean }> => {
+      if (!user) return { subscription: DEFAULT_SUBSCRIPTION, limits: DEFAULT_LIMITS, isAdmin: false };
+
+      // Check admin role first
+      let isAdmin = false;
+      const { data: adminData, error: adminError } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      
+      if (!adminError && adminData === true) {
+        isAdmin = true;
+      }
 
       // Get tier info from RPC function (fallback to direct query if RPC fails)
       let tierInfo = { 
@@ -166,7 +155,7 @@ export function useSubscription() {
         status: (subData?.status || 'active') as SubscriptionStatus,
         currentPeriodEnd: subData?.current_period_end ? new Date(subData.current_period_end) : null,
         seatsTotal: subData?.seats_purchased || 0,
-        seatsUsed: 0, // TODO: Calculate from org_members count
+        seatsUsed: 0,
         stripeCustomerId: subData?.stripe_customer_id || null,
         stripeSubscriptionId: subData?.stripe_subscription_id || null,
       };
@@ -186,7 +175,7 @@ export function useSubscription() {
         canManageOrg: limitsData.can_manage_org ?? false,
       } : DEFAULT_LIMITS;
 
-      return { subscription, limits };
+      return { subscription, limits, isAdmin };
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -226,6 +215,7 @@ export function useSubscription() {
   const subscription = subscriptionData?.subscription || DEFAULT_SUBSCRIPTION;
   const limits = subscriptionData?.limits || DEFAULT_LIMITS;
   const usage = usageToday || DEFAULT_USAGE;
+  const adminBypass = subscriptionData?.isAdmin === true;
 
   // Calculate remaining usage
   const getRemainingUsage = (type: 'text' | 'image' | 'video' | 'research') => {
@@ -274,9 +264,6 @@ export function useSubscription() {
     
     return data;
   };
-
-  // Admin users bypass all tier restrictions
-  const adminBypass = isAdmin === true;
 
   return {
     // Core data
