@@ -57,6 +57,7 @@ import { useEncryption } from '@/hooks/useEncryption';
 import { useToast } from '@/hooks/use-toast';
 import { VaultUnlockDialog } from '@/components/vault-chat/VaultUnlockDialog';
 import { MemorySyncSettings } from '@/components/memory/MemorySyncSettings';
+import { SyncStatusIndicator } from '@/components/memory/SyncStatusIndicator';
 
 interface MemoryStats {
   count: number;
@@ -258,7 +259,10 @@ export default function MemoryDashboard() {
               <Brain className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Personal AI Memory</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold text-foreground">Personal AI Memory</h1>
+                <SyncStatusIndicator />
+              </div>
               <p className="text-sm text-muted-foreground">Your private knowledge base</p>
             </div>
           </div>
