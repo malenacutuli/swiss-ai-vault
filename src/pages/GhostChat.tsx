@@ -231,6 +231,51 @@ function GhostChat() {
     });
   }, [mode, isInitialized, conversations.length]);
 
+  // === LAYER 4: AUTO-SEND QUEUED MESSAGES WHEN READY ===
+  useEffect(() => {
+    const sendQueuedMessage = async () => {
+      if (!isInitialized || !pendingMessage || isSubmittingRef.current) {
+        return;
+      }
+      
+      // Check if message is too old (> 30 seconds = user probably gave up)
+      const messageAge = Date.now() - pendingMessage.timestamp;
+      if (messageAge > 30000) {
+        console.log('[GhostChat] ⏰ Queued message too old, discarding');
+        setPendingMessage(null);
+        // Remove the status message
+        setMessages(prev => prev.filter(m => !m.isStreaming || m.content !== 'Connecting to secure storage...'));
+        return;
+      }
+      
+      console.log('[GhostChat] 🚀 Storage ready, sending queued message...');
+      
+      // Remove the "connecting" status message
+      setMessages(prev => prev.filter(m => !m.isStreaming || m.content !== 'Connecting to secure storage...'));
+      
+      // Capture and clear pending message
+      const { content, attachments } = pendingMessage;
+      setPendingMessage(null);
+      
+      // Restore attachments if any
+      if (attachments.length > 0) {
+        setAttachedFiles(attachments);
+      }
+      
+      // Small delay to ensure state is settled
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Reset retry count for fresh attempt
+      retryCountRef.current = 0;
+      
+      // Now send the message properly - call handleSendMessage
+      // The queue check won't trigger again since isInitialized is now true
+      handleSendMessage(content);
+    };
+    
+    sendQueuedMessage();
+  }, [isInitialized, pendingMessage]);
+
 
   // Ghost credits hook
   const { balance, checkCredits, recordUsage, refreshCredits, isLoading: creditsLoading } = useGhostCredits();
