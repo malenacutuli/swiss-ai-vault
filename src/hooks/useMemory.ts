@@ -1,29 +1,15 @@
 // src/hooks/useMemory.ts
-// React hook for Personal AI Memory
-// Integrates with SwissVault's existing useEncryption for key management
+// React hook for Personal AI Memory with lazy imports to avoid circular deps
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import * as vault from '@/lib/crypto/key-vault';
-import {
-  initMemory,
-  isMemoryReady,
-  addDocument,
-  addFromURL,
-  addChatExcerpt,
-  addNote,
-  getContext,
-  buildContextPrompt,
-  deleteMemory,
-  deleteMemories,
-  getMemoryStats,
-  clearAllMemory,
-  exportMemories,
-  importMemories,
-  type ContextSnippet,
-  type AddDocumentResult,
-  type MemorySource
-} from '@/lib/memory/memory-manager';
+
+// Lazy import to avoid circular dependencies
+const getMemoryManager = async () => {
+  const manager = await import('@/lib/memory/memory-manager');
+  return manager;
+};
 
 // ==========================================
 // TYPES
@@ -32,6 +18,33 @@ import {
 export interface MemoryProgress {
   message: string;
   percent: number;
+}
+
+export type MemorySource = 'document' | 'chat' | 'note' | 'url';
+
+export interface ContextSnippet {
+  id: string;
+  content: string;
+  source: MemorySource;
+  score: number;
+  metadata: {
+    source: MemorySource;
+    filename?: string;
+    title?: string;
+    url?: string;
+    conversationId?: string;
+    chunkIndex?: number;
+    totalChunks?: number;
+    createdAt: number;
+    updatedAt?: number;
+  };
+}
+
+export interface AddDocumentResult {
+  documentId: string;
+  chunksAdded: number;
+  success: boolean;
+  error?: string;
 }
 
 export interface UseMemoryReturn {
@@ -83,7 +96,7 @@ export interface UseMemoryReturn {
 export function useMemory(): UseMemoryReturn {
   const { toast } = useToast();
   
-  const [isInitialized, setIsInitialized] = useState(isMemoryReady());
+  const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<MemoryProgress>({ message: '', percent: 0 });
   
@@ -116,7 +129,8 @@ export function useMemory(): UseMemoryReturn {
     setIsLoading(true);
     
     try {
-      await initMemory(handleProgress);
+      const manager = await getMemoryManager();
+      await manager.initMemory(handleProgress);
       setIsInitialized(true);
       console.log('[useMemory] ✅ Memory system initialized');
     } catch (error) {
@@ -131,13 +145,6 @@ export function useMemory(): UseMemoryReturn {
       initializingRef.current = false;
     }
   }, [isInitialized, handleProgress, toast]);
-  
-  // Update initialized state when embedding engine loads
-  useEffect(() => {
-    if (isMemoryReady() && !isInitialized) {
-      setIsInitialized(true);
-    }
-  }, [isInitialized]);
   
   // Add document to memory
   const addDocumentToMemory = useCallback(async (
@@ -156,7 +163,8 @@ export function useMemory(): UseMemoryReturn {
     
     setIsLoading(true);
     try {
-      const result = await addDocument(content, filename, key, handleProgress);
+      const manager = await getMemoryManager();
+      const result = await manager.addDocument(content, filename, key, handleProgress);
       
       if (result.success) {
         toast({
@@ -190,7 +198,8 @@ export function useMemory(): UseMemoryReturn {
     
     setIsLoading(true);
     try {
-      const result = await addFromURL(content, url, title, key, handleProgress);
+      const manager = await getMemoryManager();
+      const result = await manager.addFromURL(content, url, title, key, handleProgress);
       
       if (result.success) {
         toast({
@@ -214,7 +223,8 @@ export function useMemory(): UseMemoryReturn {
     if (!key) return null;
     
     try {
-      return await addChatExcerpt(content, conversationId, key);
+      const manager = await getMemoryManager();
+      return await manager.addChatExcerpt(content, conversationId, key);
     } catch (error) {
       console.error('[useMemory] Failed to add chat:', error);
       return null;
@@ -237,7 +247,8 @@ export function useMemory(): UseMemoryReturn {
     }
     
     try {
-      const id = await addNote(content, title, key);
+      const manager = await getMemoryManager();
+      const id = await manager.addNote(content, title, key);
       toast({
         title: 'Note saved to memory',
         description: `"${title}" will be available for context`
@@ -268,13 +279,13 @@ export function useMemory(): UseMemoryReturn {
       return [];
     }
     
-    if (!isMemoryReady()) {
-      console.warn('[useMemory] Cannot search: embeddings not ready');
-      return [];
-    }
-    
     try {
-      return await getContext(query, key, options);
+      const manager = await getMemoryManager();
+      if (!manager.isMemoryReady()) {
+        console.warn('[useMemory] Cannot search: embeddings not ready');
+        return [];
+      }
+      return await manager.getContext(query, key, options);
     } catch (error) {
       console.error('[useMemory] Search failed:', error);
       return [];
@@ -287,28 +298,33 @@ export function useMemory(): UseMemoryReturn {
     prompt: string;
   }> => {
     const snippets = await searchMemory(query);
-    const prompt = buildContextPrompt(snippets);
+    const manager = await getMemoryManager();
+    const prompt = manager.buildContextPrompt(snippets);
     return { snippets, prompt };
   }, [searchMemory]);
   
   // Delete single item
   const deleteItem = useCallback(async (id: string) => {
-    await deleteMemory(id);
+    const manager = await getMemoryManager();
+    await manager.deleteMemory(id);
   }, []);
   
   // Delete multiple items
   const deleteItems = useCallback(async (ids: string[]) => {
-    await deleteMemories(ids);
+    const manager = await getMemoryManager();
+    await manager.deleteMemories(ids);
   }, []);
   
   // Get stats
   const getStats = useCallback(async () => {
-    return getMemoryStats();
+    const manager = await getMemoryManager();
+    return manager.getMemoryStats();
   }, []);
   
   // Clear all memory
   const clearAll = useCallback(async () => {
-    await clearAllMemory();
+    const manager = await getMemoryManager();
+    await manager.clearAllMemory();
     toast({
       title: 'Memory cleared',
       description: 'All stored memories have been removed'
@@ -317,7 +333,8 @@ export function useMemory(): UseMemoryReturn {
   
   // Export backup
   const exportBackup = useCallback(async (): Promise<Blob> => {
-    const blob = await exportMemories();
+    const manager = await getMemoryManager();
+    const blob = await manager.exportMemories();
     toast({
       title: 'Memory exported',
       description: 'Your encrypted memories are ready for download'
@@ -328,7 +345,8 @@ export function useMemory(): UseMemoryReturn {
   // Import backup
   const importBackup = useCallback(async (file: File): Promise<number> => {
     try {
-      const count = await importMemories(file);
+      const manager = await getMemoryManager();
+      const count = await manager.importMemories(file);
       toast({
         title: 'Memory imported',
         description: `${count} memories restored`
@@ -373,6 +391,3 @@ export function useMemory(): UseMemoryReturn {
     importBackup
   };
 }
-
-// Re-export types
-export type { ContextSnippet, AddDocumentResult, MemorySource };
