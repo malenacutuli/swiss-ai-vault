@@ -80,6 +80,28 @@ const DEFAULT_USAGE: UsageToday = {
 export function useSubscription() {
   const { user } = useAuth();
 
+  // Check if user has admin role (bypasses all tier restrictions)
+  const { data: isAdmin } = useQuery({
+    queryKey: ['user-admin-role', user?.id],
+    queryFn: async (): Promise<boolean> => {
+      if (!user) return false;
+      
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      
+      if (error) {
+        console.error('Error checking admin role:', error);
+        return false;
+      }
+      
+      return data === true;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   // Fetch subscription and tier info
   const { 
     data: subscriptionData, 
@@ -90,21 +112,36 @@ export function useSubscription() {
     queryFn: async (): Promise<{ subscription: Subscription; limits: TierLimits }> => {
       if (!user) return { subscription: DEFAULT_SUBSCRIPTION, limits: DEFAULT_LIMITS };
 
-      // Get tier info from RPC function
-      const { data: tierData, error: tierError } = await supabase
-        .rpc('get_user_tier', { p_user_id: user.id });
-
-      if (tierError) {
-        console.error('Error fetching tier:', tierError);
-      }
-
-      const tierInfo = tierData?.[0] || { 
+      // Get tier info from RPC function (fallback to direct query if RPC fails)
+      let tierInfo = { 
         tier: 'ghost_free', 
         tier_display_name: 'Ghost Free',
         is_org_member: false,
         org_id: null,
         org_name: null
       };
+
+      const { data: tierData, error: tierError } = await supabase
+        .rpc('get_user_tier', { p_user_id: user.id });
+
+      if (tierError) {
+        console.error('Error fetching tier from RPC:', tierError);
+        // Fallback: get tier directly from unified_subscriptions
+        const { data: fallbackData } = await supabase
+          .from('unified_subscriptions')
+          .select('tier')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (fallbackData) {
+          tierInfo.tier = fallbackData.tier || 'ghost_free';
+          tierInfo.tier_display_name = fallbackData.tier === 'ghost_pro' ? 'Ghost Pro' : 
+            fallbackData.tier === 'premium' ? 'SwissVault Pro' : 
+            fallbackData.tier === 'enterprise' ? 'Enterprise' : 'Ghost Free';
+        }
+      } else {
+        tierInfo = tierData?.[0] || tierInfo;
+      }
 
       // Get subscription details from unified_subscriptions
       const { data: subData } = await supabase
@@ -238,11 +275,15 @@ export function useSubscription() {
     return data;
   };
 
+  // Admin users bypass all tier restrictions
+  const adminBypass = isAdmin === true;
+
   return {
     // Core data
     subscription,
     limits,
     usage,
+    isAdmin: adminBypass,
     
     // Loading states
     isLoading: isLoadingSubscription || isLoadingUsage,
@@ -253,20 +294,20 @@ export function useSubscription() {
     refetch,
     refetchUsage,
     
-    // Tier convenience booleans
-    isFree: subscription.tier === 'ghost_free',
-    isPro: subscription.tier === 'ghost_pro',
-    isPremium: subscription.tier === 'premium',
-    isEnterprise: subscription.tier === 'enterprise',
+    // Tier convenience booleans (admin bypasses all)
+    isFree: !adminBypass && subscription.tier === 'ghost_free',
+    isPro: adminBypass || subscription.tier === 'ghost_pro',
+    isPremium: adminBypass || subscription.tier === 'premium',
+    isEnterprise: adminBypass || subscription.tier === 'enterprise',
     
-    // Feature access
-    hasVaultAccess: ['premium', 'enterprise'].includes(subscription.tier),
-    hasApiAccess: limits.canUseApi,
-    canTrainModels: limits.canTrainModels,
-    canBackupHistory: limits.canBackupHistory,
-    canAccessNewModels: limits.canAccessNewModels,
-    canUseIntegrations: limits.canUseIntegrations,
-    canManageOrg: limits.canManageOrg,
+    // Feature access (admin has all access)
+    hasVaultAccess: adminBypass || ['premium', 'enterprise'].includes(subscription.tier),
+    hasApiAccess: adminBypass || limits.canUseApi,
+    canTrainModels: adminBypass || limits.canTrainModels,
+    canBackupHistory: adminBypass || limits.canBackupHistory,
+    canAccessNewModels: adminBypass || limits.canAccessNewModels,
+    canUseIntegrations: adminBypass || limits.canUseIntegrations,
+    canManageOrg: adminBypass || limits.canManageOrg,
     
     // Usage helpers
     getRemainingUsage,
