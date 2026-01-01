@@ -28,11 +28,27 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ca: 'Catalan',
 };
 
+// Get current date in ISO format for consistent date handling
+function getCurrentDate(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Get current year for validation
+function getCurrentYear(): number {
+  return new Date().getFullYear();
+}
+
 async function fetchWithAI(prompt: string, language: string = 'en') {
+  const currentDate = getCurrentDate();
+  const currentYear = getCurrentYear();
   const languageName = LANGUAGE_NAMES[language] || 'English';
   const languageInstruction = language !== 'en' 
     ? `IMPORTANT: You MUST respond entirely in ${languageName}. All text, descriptions, and explanations must be in ${languageName}.`
     : '';
+
+  const dateValidationInstruction = `CRITICAL: Today's date is ${currentDate}. The current year is ${currentYear}. 
+You MUST provide ONLY current, real-time data. Do NOT return any mock data, placeholder data, or historical data from previous years (2024, 2025, etc.). 
+All dates in your response must be from ${currentYear} or later. If you cannot fetch real-time data, indicate this clearly rather than providing outdated information.`;
 
   // Try Perplexity first for real-time web data
   if (PERPLEXITY_API_KEY) {
@@ -48,7 +64,7 @@ async function fetchWithAI(prompt: string, language: string = 'en') {
           messages: [
             { 
               role: 'system', 
-              content: `You are a financial data assistant. Provide accurate, up-to-date financial information. Today's date is ${new Date().toISOString().split('T')[0]}. ${languageInstruction} Always return data in the exact JSON format requested.`
+              content: `You are a financial data assistant providing LIVE, REAL-TIME market data. ${dateValidationInstruction} ${languageInstruction} Always return data in the exact JSON format requested. Never use mock or sample data.`
             },
             { role: 'user', content: prompt }
           ],
@@ -83,7 +99,7 @@ async function fetchWithAI(prompt: string, language: string = 'en') {
           messages: [
             { 
               role: 'system', 
-              content: `You are a financial data assistant. Today's date is ${new Date().toISOString().split('T')[0]}. ${languageInstruction} Provide realistic market data based on current market conditions. Always return data in the exact JSON format requested.`
+              content: `You are a financial data assistant. ${dateValidationInstruction} ${languageInstruction} Provide realistic market data based on current ${currentYear} market conditions. Always return data in the exact JSON format requested. All prices and data must reflect current market values.`
             },
             { role: 'user', content: prompt }
           ],
@@ -130,7 +146,14 @@ function parseJSONFromResponse(content: string): any {
 }
 
 async function getPredictionMarkets(language: string) {
-  const prompt = `Get the top 4 current prediction markets from Polymarket and Kalshi. Return JSON array with this exact structure:
+  const currentDate = getCurrentDate();
+  const currentYear = getCurrentYear();
+  
+  const prompt = `Get the top 4 CURRENT prediction markets from Polymarket and Kalshi as of ${currentDate}.
+
+IMPORTANT: Only return markets that are currently active in ${currentYear}. Do NOT include any historical or closed markets.
+
+Return JSON array with this exact structure:
 [
   {
     "question": "Question text",
@@ -143,7 +166,7 @@ async function getPredictionMarkets(language: string) {
   }
 ]
 
-Focus on major financial, economic, and market predictions that are currently active. Include current probability percentages.`;
+Focus on major financial, economic, and market predictions that are currently active today (${currentDate}). Include current probability percentages from live markets.`;
 
   const result = await fetchWithAI(prompt, language);
   const data = parseJSONFromResponse(result.content);
@@ -158,9 +181,15 @@ Focus on major financial, economic, and market predictions that are currently ac
 
 async function getEarningsCalendar(language: string) {
   const today = new Date();
+  const currentDate = getCurrentDate();
+  const currentYear = getCurrentYear();
   const nextWeek = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
   
-  const prompt = `Get upcoming earnings reports for major companies in the next 2 weeks (from ${today.toISOString().split('T')[0]} to ${nextWeek.toISOString().split('T')[0]}). Also include 2-3 recent earnings that just happened.
+  const prompt = `Get upcoming earnings reports for major companies in the next 2 weeks starting from TODAY ${currentDate} to ${nextWeek.toISOString().split('T')[0]}.
+
+CRITICAL: Today is ${currentDate}. All dates must be in ${currentYear}. Do NOT provide any dates from 2024 or 2025.
+
+Also include 2-3 recent earnings that happened within the last 7 days (after ${new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}).
 
 Return JSON with this exact structure:
 {
@@ -168,7 +197,7 @@ Return JSON with this exact structure:
     {
       "company": "Company Name",
       "symbol": "TICKER",
-      "date": "Month DD",
+      "date": "January XX, ${currentYear}",
       "time": "afterClose or beforeOpen",
       "estimate": "$X.XX"
     }
@@ -177,7 +206,7 @@ Return JSON with this exact structure:
     {
       "company": "Company Name",
       "symbol": "TICKER", 
-      "date": "Month DD",
+      "date": "December XX, ${currentYear - 1} or January XX, ${currentYear}",
       "time": "afterClose or beforeOpen",
       "estimate": "$X.XX",
       "actual": "$X.XX"
@@ -185,7 +214,7 @@ Return JSON with this exact structure:
   ]
 }
 
-Focus on major tech, financial, and consumer companies.`;
+Focus on major tech, financial, and consumer companies with actual scheduled earnings dates.`;
 
   const result = await fetchWithAI(prompt, language);
   const data = parseJSONFromResponse(result.content);
@@ -199,7 +228,11 @@ Focus on major tech, financial, and consumer companies.`;
 }
 
 async function getCryptoMarkets(language: string) {
-  const prompt = `Get current prices and 24h changes for top 6 cryptocurrencies (BTC, ETH, SOL, BNB, XRP, ADA).
+  const currentDate = getCurrentDate();
+  
+  const prompt = `Get CURRENT LIVE prices and 24h changes for top 6 cryptocurrencies (BTC, ETH, SOL, BNB, XRP, ADA) as of right now (${currentDate}).
+
+CRITICAL: Provide REAL-TIME market prices, not historical or mock data. These should reflect today's actual trading prices.
 
 Return JSON array with this exact structure:
 [
@@ -213,7 +246,7 @@ Return JSON array with this exact structure:
   }
 ]
 
-Use current real market prices.`;
+Use current real market prices from today (${currentDate}).`;
 
   const result = await fetchWithAI(prompt, language);
   const data = parseJSONFromResponse(result.content);
@@ -227,6 +260,9 @@ Use current real market prices.`;
 }
 
 async function getRegionalMarkets(region: string, language: string) {
+  const currentDate = getCurrentDate();
+  const currentYear = getCurrentYear();
+  
   const regionPrompts: Record<string, string> = {
     us: 'US stock market indices: S&P 500, Dow Jones, Nasdaq, Russell 2000',
     europe: 'European stock market indices: DAX, CAC 40, FTSE 100, Euro Stoxx 50',
@@ -238,7 +274,9 @@ async function getRegionalMarkets(region: string, language: string) {
 
   const regionDesc = regionPrompts[region] || regionPrompts.us;
   
-  const prompt = `Get current market data for ${regionDesc}.
+  const prompt = `Get CURRENT LIVE market data for ${regionDesc} as of today (${currentDate}).
+
+CRITICAL: Provide REAL-TIME market values from today's trading session. Do NOT use historical data from 2024 or 2025. Current year is ${currentYear}.
 
 Return JSON with this structure:
 {
@@ -251,10 +289,10 @@ Return JSON with this structure:
       "changePercent": 1.02
     }
   ],
-  "summary": "Brief 2-3 sentence market summary explaining today's performance and key drivers."
+  "summary": "Brief 2-3 sentence market summary explaining today's (${currentDate}) performance and key drivers."
 }
 
-Use current real market values and provide an accurate summary.`;
+Use current real market values from today's session and provide an accurate summary of today's market conditions.`;
 
   const result = await fetchWithAI(prompt, language);
   const data = parseJSONFromResponse(result.content);
@@ -268,7 +306,12 @@ Use current real market values and provide an accurate summary.`;
 }
 
 async function getStockScreener(language: string) {
-  const prompt = `Get current stock data for 6 major stocks across technology, healthcare, and finance sectors.
+  const currentDate = getCurrentDate();
+  const currentYear = getCurrentYear();
+  
+  const prompt = `Get CURRENT stock data for 6 major stocks across technology, healthcare, and finance sectors as of today (${currentDate}).
+
+CRITICAL: Provide REAL-TIME stock prices from today's market. Do NOT use historical data from 2024 or 2025. Current year is ${currentYear}.
 
 Return JSON array with this exact structure:
 [
@@ -284,7 +327,7 @@ Return JSON array with this exact structure:
   }
 ]
 
-Include: AAPL, MSFT, NVDA, JNJ, JPM, V with current real data.`;
+Include: AAPL, MSFT, NVDA, JNJ, JPM, V with current real-time data from today's trading.`;
 
   const result = await fetchWithAI(prompt, language);
   const data = parseJSONFromResponse(result.content);
@@ -298,7 +341,12 @@ Include: AAPL, MSFT, NVDA, JNJ, JPM, V with current real data.`;
 }
 
 async function getWatchlistData(language: string) {
-  const prompt = `Get current stock prices for popular watchlist stocks: TSLA, NVDA, META, GOOGL, AAPL, AMZN.
+  const currentDate = getCurrentDate();
+  const currentYear = getCurrentYear();
+  
+  const prompt = `Get CURRENT LIVE stock prices for popular watchlist stocks: TSLA, NVDA, META, GOOGL, AAPL, AMZN as of right now (${currentDate}).
+
+CRITICAL: Provide REAL-TIME market prices from today's trading session. Do NOT use historical data from 2024 or 2025. Current year is ${currentYear}.
 
 Return JSON array with this exact structure:
 [
@@ -311,7 +359,7 @@ Return JSON array with this exact structure:
   }
 ]
 
-Use current real market prices.`;
+Use current real market prices from today's live trading.`;
 
   const result = await fetchWithAI(prompt, language);
   const data = parseJSONFromResponse(result.content);
@@ -332,7 +380,7 @@ serve(async (req) => {
   try {
     const { type, region = 'us', language = 'en' }: FinanceDataRequest = await req.json();
 
-    console.log(`[ghost-finance-data] Fetching ${type} data for region: ${region}, language: ${language}`);
+    console.log(`[ghost-finance-data] Fetching ${type} data for region: ${region}, language: ${language}, date: ${getCurrentDate()}`);
 
     let result;
 
