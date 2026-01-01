@@ -144,6 +144,23 @@ function GhostChat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false); // Prevent double submission
 
+  // === ENTERPRISE-GRADE INITIALIZATION STATE ===
+  // Message queue for messages sent before storage is ready
+  const [pendingMessage, setPendingMessage] = useState<{
+    content: string;
+    attachments: AttachedFile[];
+    timestamp: number;
+  } | null>(null);
+
+  // Track initialization phases for better UX
+  const [initPhase, setInitPhase] = useState<'connecting' | 'ready' | 'error'>('connecting');
+
+  // Track retry attempts for first message resilience
+  const retryCountRef = useRef(0);
+
+  // Track if this is a fresh page load (for pre-warming)
+  const isFirstLoadRef = useRef(true);
+
   // Get mode from URL or default to 'text'
   const mode = (searchParams.get('mode') as GhostMode) || 'text';
 
