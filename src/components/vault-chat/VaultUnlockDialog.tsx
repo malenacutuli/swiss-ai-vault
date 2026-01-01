@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 
 interface VaultUnlockDialogProps {
   open: boolean;
@@ -29,7 +29,7 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
   const [error, setError] = useState('');
   const [isUnlocking, setIsUnlocking] = useState(false);
   
-  const { unlockVault } = useEncryption();
+  const { unlockVault } = useEncryptionContext();
   
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();

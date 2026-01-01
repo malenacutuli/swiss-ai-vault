@@ -20,7 +20,7 @@ import { VaultUnlockDialog } from '@/components/vault-chat/VaultUnlockDialog';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
 import { EncryptionSetupWizard } from '@/components/vault/EncryptionSetupWizard';
 import { useEncryptedChat } from '@/hooks/useEncryptedChat';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { cn } from '@/lib/utils';
 
 export default function SecureChat() {
@@ -32,7 +32,7 @@ export default function SecureChat() {
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   
-  const { isInitialized, isUnlocked, isLoading: encryptionLoading, lockVault } = useEncryption();
+  const { isInitialized, isUnlocked, isLoading: encryptionLoading, lockVault } = useEncryptionContext();
   
   const {
     conversations,

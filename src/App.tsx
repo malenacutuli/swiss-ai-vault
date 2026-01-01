@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { EncryptionProvider } from "@/contexts/EncryptionContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { FirstTimeOrganizationModal } from "@/components/FirstTimeOrganizationModal";
@@ -96,8 +97,9 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <AuthProvider>
-              <FirstTimeOrganizationModal />
-              <Routes>
+              <EncryptionProvider>
+                <FirstTimeOrganizationModal />
+                <Routes>
                 {/* Public routes - Marketing pages with MarketingLayout */}
                 <Route path="/" element={<MarketingLayout><Index /></MarketingLayout>} />
                 <Route path="/auth" element={<Auth />} />
@@ -188,6 +190,7 @@ const App = () => {
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </EncryptionProvider>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>

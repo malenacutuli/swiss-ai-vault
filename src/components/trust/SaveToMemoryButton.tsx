@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { getMasterKey } from '@/lib/crypto/key-vault';
 import { saveWebSourceToMemory, type SaveSourceOptions } from '@/lib/memory/source-to-memory';
 import type { WebSource } from '@/lib/trust/verified-search';
@@ -49,7 +49,7 @@ export function SaveToMemoryButton({
   onSaved
 }: SaveToMemoryButtonProps) {
   const { toast } = useToast();
-  const { isUnlocked } = useEncryption();
+  const { isUnlocked } = useEncryptionContext();
   
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);

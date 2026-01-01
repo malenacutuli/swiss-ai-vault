@@ -70,7 +70,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { EncryptionSetupWizard } from '@/components/vault/EncryptionSetupWizard';
 import { useMemory } from '@/hooks/useMemory';
 import { 
@@ -109,7 +109,7 @@ interface ResearchStats {
 export default function ResearchDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isUnlocked, isInitialized, isLoading: encryptionLoading } = useEncryption();
+  const { isUnlocked, isInitialized, isLoading: encryptionLoading } = useEncryptionContext();
   const memory = useMemory();
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   

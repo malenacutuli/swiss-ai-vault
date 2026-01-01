@@ -52,7 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useMemory, type ContextSnippet } from '@/hooks/useMemory';
-import { useEncryption } from '@/hooks/useEncryption';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { useToast } from '@/hooks/use-toast';
 import { VaultUnlockDialog } from '@/components/vault-chat/VaultUnlockDialog';
 import { MemorySyncSettings } from '@/components/memory/MemorySyncSettings';
@@ -80,7 +80,7 @@ interface MemoryStats {
 function MemoryDashboardContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isUnlocked, isInitialized: vaultInitialized } = useEncryption();
+  const { isUnlocked, isInitialized: vaultInitialized } = useEncryptionContext();
   const memory = useMemory();
   const { shouldShowRestore, dismissRestore } = useNewDeviceDetection();
   const { showOnboarding, hasChecked, completeOnboarding, skipOnboarding, resetOnboarding } = useMemoryOnboarding();
