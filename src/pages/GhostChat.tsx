@@ -179,6 +179,49 @@ function GhostChat() {
     clearAllData,
   } = useGhostStorage();
 
+  // === LAYER 1: PRE-WARM STORAGE ON MOUNT ===
+  useEffect(() => {
+    if (!isFirstLoadRef.current) return;
+    isFirstLoadRef.current = false;
+    
+    const preWarmStorage = async () => {
+      console.log('[GhostChat] 🔥 Pre-warming secure storage...');
+      setInitPhase('connecting');
+      
+      try {
+        // Start storage initialization immediately on mount
+        // This runs BEFORE user starts typing, hiding the delay
+        const startTime = performance.now();
+        
+        // The storage hook should already be initializing,
+        // but we can trigger any lazy initialization here
+        if (!isInitialized && typeof window !== 'undefined') {
+          // Touch IndexedDB to ensure it's open
+          const dbRequest = indexedDB.open('ghost-storage-check', 1);
+          dbRequest.onsuccess = () => {
+            dbRequest.result.close();
+            indexedDB.deleteDatabase('ghost-storage-check');
+          };
+        }
+        
+        const elapsed = performance.now() - startTime;
+        console.log(`[GhostChat] 🔥 Pre-warm check completed in ${elapsed.toFixed(0)}ms`);
+      } catch (error) {
+        console.error('[GhostChat] Pre-warm error:', error);
+      }
+    };
+    
+    preWarmStorage();
+  }, []);
+
+  // Track when storage becomes ready
+  useEffect(() => {
+    if (isInitialized) {
+      setInitPhase('ready');
+      console.log('[GhostChat] ✅ Secure storage ready');
+    }
+  }, [isInitialized]);
+
   // Debug: track mode changes and storage state (helps diagnose UI "snap back")
   useEffect(() => {
     console.log('[GhostChat] mode changed', {
