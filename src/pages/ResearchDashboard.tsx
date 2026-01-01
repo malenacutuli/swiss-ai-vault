@@ -71,6 +71,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useEncryption } from '@/hooks/useEncryption';
+import { EncryptionSetupWizard } from '@/components/vault/EncryptionSetupWizard';
 import { useMemory } from '@/hooks/useMemory';
 import { 
   getResearchSessions, 
@@ -108,8 +109,9 @@ interface ResearchStats {
 export default function ResearchDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isUnlocked } = useEncryption();
+  const { isUnlocked, isInitialized, isLoading: encryptionLoading } = useEncryption();
   const memory = useMemory();
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
   
   // State
   const [sessions, setSessions] = useState<ResearchSession[]>([]);
@@ -124,6 +126,13 @@ export default function ResearchDashboard() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'session' | 'source'; id: string } | null>(null);
   const [showUnlock, setShowUnlock] = useState(false);
   
+  // Detect first-time users who need encryption setup
+  useEffect(() => {
+    if (!encryptionLoading && !isInitialized) {
+      setShowSetupWizard(true);
+    }
+  }, [encryptionLoading, isInitialized]);
+  
   // Load data
   useEffect(() => {
     if (isUnlocked) {
@@ -132,6 +141,11 @@ export default function ResearchDashboard() {
       setIsLoading(false);
     }
   }, [isUnlocked]);
+  
+  const handleSetupComplete = () => {
+    setShowSetupWizard(false);
+    loadData();
+  };
   
   const loadData = async () => {
     setIsLoading(true);
@@ -275,7 +289,22 @@ export default function ResearchDashboard() {
     }
   };
   
-  // Show unlock if not authenticated
+  // Show setup wizard for first-time users
+  if (showSetupWizard && !isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <EncryptionSetupWizard 
+          onComplete={handleSetupComplete}
+          onSkip={() => {
+            setShowSetupWizard(false);
+            navigate('/ghost/chat');
+          }}
+        />
+      </div>
+    );
+  }
+  
+  // Show unlock dialog for returning users
   if (!isUnlocked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
