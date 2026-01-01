@@ -413,7 +413,8 @@ serve(async (req) => {
       messages, 
       max_tokens, 
       temperature, 
-      rag_context, 
+      rag_context,
+      profile_context,
       zero_retention,
       allow_fallback = false,  // User must opt-in to fallback to commercial models
     } = body;
@@ -440,24 +441,37 @@ serve(async (req) => {
       console.log('[chat-completions] Model:', model, 'Provider:', getProvider(model), 'RAG context:', rag_context ? 'yes' : 'no');
     }
 
-    // Inject RAG context as system message if provided
+    // Inject RAG context and profile context as system message if provided
     let processedMessages = [...messages];
+    
+    // Build combined context
+    let combinedContext = '';
+    if (profile_context) {
+      combinedContext += profile_context;
+    }
     if (rag_context) {
+      combinedContext += combinedContext ? '\n\n---\n\n' + rag_context : rag_context;
+    }
+    
+    if (combinedContext) {
       // Check if there's already a system message
       const hasSystemMessage = processedMessages.some(m => m.role === 'system');
       if (hasSystemMessage) {
-        // Prepend RAG context to existing system message
+        // Prepend context to existing system message
         processedMessages = processedMessages.map(m => 
           m.role === 'system' 
-            ? { ...m, content: `${rag_context}\n\n---\n\n${m.content}` }
+            ? { ...m, content: `${combinedContext}\n\n---\n\n${m.content}` }
             : m
         );
       } else {
-        // Add RAG context as new system message at the beginning
-        processedMessages.unshift({ role: 'system', content: rag_context });
+        // Add context as new system message at the beginning
+        processedMessages.unshift({ role: 'system', content: combinedContext });
       }
       if (!zero_retention) {
-        console.log('[chat-completions] Injected RAG context into messages');
+        console.log('[chat-completions] Injected context:', {
+          hasProfile: !!profile_context,
+          hasRAG: !!rag_context
+        });
       }
     }
 
