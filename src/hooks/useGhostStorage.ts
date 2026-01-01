@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getGhostStorage, resetGhostStorage, GhostConversation } from '@/lib/ghost/ghost-storage';
+import { getGhostStorage, resetGhostStorage, resetGhostStorageAsync, GhostConversation } from '@/lib/ghost/ghost-storage';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ANON_ID_KEY = 'ghost_anon_user_id_v1';
@@ -116,10 +116,10 @@ export function useGhostStorage() {
         return;
       }
 
-      // If user changed, reset
+      // If user changed, reset storage properly (await to avoid race)
       if (lastUserIdRef.current && lastUserIdRef.current !== userId) {
         console.log('[Ghost Storage] User changed, resetting...');
-        resetGhostStorage();
+        await resetGhostStorageAsync();
         setIsInitialized(false);
       }
 
