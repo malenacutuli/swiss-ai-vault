@@ -26,8 +26,10 @@ import {
   Download,
   Brain,
   Loader2,
-  Lock
+  Lock,
+  Lightbulb
 } from 'lucide-react';
+import { RecommendationsPanel } from '@/components/recommendations/RecommendationsPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -401,6 +403,10 @@ export default function ResearchDashboard() {
               <TrendingUp className="h-4 w-4" />
               Insights
             </TabsTrigger>
+            <TabsTrigger value="recommendations" className="gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Smart Recommendations
+            </TabsTrigger>
           </TabsList>
           
           {/* Sources Tab */}
@@ -498,6 +504,23 @@ export default function ResearchDashboard() {
           {/* Insights Tab */}
           <TabsContent value="insights">
             <InsightsPanel stats={stats} sources={sources} sessions={sessions} />
+          </TabsContent>
+          
+          {/* Recommendations Tab */}
+          <TabsContent value="recommendations">
+            <RecommendationsPanel
+              sources={sources.map(s => ({
+                ...s,
+                savedAt: s.savedAt
+              }))}
+              sessions={sessions.map(s => ({
+                id: s.id,
+                query: s.query,
+                createdAt: s.createdAt,
+                sources: s.sources
+              }))}
+              onSearch={(query) => navigate(`/ghost?q=${encodeURIComponent(query)}`)}
+            />
           </TabsContent>
         </Tabs>
       </div>
