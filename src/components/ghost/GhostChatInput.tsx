@@ -52,6 +52,9 @@ interface GhostChatInputProps {
   voiceLanguage?: string;
   matureFilterEnabled?: boolean;
   className?: string;
+  // Initialization state props
+  initPhase?: 'connecting' | 'ready' | 'error';
+  hasPendingMessage?: boolean;
 }
 
 // Text mode is default - only show other modes in dropdown when in text mode
@@ -100,6 +103,8 @@ export function GhostChatInput({
   voiceLanguage = 'en',
   matureFilterEnabled = true,
   className,
+  initPhase = 'ready',
+  hasPendingMessage = false,
 }: GhostChatInputProps) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -190,6 +195,20 @@ export function GhostChatInput({
 
         {/* Input Area */}
         <div className="relative flex items-end gap-2 bg-background border border-border rounded-2xl px-3 py-2.5 shadow-card focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all duration-150">
+          {/* Connecting indicator - subtle bottom bar */}
+          {initPhase === 'connecting' && !hasPendingMessage && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-pulse rounded-b-2xl" />
+          )}
+
+          {/* Pending message overlay */}
+          {hasPendingMessage && (
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] rounded-2xl flex items-center justify-center pointer-events-none z-10">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/80 px-3 py-1.5 rounded-full shadow-sm border border-border/50">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Connecting to secure storage...</span>
+              </div>
+            </div>
+          )}
           {/* Left icons */}
           <div className="flex items-center gap-0.5 pb-0.5">
             {onAttach && (
