@@ -158,6 +158,10 @@ function GhostChat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false); // Prevent double submission
   
+  // Race condition prevention refs
+  const skipNextHydrationRef = useRef<string | null>(null);
+  const isStreamingRef = useRef<boolean>(false);
+  
   // Ref to always have the latest handleSendMessage (avoids stale closure in auto-send effect)
   const handleSendMessageRef = useRef<((content?: string) => Promise<void>) | null>(null);
 
@@ -435,17 +439,52 @@ function GhostChat() {
     setSelectedModels(prev => ({ ...prev, [mode]: modelId }));
   };
 
-  // Load messages when conversation changes
+  // Load messages when conversation changes - WITH RACE CONDITION GUARDS
   useEffect(() => {
+    // Guard A: Skip if we're in the middle of sending a message
+    if (isSubmittingRef.current) {
+      console.log('[GhostChat] Skipping hydration: submission in progress');
+      return;
+    }
+    
+    // Guard B: Skip if we're currently streaming a response
+    if (isStreamingRef.current) {
+      console.log('[GhostChat] Skipping hydration: streaming in progress');
+      return;
+    }
+    
+    // Guard C: Skip if this is an internal conversation creation (skip-once flag)
+    if (skipNextHydrationRef.current === selectedConversation) {
+      console.log('[GhostChat] Skipping hydration: internal conversation creation');
+      skipNextHydrationRef.current = null; // Clear the flag
+      return;
+    }
+    
+    // Guard D: Skip if there's a pending queued message
+    if (pendingMessage) {
+      console.log('[GhostChat] Skipping hydration: pending message exists');
+      return;
+    }
+    
+    // Guard E: Skip if current messages contain a streaming placeholder
+    const hasStreamingMessage = messages.some(m => m.isStreaming);
+    if (hasStreamingMessage) {
+      console.log('[GhostChat] Skipping hydration: streaming message in UI');
+      return;
+    }
+    
+    // Safe to hydrate from storage
     if (selectedConversation && isInitialized) {
       const conv = getConversation(selectedConversation);
       if (conv) {
+        console.log(`[GhostChat] Hydrating ${conv.messages.length} messages from storage`);
         setMessages(conv.messages);
       }
-    } else {
+    } else if (!selectedConversation) {
+      // Only clear if explicitly no conversation selected (not during transition)
       setMessages([]);
     }
-  }, [selectedConversation, isInitialized, getConversation]);
+  }, [selectedConversation, isInitialized, getConversation, pendingMessage, messages]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -640,13 +679,14 @@ function GhostChat() {
     // Reset retry count for new message
     retryCountRef.current = 0;
     
-    // Auto-recovery timeout (reduced to 3 seconds)
+    // Auto-recovery timeout (30 seconds - well beyond any normal response time)
     const recoveryTimeout = setTimeout(() => {
       if (isSubmittingRef.current) {
-        console.log('[GhostChat] ⚠️ Auto-recovering stuck submission state');
+        console.warn('[GhostChat] ⚠️ Recovery timeout triggered after 30s');
         isSubmittingRef.current = false;
+        isStreamingRef.current = false;
       }
-    }, 3000);
+    }, 30000);
 
     try {
       const requestId = crypto.randomUUID();
@@ -708,6 +748,9 @@ function GhostChat() {
       if (!convId) {
         convId = createConversation('New Chat');
         if (convId) {
+          // Set skip flag BEFORE selecting - prevents hydration from wiping streaming state
+          skipNextHydrationRef.current = convId;
+          console.log('[GhostChat] Set skip-hydration flag for:', convId);
           setSelectedConversation(convId);
         }
       }
@@ -809,6 +852,11 @@ function GhostChat() {
 
         // Create placeholder for streaming response
         const assistantId = crypto.randomUUID();
+        
+        // Track streaming state to prevent hydration race
+        isStreamingRef.current = true;
+        console.log('[GhostChat] Streaming started, assistantId:', assistantId);
+        
         setMessages((prev) => [
           ...prev,
           {
@@ -838,6 +886,10 @@ function GhostChat() {
               );
             },
             onComplete: async (fullResponse) => {
+              // Mark streaming complete
+              isStreamingRef.current = false;
+              console.log('[GhostChat] Streaming completed');
+              
               // === LAYER 5: AUTO-RETRY ON EMPTY FIRST RESPONSE ===
               const isFirstMessage = messages.filter(m => m.role === 'user').length <= 1;
               const isEmpty = !fullResponse?.trim();
@@ -876,6 +928,9 @@ function GhostChat() {
                         );
                       },
                       onComplete: async (retryResponse) => {
+                        // Mark streaming complete
+                        isStreamingRef.current = false;
+                        
                         const safeResponse = retryResponse?.trim()
                           ? retryResponse
                           : 'No response received. Please try again.';
@@ -908,6 +963,8 @@ function GhostChat() {
                         }
                       },
                       onError: (error) => {
+                        // Mark streaming complete on error
+                        isStreamingRef.current = false;
                         console.error('[GhostChat] All retries failed:', error);
                         retryCountRef.current = 0;
                         setMessages((prev) =>
@@ -989,7 +1046,10 @@ function GhostChat() {
               }
             },
             onError: (error) => {
-              console.error('[GhostChat] Stream error:', error);
+              // Mark streaming complete on error
+              isStreamingRef.current = false;
+              console.log('[GhostChat] Streaming error:', error);
+              
               toast({
                 title: 'Error',
                 description: error.message || 'Failed to generate response',
@@ -1224,6 +1284,8 @@ function GhostChat() {
     } finally {
       clearTimeout(recoveryTimeout);
       isSubmittingRef.current = false;
+      // Note: isStreamingRef is reset by onComplete/onError, but ensure it's reset on exceptions
+      console.log('[GhostChat] Send attempt complete, submission unlocked');
     }
   }, [
     user, mode, selectedConversation, selectedModels, messages, settings,
