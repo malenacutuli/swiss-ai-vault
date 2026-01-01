@@ -61,7 +61,10 @@ import { MemoryRestoreDialog } from '@/components/memory/MemoryRestoreDialog';
 import { MemoryErrorBoundary } from '@/components/memory/MemoryErrorBoundary';
 import { MemoryLoadingState } from '@/components/memory/MemoryLoadingState';
 import { MemoryOfflineIndicator } from '@/components/memory/MemoryOfflineIndicator';
+import { MemoryFolderList } from '@/components/memory/MemoryFolderList';
+import { BulkUploadDialog } from '@/components/memory/BulkUploadDialog';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
+import type { MemoryFolder } from '@/lib/memory/memory-manager';
 
 interface MemoryStats {
   count: number;
@@ -87,6 +90,11 @@ function MemoryDashboardContent() {
   const [showUnlock, setShowUnlock] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  
+  const [folders, setFolders] = useState<MemoryFolder[]>([]);
+  const [folderCounts, setFolderCounts] = useState<Map<string | null, number>>(new Map());
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
@@ -102,12 +110,33 @@ function MemoryDashboardContent() {
     }
   }, [isUnlocked, memory.isInitialized, memory.initialize]);
   
-  // Load stats
+  // Load stats and folders
   useEffect(() => {
     if (memory.isReady) {
       memory.getStats().then(setStats);
+      loadFolders();
     }
   }, [memory.isReady, memory.getStats]);
+  
+  const loadFolders = useCallback(async () => {
+    try {
+      const { getFolders, getFolderItemCounts } = await import('@/lib/memory/memory-manager');
+      const { getMasterKey } = await import('@/lib/crypto/key-vault');
+      const key = await getMasterKey();
+      if (!key) return;
+      
+      const folderList = await getFolders();
+      const counts = await getFolderItemCounts(key);
+      
+      setFolders(folderList.map(f => ({
+        ...f,
+        itemCount: counts.get(f.id) || 0
+      })));
+      setFolderCounts(counts);
+    } catch (e) {
+      console.error('Failed to load folders:', e);
+    }
+  }, []);
   
   // Check if vault needs unlock
   useEffect(() => {
@@ -227,6 +256,46 @@ function MemoryDashboardContent() {
     }
   }, [memory, toast]);
   
+  // Folder handlers
+  const handleCreateFolder = useCallback(async (name: string, parentId: string | null) => {
+    const { createFolder } = await import('@/lib/memory/memory-manager');
+    await createFolder({ name, parentId });
+    await loadFolders();
+    toast({ title: 'Folder created' });
+  }, [loadFolders, toast]);
+  
+  const handleRenameFolder = useCallback(async (id: string, name: string) => {
+    const { updateFolder } = await import('@/lib/memory/memory-manager');
+    await updateFolder(id, { name });
+    await loadFolders();
+    toast({ title: 'Folder renamed' });
+  }, [loadFolders, toast]);
+  
+  const handleDeleteFolder = useCallback(async (id: string) => {
+    const { deleteFolder } = await import('@/lib/memory/memory-manager');
+    await deleteFolder(id);
+    await loadFolders();
+    if (selectedFolderId === id) setSelectedFolderId(null);
+    toast({ title: 'Folder deleted' });
+  }, [loadFolders, selectedFolderId, toast]);
+  
+  // Bulk upload handler
+  const handleBulkUpload = useCallback(async (
+    files: Array<{ content: string; filename: string }>,
+    folderId?: string
+  ) => {
+    const { addDocumentsBulk } = await import('@/lib/memory/memory-manager');
+    const { getMasterKey } = await import('@/lib/crypto/key-vault');
+    const key = await getMasterKey();
+    if (!key) throw new Error('No encryption key');
+    
+    const result = await addDocumentsBulk(files, key, folderId);
+    await memory.getStats().then(setStats);
+    await loadFolders();
+    
+    return { successful: result.successful, failed: result.failed };
+  }, [memory, loadFolders]);
+  
   // Source icon helper
   const getSourceIcon = (source: string) => {
     switch (source) {
@@ -280,11 +349,15 @@ function MemoryDashboardContent() {
                   Add
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                <DropdownMenuItem onClick={() => setShowBulkUpload(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Documents
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <label className="cursor-pointer flex items-center">
                     <Upload className="h-4 w-4 mr-2" />
-                    Upload Document
+                    Single Document
                     <input
                       type="file"
                       accept=".txt,.md,.pdf"
@@ -306,7 +379,7 @@ function MemoryDashboardContent() {
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
                 <DropdownMenuItem onClick={handleExport}>
                   <Download className="h-4 w-4 mr-2" />
                   Export Memory
@@ -362,6 +435,23 @@ function MemoryDashboardContent() {
                 progress={memory.progress.percent}
                 message={memory.progress.message}
               />
+            )}
+            
+            {/* Folder List */}
+            {memory.isReady && (
+              <Card>
+                <CardContent className="pt-4">
+                  <MemoryFolderList
+                    folders={folders}
+                    selectedFolderId={selectedFolderId}
+                    onSelectFolder={setSelectedFolderId}
+                    onCreateFolder={handleCreateFolder}
+                    onRenameFolder={handleRenameFolder}
+                    onDeleteFolder={handleDeleteFolder}
+                    totalItems={stats?.count || 0}
+                  />
+                </CardContent>
+              </Card>
             )}
             
             {/* Stats Cards */}
@@ -560,6 +650,14 @@ function MemoryDashboardContent() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
+        {/* Bulk Upload Dialog */}
+        <BulkUploadDialog
+          open={showBulkUpload}
+          onOpenChange={setShowBulkUpload}
+          folders={folders}
+          onUpload={handleBulkUpload}
+        />
         
         {/* Vault Unlock Dialog */}
         <VaultUnlockDialog

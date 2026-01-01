@@ -17,8 +17,9 @@ function similarity(a: number[], b: number[]): number {
 
 // IndexedDB Configuration - separate from key vault
 const DB_NAME = 'SwissVaultMemory';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'memories';
+const FOLDERS_STORE = 'folders';
 
 // ==========================================
 // TYPES
@@ -36,6 +37,9 @@ export interface MemoryMetadata {
   totalChunks?: number;
   createdAt: number;
   updatedAt?: number;
+  // Folder support
+  folderId?: string;
+  folderPath?: string;
 }
 
 export interface MemoryItem {
@@ -43,6 +47,16 @@ export interface MemoryItem {
   content: string;
   embedding: number[];
   metadata: MemoryMetadata;
+}
+
+export interface MemoryFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  color?: string;
+  icon?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 // What we actually store in IndexedDB
@@ -94,9 +108,16 @@ async function getDB(): Promise<IDBDatabase> {
       console.log('[MemoryStore] Upgrading database schema');
       const database = (event.target as IDBOpenDBRequest).result;
       
+      // Memories store
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         const store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
         store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      
+      // Folders store
+      if (!database.objectStoreNames.contains(FOLDERS_STORE)) {
+        const foldersStore = database.createObjectStore(FOLDERS_STORE, { keyPath: 'id' });
+        foldersStore.createIndex('parentId', 'parentId', { unique: false });
       }
     };
     
@@ -522,4 +543,147 @@ export function closeDatabase(): void {
     dbPromise = null;
     console.log('[MemoryStore] Database closed');
   }
+}
+
+// ==========================================
+// FOLDER OPERATIONS
+// ==========================================
+
+export async function createFolder(folder: Omit<MemoryFolder, 'id' | 'createdAt' | 'updatedAt'>): Promise<MemoryFolder> {
+  const database = await getDB();
+  
+  const newFolder: MemoryFolder = {
+    ...folder,
+    id: crypto.randomUUID(),
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(FOLDERS_STORE, 'readwrite');
+    tx.objectStore(FOLDERS_STORE).put(newFolder);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Created folder:', newFolder.name);
+  return newFolder;
+}
+
+export async function getFolders(): Promise<MemoryFolder[]> {
+  const database = await getDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(FOLDERS_STORE, 'readonly');
+    const request = tx.objectStore(FOLDERS_STORE).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getFolder(id: string): Promise<MemoryFolder | null> {
+  const database = await getDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(FOLDERS_STORE, 'readonly');
+    const request = tx.objectStore(FOLDERS_STORE).get(id);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function updateFolder(id: string, updates: Partial<MemoryFolder>): Promise<void> {
+  const database = await getDB();
+  const existing = await getFolder(id);
+  if (!existing) throw new Error('Folder not found');
+  
+  const updated = { ...existing, ...updates, updatedAt: Date.now() };
+  
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(FOLDERS_STORE, 'readwrite');
+    tx.objectStore(FOLDERS_STORE).put(updated);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Updated folder:', id);
+}
+
+export async function deleteFolder(id: string): Promise<void> {
+  const database = await getDB();
+  
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(FOLDERS_STORE, 'readwrite');
+    tx.objectStore(FOLDERS_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Deleted folder:', id);
+}
+
+export async function getMemoriesByFolder(
+  folderId: string | null,
+  encryptionKey: CryptoKey
+): Promise<MemoryItem[]> {
+  const database = await getDB();
+  
+  const stored: StoredMemory[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  const items: MemoryItem[] = [];
+  
+  for (const s of stored) {
+    try {
+      const encryptedData = { ciphertext: s.encrypted, nonce: s.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { content, metadata } = JSON.parse(decrypted);
+      
+      const itemFolderId = metadata.folderId || null;
+      if (folderId === 'uncategorized' ? itemFolderId === null : itemFolderId === folderId) {
+        items.push({
+          id: s.id,
+          content,
+          embedding: s.embedding,
+          metadata
+        });
+      }
+    } catch (e) {
+      console.error('[MemoryStore] Failed to decrypt memory:', s.id);
+    }
+  }
+  
+  return items;
+}
+
+export async function getFolderItemCounts(encryptionKey: CryptoKey): Promise<Map<string | null, number>> {
+  const database = await getDB();
+  
+  const stored: StoredMemory[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  const counts = new Map<string | null, number>();
+  
+  for (const s of stored) {
+    try {
+      const encryptedData = { ciphertext: s.encrypted, nonce: s.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { metadata } = JSON.parse(decrypted);
+      
+      const folderId = metadata.folderId || null;
+      counts.set(folderId, (counts.get(folderId) || 0) + 1);
+    } catch (e) {
+      // Skip items we can't decrypt
+    }
+  }
+  
+  return counts;
 }

@@ -13,8 +13,16 @@ import {
   clearAllMemory,
   exportMemories,
   importMemories,
+  createFolder,
+  getFolders,
+  getFolder,
+  updateFolder,
+  deleteFolder,
+  getMemoriesByFolder,
+  getFolderItemCounts,
   type MemoryItem,
-  type MemorySource
+  type MemorySource,
+  type MemoryFolder
 } from './memory-store';
 
 // ==========================================
@@ -34,6 +42,18 @@ export interface AddDocumentResult {
   chunksAdded: number;
   success: boolean;
   error?: string;
+}
+
+export interface BulkUploadResult {
+  total: number;
+  successful: number;
+  failed: number;
+  results: Array<{
+    filename: string;
+    success: boolean;
+    chunksAdded?: number;
+    error?: string;
+  }>;
 }
 
 export interface ContextSnippet {
@@ -418,6 +438,203 @@ export function buildContextPrompt(snippets: ContextSnippet[]): string {
 }
 
 // ==========================================
+// BULK OPERATIONS
+// ==========================================
+
+/**
+ * Add multiple documents to memory (bulk upload)
+ */
+export async function addDocumentsBulk(
+  files: Array<{ content: string; filename: string }>,
+  encryptionKey: CryptoKey,
+  folderId?: string,
+  onProgress?: (current: number, total: number, filename: string) => void
+): Promise<BulkUploadResult> {
+  const results: BulkUploadResult['results'] = [];
+  let successful = 0;
+  let failed = 0;
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    onProgress?.(i + 1, files.length, file.filename);
+    
+    try {
+      const result = await addDocumentWithFolder(
+        file.content, 
+        file.filename, 
+        encryptionKey,
+        folderId
+      );
+      
+      if (result.success) {
+        successful++;
+        results.push({
+          filename: file.filename,
+          success: true,
+          chunksAdded: result.chunksAdded
+        });
+      } else {
+        failed++;
+        results.push({
+          filename: file.filename,
+          success: false,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      failed++;
+      results.push({
+        filename: file.filename,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+  
+  return { total: files.length, successful, failed, results };
+}
+
+/**
+ * Add document with folder assignment
+ */
+export async function addDocumentWithFolder(
+  content: string,
+  filename: string,
+  encryptionKey: CryptoKey,
+  folderId?: string,
+  onProgress?: ProgressCallback
+): Promise<AddDocumentResult> {
+  const docId = crypto.randomUUID();
+  
+  let folderPath: string | undefined;
+  if (folderId) {
+    const folder = await getFolder(folderId);
+    folderPath = folder?.name;
+  }
+  
+  try {
+    if (!isEmbeddingsReady()) {
+      onProgress?.('Loading embedding model...', 5);
+      await initMemory(onProgress);
+    }
+    
+    onProgress?.('Chunking...', 10);
+    const chunks = chunkText(content);
+    
+    if (chunks.length === 0) {
+      return { documentId: docId, chunksAdded: 0, success: false, error: 'Document is too short' };
+    }
+    
+    onProgress?.('Generating embeddings...', 20);
+    const embeddings = await embedBatch(chunks);
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const pct = 20 + Math.round((i / chunks.length) * 70);
+      onProgress?.(`Storing ${i + 1}/${chunks.length}...`, pct);
+      
+      await addMemory({
+        id: `${docId}-${i}`,
+        content: chunks[i],
+        embedding: embeddings[i],
+        metadata: {
+          source: 'document',
+          filename,
+          chunkIndex: i,
+          totalChunks: chunks.length,
+          createdAt: Date.now(),
+          folderId,
+          folderPath
+        }
+      }, encryptionKey);
+    }
+    
+    onProgress?.('Done', 100);
+    return { documentId: docId, chunksAdded: chunks.length, success: true };
+  } catch (error) {
+    return { documentId: docId, chunksAdded: 0, success: false, error: String(error) };
+  }
+}
+
+/**
+ * Add note with folder assignment
+ */
+export async function addNoteWithFolder(
+  content: string,
+  title: string,
+  encryptionKey: CryptoKey,
+  folderId?: string
+): Promise<string> {
+  if (!isEmbeddingsReady()) {
+    await initMemory();
+  }
+  
+  const embedding = await embed(content);
+  const id = crypto.randomUUID();
+  
+  let folderPath: string | undefined;
+  if (folderId) {
+    const folder = await getFolder(folderId);
+    folderPath = folder?.name;
+  }
+  
+  await addMemory({
+    id,
+    content,
+    embedding,
+    metadata: {
+      source: 'note',
+      title,
+      createdAt: Date.now(),
+      folderId,
+      folderPath
+    }
+  }, encryptionKey);
+  
+  return id;
+}
+
+/**
+ * Move items to folder
+ */
+export async function moveToFolder(
+  itemIds: string[],
+  folderId: string | null,
+  encryptionKey: CryptoKey
+): Promise<number> {
+  let moved = 0;
+  
+  for (const id of itemIds) {
+    try {
+      const item = await getMemory(id, encryptionKey);
+      if (item) {
+        await deleteMemory(id);
+        
+        let folderPath: string | undefined;
+        if (folderId) {
+          const folder = await getFolder(folderId);
+          folderPath = folder?.name;
+        }
+        
+        await addMemory({
+          ...item,
+          metadata: {
+            ...item.metadata,
+            folderId: folderId || undefined,
+            folderPath
+          }
+        }, encryptionKey);
+        
+        moved++;
+      }
+    } catch (e) {
+      console.error('[MemoryManager] Failed to move item:', id, e);
+    }
+  }
+  
+  return moved;
+}
+
+// ==========================================
 // MANAGEMENT & EXPORT
 // ==========================================
 
@@ -428,7 +645,14 @@ export {
   getMemoryStats, 
   clearAllMemory, 
   exportMemories, 
-  importMemories 
+  importMemories,
+  createFolder,
+  getFolders,
+  getFolder,
+  updateFolder,
+  deleteFolder,
+  getMemoriesByFolder,
+  getFolderItemCounts
 };
 
-export type { MemoryItem, MemorySource };
+export type { MemoryItem, MemorySource, MemoryFolder };
