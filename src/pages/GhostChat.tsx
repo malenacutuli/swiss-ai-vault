@@ -32,8 +32,19 @@ import { GhostUpgradeModal } from '@/components/ghost/GhostUpgradeModal';
 import { GhostChatUsageBar } from '@/components/ghost/GhostChatUsageBar';
 import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { VerifiedSourcesDisplay } from '@/components/trust/VerifiedSourcesDisplay';
 
 import { UnifiedHeader } from '@/components/layout/UnifiedHeader';
+import {
+  analyzeSource,
+  buildVerificationPrompt,
+  calculateOverallTrust,
+  generateMethodology,
+  DOMAIN_SEARCH_STRATEGIES,
+  type WebSource,
+  type VerifiedSearchResult,
+} from '@/lib/trust/verified-search';
+import { classifyQuery } from '@/lib/trust/grounded-response';
 import { EyeOff, Shield, AlertTriangle, FileText, Ghost, X } from '@/icons';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -96,6 +107,7 @@ interface GhostMessageData {
   attachments?: Array<{ name: string; type: string; size: number }>;
   mode?: 'text' | 'image' | 'video' | 'search' | 'research';
   sources?: Array<{ title: string; url: string; snippet?: string }>;
+  verifiedResult?: VerifiedSearchResult;
 }
 
 // Attached file for context - supports multiple files
@@ -355,6 +367,10 @@ function GhostChat() {
   const [searchCitations, setSearchCitations] = useState<SearchResult[]>([]);
   const [researchSources, setResearchSources] = useState<ResearchSource[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  
+  // Verified search mode state
+  const [verifiedMode, setVerifiedMode] = useState(true);
+  const [lastVerifiedResult, setLastVerifiedResult] = useState<VerifiedSearchResult | null>(null);
 
   // Usage tracking hook
   const { 
@@ -997,7 +1013,7 @@ function GhostChat() {
           requestId
         );
       } else if (mode === 'search') {
-        // Web search mode
+        // Web search mode with optional verification
         const assistantId = crypto.randomUUID();
         setMessages((prev) => [
           ...prev,
@@ -1012,21 +1028,84 @@ function GhostChat() {
         setSearchCitations([]);
 
         try {
+          // Collect all sources for verification
+          const collectedSources: WebSource[] = [];
+          let finalAnswer = '';
+          
           await webSearch.search(userMessage.content, {
             onToken: (token) => {
+              finalAnswer += token;
               setMessages((prev) =>
                 prev.map((msg) => (msg.id === assistantId ? { ...msg, content: msg.content + token } : msg))
               );
             },
             onCitation: (citations) => {
               setSearchCitations(citations);
+              
+              // Analyze sources for trust if verified mode is on
+              if (verifiedMode) {
+                citations.forEach(c => {
+                  try {
+                    const analyzed = analyzeSource(c.url, c.title, c.snippet || '');
+                    collectedSources.push(analyzed);
+                  } catch {
+                    // Invalid URL, skip
+                  }
+                });
+              }
             },
             onComplete: async (response) => {
+              // Build verified result if in verified mode
+              let verifiedResult: VerifiedSearchResult | undefined;
+              
+              if (verifiedMode && collectedSources.length > 0) {
+                // Classify query for domain-specific warnings
+                const queryClassification = classifyQuery(userMessage.content);
+                const warnings: string[] = [];
+                
+                // Check domain-specific requirements
+                for (const domain of queryClassification.domains) {
+                  const strategy = DOMAIN_SEARCH_STRATEGIES[domain];
+                  if (strategy) {
+                    const hasRequiredSources = collectedSources.some(s => 
+                      strategy.prioritySites.some(site => s.domain.includes(site.replace('*.', '')))
+                    );
+                    if (!hasRequiredSources) {
+                      warnings.push(strategy.warningIfMissing);
+                    }
+                  }
+                }
+                
+                // Sort by trust score
+                collectedSources.sort((a, b) => b.trustScore - a.trustScore);
+                
+                verifiedResult = {
+                  query: userMessage.content,
+                  answer: response.answer,
+                  claims: [], // Would require NLP for claim extraction
+                  sources: collectedSources.slice(0, 10),
+                  overallTrust: calculateOverallTrust(collectedSources),
+                  methodology: generateMethodology(collectedSources, userMessage.content),
+                  searchTimestamp: Date.now(),
+                  warnings,
+                };
+                
+                setLastVerifiedResult(verifiedResult);
+              }
+              
               setMessages((prev) =>
                 prev.map((msg) =>
-                  msg.id === assistantId ? { ...msg, content: response.answer, isStreaming: false } : msg
+                  msg.id === assistantId 
+                    ? { 
+                        ...msg, 
+                        content: response.answer, 
+                        isStreaming: false,
+                        verifiedResult,
+                      } 
+                    : msg
                 )
               );
+              
               if (response.answer) {
                 saveMessage(convId!, 'assistant', response.answer);
                 await recordUsage('search', 'sonar', {
@@ -1144,7 +1223,7 @@ function GhostChat() {
     user, mode, selectedConversation, selectedModels, messages, settings,
     canUse, useFeature, checkCredits, createConversation, saveMessage,
     streamResponse, webSearch, ghostResearch, recordUsage, toast,
-    lastResponseTime, lastTokenCount, handleInsufficientCredits,
+    lastResponseTime, lastTokenCount, handleInsufficientCredits, verifiedMode,
   ]);
 
   const handleSendMessage = async (content: string, attachments?: File[]) => {
@@ -2121,11 +2200,25 @@ function GhostChat() {
             {mode === 'search' && (
               messages.length > 0 ? (
                 <div className="h-full flex flex-col">
-                  {/* Search results with citations */}
-                  {searchCitations.length > 0 && (
-                    <div className="flex-shrink-0 px-4 py-3 border-b border-border/40">
-                      <div className="max-w-3xl mx-auto">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Sources</p>
+                  {/* Search header with verified mode toggle */}
+                  <div className="flex-shrink-0 px-4 py-3 border-b border-border/40">
+                    <div className="max-w-3xl mx-auto">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Sources</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setVerifiedMode(!verifiedMode)}
+                          className={cn(
+                            "h-7 px-2 text-xs gap-1.5",
+                            verifiedMode ? "text-green-600 hover:text-green-700" : "text-muted-foreground"
+                          )}
+                        >
+                          <Shield className="h-3.5 w-3.5" />
+                          {verifiedMode ? "Verified Mode ON" : "Verified Mode OFF"}
+                        </Button>
+                      </div>
+                      {searchCitations.length > 0 && (
                         <div className="flex gap-2 overflow-x-auto pb-1">
                           {searchCitations.map((citation, idx) => (
                             <a
@@ -2144,35 +2237,47 @@ function GhostChat() {
                             </a>
                           ))}
                         </div>
-                      </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                   
                   <ScrollArea className="flex-1">
                     <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
                       {messages.map((msg) => (
-                        <GhostMessageComponent
-                          key={msg.id}
-                          id={msg.id}
-                          role={msg.role}
-                          content={msg.content}
-                          timestamp={msg.timestamp}
-                          isStreaming={msg.isStreaming}
-                          responseTimeMs={msg.responseTimeMs}
-                          tokenCount={msg.tokenCount}
-                          showDate={settings?.show_message_date ?? true}
-                          showExternalLinkWarning={settings?.show_external_link_warning ?? false}
-                          onEdit={handleMessageEdit}
-                          onRegenerate={handleRegenerate}
-                          onDelete={handleDeleteMessage}
-                          onFork={handleForkConversation}
-                          onShorten={handleShortenResponse}
-                          onElaborate={handleElaborateResponse}
-                          onFeedback={handleFeedback}
-                          onShare={handleShare}
-                          onReport={handleReport}
-                          onStopGeneration={handleStopGeneration}
-                        />
+                        <div key={msg.id}>
+                          <GhostMessageComponent
+                            id={msg.id}
+                            role={msg.role}
+                            content={msg.content}
+                            timestamp={msg.timestamp}
+                            isStreaming={msg.isStreaming}
+                            responseTimeMs={msg.responseTimeMs}
+                            tokenCount={msg.tokenCount}
+                            showDate={settings?.show_message_date ?? true}
+                            showExternalLinkWarning={settings?.show_external_link_warning ?? false}
+                            onEdit={handleMessageEdit}
+                            onRegenerate={handleRegenerate}
+                            onDelete={handleDeleteMessage}
+                            onFork={handleForkConversation}
+                            onShorten={handleShortenResponse}
+                            onElaborate={handleElaborateResponse}
+                            onFeedback={handleFeedback}
+                            onShare={handleShare}
+                            onReport={handleReport}
+                            onStopGeneration={handleStopGeneration}
+                          />
+                          {/* Show verified sources display for assistant messages with verified results */}
+                          {msg.role === 'assistant' && msg.verifiedResult && (
+                            <div className="mt-2 ml-10">
+                              <VerifiedSourcesDisplay
+                                result={msg.verifiedResult}
+                                onSourceClick={(source) => {
+                                  window.open(source.url, '_blank', 'noopener,noreferrer');
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       ))}
                       <div ref={messagesEndRef} />
                     </div>
