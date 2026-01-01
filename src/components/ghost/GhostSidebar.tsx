@@ -45,6 +45,7 @@ import {
   IconPalette,
   IconRocket,
   EyeOff,
+  IconBrain,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -954,6 +955,11 @@ export function GhostSidebar({
 
         {/* Bottom navigation */}
         <div className={cn("flex flex-col p-2 border-t border-border/60", isExpanded ? "gap-1" : "gap-2 items-center")}>
+          <IconButton 
+            icon={IconBrain} 
+            label={t('ghost.sidebar.memory')} 
+            onClick={() => navigate('/ghost/memory')} 
+          />
           <IconButton 
             icon={IconPhoto} 
             label={t('ghost.sidebar.library')} 
