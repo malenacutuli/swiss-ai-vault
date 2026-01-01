@@ -17,7 +17,8 @@ import {
   HardDrive,
   AlertCircle,
   Globe,
-  MoreVertical
+  MoreVertical,
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +56,7 @@ import { useMemory, type ContextSnippet } from '@/hooks/useMemory';
 import { useEncryption } from '@/hooks/useEncryption';
 import { useToast } from '@/hooks/use-toast';
 import { VaultUnlockDialog } from '@/components/vault-chat/VaultUnlockDialog';
+import { MemorySyncSettings } from '@/components/memory/MemorySyncSettings';
 
 interface MemoryStats {
   count: number;
@@ -323,153 +326,173 @@ export default function MemoryDashboard() {
           </div>
         </div>
         
-        {/* Loading State */}
-        {memory.isLoading && (
-          <Card className="mb-6">
-            <CardContent className="py-6">
-              <div className="flex items-center gap-3 mb-3">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">{memory.progress.message || 'Initializing...'}</span>
-              </div>
-              <Progress value={memory.progress.percent} className="h-1" />
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <Brain className="h-4 w-4" />
-                  Total Items
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{stats.count}</p>
-              </CardContent>
-            </Card>
+        {/* Tabs */}
+        <Tabs defaultValue="memory" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="memory" className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              Memory
+            </TabsTrigger>
+            <TabsTrigger value="sync" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Sync Settings
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="memory" className="space-y-6">
+            {/* Loading State */}
+            {memory.isLoading && (
+              <Card>
+                <CardContent className="py-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">{memory.progress.message || 'Initializing...'}</span>
+                  </div>
+                  <Progress value={memory.progress.percent} className="h-1" />
+                </CardContent>
+              </Card>
+            )}
             
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <HardDrive className="h-4 w-4" />
-                  Storage Used
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{formatBytes(stats.sizeEstimateBytes)}</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Cache Status
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{stats.hotCacheSize} cached</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-        
-        {/* Search */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Search Memory</CardTitle>
-            <CardDescription>Find relevant content from your knowledge base</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search your memory..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-10"
-                />
+            {/* Stats Cards */}
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      Total Items
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-semibold">{stats.count}</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <HardDrive className="h-4 w-4" />
+                      Storage Used
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-semibold">{formatBytes(stats.sizeEstimateBytes)}</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Cache Status
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-semibold">{stats.hotCacheSize} cached</p>
+                  </CardContent>
+                </Card>
               </div>
-              <Button onClick={handleSearch} disabled={isSearching || !memory.isReady}>
-                {isSearching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Search'
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Results ({searchResults.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-[400px]">
-                <div className="space-y-3">
-                  {searchResults.map((result) => (
-                    <div
-                      key={result.id}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {getSourceIcon(result.source)}
-                          <span className="text-sm font-medium truncate">
-                            {result.metadata.filename || 
-                             result.metadata.title || 
-                             'Memory Item'}
-                          </span>
-                          <Badge variant="secondary" className="text-xs">
-                            {(result.score * 100).toFixed(0)}% match
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {result.content}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(result.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+            )}
+            
+            {/* Search */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Search Memory</CardTitle>
+                <CardDescription>Find relevant content from your knowledge base</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search your memory..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button onClick={handleSearch} disabled={isSearching || !memory.isReady}>
+                    {isSearching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Search'
+                    )}
+                  </Button>
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* Empty State */}
-        {memory.isReady && stats?.count === 0 && (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center">
-                <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                <h3 className="text-lg font-medium mb-2">Your AI memory is empty</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add documents or notes to build your personal knowledge base.
-                </p>
-                <Button onClick={() => setShowAddNote(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Note
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+            
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Results ({searchResults.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="max-h-[400px]">
+                    <div className="space-y-3">
+                      {searchResults.map((result) => (
+                        <div
+                          key={result.id}
+                          className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              {getSourceIcon(result.source)}
+                              <span className="text-sm font-medium truncate">
+                                {result.metadata.filename || 
+                                 result.metadata.title || 
+                                 'Memory Item'}
+                              </span>
+                              <Badge variant="secondary" className="text-xs">
+                                {(result.score * 100).toFixed(0)}% match
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {result.content}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDelete(result.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Empty State */}
+            {memory.isReady && stats?.count === 0 && (
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <h3 className="text-lg font-medium mb-2">Your AI memory is empty</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Add documents or notes to build your personal knowledge base.
+                    </p>
+                    <Button onClick={() => setShowAddNote(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Note
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="sync">
+            <MemorySyncSettings onSyncComplete={() => memory.getStats().then(setStats)} />
+          </TabsContent>
+        </Tabs>
         
         {/* Add Note Dialog */}
         <Dialog open={showAddNote} onOpenChange={setShowAddNote}>
