@@ -752,6 +752,101 @@ function GhostChat() {
               );
             },
             onComplete: async (fullResponse) => {
+              // === LAYER 5: AUTO-RETRY ON EMPTY FIRST RESPONSE ===
+              const isFirstMessage = messages.filter(m => m.role === 'user').length <= 1;
+              const isEmpty = !fullResponse?.trim();
+              
+              if (isEmpty && isFirstMessage && retryCountRef.current < 2) {
+                retryCountRef.current++;
+                console.log(`[GhostChat] 🔄 Empty first response, retry ${retryCountRef.current}/2...`);
+                
+                // Update the assistant message to show retry status
+                setMessages(prev => prev.map(m => 
+                  m.id === assistantId
+                    ? { 
+                        ...m, 
+                        content: retryCountRef.current === 1 
+                          ? '🔄 Connecting to AI model...' 
+                          : '🔄 Retrying...',
+                        isStreaming: true,
+                      }
+                    : m
+                ));
+                
+                // Exponential backoff: 1s, then 2s
+                const delay = retryCountRef.current * 1000;
+                
+                setTimeout(async () => {
+                  // Re-trigger the stream with same parameters
+                  await streamResponse(
+                    messageHistory,
+                    selectedModels[mode],
+                    {
+                      onToken: (token) => {
+                        setMessages((prev) =>
+                          prev.map((msg) =>
+                            msg.id === assistantId ? { ...msg, content: msg.content.replace(/^🔄.*$/, '') + token } : msg
+                          )
+                        );
+                      },
+                      onComplete: async (retryResponse) => {
+                        const safeResponse = retryResponse?.trim()
+                          ? retryResponse
+                          : 'No response received. Please try again.';
+                        
+                        retryCountRef.current = 0;
+                        
+                        const responseTime = lastResponseTime || Date.now() - streamStartTime;
+                        const tokens = lastTokenCount || Math.ceil(safeResponse.length / 4);
+                        
+                        setMessages((prev) =>
+                          prev.map((msg) =>
+                            msg.id === assistantId
+                              ? {
+                                  ...msg,
+                                  content: safeResponse,
+                                  isStreaming: false,
+                                  responseTimeMs: responseTime,
+                                  tokenCount: tokens,
+                                }
+                              : msg
+                          )
+                        );
+                        
+                        if (safeResponse && !safeResponse.includes('No response received')) {
+                          saveMessage(convId!, 'assistant', safeResponse);
+                          await recordUsage('text', selectedModels[mode], {
+                            inputTokens: Math.ceil(userMessage.content.length / 4),
+                            outputTokens: Math.ceil(safeResponse.length / 4),
+                          });
+                        }
+                      },
+                      onError: (error) => {
+                        retryCountRef.current = 0;
+                        setMessages((prev) =>
+                          prev.map((msg) =>
+                            msg.id === assistantId
+                              ? { ...msg, content: `Error: ${error.message}`, isStreaming: false }
+                              : msg
+                          )
+                        );
+                      },
+                    },
+                    {
+                      systemPrompt: settings?.system_prompt || undefined,
+                      temperature: settings?.default_temperature ?? 0.7,
+                      topP: settings?.default_top_p ?? 0.9,
+                    },
+                    requestId
+                  );
+                }, delay);
+                
+                return; // Don't proceed with completion logic
+              }
+              
+              // Reset retry count on successful response
+              retryCountRef.current = 0;
+              
               const safeResponse = fullResponse?.trim()
                 ? fullResponse
                 : 'No response received (empty stream). Please try again.';
@@ -791,7 +886,7 @@ function GhostChat() {
                 )
               );
 
-              if (safeResponse) {
+              if (safeResponse && !safeResponse.includes('No response received')) {
                 saveMessage(convId!, 'assistant', safeResponse);
                 const inputTokens = Math.ceil(userMessage.content.length / 4);
                 const outputTokens = Math.ceil(safeResponse.length / 4);
