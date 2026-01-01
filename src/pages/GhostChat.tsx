@@ -538,116 +538,29 @@ function GhostChat() {
     });
   }, [toast]);
 
-  const handleSendMessage = async (content: string, attachments?: File[]) => {
-    const messageContent = content?.trim() || '';
-    
-    console.log('[GhostChat] handleSendMessage called', {
-      contentLength: messageContent?.length,
-      isStreaming,
-      streamStatus,
-      isSearching: webSearch.isSearching,
-      isResearching: ghostResearch.isResearching,
-      isSubmitting: isSubmittingRef.current,
-      hasUser: !!user,
-      isInitialized,
-      initPhase,
-    });
-
-    // Basic validation first
-    if (!messageContent && attachedFiles.length === 0) return;
-
-    // === LAYER 2: QUEUE IF STORAGE NOT READY ===
-    if (!isInitialized || initPhase === 'connecting') {
-      console.log('[GhostChat] 📥 Storage initializing, queuing message...');
-      
-      // Store the message for later
-      setPendingMessage({
-        content: messageContent,
-        attachments: [...attachedFiles],
-        timestamp: Date.now(),
-      });
-      
-      // Clear input immediately so user sees their message was received
-      setInputValue('');
-      setAttachedFiles([]);
-      
-      // Add visual feedback in the chat
-      const userMsgId = `queued-user-${Date.now()}`;
-      const statusMsgId = `queued-status-${Date.now()}`;
-      
-      setMessages(prev => [
-        ...prev,
-        {
-          id: userMsgId,
-          role: 'user' as const,
-          content: messageContent,
-          timestamp: Date.now(),
-          attachments: attachedFiles.length > 0 ? attachedFiles.map(f => ({
-            name: f.name,
-            type: f.type,
-            size: f.size,
-          })) : undefined,
-        },
-        {
-          id: statusMsgId,
-          role: 'assistant' as const,
-          content: 'Connecting to secure storage...',
-          timestamp: Date.now(),
-          isStreaming: true,
-        },
-      ]);
-      
-      // Don't proceed - the auto-send effect will handle it
-      return;
-    }
-
-    // Auto-recover if streaming state got stuck (prevents "can\'t send" deadlocks)
-    const isStreamStateStuck =
-      isStreaming &&
-      (streamStatus === 'idle' ||
-        streamStatus === 'error' ||
-        streamStatus === 'timeout' ||
-        streamStatus === 'stuck' ||
-        streamStatus === 'complete');
-
-    if (isStreamStateStuck) {
-      console.warn('[GhostChat] Detected stuck streaming state, resetting...', {
-        streamStatus,
-      });
-      resetStreamState();
-      setMessages((prev) =>
-        prev.map((m) => (m.role === 'assistant' && m.isStreaming ? { ...m, isStreaming: false } : m))
-      );
-    }
-
-    // Prevent double submission - allow if we have attachments even without text
-    if (!messageContent && attachedFiles.length === 0) return;
-
-    if (webSearch.isSearching) {
-      console.log('[GhostChat] BLOCKED: webSearch in progress');
-      (toast as any).info('Search in progress. Please wait.');
-      return;
-    }
-
-    if (ghostResearch.isResearching) {
-      console.log('[GhostChat] BLOCKED: deep research in progress');
-      (toast as any).info('Research in progress. Please wait.');
-      return;
-    }
-
+  // === CORE MESSAGE SEND LOGIC (called by handleSendMessage and auto-send) ===
+  const executeMessageSend = useCallback(async (
+    messageContent: string, 
+    currentAttachments: AttachedFile[] = []
+  ) => {
+    // Prevent double submission
     if (isSubmittingRef.current) {
-      console.log('[GhostChat] BLOCKED: isSubmittingRef is true');
-      // Auto-recover after 5 seconds of being stuck
-      setTimeout(() => {
-        if (isSubmittingRef.current) {
-          isSubmittingRef.current = false;
-          console.log('[GhostChat] Auto-recovered isSubmittingRef');
-        }
-      }, 5000);
+      console.log('[GhostChat] ⚠️ Already submitting, skipping');
       return;
     }
-
+    
     isSubmittingRef.current = true;
+    
+    // Reset retry count for new message
+    retryCountRef.current = 0;
+    
+    // Auto-recovery timeout (reduced to 3 seconds)
+    const recoveryTimeout = setTimeout(() => {
+      if (isSubmittingRef.current) {
+        console.log('[GhostChat] ⚠️ Auto-recovering stuck submission state');
+        isSubmittingRef.current = false;
+      }
+    }, 3000);
 
     try {
       const requestId = crypto.randomUUID();
@@ -719,8 +632,8 @@ function GhostChat() {
       }
 
       // Build multimodal content if we have attachments
-      const hasImages = attachedFiles.some(f => f.type === 'image' && f.base64);
-      const hasDocuments = attachedFiles.some(f => f.type === 'document');
+      const hasImages = currentAttachments.some(f => f.type === 'image' && f.base64);
+      const hasDocuments = currentAttachments.some(f => f.type === 'document');
       
       // Warn if using images with non-vision model
       const selectedModel = selectedModels[mode];
@@ -735,14 +648,14 @@ function GhostChat() {
       }
 
       // Build content - either string or array of content parts
-      let messageContent: string | Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }>;
+      let apiMessageContent: string | Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }>;
       
       if (hasImages || hasDocuments) {
         // Build multimodal content array
         const contentParts: Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }> = [];
         
         // Add images first (vision models expect this order)
-        const imageFiles = attachedFiles.filter(f => f.type === 'image' && f.base64);
+        const imageFiles = currentAttachments.filter(f => f.type === 'image' && f.base64);
         for (const img of imageFiles) {
           contentParts.push({
             type: 'image_url',
@@ -754,7 +667,7 @@ function GhostChat() {
         }
         
         // Add document content as text context
-        const docFiles = attachedFiles.filter(f => f.type === 'document');
+        const docFiles = currentAttachments.filter(f => f.type === 'document');
         let docContext = '';
         for (const doc of docFiles) {
           if (doc.text) {
@@ -769,34 +682,33 @@ function GhostChat() {
         }
         
         // Add user text + document context
-        const fullText = (content.trim() + docContext).trim();
+        const fullText = (messageContent + docContext).trim();
         if (fullText) {
           contentParts.push({ type: 'text', text: fullText });
         }
 
-        messageContent = contentParts;
+        apiMessageContent = contentParts;
       } else {
-        messageContent = content.trim();
+        apiMessageContent = messageContent;
       }
 
       // Create display message (always show text for UI)
-      const displayContent = content.trim() || `[${attachedFiles.length} file(s) attached]`;
+      const displayContent = messageContent || `[${currentAttachments.length} file(s) attached]`;
       const userMessage: GhostMessageData = {
         id: crypto.randomUUID(),
         role: 'user',
         content: displayContent,
         timestamp: Date.now(),
-        attachments: attachedFiles.map(f => ({ name: f.name, type: f.type, size: f.size })),
+        attachments: currentAttachments.map(f => ({ name: f.name, type: f.type, size: f.size })),
       };
 
       // Build message history BEFORE saving (to avoid duplicate)
-      // Build message history BEFORE saving (to avoid duplicate)
-      // Note: messageContent can be string or array for multimodal
+      // Note: apiMessageContent can be string or array for multimodal
       const messageHistory: Array<{ role: string; content: any }> = messages.map((m) => ({
         role: m.role,
         content: m.content,
       }));
-      messageHistory.push({ role: 'user', content: messageContent });
+      messageHistory.push({ role: 'user', content: apiMessageContent });
 
       // Save user message and update UI
       saveMessage(convId, 'user', displayContent);
@@ -1050,9 +962,121 @@ function GhostChat() {
           description: 'Video generation coming soon!',
         });
       }
+    } catch (error) {
+      console.error('[GhostChat] Send error:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send message',
+        variant: 'destructive',
+      });
     } finally {
+      clearTimeout(recoveryTimeout);
       isSubmittingRef.current = false;
     }
+  }, [
+    user, mode, selectedConversation, selectedModels, messages, settings,
+    canUse, useFeature, checkCredits, createConversation, saveMessage,
+    streamResponse, webSearch, ghostResearch, recordUsage, toast,
+    lastResponseTime, lastTokenCount, handleInsufficientCredits,
+  ]);
+
+  const handleSendMessage = async (content: string, attachments?: File[]) => {
+    const messageContent = content?.trim() || '';
+    
+    console.log('[GhostChat] handleSendMessage called', {
+      contentLength: messageContent?.length,
+      isStreaming,
+      streamStatus,
+      isSearching: webSearch.isSearching,
+      isResearching: ghostResearch.isResearching,
+      isSubmitting: isSubmittingRef.current,
+      hasUser: !!user,
+      isInitialized,
+      initPhase,
+    });
+
+    // Basic validation first
+    if (!messageContent && attachedFiles.length === 0) return;
+
+    // === LAYER 2: QUEUE IF STORAGE NOT READY ===
+    if (!isInitialized || initPhase === 'connecting') {
+      console.log('[GhostChat] 📥 Storage initializing, queuing message...');
+      
+      // Store the message for later
+      setPendingMessage({
+        content: messageContent,
+        attachments: [...attachedFiles],
+        timestamp: Date.now(),
+      });
+      
+      // Clear input immediately so user sees their message was received
+      setInputValue('');
+      setAttachedFiles([]);
+      
+      // Add visual feedback in the chat
+      const userMsgId = `queued-user-${Date.now()}`;
+      const statusMsgId = `queued-status-${Date.now()}`;
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          id: userMsgId,
+          role: 'user' as const,
+          content: messageContent,
+          timestamp: Date.now(),
+          attachments: attachedFiles.length > 0 ? attachedFiles.map(f => ({
+            name: f.name,
+            type: f.type,
+            size: f.size,
+          })) : undefined,
+        },
+        {
+          id: statusMsgId,
+          role: 'assistant' as const,
+          content: 'Connecting to secure storage...',
+          timestamp: Date.now(),
+          isStreaming: true,
+        },
+      ]);
+      
+      // Don't proceed - the auto-send effect will handle it
+      return;
+    }
+
+    // Auto-recover if streaming state got stuck (prevents "can\'t send" deadlocks)
+    const isStreamStateStuck =
+      isStreaming &&
+      (streamStatus === 'idle' ||
+        streamStatus === 'error' ||
+        streamStatus === 'timeout' ||
+        streamStatus === 'stuck' ||
+        streamStatus === 'complete');
+
+    if (isStreamStateStuck) {
+      console.warn('[GhostChat] Detected stuck streaming state, resetting...', {
+        streamStatus,
+      });
+      resetStreamState();
+      setMessages((prev) =>
+        prev.map((m) => (m.role === 'assistant' && m.isStreaming ? { ...m, isStreaming: false } : m))
+      );
+    }
+
+    // Check for in-progress operations
+    if (webSearch.isSearching) {
+      console.log('[GhostChat] BLOCKED: webSearch in progress');
+      (toast as any).info('Search in progress. Please wait.');
+      return;
+    }
+
+    if (ghostResearch.isResearching) {
+      console.log('[GhostChat] BLOCKED: deep research in progress');
+      (toast as any).info('Research in progress. Please wait.');
+      return;
+    }
+
+    // Execute the core send logic
+    await executeMessageSend(messageContent, attachedFiles);
   };
 
   // Export - open dialog with options
