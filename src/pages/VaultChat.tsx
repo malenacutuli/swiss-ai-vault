@@ -11,6 +11,7 @@ import { chatEncryption } from '@/lib/encryption';
 import { useToast } from '@/hooks/use-toast';
 import { useRAGContext } from '@/hooks/useRAGContext';
 import { useStorageMode } from '@/hooks/useStorageMode';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
 import { EncryptionStatus } from '@/components/vault/EncryptionStatus';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
@@ -165,6 +166,9 @@ const VaultChat = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
+  
+  // User profile for learning and personalization
+  const userProfile = useUserProfile();
   
   // Storage mode hook - routes to server or local based on zero_retention_mode
   const {
@@ -676,6 +680,36 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
     }
   }, [isZeroTrace, storageModeLoading]);
 
+  // Learn from conversation after 30 seconds of inactivity
+  useEffect(() => {
+    if (!userProfile.isReady || messages.length < 3) return;
+    
+    const learnTimeout = setTimeout(() => {
+      const conversationMessages = messages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content
+      }));
+      userProfile.learnFromConversation(conversationMessages);
+      console.log('[Vault Chat] 🧠 Learned from conversation after inactivity');
+    }, 30000);
+    
+    return () => clearTimeout(learnTimeout);
+  }, [messages, userProfile.isReady]);
+
+  // Learn from conversation when navigating away
+  useEffect(() => {
+    return () => {
+      if (messages.length >= 3 && userProfile.isReady) {
+        const conversationMessages = messages.map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content
+        }));
+        userProfile.learnFromConversation(conversationMessages);
+        console.log('[Vault Chat] 🧠 Learned from conversation on unmount');
+      }
+    };
+  }, []);
+
   const loadConversations = async () => {
     try {
       // Use storage mode hook to load conversations (routes to server or local)
@@ -935,6 +969,15 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
           console.log(`[Vault Chat] 📚 Found ${relevantChunks.length} relevant chunks`);
         }
       }
+      
+      // Add user profile context for personalization
+      let profileContext: string | undefined;
+      if (userProfile.isReady) {
+        profileContext = userProfile.getContextPrompt();
+        if (profileContext) {
+          console.log('[Vault Chat] 👤 Adding user profile context');
+        }
+      }
 
       // Encrypt user message
       const encryptedUserMessage = await chatEncryption.encryptMessage(messageContent, key);
@@ -1002,7 +1045,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         content: messageContent
       });
 
-      // Call chat completions with RAG context and correct model
+      // Call chat completions with RAG context, profile context, and correct model
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completions`,
@@ -1018,6 +1061,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
             max_tokens: 2048,
             temperature: 0.7,
             rag_context: ragContext,
+            profile_context: profileContext,
             zero_retention: retentionToUse === 'zerotrace',
           }),
         }
