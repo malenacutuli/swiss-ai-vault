@@ -63,7 +63,10 @@ import { MemoryLoadingState } from '@/components/memory/MemoryLoadingState';
 import { MemoryOfflineIndicator } from '@/components/memory/MemoryOfflineIndicator';
 import { MemoryFolderList } from '@/components/memory/MemoryFolderList';
 import { BulkUploadDialog } from '@/components/memory/BulkUploadDialog';
+import { MemoryOnboarding } from '@/components/memory/MemoryOnboarding';
+import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
+import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
 import type { MemoryFolder } from '@/lib/memory/memory-manager';
 
 interface MemoryStats {
@@ -80,7 +83,7 @@ function MemoryDashboardContent() {
   const { isUnlocked, isInitialized: vaultInitialized } = useEncryption();
   const memory = useMemory();
   const { shouldShowRestore, dismissRestore } = useNewDeviceDetection();
-  
+  const { showOnboarding, hasChecked, completeOnboarding, skipOnboarding, resetOnboarding } = useMemoryOnboarding();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ContextSnippet[]>([]);
@@ -454,8 +457,18 @@ function MemoryDashboardContent() {
               </Card>
             )}
             
+            {/* Quick Start for Empty State */}
+            {memory.isReady && stats?.count === 0 && (
+              <MemoryQuickStart
+                onUploadDocument={() => setShowBulkUpload(true)}
+                onAddNote={() => setShowAddNote(true)}
+                onGoToChat={() => navigate('/chat')}
+                onViewTutorial={resetOnboarding}
+              />
+            )}
+            
             {/* Stats Cards */}
-            {stats && (
+            {stats && stats.count > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
@@ -676,6 +689,15 @@ function MemoryDashboardContent() {
             memory.getStats().then(setStats);
           }}
         />
+        
+        {/* Onboarding Dialog */}
+        {hasChecked && (
+          <MemoryOnboarding
+            open={showOnboarding}
+            onComplete={completeOnboarding}
+            onSkip={skipOnboarding}
+          />
+        )}
       </div>
     </div>
   );
