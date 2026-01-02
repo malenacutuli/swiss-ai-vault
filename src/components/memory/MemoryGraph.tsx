@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ZoomIn, ZoomOut, Maximize2, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, X, RefreshCw } from 'lucide-react';
 
 interface MemoryNode {
   id: string;
@@ -25,6 +25,7 @@ interface GraphNode extends d3.SimulationNodeDatum {
 
 interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
   strength: number;
+  sharedTags: string[];
 }
 
 interface Props {
@@ -32,22 +33,23 @@ interface Props {
   onSelectMemory?: (id: string) => void;
 }
 
-// Color mapping for sources using CSS variables where possible
+// Vibrant source colors for better visibility
 const SOURCE_COLORS: Record<string, string> = {
-  chatgpt: '#10B981',    // Green
-  claude: '#8B5CF6',     // Purple
-  gemini: '#3B82F6',     // Blue
-  perplexity: '#F59E0B', // Amber
-  grok: '#EF4444',       // Red
-  copilot: '#06B6D4',    // Cyan
-  document: '#6B7280',   // Gray
-  note: '#EC4899',       // Pink
-  chat: '#10B981',       // Green (for imported chats)
-  url: '#3B82F6',        // Blue
+  chatgpt: '#10B981',      // Green
+  claude: '#8B5CF6',       // Purple
+  gemini: '#3B82F6',       // Blue
+  perplexity: '#F59E0B',   // Amber
+  grok: '#EF4444',         // Red
+  copilot: '#06B6D4',      // Cyan
+  swissvault_chat: '#EC4899', // Pink
+  document: '#6B7280',     // Gray
+  note: '#F97316',         // Orange
+  chat: '#10B981',         // Green
+  url: '#14B8A6',          // Teal
 };
 
 /**
- * Find connections between memories based on shared tags/topics
+ * Find connections between memories based on shared tags and temporal proximity
  */
 function findConnections(memories: MemoryNode[]): GraphLink[] {
   const links: GraphLink[] = [];
@@ -63,7 +65,7 @@ function findConnections(memories: MemoryNode[]): GraphLink[] {
   });
   
   // Create links for memories sharing tags
-  tagMap.forEach((ids) => {
+  tagMap.forEach((ids, tag) => {
     if (ids.length < 2) return;
     
     for (let i = 0; i < ids.length; i++) {
@@ -73,15 +75,16 @@ function findConnections(memories: MemoryNode[]): GraphLink[] {
                (l.source === ids[j] && l.target === ids[i])
         );
         if (existing) {
-          existing.strength += 0.2;
+          existing.strength += 0.15;
+          existing.sharedTags.push(tag);
         } else {
-          links.push({ source: ids[i], target: ids[j], strength: 0.3 });
+          links.push({ source: ids[i], target: ids[j], strength: 0.3, sharedTags: [tag] });
         }
       }
     }
   });
   
-  // Also connect memories from the same source that are close in time
+  // Connect memories from the same source that are close in time
   const bySource = new Map<string, MemoryNode[]>();
   memories.forEach(m => {
     const arr = bySource.get(m.source) || [];
@@ -90,19 +93,22 @@ function findConnections(memories: MemoryNode[]): GraphLink[] {
   });
   
   bySource.forEach((mems) => {
-    // Sort by timestamp
     const sorted = [...mems].sort((a, b) => 
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     
-    // Connect adjacent memories in time
     for (let i = 0; i < sorted.length - 1; i++) {
       const existing = links.find(
         l => (l.source === sorted[i].id && l.target === sorted[i + 1].id) ||
              (l.source === sorted[i + 1].id && l.target === sorted[i].id)
       );
       if (!existing) {
-        links.push({ source: sorted[i].id, target: sorted[i + 1].id, strength: 0.15 });
+        links.push({ 
+          source: sorted[i].id, 
+          target: sorted[i + 1].id, 
+          strength: 0.2, 
+          sharedTags: ['temporal'] 
+        });
       }
     }
   });
@@ -115,6 +121,7 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isSimulating, setIsSimulating] = useState(false);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   
   const links = useMemo(() => findConnections(memories), [memories]);
@@ -146,17 +153,15 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
   useEffect(() => {
     if (!svgRef.current || memories.length === 0) return;
     
+    setIsSimulating(true);
     const svg = d3.select(svgRef.current);
     const width = containerRef.current?.clientWidth || 800;
     const height = 500;
     
-    // Clear previous
     svg.selectAll('*').remove();
     
-    // Create container group for zoom
     const g = svg.append('g');
     
-    // Setup zoom
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.2, 4])
       .on('zoom', (event) => {
@@ -167,29 +172,34 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
     zoomRef.current = zoom;
     svg.call(zoom);
     
-    // Prepare nodes
+    // Create deep copies for simulation
     const nodes: GraphNode[] = memories.map(m => ({ ...m }));
+    const simLinks = links.map(l => ({ 
+      ...l, 
+      source: l.source as string, 
+      target: l.target as string 
+    }));
     
     // Create simulation
     const simulation = d3.forceSimulation<GraphNode>(nodes)
-      .force('link', d3.forceLink<GraphNode, GraphLink>(links)
+      .force('link', d3.forceLink<GraphNode, GraphLink>(simLinks)
         .id(d => d.id)
-        .distance(80)
+        .distance(100)
         .strength(d => d.strength))
-      .force('charge', d3.forceManyBody().strength(-150))
+      .force('charge', d3.forceManyBody().strength(-200))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(25));
+      .force('collision', d3.forceCollide().radius(35));
     
-    // Draw links
+    // Draw links FIRST (behind nodes) with better visibility
     const link = g.append('g')
       .attr('class', 'links')
       .selectAll('line')
-      .data(links)
+      .data(simLinks)
       .enter()
       .append('line')
-      .attr('stroke', 'hsl(var(--border))')
-      .attr('stroke-opacity', 0.3)
-      .attr('stroke-width', d => Math.max(1, d.strength * 3));
+      .attr('stroke', '#94A3B8')
+      .attr('stroke-opacity', 0.5)
+      .attr('stroke-width', d => Math.max(1.5, d.strength * 4));
     
     // Draw nodes
     const node = g.append('g')
@@ -219,31 +229,57 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
         onSelectMemory?.(d.id);
       });
     
-    // Node circles
+    // Node circles with source colors and shadow
     node.append('circle')
-      .attr('r', 10)
+      .attr('r', 12)
       .attr('fill', d => SOURCE_COLORS[d.source] || '#6B7280')
-      .attr('stroke', 'hsl(var(--background))')
-      .attr('stroke-width', 2);
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 2)
+      .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))');
     
     // Node labels
     node.append('text')
-      .text(d => d.title.slice(0, 15) + (d.title.length > 15 ? '...' : ''))
-      .attr('x', 14)
+      .text(d => {
+        const title = d.title || 'Untitled';
+        return title.length > 20 ? title.slice(0, 20) + '...' : title;
+      })
+      .attr('x', 16)
       .attr('y', 4)
-      .attr('font-size', '10px')
-      .attr('fill', 'hsl(var(--muted-foreground))');
+      .attr('font-size', '11px')
+      .attr('fill', '#64748B')
+      .attr('font-weight', '500');
     
     // Tick handler
     simulation.on('tick', () => {
       link
-        .attr('x1', d => (d.source as GraphNode).x || 0)
-        .attr('y1', d => (d.source as GraphNode).y || 0)
-        .attr('x2', d => (d.target as GraphNode).x || 0)
-        .attr('y2', d => (d.target as GraphNode).y || 0);
+        .attr('x1', d => (d.source as unknown as GraphNode).x || 0)
+        .attr('y1', d => (d.source as unknown as GraphNode).y || 0)
+        .attr('x2', d => (d.target as unknown as GraphNode).x || 0)
+        .attr('y2', d => (d.target as unknown as GraphNode).y || 0);
       
       node.attr('transform', d => `translate(${d.x || 0},${d.y || 0})`);
     });
+    
+    simulation.on('end', () => setIsSimulating(false));
+    
+    // Auto-zoom to fit content
+    setTimeout(() => {
+      const bounds = g.node()?.getBBox();
+      if (bounds && bounds.width > 0 && bounds.height > 0) {
+        const scale = Math.min(
+          width / (bounds.width + 100),
+          height / (bounds.height + 100),
+          1.5
+        );
+        const tx = (width - bounds.width * scale) / 2 - bounds.x * scale;
+        const ty = (height - bounds.height * scale) / 2 - bounds.y * scale;
+        
+        svg.transition().duration(500).call(
+          zoom.transform,
+          d3.zoomIdentity.translate(tx, ty).scale(scale)
+        );
+      }
+    }, 1000);
     
     return () => {
       simulation.stop();
@@ -264,9 +300,14 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Memory Graph</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">Memory Graph</CardTitle>
+            {isSimulating && (
+              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
           <div className="flex flex-wrap gap-1">
-            {Object.entries(SOURCE_COLORS).slice(0, 5).map(([source, color]) => (
+            {Object.entries(SOURCE_COLORS).slice(0, 6).map(([source, color]) => (
               <Badge 
                 key={source} 
                 variant="outline" 
@@ -307,11 +348,11 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
           
           {/* Selected node info */}
           {selectedNode && (
-            <div className="absolute bottom-3 right-3 bg-background border border-border rounded-lg p-3 shadow-lg max-w-[250px]">
+            <div className="absolute bottom-3 right-3 bg-background border border-border rounded-lg p-3 shadow-lg max-w-[280px]">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{selectedNode.title}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-1 mt-2">
                     <Badge 
                       variant="secondary" 
                       className="text-xs"
@@ -322,10 +363,15 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
                     >
                       {selectedNode.source}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(selectedNode.timestamp).toLocaleDateString()}
-                    </span>
+                    {selectedNode.tags?.slice(0, 3).map(tag => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(selectedNode.timestamp).toLocaleDateString()}
+                  </p>
                 </div>
                 <Button 
                   variant="ghost" 
