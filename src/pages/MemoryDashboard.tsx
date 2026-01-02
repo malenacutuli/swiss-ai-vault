@@ -20,7 +20,8 @@ import {
   MoreVertical,
   Settings,
   ArrowLeft,
-  Network
+  Network,
+  Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,6 +68,7 @@ import { MemoryFolderList } from '@/components/memory/MemoryFolderList';
 import { BulkUploadDialog } from '@/components/memory/BulkUploadDialog';
 import { MemoryOnboarding } from '@/components/memory/MemoryOnboarding';
 import { DistillInsightsButton } from '@/components/memory/DistillInsightsButton';
+import { ConnectorSettings } from '@/components/memory/ConnectorSettings';
 import { MemoryGraph } from '@/components/memory/MemoryGraph';
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
@@ -454,6 +456,10 @@ function MemoryDashboardContent() {
               <Network className="h-4 w-4" />
               Graph
             </TabsTrigger>
+            <TabsTrigger value="connectors" className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              Connectors
+            </TabsTrigger>
             <TabsTrigger value="sync" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Sync Settings
@@ -692,6 +698,10 @@ function MemoryDashboardContent() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+          
+          <TabsContent value="connectors">
+            <ConnectorSettings />
           </TabsContent>
           
           <TabsContent value="sync">
