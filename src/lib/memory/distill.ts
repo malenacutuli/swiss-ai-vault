@@ -95,11 +95,19 @@ RULES:
 /**
  * Distill a single conversation into insights using Lovable AI
  */
+// Custom error for rate limits
+export class RateLimitError extends Error {
+  constructor(message: string, public retryAfterSeconds?: number) {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
+
 export async function distillConversation(
   memory: { id: string; title: string; content: string; source: string; aiPlatform?: string; metadata?: Record<string, unknown> }
 ): Promise<DistilledInsight | null> {
   // Truncate very long content
-  const content = memory.content.slice(0, 12000);
+  const content = memory.content.slice(0, 8000);
   
   // Check if this is a voice conversation
   const isVoice = memory.aiPlatform === 'swissvault' || 
@@ -131,8 +139,24 @@ export async function distillConversation(
       })
     });
     
+    // CRITICAL: Check for rate limit BEFORE parsing body
+    if (response.status === 429) {
+      const errorData = await response.json().catch(() => ({}));
+      const retryAfter = errorData.resets_in_seconds || 60;
+      throw new RateLimitError(
+        errorData.error || 'Rate limit reached',
+        retryAfter
+      );
+    }
+    
     if (!response.ok) {
-      console.error('Distillation API error:', response.status);
+      const errorText = await response.text();
+      console.error('Distillation API error:', response.status, errorText);
+      
+      // Check if error text indicates rate limit
+      if (errorText.includes('limit') || errorText.includes('429')) {
+        throw new RateLimitError(errorText);
+      }
       return null;
     }
     
@@ -154,10 +178,20 @@ export async function distillConversation(
         if (line.startsWith('data: ') && line !== 'data: [DONE]') {
           try {
             const data = JSON.parse(line.slice(6));
+            
+            // Check for error in streamed response
+            if (data.error) {
+              if (data.error.includes('limit') || data.signup_required) {
+                throw new RateLimitError(data.error, data.resets_in_seconds);
+              }
+            }
+            
             const deltaContent = data.choices?.[0]?.delta?.content;
             if (deltaContent) fullContent += deltaContent;
-          } catch {
-            // Skip malformed chunks
+          } catch (parseError) {
+            // Re-throw rate limit errors
+            if (parseError instanceof RateLimitError) throw parseError;
+            // Skip other malformed chunks
           }
         }
       }
@@ -196,6 +230,10 @@ export async function distillConversation(
       createdAt: new Date().toISOString()
     };
   } catch (error) {
+    // Re-throw rate limit errors so caller can handle them
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
     console.error('Distillation error:', error);
     return null;
   }
