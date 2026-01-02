@@ -12,6 +12,7 @@ export type SupportedFileType =
   | 'md' 
   | 'csv' 
   | 'json'
+  | 'audio'
   | 'unknown';
 
 export interface ProcessedDocument {
@@ -53,6 +54,11 @@ export function detectFileType(file: File): SupportedFileType {
     case 'md': return 'md';
     case 'csv': return 'csv';
     case 'json': return 'json';
+    case 'mp3':
+    case 'wav':
+    case 'm4a':
+    case 'webm':
+    case 'ogg': return 'audio';
   }
   
   // Fallback to MIME type
@@ -65,6 +71,7 @@ export function detectFileType(file: File): SupportedFileType {
   if (mimeType.includes('text/markdown')) return 'md';
   if (mimeType.includes('text/csv')) return 'csv';
   if (mimeType.includes('application/json')) return 'json';
+  if (mimeType.includes('audio/')) return 'audio';
   
   return 'unknown';
 }
@@ -122,6 +129,11 @@ export async function processDocument(
         
       case 'json':
         content = await extractJSON(file);
+        break;
+        
+      case 'audio':
+        onProgress?.({ stage: 'extracting', percent: 30, message: 'Transcribing audio...' });
+        content = await transcribeAudio(file, onProgress);
         break;
         
       default:
@@ -331,6 +343,53 @@ async function extractJSON(file: File): Promise<string> {
 }
 
 /**
+ * Transcribe audio file using Whisper API via ghost-voice edge function
+ */
+async function transcribeAudio(
+  file: File, 
+  onProgress?: (progress: ProcessingProgress) => void
+): Promise<string> {
+  onProgress?.({ stage: 'extracting', percent: 40, message: 'Converting audio...' });
+  
+  // Convert file to base64
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = btoa(
+    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+  );
+  
+  onProgress?.({ stage: 'extracting', percent: 60, message: 'Transcribing with AI...' });
+  
+  // Call ghost-voice STT endpoint
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-voice`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+    },
+    body: JSON.stringify({
+      action: 'stt',
+      audio: base64,
+      language: 'en'
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Audio transcription failed');
+  }
+  
+  const { text } = await response.json();
+  
+  if (!text || text.trim().length === 0) {
+    throw new Error('No speech detected in audio file');
+  }
+  
+  onProgress?.({ stage: 'processing', percent: 90, message: 'Formatting transcript...' });
+  
+  return `[Audio Transcription: ${file.name}]\n\n${text}`;
+}
+
+/**
  * Clean extracted content
  */
 function cleanContent(content: string): string {
@@ -354,7 +413,12 @@ export function getAcceptedFileTypes(): Record<string, string[]> {
     'text/plain': ['.txt'],
     'text/markdown': ['.md'],
     'text/csv': ['.csv'],
-    'application/json': ['.json']
+    'application/json': ['.json'],
+    'audio/mpeg': ['.mp3'],
+    'audio/wav': ['.wav'],
+    'audio/x-m4a': ['.m4a'],
+    'audio/webm': ['.webm'],
+    'audio/ogg': ['.ogg']
   };
 }
 
@@ -362,5 +426,5 @@ export function getAcceptedFileTypes(): Record<string, string[]> {
  * Get human-readable list of supported formats
  */
 export function getSupportedFormatsText(): string {
-  return 'PDF, Word, PowerPoint, Excel, Text, Markdown, CSV, JSON';
+  return 'PDF, Word, PowerPoint, Excel, Text, Markdown, CSV, JSON, Audio (MP3, WAV, M4A)';
 }

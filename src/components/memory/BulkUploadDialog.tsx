@@ -9,7 +9,8 @@ import {
   FolderOpen,
   FileSpreadsheet,
   Presentation,
-  FileType
+  FileType,
+  Mic
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -77,6 +78,8 @@ function getFileIcon(fileType: SupportedFileType) {
       return <FileType className="h-4 w-4 text-red-600" />;
     case 'docx':
       return <FileText className="h-4 w-4 text-blue-600" />;
+    case 'audio':
+      return <Mic className="h-4 w-4 text-purple-600" />;
     default:
       return <FileText className="h-4 w-4 text-muted-foreground" />;
   }
