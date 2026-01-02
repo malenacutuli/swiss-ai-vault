@@ -17,9 +17,10 @@ function similarity(a: number[], b: number[]): number {
 
 // IndexedDB Configuration - separate from key vault
 const DB_NAME = 'SwissVaultMemory';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // Bumped for projects support
 const STORE_NAME = 'memories';
 const FOLDERS_STORE = 'folders';
+const PROJECTS_STORE = 'projects';
 
 // ==========================================
 // TYPES
@@ -44,6 +45,8 @@ export interface MemoryMetadata {
   // Folder support
   folderId?: string;
   folderPath?: string;
+  // Project support - item can belong to multiple projects
+  projectIds?: string[];
 }
 
 export interface MemoryItem {
@@ -57,10 +60,25 @@ export interface MemoryFolder {
   id: string;
   name: string;
   parentId: string | null;
+  projectId?: string; // Optional project association
   color?: string;
   icon?: string;
   createdAt: number;
   updatedAt: number;
+}
+
+// Project for organizing documents with custom instructions
+export interface MemoryProject {
+  id: string;
+  name: string;
+  description?: string;
+  instructions?: string; // Custom system prompt for this project
+  color?: string;
+  icon?: string;
+  documentIds: string[]; // References to MemoryItem IDs
+  createdAt: number;
+  updatedAt: number;
+  isArchived?: boolean;
 }
 
 // What we actually store in IndexedDB
@@ -122,6 +140,14 @@ async function getDB(): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains(FOLDERS_STORE)) {
         const foldersStore = database.createObjectStore(FOLDERS_STORE, { keyPath: 'id' });
         foldersStore.createIndex('parentId', 'parentId', { unique: false });
+      }
+      
+      // Projects store (new in version 3)
+      if (!database.objectStoreNames.contains(PROJECTS_STORE)) {
+        const projectsStore = database.createObjectStore(PROJECTS_STORE, { keyPath: 'id' });
+        projectsStore.createIndex('name', 'name', { unique: false });
+        projectsStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+        projectsStore.createIndex('isArchived', 'isArchived', { unique: false });
       }
     };
     
@@ -964,4 +990,447 @@ export async function getAllMemoriesDecrypted(
   
   console.log('[MemoryStore] Decrypted', decrypted.length, 'of', stored.length, 'memories');
   return decrypted;
+}
+
+// ==========================================
+// PROJECT OPERATIONS (ALL LOCAL)
+// ==========================================
+
+/**
+ * Create a new project
+ */
+export async function createProject(
+  project: Omit<MemoryProject, 'id' | 'createdAt' | 'updatedAt' | 'documentIds'>
+): Promise<MemoryProject> {
+  const database = await getDB();
+  
+  const newProject: MemoryProject = {
+    ...project,
+    id: crypto.randomUUID(),
+    documentIds: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(PROJECTS_STORE, 'readwrite');
+    tx.objectStore(PROJECTS_STORE).put(newProject);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Created project:', newProject.name);
+  return newProject;
+}
+
+/**
+ * Get all non-archived projects
+ */
+export async function getProjects(): Promise<MemoryProject[]> {
+  const database = await getDB();
+  
+  const projects: MemoryProject[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(PROJECTS_STORE, 'readonly');
+    const request = tx.objectStore(PROJECTS_STORE).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  return projects.filter(p => !p.isArchived);
+}
+
+/**
+ * Get all projects including archived
+ */
+export async function getAllProjects(): Promise<MemoryProject[]> {
+  const database = await getDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(PROJECTS_STORE, 'readonly');
+    const request = tx.objectStore(PROJECTS_STORE).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Get a specific project by ID
+ */
+export async function getProject(id: string): Promise<MemoryProject | null> {
+  const database = await getDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(PROJECTS_STORE, 'readonly');
+    const request = tx.objectStore(PROJECTS_STORE).get(id);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Update a project
+ */
+export async function updateProject(
+  id: string,
+  updates: Partial<MemoryProject>
+): Promise<void> {
+  const database = await getDB();
+  const existing = await getProject(id);
+  if (!existing) throw new Error('Project not found');
+  
+  const updated = { ...existing, ...updates, updatedAt: Date.now() };
+  
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(PROJECTS_STORE, 'readwrite');
+    tx.objectStore(PROJECTS_STORE).put(updated);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Updated project:', id);
+}
+
+/**
+ * Add a document to a project
+ */
+export async function addDocumentToProject(
+  projectId: string,
+  documentId: string,
+  encryptionKey: CryptoKey
+): Promise<void> {
+  const database = await getDB();
+  const project = await getProject(projectId);
+  
+  if (!project) throw new Error('Project not found');
+  
+  // Add to project's document list if not already there
+  if (!project.documentIds.includes(documentId)) {
+    project.documentIds.push(documentId);
+    project.updatedAt = Date.now();
+    
+    await new Promise<void>((resolve, reject) => {
+      const tx = database.transaction(PROJECTS_STORE, 'readwrite');
+      tx.objectStore(PROJECTS_STORE).put(project);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  
+  // Also update the document's projectIds in its metadata
+  const stored: StoredMemory | undefined = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).get(documentId);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  
+  if (stored) {
+    try {
+      const encryptedData = { ciphertext: stored.encrypted, nonce: stored.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { content, metadata } = JSON.parse(decrypted);
+      
+      const projectIds = metadata.projectIds || [];
+      if (!projectIds.includes(projectId)) {
+        projectIds.push(projectId);
+        
+        const updatedMetadata = { ...metadata, projectIds, updatedAt: Date.now() };
+        const payload = JSON.stringify({ content, metadata: updatedMetadata });
+        const newEncrypted = await encrypt(payload, encryptionKey);
+        
+        const updatedStored: StoredMemory = {
+          id: stored.id,
+          embedding: stored.embedding,
+          encrypted: newEncrypted.ciphertext,
+          nonce: newEncrypted.nonce,
+          createdAt: stored.createdAt
+        };
+        
+        await new Promise<void>((resolve, reject) => {
+          const tx = database.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).put(updatedStored);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        
+        // Update hot cache
+        if (hotCache.has(documentId)) {
+          const cached = hotCache.get(documentId)!;
+          hotCache.set(documentId, { ...cached, metadata: updatedMetadata });
+        }
+      }
+    } catch (error) {
+      console.error('[MemoryStore] Failed to update document projectIds:', error);
+    }
+  }
+  
+  console.log('[MemoryStore] Added document', documentId, 'to project', projectId);
+}
+
+/**
+ * Remove a document from a project
+ */
+export async function removeDocumentFromProject(
+  projectId: string,
+  documentId: string,
+  encryptionKey: CryptoKey
+): Promise<void> {
+  const database = await getDB();
+  const project = await getProject(projectId);
+  
+  if (!project) return;
+  
+  // Remove from project's document list
+  project.documentIds = project.documentIds.filter(id => id !== documentId);
+  project.updatedAt = Date.now();
+  
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(PROJECTS_STORE, 'readwrite');
+    tx.objectStore(PROJECTS_STORE).put(project);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  // Also update the document's projectIds
+  const stored: StoredMemory | undefined = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).get(documentId);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  
+  if (stored) {
+    try {
+      const encryptedData = { ciphertext: stored.encrypted, nonce: stored.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { content, metadata } = JSON.parse(decrypted);
+      
+      if (metadata.projectIds) {
+        metadata.projectIds = metadata.projectIds.filter((id: string) => id !== projectId);
+        metadata.updatedAt = Date.now();
+        
+        const payload = JSON.stringify({ content, metadata });
+        const newEncrypted = await encrypt(payload, encryptionKey);
+        
+        const updatedStored: StoredMemory = {
+          id: stored.id,
+          embedding: stored.embedding,
+          encrypted: newEncrypted.ciphertext,
+          nonce: newEncrypted.nonce,
+          createdAt: stored.createdAt
+        };
+        
+        await new Promise<void>((resolve, reject) => {
+          const tx = database.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).put(updatedStored);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        
+        // Update hot cache
+        if (hotCache.has(documentId)) {
+          const cached = hotCache.get(documentId)!;
+          hotCache.set(documentId, { ...cached, metadata });
+        }
+      }
+    } catch (error) {
+      console.error('[MemoryStore] Failed to update document projectIds:', error);
+    }
+  }
+  
+  console.log('[MemoryStore] Removed document', documentId, 'from project', projectId);
+}
+
+/**
+ * Get all documents in a project
+ */
+export async function getProjectDocuments(
+  projectId: string,
+  encryptionKey: CryptoKey
+): Promise<MemoryItem[]> {
+  const project = await getProject(projectId);
+  if (!project) return [];
+  
+  const documents: MemoryItem[] = [];
+  
+  for (const docId of project.documentIds) {
+    const item = await getMemory(docId, encryptionKey);
+    if (item) documents.push(item);
+  }
+  
+  return documents;
+}
+
+/**
+ * Archive a project (soft delete)
+ */
+export async function archiveProject(id: string): Promise<void> {
+  await updateProject(id, { isArchived: true });
+  console.log('[MemoryStore] Archived project:', id);
+}
+
+/**
+ * Unarchive a project
+ */
+export async function unarchiveProject(id: string): Promise<void> {
+  await updateProject(id, { isArchived: false });
+  console.log('[MemoryStore] Unarchived project:', id);
+}
+
+/**
+ * Permanently delete a project (removes project, not documents)
+ */
+export async function deleteProject(
+  id: string,
+  encryptionKey: CryptoKey
+): Promise<void> {
+  const database = await getDB();
+  const project = await getProject(id);
+  
+  if (project) {
+    // Remove project references from all documents
+    for (const docId of project.documentIds) {
+      const stored: StoredMemory | undefined = await new Promise((resolve, reject) => {
+        const tx = database.transaction(STORE_NAME, 'readonly');
+        const request = tx.objectStore(STORE_NAME).get(docId);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      
+      if (stored) {
+        try {
+          const encryptedData = { ciphertext: stored.encrypted, nonce: stored.nonce };
+          const decrypted = await decrypt(encryptedData, encryptionKey);
+          const { content, metadata } = JSON.parse(decrypted);
+          
+          if (metadata.projectIds) {
+            metadata.projectIds = metadata.projectIds.filter((pid: string) => pid !== id);
+            metadata.updatedAt = Date.now();
+            
+            const payload = JSON.stringify({ content, metadata });
+            const newEncrypted = await encrypt(payload, encryptionKey);
+            
+            const updatedStored: StoredMemory = {
+              id: stored.id,
+              embedding: stored.embedding,
+              encrypted: newEncrypted.ciphertext,
+              nonce: newEncrypted.nonce,
+              createdAt: stored.createdAt
+            };
+            
+            await new Promise<void>((resolve, reject) => {
+              const tx = database.transaction(STORE_NAME, 'readwrite');
+              tx.objectStore(STORE_NAME).put(updatedStored);
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error);
+            });
+            
+            // Update hot cache
+            if (hotCache.has(docId)) {
+              const cached = hotCache.get(docId)!;
+              hotCache.set(docId, { ...cached, metadata });
+            }
+          }
+        } catch (error) {
+          console.error('[MemoryStore] Failed to remove project ref from doc:', docId);
+        }
+      }
+    }
+  }
+  
+  // Delete the project itself
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(PROJECTS_STORE, 'readwrite');
+    tx.objectStore(PROJECTS_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Deleted project:', id);
+}
+
+/**
+ * Get memories filtered by project
+ */
+export async function getMemoriesByProject(
+  projectId: string,
+  encryptionKey: CryptoKey
+): Promise<MemoryItem[]> {
+  const project = await getProject(projectId);
+  if (!project) return [];
+  
+  return getProjectDocuments(projectId, encryptionKey);
+}
+
+/**
+ * Search memories within a specific project
+ */
+export async function searchMemoriesInProject(
+  queryEmbedding: number[],
+  projectId: string,
+  encryptionKey: CryptoKey,
+  options: {
+    topK?: number;
+    minScore?: number;
+  } = {}
+): Promise<Array<{ item: MemoryItem; score: number }>> {
+  const project = await getProject(projectId);
+  if (!project || project.documentIds.length === 0) return [];
+  
+  const { topK = 5, minScore = 0.3 } = options;
+  const projectDocIds = new Set(project.documentIds);
+  
+  const database = await getDB();
+  
+  // Get all stored memories
+  const allStored: StoredMemory[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  // Filter to only project documents and calculate similarity
+  const projectStored = allStored.filter(s => projectDocIds.has(s.id));
+  
+  const scored = projectStored.map(stored => ({
+    stored,
+    score: similarity(queryEmbedding, stored.embedding)
+  }));
+  
+  const relevant = scored
+    .filter(s => s.score >= minScore)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK);
+  
+  const results: Array<{ item: MemoryItem; score: number }> = [];
+  
+  for (const { stored, score } of relevant) {
+    let item: MemoryItem | null = hotCache.get(stored.id) || null;
+    
+    if (!item) {
+      try {
+        const encryptedData = { ciphertext: stored.encrypted, nonce: stored.nonce };
+        const decrypted = await decrypt(encryptedData, encryptionKey);
+        const { content, metadata } = JSON.parse(decrypted);
+        
+        item = {
+          id: stored.id,
+          content,
+          embedding: stored.embedding,
+          metadata
+        };
+        
+        addToHotCache(item);
+      } catch (error) {
+        console.warn('[MemoryStore] Failed to decrypt memory:', stored.id);
+        continue;
+      }
+    }
+    
+    results.push({ item, score });
+  }
+  
+  console.log('[MemoryStore] Found', results.length, 'relevant memories in project', projectId);
+  return results;
 }
