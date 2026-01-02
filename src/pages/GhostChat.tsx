@@ -396,10 +396,23 @@ function GhostChat() {
   const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
   const isVaultUnlocked = vault.isVaultUnlocked();
   
-  // Persist memory preference
+  // Auto-save to memory state
+  const [autoSaveToMemory, setAutoSaveToMemory] = useState(() => {
+    try {
+      return localStorage.getItem('swissvault_auto_save_memory') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  
+  // Persist memory preferences
   useEffect(() => {
     localStorage.setItem('swissvault_memory_enabled', memoryEnabled.toString());
   }, [memoryEnabled]);
+  
+  useEffect(() => {
+    localStorage.setItem('swissvault_auto_save_memory', autoSaveToMemory.toString());
+  }, [autoSaveToMemory]);
   
   // Initialize memory when enabled and vault is unlocked
   useEffect(() => {
@@ -503,6 +516,70 @@ Use this context to inform your response when relevant. Cite sources by number w
   useEffect(() => {
     localStorage.setItem('ghost-selected-models', JSON.stringify(selectedModels));
   }, [selectedModels]);
+  
+  // Auto-save conversation to memory
+  const saveConversationToMemory = useCallback(async (showToast = true) => {
+    if (!isVaultUnlocked || messages.length < 2) return null;
+    
+    const masterKey = vault.getMasterKey();
+    if (!masterKey) return null;
+    
+    const currentConv = selectedConversation 
+      ? conversations.find(c => c.id === selectedConversation) 
+      : null;
+    
+    // Don't save incognito chats
+    if (currentConv?.isTemporary) return null;
+    
+    try {
+      const { saveChatToMemory } = await import('@/lib/memory/chat-memory-sync');
+      
+      const conversation = {
+        id: selectedConversation || crypto.randomUUID(),
+        title: currentConv?.title || messages[0]?.content.slice(0, 50) || 'Conversation',
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp
+        })),
+        model: selectedModels.text,
+        createdAt: messages[0]?.timestamp || Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      const memoryId = await saveChatToMemory(conversation, masterKey, { source: 'ghost_chat' });
+      
+      if (memoryId && showToast) {
+        toast({ title: 'Saved to Memory', description: 'Conversation added to your AI memory' });
+      }
+      
+      return memoryId;
+    } catch (error) {
+      console.error('[GhostChat] Failed to save to memory:', error);
+      if (showToast) {
+        toast({ title: 'Save failed', description: 'Could not save to memory', variant: 'destructive' });
+      }
+      return null;
+    }
+  }, [isVaultUnlocked, messages, selectedConversation, conversations, selectedModels.text, toast]);
+  
+  // Auto-save on conversation switch (if enabled)
+  const prevConversationRef = useRef<string | null>(null);
+  useEffect(() => {
+    const saveIfNeeded = async () => {
+      if (
+        autoSaveToMemory && 
+        prevConversationRef.current && 
+        prevConversationRef.current !== selectedConversation &&
+        messages.length >= 2
+      ) {
+        await saveConversationToMemory(false);
+      }
+    };
+    
+    saveIfNeeded();
+    prevConversationRef.current = selectedConversation;
+  }, [selectedConversation, autoSaveToMemory, messages.length, saveConversationToMemory]);
 
   // Handle mode change
   const handleModeChange = (newMode: GhostMode) => {

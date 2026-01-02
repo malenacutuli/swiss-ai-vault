@@ -216,7 +216,7 @@ const VaultChat = () => {
   
   // Personal Memory integration
   const memory = useMemory();
-  const { isUnlocked: isVaultUnlocked } = useEncryptionContext();
+  const { isUnlocked: isVaultUnlocked, getMasterKey } = useEncryptionContext();
   const [memoryEnabled, setMemoryEnabled] = useState(() => {
     const saved = localStorage.getItem('swissvault_memory_enabled');
     return saved === 'true';
@@ -224,10 +224,23 @@ const VaultChat = () => {
   const [memorySearching, setMemorySearching] = useState(false);
   const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
   
+  // Auto-save to memory state
+  const [autoSaveToMemory, setAutoSaveToMemory] = useState(() => {
+    try {
+      return localStorage.getItem('swissvault_auto_save_memory') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  
   // Persist memory enabled state
   useEffect(() => {
     localStorage.setItem('swissvault_memory_enabled', String(memoryEnabled));
   }, [memoryEnabled]);
+  
+  useEffect(() => {
+    localStorage.setItem('swissvault_auto_save_memory', String(autoSaveToMemory));
+  }, [autoSaveToMemory]);
   
   // Initialize memory when enabled and vault is unlocked
   useEffect(() => {
