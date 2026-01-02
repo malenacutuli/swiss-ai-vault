@@ -22,8 +22,8 @@ interface ImageGenRequest {
 // Model routing configuration
 const IMAGE_MODEL_ROUTES: Record<string, { provider: string; modelId: string; creditCost: number }> = {
   'auto': { provider: 'replicate', modelId: 'black-forest-labs/flux-schnell', creditCost: 2 },
-  // Google Imagen
-  'imagen-3': { provider: 'google', modelId: 'imagen-3', creditCost: 5 },
+  // Google Imagen 3 (highest quality)
+  'imagen-3': { provider: 'imagen3', modelId: 'imagen-3.0-generate-002', creditCost: 5 },
   'imagen-3-fast': { provider: 'google', modelId: 'imagen-3-fast', creditCost: 3 },
   // Flux
   'flux-1.1-pro-ultra': { provider: 'replicate', modelId: 'black-forest-labs/flux-1.1-pro-ultra', creditCost: 8 },
@@ -186,11 +186,54 @@ async function generateWithOpenAI(
   return data.data.map((img: { url: string }) => ({ url: img.url }));
 }
 
-// Generate with Google Imagen (via Lovable AI or direct)
+// Generate with Google Imagen 3 (highest quality)
+async function generateWithImagen3(
+  prompt: string,
+  aspectRatio: string = '1:1',
+  count: number = 1
+): Promise<{ url: string }[]> {
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY') || Deno.env.get('GOOGLE_API_KEY');
+  if (!GOOGLE_API_KEY) {
+    throw new Error('GOOGLE_GEMINI_API_KEY not configured for Imagen 3');
+  }
+
+  console.log(`[ghost-image-gen] Using Imagen 3 with aspect ratio: ${aspectRatio}`);
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GOOGLE_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instances: [{ prompt }],
+        parameters: {
+          sampleCount: Math.min(count, 4),
+          aspectRatio: aspectRatio,
+          personGeneration: 'allow_adult',
+          safetyFilterLevel: 'block_some',
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('[ghost-image-gen] Imagen 3 error:', error);
+    throw new Error(`Imagen 3 failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const predictions = data.predictions || [];
+  
+  return predictions.map((p: { bytesBase64Encoded: string }) => ({
+    url: `data:image/png;base64,${p.bytesBase64Encoded}`,
+  }));
+}
+
+// Generate with Google via Lovable AI gateway (Gemini Flash Image)
 async function generateWithGoogle(
   prompt: string
 ): Promise<{ url: string }[]> {
-  // Try Lovable AI gateway first
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   if (LOVABLE_API_KEY) {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -216,13 +259,8 @@ async function generateWithGoogle(
     }
   }
 
-  // Fallback to direct Google API
-  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
-  if (!GOOGLE_API_KEY) {
-    throw new Error('GOOGLE_API_KEY not configured');
-  }
-
-  throw new Error('Direct Imagen API not yet implemented');
+  // Fallback to Imagen 3 if Lovable AI gateway fails
+  return generateWithImagen3(prompt);
 }
 
 serve(async (req) => {
@@ -320,6 +358,9 @@ serve(async (req) => {
     switch (modelConfig.provider) {
       case 'openai':
         images = await generateWithOpenAI(styledPrompt, aspectRatio, count);
+        break;
+      case 'imagen3':
+        images = await generateWithImagen3(styledPrompt, aspectRatio, count);
         break;
       case 'google':
         images = await generateWithGoogle(styledPrompt);
