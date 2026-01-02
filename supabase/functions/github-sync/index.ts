@@ -329,10 +329,11 @@ serve(async (req) => {
       );
     }
     
-    const { integration_id, repos, options } = await req.json() as {
+    const { integration_id, repos, options, for_memory } = await req.json() as {
       integration_id: string;
       repos?: string[];
       options?: SyncOptions;
+      for_memory?: boolean;
     };
     
     if (!integration_id) {
@@ -358,7 +359,18 @@ serve(async (req) => {
       );
     }
     
-    const accessToken = integration.encrypted_access_token;
+    // Decode the base64-encoded access token
+    let accessToken: string;
+    try {
+      // The token is stored as base64-encoded string
+      accessToken = atob(integration.encrypted_access_token);
+    } catch (e) {
+      // If not base64, use as-is (backwards compatibility)
+      accessToken = integration.encrypted_access_token;
+    }
+    
+    console.log(`GitHub token format: ${accessToken.substring(0, 4)}...`);
+    
     const syncOptions: SyncOptions = {
       include_issues: options?.include_issues ?? true,
       include_prs: options?.include_prs ?? false,
@@ -367,8 +379,22 @@ serve(async (req) => {
       max_files_per_repo: options?.max_files_per_repo ?? 30
     };
     
-    console.log(`Starting GitHub sync for user ${user.id} with options:`, syncOptions);
+    console.log(`Starting GitHub sync for user ${user.id} with options:`, syncOptions, `for_memory: ${for_memory}`);
     
+    // Collect items for memory sync response
+    const memoryItems: Array<{
+      id: string;
+      title: string;
+      body: string;
+      repo: string;
+      type: string;
+      state: string;
+      author: string;
+      url: string;
+      labels: string[];
+      number?: number;
+      created_at: string;
+    }> = [];
     // Get repos to sync
     let reposToSync: any[];
     
@@ -505,6 +531,24 @@ serve(async (req) => {
         
         for (const issue of issues.slice(0, 20)) { // Limit to 20 issues per repo
           const issueContent = formatIssueContent(issue);
+          
+          // Collect item for memory response
+          if (for_memory) {
+            memoryItems.push({
+              id: issue.id.toString(),
+              title: issue.title,
+              body: issue.body || '',
+              repo: fullName,
+              type: 'issue',
+              state: issue.state,
+              author: issue.user?.login || 'unknown',
+              url: issue.html_url,
+              labels: issue.labels?.map((l: any) => l.name) || [],
+              number: issue.number,
+              created_at: issue.created_at
+            });
+          }
+          
           const embedding = await generateEmbedding(issueContent, openaiKey);
           
           await supabase
@@ -554,6 +598,24 @@ serve(async (req) => {
         
         for (const pr of prs.slice(0, 10)) { // Limit to 10 PRs per repo
           const prContent = formatPRContent(pr);
+          
+          // Collect item for memory response
+          if (for_memory) {
+            memoryItems.push({
+              id: pr.id.toString(),
+              title: pr.title,
+              body: pr.body || '',
+              repo: fullName,
+              type: 'pr',
+              state: pr.state,
+              author: pr.user?.login || 'unknown',
+              url: pr.html_url,
+              labels: pr.labels?.map((l: any) => l.name) || [],
+              number: pr.number,
+              created_at: pr.created_at
+            });
+          }
+          
           const embedding = await generateEmbedding(prContent, openaiKey);
           
           await supabase
@@ -686,15 +748,27 @@ serve(async (req) => {
     
     console.log(`GitHub sync complete: ${reposSynced} repos, ${filesIndexed} files, ${issuesIndexed} issues, ${prsIndexed} PRs`);
     
+    // Return items for memory sync, or stats for regular sync
+    const response = for_memory 
+      ? {
+          success: true,
+          items: memoryItems,
+          repos_synced: reposSynced,
+          files_indexed: filesIndexed,
+          issues_indexed: issuesIndexed,
+          prs_indexed: prsIndexed
+        }
+      : {
+          success: true,
+          repos_synced: reposSynced,
+          files_indexed: filesIndexed,
+          issues_indexed: issuesIndexed,
+          prs_indexed: prsIndexed,
+          rate_limit_remaining: 5000 - requestCounter.count
+        };
+    
     return new Response(
-      JSON.stringify({
-        success: true,
-        repos_synced: reposSynced,
-        files_indexed: filesIndexed,
-        issues_indexed: issuesIndexed,
-        prs_indexed: prsIndexed,
-        rate_limit_remaining: 5000 - requestCounter.count
-      }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
     
