@@ -21,10 +21,13 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { CaptureToMemory } from '@/components/chat/CaptureToMemory';
 
 interface GhostMessageActionsProps {
   content: string;
   messageId: string;
+  previousMessageContent?: string;
+  conversationTitle?: string;
   responseTimeMs?: number;
   tokenCount?: number;
   contextUsagePercent?: number;
@@ -47,6 +50,8 @@ interface GhostMessageActionsProps {
 export function GhostMessageActions({
   content,
   messageId,
+  previousMessageContent,
+  conversationTitle,
   responseTimeMs,
   tokenCount,
   contextUsagePercent,
@@ -272,6 +277,19 @@ export function GhostMessageActions({
               <TooltipContent>Create image from this</TooltipContent>
             </Tooltip>
           )}
+
+          {/* Capture to Memory */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <CaptureToMemory
+                message={{ role: 'assistant', content, timestamp: Date.now() }}
+                previousMessage={previousMessageContent ? { role: 'user', content: previousMessageContent, timestamp: Date.now() } : undefined}
+                conversationTitle={conversationTitle}
+                className="h-7 px-2 text-muted-foreground hover:text-foreground"
+              />
+            </TooltipTrigger>
+            <TooltipContent>Capture to Memory</TooltipContent>
+          </Tooltip>
 
           {/* Create Video */}
           {onCreateVideo && (

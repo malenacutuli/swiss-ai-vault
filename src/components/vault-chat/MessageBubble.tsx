@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CaptureToMemory } from '@/components/chat/CaptureToMemory';
 
 interface Citation {
   id: string;
@@ -24,6 +25,8 @@ interface MessageBubbleProps {
   timestamp: string;
   model?: string;
   citations?: Citation[];
+  previousMessageContent?: string;
+  conversationTitle?: string;
 }
 
 function CitationBadge({ 
@@ -136,7 +139,9 @@ export function MessageBubble({
   decryptionError,
   timestamp,
   model,
-  citations
+  citations,
+  previousMessageContent,
+  conversationTitle
 }: MessageBubbleProps) {
   const isUser = role === 'user';
   const [focusedCitation, setFocusedCitation] = useState<number | null>(null);
@@ -319,6 +324,17 @@ export function MessageBubble({
                 <FileText className="h-3 w-3" />
                 {citations.length} source{citations.length !== 1 ? 's' : ''}
               </span>
+            </>
+          )}
+          {!isUser && !isDecrypting && !decryptionError && (
+            <>
+              <span>•</span>
+              <CaptureToMemory
+                message={{ role: 'assistant', content, timestamp: new Date(timestamp).getTime() }}
+                previousMessage={previousMessageContent ? { role: 'user', content: previousMessageContent, timestamp: Date.now() } : undefined}
+                conversationTitle={conversationTitle}
+                className="h-5 px-1 text-muted-foreground hover:text-foreground"
+              />
             </>
           )}
         </div>

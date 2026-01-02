@@ -32,6 +32,8 @@ interface GhostMessageProps {
   attachments?: Array<{ name: string; type: string; size: number }>;
   sources?: Array<{ title: string; url: string; snippet?: string }>;
   mode?: 'text' | 'image' | 'video' | 'search' | 'research';
+  previousMessageContent?: string;
+  conversationTitle?: string;
   onRegenerate?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
@@ -251,6 +253,8 @@ export function GhostMessage({
   attachments,
   sources,
   mode,
+  previousMessageContent,
+  conversationTitle,
   onRegenerate,
   onEdit,
   onDelete,
@@ -432,6 +436,8 @@ export function GhostMessage({
             <GhostMessageActions
               content={content}
               messageId={id}
+              previousMessageContent={previousMessageContent}
+              conversationTitle={conversationTitle}
               responseTimeMs={responseTimeMs}
               tokenCount={tokenCount}
               contextUsagePercent={contextUsagePercent}
