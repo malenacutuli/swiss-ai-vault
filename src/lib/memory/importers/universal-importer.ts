@@ -16,6 +16,52 @@ export interface StandardConversation {
 }
 
 /**
+ * Safely extract string content from various AI export formats.
+ * Handles: string, array of content blocks, object with text/parts, null/undefined
+ */
+function safeGetContent(content: any): string {
+  // Already a string
+  if (typeof content === 'string') {
+    return content;
+  }
+  
+  // Null or undefined
+  if (content == null) {
+    return '';
+  }
+  
+  // Array of content blocks (Claude newer format, some ChatGPT)
+  // e.g., [{ type: "text", text: "Hello" }, { type: "text", text: "World" }]
+  if (Array.isArray(content)) {
+    return content
+      .map(block => {
+        if (typeof block === 'string') return block;
+        if (block?.text) return block.text;
+        if (block?.value) return block.value;
+        if (block?.content) return safeGetContent(block.content);
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+  
+  // Object with text/parts/value property
+  // e.g., { content_type: "text", parts: ["Hello", "World"] }
+  if (typeof content === 'object') {
+    if (content.text) return content.text;
+    if (content.value) return content.value;
+    if (Array.isArray(content.parts)) {
+      return content.parts
+        .map((p: any) => typeof p === 'string' ? p : p?.text || '')
+        .join('');
+    }
+    return '';
+  }
+  
+  return '';
+}
+
+/**
  * Auto-detect source format from JSON structure
  */
 export function detectSource(data: any): ImportSource {
@@ -100,10 +146,10 @@ function parseGemini(data: any): StandardConversation[] {
     title: conv.title || conv.name || 'Gemini Conversation',
     timestamp: new Date(conv.create_time || conv.created_at || Date.now()),
     messages: (conv.messages || [])
-      .filter((m: any) => m.parts?.[0]?.text || m.content)
+      .filter((m: any) => m.parts?.[0]?.text || safeGetContent(m.content))
       .map((m: any) => ({
         role: (m.role === 'user' || m.author?.role === 'user') ? 'human' as const : 'assistant' as const,
-        content: m.parts?.map((p: any) => p.text).join('') || m.content || '',
+        content: m.parts?.map((p: any) => p.text).join('') || safeGetContent(m.content),
         timestamp: m.create_time ? new Date(m.create_time).getTime() : undefined
       }))
       .filter((m: any) => m.content.trim()),
@@ -126,7 +172,7 @@ function parsePerplexity(data: any): StandardConversation[] {
     messages: (thread.messages || thread.turns || [])
       .map((m: any) => ({
         role: (m.role === 'user' || m.type === 'query') ? 'human' as const : 'assistant' as const,
-        content: m.content || m.text || m.answer || '',
+        content: safeGetContent(m.content) || m.text || m.answer || '',
       }))
       .filter((m: any) => m.content.trim()),
     source: 'perplexity' as ImportSource,
@@ -150,7 +196,7 @@ function parseGrok(data: any): StandardConversation[] {
     messages: (conv.messages || [])
       .map((m: any) => ({
         role: (m.sender === 'user' || m.role === 'user') ? 'human' as const : 'assistant' as const,
-        content: m.text || m.content || '',
+        content: m.text || safeGetContent(m.content),
         timestamp: m.timestamp ? new Date(m.timestamp).getTime() : undefined
       }))
       .filter((m: any) => m.content.trim()),
@@ -172,7 +218,7 @@ function parseCopilot(data: any): StandardConversation[] {
     messages: (conv.messages || conv.turns || [])
       .map((m: any) => ({
         role: (m.author === 'user' || m.role === 'user' || m.sender === 'user') ? 'human' as const : 'assistant' as const,
-        content: m.text || m.content || m.message || '',
+        content: m.text || safeGetContent(m.content) || m.message || '',
       }))
       .filter((m: any) => m.content.trim()),
     source: 'copilot' as ImportSource
@@ -242,7 +288,7 @@ export async function parseUniversalExport(file: File): Promise<{
             .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
             .map((m: any) => ({
               role: m.sender === 'human' ? 'human' as const : 'assistant' as const,
-              content: m.text || m.content || '',
+              content: m.text || safeGetContent(m.content),
               timestamp: m.created_at ? new Date(m.created_at).getTime() : undefined
             }))
             .filter((m: any) => m.content.trim());
@@ -251,7 +297,7 @@ export async function parseUniversalExport(file: File): Promise<{
           messages = conv.messages
             .map((m: any) => ({
               role: (m.role === 'user' || m.sender === 'human') ? 'human' as const : 'assistant' as const,
-              content: m.content || m.text || '',
+              content: safeGetContent(m.content) || m.text || '',
               timestamp: m.timestamp ? new Date(m.timestamp).getTime() : undefined
             }))
             .filter((m: any) => m.content.trim());
