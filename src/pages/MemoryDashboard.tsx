@@ -72,6 +72,7 @@ import { ConnectorSettings } from '@/components/memory/ConnectorSettings';
 import { MemoryGraph } from '@/components/memory/MemoryGraph';
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
+import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
 import type { MemoryFolder } from '@/lib/memory/memory-manager';
@@ -82,6 +83,22 @@ interface MemoryStats {
   hotCacheSize: number;
   oldestTimestamp: number | null;
   newestTimestamp: number | null;
+}
+
+interface SourceBreakdown {
+  document: number;
+  note: number;
+  chat: number;
+  url: number;
+}
+
+interface DocumentGroup {
+  documentId: string;
+  filename: string;
+  chunkCount: number;
+  source: 'document' | 'note' | 'chat' | 'url';
+  createdAt: number;
+  chunkIds: string[];
 }
 
 function MemoryDashboardContent() {
@@ -111,6 +128,11 @@ function MemoryDashboardContent() {
   const [noteContent, setNoteContent] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
   
+  // Document groups and source breakdown
+  const [documentGroups, setDocumentGroups] = useState<DocumentGroup[]>([]);
+  const [sourceBreakdown, setSourceBreakdown] = useState<SourceBreakdown>({ document: 0, note: 0, chat: 0, url: 0 });
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+  
   // Wait for component to mount before rendering
   useEffect(() => {
     setMounted(true);
@@ -121,11 +143,12 @@ function MemoryDashboardContent() {
     }
   }, [isUnlocked, memory.isInitialized, memory.initialize]);
   
-  // Load stats and folders
+  // Load stats, folders, and document groups
   useEffect(() => {
     if (memory.isReady) {
       memory.getStats().then(setStats);
       loadFolders();
+      loadDocumentGroups();
     }
   }, [memory.isReady, memory.getStats]);
   
@@ -147,6 +170,42 @@ function MemoryDashboardContent() {
       console.error('Failed to load folders:', e);
     }
   }, [getMasterKey]);
+  
+  const loadDocumentGroups = useCallback(async () => {
+    const key = getMasterKey();
+    if (!key) return;
+    
+    setIsLoadingDocs(true);
+    try {
+      const { getDocumentGroups, getSourceBreakdown } = await import('@/lib/memory/memory-store');
+      
+      const [docs, breakdown] = await Promise.all([
+        getDocumentGroups(key),
+        getSourceBreakdown(key)
+      ]);
+      
+      setDocumentGroups(docs);
+      setSourceBreakdown(breakdown);
+    } catch (e) {
+      console.error('Failed to load document groups:', e);
+    } finally {
+      setIsLoadingDocs(false);
+    }
+  }, [getMasterKey]);
+  
+  const handleDeleteDocument = useCallback(async (chunkIds: string[], filename: string) => {
+    try {
+      const { deleteDocumentChunks } = await import('@/lib/memory/memory-store');
+      const deleted = await deleteDocumentChunks(chunkIds);
+      toast({ title: 'Document deleted', description: `Removed ${deleted} chunks from ${filename}` });
+      
+      // Refresh stats and documents
+      memory.getStats().then(setStats);
+      loadDocumentGroups();
+    } catch (error) {
+      toast({ title: 'Delete failed', description: String(error), variant: 'destructive' });
+    }
+  }, [memory, toast, loadDocumentGroups]);
   
   // Check if vault needs unlock
   useEffect(() => {
@@ -531,45 +590,55 @@ function MemoryDashboardContent() {
               />
             )}
             
-            {/* Stats Cards */}
+            {/* Stats Cards with Source Breakdown */}
             {stats && stats.count > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2">
-                      <Brain className="h-4 w-4" />
-                      Total Items
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-semibold">{stats.count}</p>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold">{stats.count}</div>
+                    <div className="text-xs text-muted-foreground">Total Items</div>
                   </CardContent>
                 </Card>
-                
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2">
-                      <HardDrive className="h-4 w-4" />
-                      Storage Used
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-semibold">{formatBytes(stats.sizeEstimateBytes)}</p>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-500">{documentGroups.length}</div>
+                    <div className="text-xs text-muted-foreground">Documents</div>
                   </CardContent>
                 </Card>
-                
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardDescription className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      Cache Status
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-semibold">{stats.hotCacheSize} cached</p>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-purple-500">{sourceBreakdown.document}</div>
+                    <div className="text-xs text-muted-foreground">Doc Chunks</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-amber-500">{sourceBreakdown.note}</div>
+                    <div className="text-xs text-muted-foreground">Notes</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-green-500">{sourceBreakdown.chat}</div>
+                    <div className="text-xs text-muted-foreground">Chats</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-indigo-500">{sourceBreakdown.url}</div>
+                    <div className="text-xs text-muted-foreground">URLs</div>
                   </CardContent>
                 </Card>
               </div>
+            )}
+            
+            {/* Documents List */}
+            {memory.isReady && (stats?.count || 0) > 0 && (
+              <MemoryDocumentList
+                documents={documentGroups}
+                isLoading={isLoadingDocs}
+                onDeleteDocument={handleDeleteDocument}
+              />
             )}
             
             {/* Search */}
