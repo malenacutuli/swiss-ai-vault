@@ -19,6 +19,13 @@ export interface StandardConversation {
  * Auto-detect source format from JSON structure
  */
 export function detectSource(data: any): ImportSource {
+  // Debug logging to help diagnose format detection
+  console.log('[UniversalImporter] Detecting source:', {
+    isArray: Array.isArray(data),
+    topLevelKeys: Array.isArray(data) ? 'array' : Object.keys(data || {}),
+    firstItemKeys: Array.isArray(data) && data[0] ? Object.keys(data[0]) : null
+  });
+
   // Handle arrays
   if (Array.isArray(data)) {
     const first = data[0];
@@ -27,30 +34,57 @@ export function detectSource(data: any): ImportSource {
     // ChatGPT: has mapping property with message nodes
     if (first.mapping && typeof first.mapping === 'object') return 'chatgpt';
     
-    // Claude: has chat_messages array
+    // Claude patterns - multiple detection methods:
+    // 1. Has chat_messages array (original format)
     if (first.chat_messages && Array.isArray(first.chat_messages)) return 'claude';
+    // 2. Has uuid + name + created_at (Claude conversation pattern)
+    if (first.uuid && 'name' in first && first.created_at) return 'claude';
+    // 3. Has conversation_id + account (Claude Stories format)
+    if (first.conversation_id && first.account) return 'claude';
     
     // Gemini: messages with parts array containing text
     if (first.messages?.[0]?.parts?.[0]?.text !== undefined) return 'gemini';
     
     // Perplexity: has sources in messages
     if (first.messages?.[0]?.sources) return 'perplexity';
+    
+    // Grok: has tweet_mode or xAI signature
+    if (first.tweet_mode !== undefined || first.provider === 'xai') return 'grok';
+    
+    // Copilot: has copilot_conversations or microsoft signature  
+    if (first.copilot_conversations || first.author === 'copilot') return 'copilot';
+  }
+  
+  // Handle wrapper objects (e.g., { conversations: [...] })
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    // Check for conversations wrapper
+    if (data.conversations && Array.isArray(data.conversations)) {
+      // Recurse with unwrapped array
+      return detectSource(data.conversations);
+    }
+    
+    // Check for chats wrapper (some exports use this)
+    if (data.chats && Array.isArray(data.chats)) {
+      return detectSource(data.chats);
+    }
+    
+    // Check for data wrapper
+    if (data.data && Array.isArray(data.data)) {
+      return detectSource(data.data);
+    }
   }
   
   // Handle objects with nested arrays
   if (data.threads && Array.isArray(data.threads)) return 'perplexity';
   
-  if (data.conversations && Array.isArray(data.conversations)) {
-    const first = data.conversations[0];
-    if (first?.messages?.[0]?.sender === 'grok') return 'grok';
-    if (first?.messages?.[0]?.author === 'copilot') return 'copilot';
-    if (first?.messages?.[0]?.parts) return 'gemini';
-  }
-  
-  // Single conversation objects
+  // Single conversation object detection
   if (data.mapping) return 'chatgpt';
   if (data.chat_messages) return 'claude';
+  if (data.uuid && 'name' in data && data.created_at) return 'claude';
+  if (data.conversation_id && data.account) return 'claude';
+  if (data.chunks) return 'gemini';
   
+  console.log('[UniversalImporter] Could not detect source, returning unknown');
   return 'unknown';
 }
 
@@ -183,21 +217,54 @@ export async function parseUniversalExport(file: File): Promise<{
       break;
       
     case 'claude':
-      // Parse Claude format directly
-      const claudeData = Array.isArray(data) ? data : [data];
-      conversations = claudeData.map((conv: any) => ({
-        id: `claude-${conv.uuid || crypto.randomUUID()}`,
-        title: conv.name || 'Claude Conversation',
-        timestamp: new Date(conv.created_at || Date.now()),
-        messages: (conv.chat_messages || [])
-          .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-          .map((m: any) => ({
-            role: m.sender === 'human' ? 'human' as const : 'assistant' as const,
-            content: m.text || '',
-          }))
-          .filter((m: any) => m.content.trim()),
-        source: 'claude' as ImportSource
-      })).filter((c: StandardConversation) => c.messages.length >= 2);
+      // Handle multiple Claude export formats
+      let claudeData: any[];
+      
+      if (Array.isArray(data)) {
+        claudeData = data;
+      } else if (data.conversations && Array.isArray(data.conversations)) {
+        claudeData = data.conversations;
+      } else if (data.chats && Array.isArray(data.chats)) {
+        claudeData = data.chats;
+      } else if (data.data && Array.isArray(data.data)) {
+        claudeData = data.data;
+      } else {
+        claudeData = [data];
+      }
+      
+      conversations = claudeData.map((conv: any) => {
+        // Handle different Claude message formats
+        let messages: Array<{ role: 'human' | 'assistant'; content: string; timestamp?: number }> = [];
+        
+        if (conv.chat_messages && Array.isArray(conv.chat_messages)) {
+          // Original Claude format with chat_messages
+          messages = conv.chat_messages
+            .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .map((m: any) => ({
+              role: m.sender === 'human' ? 'human' as const : 'assistant' as const,
+              content: m.text || m.content || '',
+              timestamp: m.created_at ? new Date(m.created_at).getTime() : undefined
+            }))
+            .filter((m: any) => m.content.trim());
+        } else if (conv.messages && Array.isArray(conv.messages)) {
+          // Alternative format with messages array
+          messages = conv.messages
+            .map((m: any) => ({
+              role: (m.role === 'user' || m.sender === 'human') ? 'human' as const : 'assistant' as const,
+              content: m.content || m.text || '',
+              timestamp: m.timestamp ? new Date(m.timestamp).getTime() : undefined
+            }))
+            .filter((m: any) => m.content.trim());
+        }
+        
+        return {
+          id: `claude-${conv.uuid || conv.conversation_id || conv.id || crypto.randomUUID()}`,
+          title: conv.name || conv.title || 'Claude Conversation',
+          messages,
+          timestamp: conv.created_at ? new Date(conv.created_at) : new Date(),
+          source: 'claude' as ImportSource
+        };
+      }).filter((c: StandardConversation) => c.messages.length >= 2);
       break;
       
     case 'gemini':
@@ -293,12 +360,14 @@ export async function importStandardConversations(
       const embedding = await embed(conv.title + ' ' + content.slice(0, 1000));
       
       // Create memory item with correct MemoryMetadata structure
+      // Store the actual AI platform (claude, chatgpt, etc.) in aiPlatform field
       const memoryItem = {
         id: conv.id,
         content: content,
         embedding: embedding,
         metadata: {
           source: 'chat' as const,
+          aiPlatform: conv.source, // Store actual platform: 'claude', 'chatgpt', 'gemini', etc.
           title: conv.title,
           createdAt: conv.timestamp.getTime(),
           conversationId: conv.id

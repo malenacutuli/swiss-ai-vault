@@ -744,6 +744,7 @@ function MemoryDashboardContent() {
                     id: r.id,
                     title: r.metadata.title || r.metadata.filename || 'Memory Item',
                     source: r.source,
+                    aiPlatform: (r.metadata as any).aiPlatform, // Pass AI platform for correct coloring
                     timestamp: typeof r.metadata.createdAt === 'number' 
                       ? new Date(r.metadata.createdAt).toISOString() 
                       : new Date().toISOString(),
@@ -753,6 +754,7 @@ function MemoryDashboardContent() {
                     id: doc.documentId,
                     title: doc.filename || 'Memory Item',
                     source: doc.source,
+                    aiPlatform: (doc as any).aiPlatform, // Pass AI platform for correct coloring
                     timestamp: new Date(doc.createdAt).toISOString(),
                     tags: []
                   }))
