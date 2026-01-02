@@ -12,6 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useRAGContext } from '@/hooks/useRAGContext';
 import { useStorageMode } from '@/hooks/useStorageMode';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useMemory } from '@/hooks/useMemory';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
+import { MemoryToggle } from '@/components/chat/MemoryToggle';
+import { MemorySourcesCard, type MemorySource } from '@/components/chat/MemorySourcesCard';
 import { MessageBubble } from '@/components/vault-chat/MessageBubble';
 import { EncryptionStatus } from '@/components/vault/EncryptionStatus';
 import { EncryptingOverlay } from '@/components/vault-chat/EncryptingOverlay';
@@ -98,6 +102,7 @@ interface DecryptedMessage extends Message {
   content: string;
   decrypted: boolean;
   groundedResponse?: GroundedResponse;
+  memorySources?: MemorySource[]; // Personal memory sources used for this response
   metadata?: {
     type?: string;
     citations?: any[];
@@ -209,6 +214,28 @@ const VaultChat = () => {
   // User profile for learning and personalization
   const userProfile = useUserProfile();
   
+  // Personal Memory integration
+  const memory = useMemory();
+  const { isUnlocked: isVaultUnlocked } = useEncryptionContext();
+  const [memoryEnabled, setMemoryEnabled] = useState(() => {
+    const saved = localStorage.getItem('swissvault_memory_enabled');
+    return saved === 'true';
+  });
+  const [memorySearching, setMemorySearching] = useState(false);
+  const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
+  
+  // Persist memory enabled state
+  useEffect(() => {
+    localStorage.setItem('swissvault_memory_enabled', String(memoryEnabled));
+  }, [memoryEnabled]);
+  
+  // Initialize memory when enabled and vault is unlocked
+  useEffect(() => {
+    if (memoryEnabled && isVaultUnlocked && !memory.isInitialized && !memory.isLoading) {
+      memory.initialize();
+    }
+  }, [memoryEnabled, isVaultUnlocked, memory.isInitialized, memory.isLoading]);
+  
   // Storage mode hook - routes to server or local based on zero_retention_mode
   const {
     isZeroTrace,
@@ -304,6 +331,65 @@ const VaultChat = () => {
 
   // searchParams for OAuth callback handling
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Search personal memory for relevant context
+  const searchPersonalMemory = useCallback(async (query: string): Promise<{
+    context: string;
+    sources: MemorySource[];
+  }> => {
+    if (!memoryEnabled || !isVaultUnlocked || !memory.isInitialized) {
+      return { context: '', sources: [] };
+    }
+    
+    setMemorySearching(true);
+    try {
+      // Search memory with query
+      const results = await memory.search(query, {
+        topK: 5,
+      });
+      
+      if (!results || results.length === 0) {
+        setLastMemorySources([]);
+        return { context: '', sources: [] };
+      }
+      
+      // Build context prompt from results
+      const contextParts = results.map((item, i) => {
+        const typeLabel = item.source || 'memory';
+        const score = Math.round((item.score || 0) * 100);
+        return `[${i + 1}. ${typeLabel} (${score}% relevant)]\n${item.content}`;
+      });
+      
+      const context = `
+[CONTEXT FROM YOUR PERSONAL MEMORY]
+The following information was retrieved from your stored documents, notes, and conversations:
+
+${contextParts.join('\n\n---\n\n')}
+
+[END CONTEXT]
+
+Use this context to inform your response when relevant. Cite sources by number when directly using information.
+`.trim();
+      
+      const sources: MemorySource[] = results.map((item, i) => ({
+        id: item.id || `memory-${i}`,
+        title: item.metadata?.title || item.metadata?.filename || `Memory ${i + 1}`,
+        content: item.content,
+        score: item.score || 0,
+        type: (item.source as MemorySource['type']) || 'document',
+        createdAt: item.metadata?.createdAt,
+      }));
+      
+      setLastMemorySources(sources);
+      return { context, sources };
+    } catch (error) {
+      console.error('[Vault Chat] Memory search failed:', error);
+      setLastMemorySources([]);
+      return { context: '', sources: [] };
+    } finally {
+      setMemorySearching(false);
+    }
+  }, [memoryEnabled, isVaultUnlocked, memory]);
 
   // Integration handlers
   const handleToggleIntegration = useCallback(async (type: string) => {
@@ -999,7 +1085,20 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
       // 1. Classify the query for grounding
       const queryClassification = classifyQuery(messageContent);
       
-      // 2. Search for relevant sources (RAG context)
+      // 2. Search personal memory if enabled
+      let personalMemoryContext = '';
+      let personalMemorySources: MemorySource[] = [];
+      if (memoryEnabled && isVaultUnlocked && memory.isInitialized) {
+        console.log('[Vault Chat] 🧠 Searching personal memory...');
+        const memoryResult = await searchPersonalMemory(messageContent);
+        if (memoryResult.context) {
+          personalMemoryContext = memoryResult.context;
+          personalMemorySources = memoryResult.sources;
+          console.log(`[Vault Chat] 🧠 Found ${personalMemorySources.length} memory sources`);
+        }
+      }
+      
+      // 3. Search for relevant sources (RAG context - uploaded documents)
       let ragContext: string | undefined;
       let memorySources: SourceCitation[] = [];
       
@@ -1025,7 +1124,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         }
       }
       
-      // 3. Check if we should show "I don't know" (grounded mode + requires grounding)
+      // 4. Check if we should show "I don't know" (grounded mode + requires grounding)
       if (groundedMode && queryClassification.requiresGrounding) {
         const uncertaintyResponse = generateUncertaintyResponse(
           messageContent,
@@ -1045,7 +1144,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         }
       }
       
-      // 4. Build grounding prompt if in grounded mode
+      // 5. Build grounding prompt if in grounded mode
       let groundingContext: string | undefined;
       if (groundedMode && queryClassification.requiresGrounding) {
         const availableSources = memorySources.map(s => ({
@@ -1070,7 +1169,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         console.log('[Vault Chat] 🔒 Grounded mode active with', memorySources.length, 'sources');
       }
       
-      // 5. Add user profile context for personalization
+      // 6. Add user profile context for personalization
       let profileContext: string | undefined;
       if (userProfile.isReady) {
         profileContext = userProfile.getContextPrompt();
@@ -1079,8 +1178,8 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         }
       }
       
-      // Combine all context
-      const combinedContext = [groundingContext, ragContext, profileContext]
+      // Combine all context (personal memory, grounding, RAG, profile)
+      const combinedContext = [personalMemoryContext, groundingContext, ragContext, profileContext]
         .filter(Boolean)
         .join('\n\n');
 
@@ -1249,7 +1348,8 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
         expires_at: null,
         content: assistantContent,
         decrypted: true,
-        groundedResponse
+        groundedResponse,
+        memorySources: personalMemorySources.length > 0 ? personalMemorySources : undefined
       };
       setMessages(prev => [...prev, assistantMsgData]);
 
@@ -1636,14 +1736,21 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                     }
                     
                     return (
-                      <MessageBubble
-                        key={message.id}
-                        role={message.role as 'user' | 'assistant' | 'system'}
-                        content={message.content}
-                        isDecrypting={!message.decrypted}
-                        decryptionError={message.content === '[Decryption failed]'}
-                        timestamp={message.created_at}
-                      />
+                      <div key={message.id}>
+                        <MessageBubble
+                          role={message.role as 'user' | 'assistant' | 'system'}
+                          content={message.content}
+                          isDecrypting={!message.decrypted}
+                          decryptionError={message.content === '[Decryption failed]'}
+                          timestamp={message.created_at}
+                        />
+                        {/* Show memory sources for assistant messages that used personal memory */}
+                        {message.role === 'assistant' && message.memorySources && message.memorySources.length > 0 && (
+                          <div className="mt-2 mb-4 ml-12">
+                            <MemorySourcesCard sources={message.memorySources} />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                   <div ref={messagesEndRef} />
@@ -1799,6 +1906,15 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                       {isResearchZeroTrace ? "Encrypted Research" : "Deep Research"}
                     </span>
                   </Button>
+                  
+                  {/* Personal Memory Toggle */}
+                  <MemoryToggle
+                    enabled={memoryEnabled}
+                    onToggle={() => setMemoryEnabled(!memoryEnabled)}
+                    memoryCount={lastMemorySources.length}
+                    isSearching={memorySearching}
+                    disabled={!isVaultUnlocked}
+                  />
                 </div>
                 
                 <ChatInput
