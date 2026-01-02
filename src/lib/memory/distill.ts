@@ -104,7 +104,8 @@ export class RateLimitError extends Error {
 }
 
 export async function distillConversation(
-  memory: { id: string; title: string; content: string; source: string; aiPlatform?: string; metadata?: Record<string, unknown> }
+  memory: { id: string; title: string; content: string; source: string; aiPlatform?: string; metadata?: Record<string, unknown> },
+  accessToken?: string  // User's JWT session token - if provided, bypasses anonymous limits
 ): Promise<DistilledInsight | null> {
   // Truncate very long content
   const content = memory.content.slice(0, 8000);
@@ -125,11 +126,14 @@ export async function distillConversation(
         .replace('{title}', memory.title);
   
   try {
+    // Use session token if provided, otherwise fall back to anon key (will hit rate limits)
+    const authToken = accessToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+        'Authorization': `Bearer ${authToken}`
       },
       body: JSON.stringify({
         messages: [{ role: 'user', content: prompt }],
@@ -244,7 +248,8 @@ export async function distillConversation(
  */
 export async function distillBatch(
   memories: Array<{ id: string; title: string; content: string; source: string }>,
-  onProgress: (current: number, total: number, title: string) => void
+  onProgress: (current: number, total: number, title: string) => void,
+  accessToken?: string  // User's JWT session token
 ): Promise<DistilledInsight[]> {
   const insights: DistilledInsight[] = [];
   
@@ -256,14 +261,16 @@ export async function distillBatch(
     onProgress(i + 1, toProcess.length, memory.title.slice(0, 40));
     
     try {
-      const insight = await distillConversation(memory);
-      insights.push(insight);
+      const insight = await distillConversation(memory, accessToken);
+      if (insight) insights.push(insight);
     } catch (err) {
+      // Re-throw rate limit errors
+      if (err instanceof RateLimitError) throw err;
       console.error(`Failed to distill ${memory.title}:`, err);
     }
     
-    // Rate limiting - 500ms between calls
-    await new Promise(r => setTimeout(r, 500));
+    // Rate limiting - 1s between calls
+    await new Promise(r => setTimeout(r, 1000));
   }
   
   return insights;
