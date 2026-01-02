@@ -55,6 +55,7 @@ interface MemoryDocumentListProps {
   documents: DocumentGroup[];
   chats?: DocumentGroup[];
   folders: Array<{ id: string; name: string }>;
+  folderFilter?: string | null;  // External folder filter from parent
   isLoading?: boolean;
   onDeleteDocument: (chunkIds: string[], filename: string) => Promise<void>;
   onViewChunks?: (documentId: string) => void;
@@ -74,6 +75,7 @@ export function MemoryDocumentList({
   documents,
   chats = [],
   folders,
+  folderFilter,  // Use external filter from parent
   isLoading,
   onDeleteDocument,
   onViewChunks,
@@ -84,7 +86,6 @@ export function MemoryDocumentList({
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'name'>('newest');
-  const [selectedFolderFilter, setSelectedFolderFilter] = useState<string | null>(null);
   
   // Delete dialog state
   const [deleteConfirm, setDeleteConfirm] = useState<{ chunkIds: string[]; filename: string } | null>(null);
@@ -125,9 +126,13 @@ export function MemoryDocumentList({
       );
     }
     
-    // Filter by folder
-    if (selectedFolderFilter) {
-      items = items.filter(item => (item as any).folderId === selectedFolderFilter);
+    // Filter by folder (use prop from parent)
+    if (folderFilter && folderFilter !== 'all') {
+      if (folderFilter === 'uncategorized') {
+        items = items.filter(item => !(item as any).folderId);
+      } else {
+        items = items.filter(item => (item as any).folderId === folderFilter);
+      }
     }
     
     // Sort
@@ -138,7 +143,7 @@ export function MemoryDocumentList({
     });
     
     return items;
-  }, [docItems, chatItems, activeTab, searchQuery, sortOrder, selectedFolderFilter]);
+  }, [docItems, chatItems, activeTab, searchQuery, sortOrder, folderFilter]);
   
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
@@ -280,34 +285,15 @@ export function MemoryDocumentList({
               />
             </div>
             
-            {/* Folder filter */}
-            {folders.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-1">
-                    <Filter className="h-3.5 w-3.5" />
-                    {selectedFolderFilter 
-                      ? folders.find(f => f.id === selectedFolderFilter)?.name || 'Folder'
-                      : 'All Folders'
-                    }
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
-                  <DropdownMenuItem onClick={() => { setSelectedFolderFilter(null); setCurrentPage(1); }}>
-                    All Folders
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {folders.map(folder => (
-                    <DropdownMenuItem 
-                      key={folder.id} 
-                      onClick={() => { setSelectedFolderFilter(folder.id); setCurrentPage(1); }}
-                    >
-                      <Folder className="h-4 w-4 mr-2" />
-                      {folder.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {/* Folder filter indicator (read-only, controlled by sidebar) */}
+            {folders.length > 0 && folderFilter && folderFilter !== 'all' && (
+              <Badge variant="secondary" className="h-9 px-3 flex items-center gap-1">
+                <Folder className="h-3.5 w-3.5" />
+                {folderFilter === 'uncategorized' 
+                  ? 'Uncategorized'
+                  : folders.find(f => f.id === folderFilter)?.name || 'Folder'
+                }
+              </Badge>
             )}
             
             {/* Sort */}

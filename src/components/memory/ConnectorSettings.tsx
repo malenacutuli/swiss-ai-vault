@@ -12,11 +12,13 @@ import {
   RefreshCw,
   Check,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  LogIn
 } from 'lucide-react';
 import { useIntegrations, INTEGRATION_DEFINITIONS } from '@/hooks/useIntegrations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEncryptionContext } from '@/contexts/EncryptionContext';
+import { supabase } from '@/integrations/supabase/client';
 import { syncConnector, getIntegrationId, type ConnectorType } from '@/lib/memory/connector-sync';
 import { toast } from 'sonner';
 
@@ -84,9 +86,37 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
     localStorage.setItem('memory-sync-settings', JSON.stringify(updated));
   };
   
+  // Validate and refresh session before sync
+  const ensureValidSession = useCallback(async (): Promise<string | null> => {
+    let { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      // Try to refresh
+      const { data: refreshed, error } = await supabase.auth.refreshSession();
+      if (error || !refreshed.session) {
+        return null;
+      }
+      session = refreshed.session;
+    }
+    
+    return session.access_token;
+  }, []);
+  
   const handleSync = useCallback(async (connectorId: ConnectorType) => {
     if (!user?.id) {
       toast.error('Please sign in to sync');
+      return;
+    }
+    
+    // CRITICAL: Validate session BEFORE calling edge function
+    const token = await ensureValidSession();
+    if (!token) {
+      toast.error('Session expired. Please sign in again.', {
+        action: {
+          label: 'Sign In',
+          onClick: () => window.location.href = '/auth',
+        },
+      });
       return;
     }
     
@@ -122,21 +152,46 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
         
         toast.success(`Synced ${result.itemsAdded} items from ${connectorId}`);
       } else {
-        toast.error(`Sync failed: ${result.errors.join(', ')}`);
+        // Check for auth errors
+        const errorMsg = result.errors.join(', ');
+        if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('unauthorized')) {
+          toast.error(`Please reconnect your ${connectorId} account`, {
+            description: 'Authorization has expired.',
+          });
+        } else {
+          toast.error(`Sync failed: ${errorMsg}`);
+        }
       }
     } catch (err) {
-      toast.error(`Sync error: ${(err as Error).message}`);
+      const error = err as Error;
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        toast.error('Session expired. Please sign in again.');
+      } else {
+        toast.error(`Sync error: ${error.message}`);
+      }
     } finally {
       setSyncing(null);
     }
-  }, [user?.id, propKey, getMasterKey, syncResults]);
+  }, [user?.id, propKey, getMasterKey, syncResults, ensureValidSession]);
   
-  const handleConnect = (connectorId: string) => {
+  const handleConnect = useCallback(async (connectorId: string) => {
+    // Validate session before starting OAuth
+    const token = await ensureValidSession();
+    if (!token) {
+      toast.error('Please sign in to connect integrations', {
+        action: {
+          label: 'Sign In',
+          onClick: () => window.location.href = '/auth',
+        },
+      });
+      return;
+    }
+    
     const definition = INTEGRATION_DEFINITIONS.find(d => d.type === connectorId);
     if (definition) {
       connect(definition);
     }
-  };
+  }, [connect, ensureValidSession]);
   
   const getIntegrationData = (id: string) => {
     const connected = isConnected(id);
