@@ -21,6 +21,9 @@ interface EncryptionContextValue {
   lockVault: () => void;
   clearVault: () => Promise<void>;
   
+  // Key Access (for Memory operations)
+  getMasterKey: () => CryptoKey | null;
+  
   // Message Operations
   encryptMessage: (conversationId: string, plaintext: string) => Promise<crypto.EncryptedData>;
   decryptMessage: (conversationId: string, encrypted: crypto.EncryptedData) => Promise<string>;
@@ -291,6 +294,16 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     return decrypted;
   }, [getConversationKey]);
   
+  // Expose getMasterKey for Memory operations
+  const getMasterKeyFn = useCallback((): CryptoKey | null => {
+    if (!isUnlocked) return null;
+    try {
+      return vault.getMasterKey();
+    } catch {
+      return null;
+    }
+  }, [isUnlocked]);
+
   const value = useMemo<EncryptionContextValue>(() => ({
     isInitialized,
     isUnlocked,
@@ -299,6 +312,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     unlockVault: unlockVaultFn,
     lockVault: lockVaultFn,
     clearVault: clearVaultFn,
+    getMasterKey: getMasterKeyFn,
     encryptMessage,
     decryptMessage,
     createConversationKey,
@@ -314,6 +328,7 @@ export function EncryptionProvider({ children }: { children: React.ReactNode }) 
     unlockVaultFn,
     lockVaultFn,
     clearVaultFn,
+    getMasterKeyFn,
     encryptMessage,
     decryptMessage,
     createConversationKey,

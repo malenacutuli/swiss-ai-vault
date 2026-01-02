@@ -80,7 +80,7 @@ interface MemoryStats {
 function MemoryDashboardContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isUnlocked, isInitialized: vaultInitialized } = useEncryptionContext();
+  const { isUnlocked, isInitialized: vaultInitialized, getMasterKey } = useEncryptionContext();
   const memory = useMemory();
   const { shouldShowRestore, dismissRestore } = useNewDeviceDetection();
   const { showOnboarding, hasChecked, completeOnboarding, skipOnboarding, resetOnboarding } = useMemoryOnboarding();
@@ -124,8 +124,7 @@ function MemoryDashboardContent() {
   const loadFolders = useCallback(async () => {
     try {
       const { getFolders, getFolderItemCounts } = await import('@/lib/memory/memory-manager');
-      const { getMasterKey } = await import('@/lib/crypto/key-vault');
-      const key = await getMasterKey();
+      const key = getMasterKey();
       if (!key) return;
       
       const folderList = await getFolders();
@@ -139,7 +138,7 @@ function MemoryDashboardContent() {
     } catch (e) {
       console.error('Failed to load folders:', e);
     }
-  }, []);
+  }, [getMasterKey]);
   
   // Check if vault needs unlock
   useEffect(() => {
@@ -288,16 +287,22 @@ function MemoryDashboardContent() {
     folderId?: string
   ) => {
     const { addDocumentsBulk } = await import('@/lib/memory/memory-manager');
-    const { getMasterKey } = await import('@/lib/crypto/key-vault');
-    const key = await getMasterKey();
-    if (!key) throw new Error('No encryption key');
+    const key = getMasterKey();
+    if (!key) {
+      toast({
+        title: "Vault locked",
+        description: "Please unlock your vault to upload documents",
+        variant: "destructive"
+      });
+      throw new Error('No encryption key - vault is locked');
+    }
     
     const result = await addDocumentsBulk(files, key, folderId);
     await memory.getStats().then(setStats);
     await loadFolders();
     
     return { successful: result.successful, failed: result.failed };
-  }, [memory, loadFolders]);
+  }, [getMasterKey, memory, loadFolders, toast]);
   
   // Source icon helper
   const getSourceIcon = (source: string) => {
