@@ -1,12 +1,16 @@
 /**
  * Distill conversations, documents, and voice chats into structured insights
  * Extracts key points, topics, action items, decisions using AI
+ * 
+ * Enterprise optimizations:
+ * - Session-level content hash caching to avoid duplicate analysis
+ * - Optimized for gpt-4o-mini (500+ RPM)
  */
 
 export interface DistilledInsight {
   id: string;
   sourceId: string;
-  sourceType: 'chat' | 'document' | 'voice';  // Added 'voice'
+  sourceType: 'chat' | 'document' | 'voice';
   title: string;
   aiPlatform?: string;
   summary: string;
@@ -92,9 +96,6 @@ RULES:
 3. Topics should be 1-3 words each
 4. Return ONLY valid JSON, no markdown or explanation`;
 
-/**
- * Distill a single conversation into insights using Lovable AI
- */
 // Custom error for rate limits
 export class RateLimitError extends Error {
   constructor(message: string, public retryAfterSeconds?: number) {
@@ -103,12 +104,40 @@ export class RateLimitError extends Error {
   }
 }
 
+// Session-level cache for content deduplication (avoids re-analyzing identical content)
+const insightCache = new Map<string, DistilledInsight>();
+
+// Simple hash function for content deduplication
+function hashContent(content: string): string {
+  let hash = 0;
+  // Use first 2000 chars for hash to speed up
+  const sample = content.slice(0, 2000);
+  for (let i = 0; i < sample.length; i++) {
+    const char = sample.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
+}
+
+/**
+ * Distill a single conversation into insights using Lovable AI
+ */
 export async function distillConversation(
   memory: { id: string; title: string; content: string; source: string; aiPlatform?: string; metadata?: Record<string, unknown> },
   accessToken?: string  // User's JWT session token - if provided, bypasses anonymous limits
 ): Promise<DistilledInsight | null> {
+  // Check cache first - avoid duplicate analysis
+  const contentHash = hashContent(memory.content);
+  const cached = insightCache.get(contentHash);
+  if (cached) {
+    console.log(`[CACHE_HIT] Reusing insight for similar content: ${memory.title.slice(0, 30)}`);
+    // Return cached insight with updated sourceId
+    return { ...cached, id: `insight-${memory.id}-${Date.now()}`, sourceId: memory.id };
+  }
+
   // Truncate very long content
-  const content = memory.content.slice(0, 8000);
+  const content = memory.content.slice(0, 12000); // Increased for merged documents
   
   // Check if this is a voice conversation
   const isVoice = memory.aiPlatform === 'swissvault' || 
@@ -239,7 +268,7 @@ export async function distillConversation(
       ? 'voice' 
       : (memory.source as 'chat' | 'document');
     
-    return {
+    const insight: DistilledInsight = {
       id: `insight-${memory.id}-${Date.now()}`,
       sourceId: memory.id,
       sourceType,
@@ -257,6 +286,11 @@ export async function distillConversation(
       category: parsed.category || 'general',
       createdAt: new Date().toISOString()
     };
+
+    // Cache successful result
+    insightCache.set(contentHash, insight);
+    
+    return insight;
   } catch (error) {
     // Re-throw rate limit errors so caller can handle them
     if (error instanceof RateLimitError) {
@@ -293,8 +327,8 @@ export async function distillBatch(
       console.error(`Failed to distill ${memory.title}:`, err);
     }
     
-    // Rate limiting - 1s between calls
-    await new Promise(r => setTimeout(r, 1000));
+    // Rate limiting - 500ms between calls
+    await new Promise(r => setTimeout(r, 500));
   }
   
   return insights;
@@ -367,4 +401,9 @@ export async function deleteInsight(id: string): Promise<void> {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
+}
+
+// Clear cache (useful for testing or memory management)
+export function clearInsightCache(): void {
+  insightCache.clear();
 }

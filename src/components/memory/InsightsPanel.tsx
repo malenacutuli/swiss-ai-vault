@@ -61,8 +61,11 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
     succeeded,
     failed,
     rateLimited,
+    estimatedMinutes,
+    itemsPerSecond,
     hasResumable,
     resumableCount,
+    config,
     pause,
     resume,
     stop,
@@ -214,6 +217,18 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                   {failed > 0 && <span className="text-red-500">✗ {failed}</span>}
                   {rateLimited > 0 && <span className="text-amber-500">⏰ {rateLimited}</span>}
                 </div>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3 text-yellow-500" />
+                  {itemsPerSecond.toFixed(1)} items/sec • {config.concurrency} concurrent
+                </span>
+                {estimatedMinutes > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    ~{estimatedMinutes} min remaining
+                  </span>
+                )}
               </div>
               {isPaused && (
                 <p className="text-xs text-amber-600 text-center">Paused - click Resume to continue</p>
