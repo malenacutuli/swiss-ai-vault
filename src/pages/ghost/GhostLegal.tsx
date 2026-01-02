@@ -7,6 +7,9 @@ import { Card } from '@/components/ui/card';
 import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { CategoryCard, LEGAL_CATEGORIES } from '@/components/ghost/CategoryCard';
 import { SearchModeSelector, SourcesDropdown, type SearchMode } from '@/components/ghost/discover';
+import { MemoryToggle } from '@/components/chat/MemoryToggle';
+import { MemorySourcesCard, type MemorySource } from '@/components/chat/MemorySourcesCard';
+import { useMemoryContext } from '@/hooks/useMemoryContext';
 import { 
   Scale,
   FileSearch,
@@ -65,6 +68,22 @@ export default function GhostLegal() {
   const [activeAction, setActiveAction] = useState<ActionType>('regulatory');
   const [showSuggestions, setShowSuggestions] = useState(true);
   const searchCardRef = useRef<HTMLDivElement>(null);
+  
+  // Personal Memory integration
+  const { getMemoryContext, isReady: memoryReady, initialize: initMemory } = useMemoryContext();
+  const [memoryEnabled, setMemoryEnabled] = useState(() => {
+    const saved = localStorage.getItem('swissvault_memory_enabled');
+    return saved === 'true';
+  });
+  const [memorySearching, setMemorySearching] = useState(false);
+  const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
+  
+  // Initialize memory when enabled
+  useEffect(() => {
+    if (memoryEnabled && !memoryReady) {
+      initMemory();
+    }
+  }, [memoryEnabled, memoryReady, initMemory]);
 
   const suggestionKeys = useMemo(
     () => getSuggestionKeys(activeAction),
@@ -88,15 +107,38 @@ export default function GhostLegal() {
     setIsSearching(true);
     setResult(null);
     setShowSuggestions(false);
+    setLastMemorySources([]);
     
     try {
+      // Search personal memory for relevant context
+      let memoryContext = '';
+      if (memoryEnabled && memoryReady) {
+        setMemorySearching(true);
+        try {
+          const memResult = await getMemoryContext(query, { domain: 'legal', limit: 3 });
+          if (memResult.context) {
+            memoryContext = memResult.context;
+            setLastMemorySources(memResult.sources.map(s => ({
+              id: s.id,
+              title: s.title,
+              content: s.content,
+              score: s.score,
+              type: s.type as MemorySource['type'],
+            })));
+          }
+        } finally {
+          setMemorySearching(false);
+        }
+      }
+      
       const { data, error } = await supabase.functions.invoke('ghost-discover', {
         body: { 
           module: 'legal', 
           query: `${query} (Jurisdiction: ${selectedJurisdiction})`,
           mode: searchMode,
           action: activeAction,
-          language: i18n.language
+          language: i18n.language,
+          memoryContext: memoryContext || undefined,
         },
       });
       
@@ -132,6 +174,14 @@ export default function GhostLegal() {
             <div className="flex items-center gap-3">
               <SearchModeSelector mode={searchMode} onModeChange={setSearchMode} />
               <SourcesDropdown module="legal" />
+              <MemoryToggle
+                enabled={memoryEnabled}
+                onToggle={() => setMemoryEnabled(!memoryEnabled)}
+                memoryCount={lastMemorySources.length}
+                isSearching={memorySearching}
+                disabled={!memoryReady}
+                className="h-8 w-8"
+              />
             </div>
 
             {/* Jurisdiction Selector */}
@@ -249,6 +299,12 @@ export default function GhostLegal() {
         {/* Search Result */}
         {result && (
           <Card className="w-full max-w-2xl p-6 bg-white border-slate-200/60 mb-8">
+            {/* Memory Sources */}
+            {lastMemorySources.length > 0 && (
+              <div className="mb-4">
+                <MemorySourcesCard sources={lastMemorySources} />
+              </div>
+            )}
             <div className="prose prose-sm max-w-none text-slate-700">
               {result.content.split('\n').map((paragraph, i) => (
                 paragraph.trim() && (

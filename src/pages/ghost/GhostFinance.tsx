@@ -22,13 +22,17 @@ import {
   MENAMarketsView,
   USMarketsView
 } from '@/components/ghost/finance';
+import { MemoryToggle } from '@/components/chat/MemoryToggle';
+import { MemorySourcesCard, type MemorySource } from '@/components/chat/MemorySourcesCard';
+import { useMemoryContext } from '@/hooks/useMemoryContext';
 import { 
   TrendingUp,
   Search,
   Bell,
   ArrowRight,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  Brain
 } from '@/icons';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +102,22 @@ export default function GhostFinance() {
   const [searchMode, setSearchMode] = useState<SearchMode>('search');
   const [showSuggestions, setShowSuggestions] = useState(true);
   
+  // Personal Memory integration
+  const { getMemoryContext, isReady: memoryReady, initialize: initMemory } = useMemoryContext();
+  const [memoryEnabled, setMemoryEnabled] = useState(() => {
+    const saved = localStorage.getItem('swissvault_memory_enabled');
+    return saved === 'true';
+  });
+  const [memorySearching, setMemorySearching] = useState(false);
+  const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
+  
+  // Initialize memory when enabled
+  useEffect(() => {
+    if (memoryEnabled && !memoryReady) {
+      initMemory();
+    }
+  }, [memoryEnabled, memoryReady, initMemory]);
+  
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Click outside to close suggestions
@@ -121,9 +141,38 @@ export default function GhostFinance() {
     setIsSearching(true);
     setResult(null);
     setShowSuggestions(false);
+    setLastMemorySources([]);
+    
     try {
+      // Search personal memory for relevant context
+      let memoryContext = '';
+      if (memoryEnabled && memoryReady) {
+        setMemorySearching(true);
+        try {
+          const memResult = await getMemoryContext(query, { domain: 'finance', limit: 3 });
+          if (memResult.context) {
+            memoryContext = memResult.context;
+            setLastMemorySources(memResult.sources.map(s => ({
+              id: s.id,
+              title: s.title,
+              content: s.content,
+              score: s.score,
+              type: s.type as MemorySource['type'],
+            })));
+          }
+        } finally {
+          setMemorySearching(false);
+        }
+      }
+      
       const { data, error } = await supabase.functions.invoke('ghost-discover', {
-        body: { module: 'finance', query, mode: searchMode, language: i18n.language },
+        body: { 
+          module: 'finance', 
+          query, 
+          mode: searchMode, 
+          language: i18n.language,
+          memoryContext: memoryContext || undefined,
+        },
       });
       if (error) throw error;
       setResult(data);
@@ -163,6 +212,12 @@ export default function GhostFinance() {
             <USMarketsView />
             {result && (
               <Card className="p-6 bg-white border-slate-200/60">
+                {/* Memory Sources */}
+                {lastMemorySources.length > 0 && (
+                  <div className="mb-4">
+                    <MemorySourcesCard sources={lastMemorySources} />
+                  </div>
+                )}
                 <div className="prose prose-sm max-w-none text-slate-700">
                   {result.content.split('\n').map((p, i) => p.trim() && <p key={i} className="mb-3 leading-relaxed">{p}</p>)}
                 </div>
@@ -204,11 +259,19 @@ export default function GhostFinance() {
             <Card className="p-5 bg-white border-slate-200/60 shadow-sm" ref={containerRef}>
               {/* Mode Selector & Sources */}
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <SearchModeSelector mode={searchMode} onModeChange={setSearchMode} />
-                  <SourcesDropdown module="finance" />
-                </div>
+              <div className="flex items-center gap-3">
+                <SearchModeSelector mode={searchMode} onModeChange={setSearchMode} />
+                <SourcesDropdown module="finance" />
+                <MemoryToggle
+                  enabled={memoryEnabled}
+                  onToggle={() => setMemoryEnabled(!memoryEnabled)}
+                  memoryCount={lastMemorySources.length}
+                  isSearching={memorySearching}
+                  disabled={!memoryReady}
+                  className="h-8 w-8"
+                />
               </div>
+            </div>
 
               {/* Search Input */}
               <div className="relative">
