@@ -64,6 +64,7 @@ interface BulkUploadDialogProps {
     files: Array<{ content: string; filename: string }>,
     folderId?: string
   ) => Promise<{ successful: number; failed: number }>;
+  onUploadComplete?: () => void;
 }
 
 function getFileIcon(fileType: SupportedFileType) {
@@ -85,7 +86,8 @@ export function BulkUploadDialog({
   open,
   onOpenChange,
   folders,
-  onUpload
+  onUpload,
+  onUploadComplete
 }: BulkUploadDialogProps) {
   const [files, setFiles] = useState<FileToUpload[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('none');
@@ -195,6 +197,7 @@ export function BulkUploadDialog({
       
       setResults(result);
       setUploadComplete(true);
+      onUploadComplete?.();
     } catch (error) {
       setFiles(prev => prev.map(f => 
         f.status === 'uploading' ? { ...f, status: 'error', error: 'Upload failed' } : f
