@@ -1856,6 +1856,42 @@ export type Database = {
         }
         Relationships: []
       }
+      inference_stats: {
+        Row: {
+          cache_tier: string | null
+          id: string
+          model: string
+          provider: string
+          response_time_ms: number | null
+          success: boolean | null
+          timestamp: string | null
+          tokens_used: number | null
+          user_id: string | null
+        }
+        Insert: {
+          cache_tier?: string | null
+          id?: string
+          model: string
+          provider: string
+          response_time_ms?: number | null
+          success?: boolean | null
+          timestamp?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          cache_tier?: string | null
+          id?: string
+          model?: string
+          provider?: string
+          response_time_ms?: number | null
+          success?: boolean | null
+          timestamp?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       metrics: {
         Row: {
           created_at: string | null
@@ -2354,6 +2390,45 @@ export type Database = {
           models_allowed?: string[] | null
           monthly_queries?: number
           tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      semantic_cache: {
+        Row: {
+          created_at: string | null
+          embedding: string | null
+          hit_count: number | null
+          id: string
+          model: string
+          prompt: string
+          prompt_hash: string
+          provider: string
+          response: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          embedding?: string | null
+          hit_count?: number | null
+          id?: string
+          model: string
+          prompt: string
+          prompt_hash: string
+          provider: string
+          response: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          embedding?: string | null
+          hit_count?: number | null
+          id?: string
+          model?: string
+          prompt?: string
+          prompt_hash?: string
+          provider?: string
+          response?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -3620,6 +3695,19 @@ export type Database = {
       is_org_member_with_role: {
         Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
+      }
+      match_semantic_cache: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          id: string
+          prompt: string
+          response: string
+          similarity: number
+        }[]
       }
       record_ghost_usage: {
         Args: {
