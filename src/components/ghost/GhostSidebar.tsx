@@ -47,6 +47,7 @@ import {
   EyeOff,
   IconBrain,
   Library,
+  IconUpload,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -57,6 +58,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { GhostModeToggle } from './GhostModeToggle';
 import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
+import { ImportChatGPTModal } from '@/components/memory/ImportChatGPTModal';
 
 // ============================================
 // CHAT ACTIONS MENU
@@ -325,6 +327,7 @@ export function GhostSidebar({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [enabledModules, setEnabledModules] = useState<string[]>(() => {
     const saved = localStorage.getItem('ghost-discover-modules');
     return saved ? JSON.parse(saved) : DEFAULT_ENABLED_MODULES;
@@ -724,6 +727,13 @@ export function GhostSidebar({
             label={t('ghost.sidebar.home')} 
             onClick={() => navigate('/')} 
           />
+          
+          {/* Import ChatGPT */}
+          <IconButton 
+            icon={IconUpload} 
+            label="Import" 
+            onClick={() => setShowImportModal(true)} 
+          />
 
           {/* Search - only when expanded */}
           {isExpanded && (
@@ -988,6 +998,12 @@ export function GhostSidebar({
           setEnabledModules(modules);
           localStorage.setItem('ghost-discover-modules', JSON.stringify(modules));
         }}
+      />
+
+      {/* Import ChatGPT Modal */}
+      <ImportChatGPTModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
       />
 
       {/* Mobile toggle button */}
