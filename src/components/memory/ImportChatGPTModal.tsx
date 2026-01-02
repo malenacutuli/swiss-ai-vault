@@ -2,14 +2,16 @@ import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Upload, CheckCircle, Brain, Calendar, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Upload, CheckCircle, Brain, Calendar, AlertCircle, ExternalLink, FileText } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { 
-  importChatGPTHistory, 
-  type ImportProgress, 
-  type ImportResult,
-  type ChatGPTConversation
-} from '@/lib/memory/importers/chatgpt-importer';
+  parseUniversalExport, 
+  importStandardConversations, 
+  getSourceDisplayName,
+  type ImportSource 
+} from '@/lib/memory/importers/universal-importer';
 import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -19,94 +21,26 @@ interface ImportChatGPTModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Claude export format types
-interface ClaudeMessage {
-  uuid: string;
-  text: string;
-  sender: 'human' | 'assistant';
-  created_at: string;
-}
+const SUPPORTED_SOURCES = ['ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'Grok', 'Copilot'] as const;
 
-interface ClaudeConversation {
-  uuid: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-  chat_messages: ClaudeMessage[];
-}
-
-/**
- * Convert Claude format to ChatGPT format for unified processing
- */
-function convertClaudeToStandard(claudeConversations: ClaudeConversation[]): ChatGPTConversation[] {
-  return claudeConversations.map(conv => ({
-    id: conv.uuid,
-    title: conv.name || 'Untitled',
-    create_time: new Date(conv.created_at).getTime() / 1000,
-    update_time: new Date(conv.updated_at).getTime() / 1000,
-    mapping: Object.fromEntries(
-      conv.chat_messages.map((msg, i) => [
-        `msg-${i}`,
-        {
-          id: `msg-${i}`,
-          message: {
-            id: msg.uuid,
-            author: { role: msg.sender === 'human' ? 'user' as const : 'assistant' as const },
-            content: { content_type: 'text', parts: [msg.text] },
-            create_time: new Date(msg.created_at).getTime() / 1000
-          }
-        }
-      ])
-    )
-  }));
-}
-
-/**
- * Detect format and parse file
- */
-async function parseExportFile(file: File): Promise<{ 
-  conversations: ChatGPTConversation[]; 
-  source: 'chatgpt' | 'claude' 
-}> {
-  const text = await file.text();
-  const data = JSON.parse(text);
-  
-  // Check for Claude format (array with chat_messages)
-  if (Array.isArray(data) && data.length > 0 && data[0]?.chat_messages) {
-    return {
-      conversations: convertClaudeToStandard(data as ClaudeConversation[]),
-      source: 'claude'
-    };
-  }
-  
-  // Check for ChatGPT format (array with mapping)
-  if (Array.isArray(data) && data.length > 0 && data[0]?.mapping) {
-    return {
-      conversations: data.filter(item => item.mapping && item.id) as ChatGPTConversation[],
-      source: 'chatgpt'
-    };
-  }
-  
-  // Single ChatGPT conversation
-  if (data.mapping && data.id) {
-    return {
-      conversations: [data] as ChatGPTConversation[],
-      source: 'chatgpt'
-    };
-  }
-  
-  throw new Error('Unrecognized export format. Please upload a ChatGPT or Claude export file.');
+interface ImportResult {
+  imported: number;
+  skipped: number;
+  failed: number;
+  totalMessages: number;
+  topTopics: Array<{ topic: string; count: number }>;
+  source?: ImportSource;
 }
 
 export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalProps) {
   const navigate = useNavigate();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   
-  const [stage, setStage] = useState<'upload' | 'importing' | 'complete'>('upload');
-  const [progress, setProgress] = useState<ImportProgress | null>(null);
+  const [stage, setStage] = useState<'upload' | 'importing' | 'complete' | 'error'>('upload');
+  const [progress, setProgress] = useState<{ current: number; total: number; title: string } | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [detectedSource, setDetectedSource] = useState<'chatgpt' | 'claude' | null>(null);
+  const [detectedSource, setDetectedSource] = useState<ImportSource | null>(null);
   
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -119,31 +53,37 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
       return;
     }
     
+    if (!file.name.endsWith('.json')) {
+      setError('Please upload a JSON file');
+      return;
+    }
+    
     setError(null);
     setStage('importing');
     
     try {
-      // Parse and detect format
-      const { conversations, source } = await parseExportFile(file);
+      // Parse with auto-detection
+      const { source, conversations } = await parseUniversalExport(file);
       setDetectedSource(source);
       
       if (conversations.length === 0) {
         throw new Error('No valid conversations found in file');
       }
       
-      const importResult = await importChatGPTHistory(
+      // Import using universal importer
+      const importResult = await importStandardConversations(
         conversations,
         key,
-        setProgress
+        (p) => setProgress(p)
       );
       
-      setResult(importResult);
+      setResult({ ...importResult, source });
       setStage('complete');
       
     } catch (err) {
       console.error('[ImportHistory] Error:', err);
       setError(err instanceof Error ? err.message : 'Import failed');
-      setStage('upload');
+      setStage('error');
     }
   }, [getMasterKey]);
   
@@ -163,6 +103,14 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
     onOpenChange(false);
   };
   
+  const handleReset = () => {
+    setStage('upload');
+    setProgress(null);
+    setResult(null);
+    setError(null);
+    setDetectedSource(null);
+  };
+  
   const handleExploreMemory = () => {
     handleClose();
     navigate('/ghost/memory');
@@ -172,26 +120,36 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
     ? Math.round((progress.current / progress.total) * 100) 
     : 0;
   
-  const sourceLabel = detectedSource === 'claude' ? 'Claude' : 'ChatGPT';
+  const sourceLabel = detectedSource ? getSourceDisplayName(detectedSource) : '';
   
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
             {stage === 'complete' ? 'Import Complete!' : 'Import AI History'}
           </DialogTitle>
           <DialogDescription>
-            {stage === 'upload' && 'Upload your conversations export from ChatGPT or Claude'}
+            {stage === 'upload' && 'Import conversations from any AI platform. We auto-detect the format.'}
             {stage === 'importing' && `Processing ${sourceLabel} conversations...`}
             {stage === 'complete' && 'Your memories are ready to use'}
+            {stage === 'error' && 'Something went wrong'}
           </DialogDescription>
         </DialogHeader>
         
         {/* Upload Stage */}
         {stage === 'upload' && (
           <div className="space-y-4">
+            {/* Supported Sources Badges */}
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              {SUPPORTED_SOURCES.map(source => (
+                <Badge key={source} variant="secondary" className="text-xs">
+                  {source}
+                </Badge>
+              ))}
+            </div>
+            
             {!isUnlocked && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
@@ -218,12 +176,93 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
                   ? 'Drop your file here' 
                   : 'Drag & drop your export file, or click to browse'}
               </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Accepts .json files
+              </p>
             </div>
             
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>ChatGPT:</strong> Settings → Data Controls → Export Data → conversations.json</p>
-              <p><strong>Claude:</strong> Settings → Export Data → conversations.json</p>
-            </div>
+            {/* Export Instructions Accordion */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="chatgpt">
+                <AccordionTrigger className="text-sm py-2">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Export from ChatGPT
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-muted-foreground">
+                  Settings → Data controls → Export data → Download ZIP → Extract <code className="bg-muted px-1 rounded">conversations.json</code>
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="claude">
+                <AccordionTrigger className="text-sm py-2">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Export from Claude
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-muted-foreground">
+                  Settings → Account → Export Data → Download <code className="bg-muted px-1 rounded">conversations.json</code>
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="gemini">
+                <AccordionTrigger className="text-sm py-2">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Export from Gemini
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-muted-foreground">
+                  <a 
+                    href="https://takeout.google.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    Google Takeout <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {' '}→ Select "Gemini Apps" → Export → Download JSON
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="perplexity">
+                <AccordionTrigger className="text-sm py-2">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Export from Perplexity
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-muted-foreground">
+                  Settings → Your Data → Export Search History → Download JSON
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="grok">
+                <AccordionTrigger className="text-sm py-2">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Export from Grok
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-muted-foreground">
+                  X Settings → Your Account → Download an archive → Extract conversations JSON
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="copilot">
+                <AccordionTrigger className="text-sm py-2">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Export from Copilot
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-xs text-muted-foreground">
+                  Microsoft Privacy Dashboard → Download your data → Extract Copilot conversations
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
             
             {error && (
               <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
@@ -234,22 +273,43 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
         )}
         
         {/* Importing Stage */}
-        {stage === 'importing' && progress && (
+        {stage === 'importing' && (
           <div className="space-y-4 py-4">
             <Progress value={progressPercent} className="h-2" />
             <div className="text-center space-y-1">
-              <p className="text-sm font-medium truncate">
-                Importing "{progress.currentTitle}"
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {progress.current} of {progress.total} conversations
-              </p>
-              {progress.phase === 'embedding' && (
-                <p className="text-xs text-primary">
-                  Generating embeddings...
-                </p>
+              {progress && (
+                <>
+                  <p className="text-sm font-medium truncate">
+                    Importing "{progress.title}"
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {progress.current} of {progress.total} conversations
+                  </p>
+                </>
               )}
+              <p className="text-xs text-primary">
+                Generating embeddings for memory search...
+              </p>
             </div>
+          </div>
+        )}
+        
+        {/* Error Stage */}
+        {stage === 'error' && (
+          <div className="space-y-4 py-4">
+            <div className="flex justify-center">
+              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+            </div>
+            
+            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+            
+            <Button onClick={handleReset} variant="outline" className="w-full">
+              Try Again
+            </Button>
           </div>
         )}
         
@@ -266,9 +326,9 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
             {/* Source Badge */}
             {detectedSource && (
               <div className="flex justify-center">
-                <span className="px-2 py-1 bg-muted text-xs rounded-full">
+                <Badge variant="secondary" className="text-xs">
                   Imported from {sourceLabel}
-                </span>
+                </Badge>
               </div>
             )}
             
@@ -294,45 +354,50 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
                 <p className="text-xs font-medium text-muted-foreground">Your Top Topics</p>
                 <div className="flex flex-wrap gap-1.5">
                   {result.topTopics.slice(0, 5).map((topic, i) => (
-                    <span 
+                    <Badge 
                       key={i}
-                      className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                      variant="outline"
+                      className="text-xs"
                     >
                       {topic.topic} ({topic.count})
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
             )}
             
-            {/* Date Range */}
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>
-                {result.dateRange.earliest.toLocaleDateString()} - {result.dateRange.latest.toLocaleDateString()}
-              </span>
-            </div>
-            
             {/* Errors */}
-            {result.errors.length > 0 && (
+            {result.failed > 0 && (
               <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                  {result.errors.length} conversation(s) couldn't be imported
+                  {result.failed} conversation(s) couldn't be imported
                 </p>
               </div>
             )}
             
-            {/* Action Button */}
-            <Button 
-              onClick={handleExploreMemory}
-              className="w-full"
-            >
-              <Brain className="h-4 w-4 mr-2" />
-              Explore Your Memory
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleReset}
+                variant="outline"
+                className="flex-1"
+              >
+                Import More
+              </Button>
+              <Button 
+                onClick={handleExploreMemory}
+                className="flex-1"
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                View Memory
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
+
+// Keep the old export name for backwards compatibility
+export { ImportChatGPTModal as ImportAIHistoryModal };
