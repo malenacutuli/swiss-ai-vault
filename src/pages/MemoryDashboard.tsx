@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Globe,
   MoreVertical,
-  Settings
+  Settings,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -335,6 +336,15 @@ function MemoryDashboardContent() {
     <div className="min-h-screen bg-background">
       <div className="container max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
+        {/* Back to Chat */}
+        <button 
+          onClick={() => navigate('/ghost')}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Chat
+        </button>
+        
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
