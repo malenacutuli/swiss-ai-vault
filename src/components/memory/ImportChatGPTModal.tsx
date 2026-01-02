@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 interface ImportChatGPTModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onComplete?: (result: ImportResult) => void;
 }
 
 const SUPPORTED_SOURCES = ['ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'Grok', 'Copilot'] as const;
@@ -32,7 +33,7 @@ interface ImportResult {
   source?: ImportSource;
 }
 
-export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalProps) {
+export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportChatGPTModalProps) {
   const navigate = useNavigate();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   
@@ -77,8 +78,10 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
         (p) => setProgress(p)
       );
       
-      setResult({ ...importResult, source });
+      const finalResult = { ...importResult, source };
+      setResult(finalResult);
       setStage('complete');
+      onComplete?.(finalResult);
       
     } catch (err) {
       console.error('[ImportHistory] Error:', err);
