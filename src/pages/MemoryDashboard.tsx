@@ -19,7 +19,8 @@ import {
   Globe,
   MoreVertical,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  Network
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +67,7 @@ import { MemoryFolderList } from '@/components/memory/MemoryFolderList';
 import { BulkUploadDialog } from '@/components/memory/BulkUploadDialog';
 import { MemoryOnboarding } from '@/components/memory/MemoryOnboarding';
 import { DistillInsightsButton } from '@/components/memory/DistillInsightsButton';
+import { MemoryGraph } from '@/components/memory/MemoryGraph';
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
@@ -448,6 +450,10 @@ function MemoryDashboardContent() {
               <Brain className="h-4 w-4" />
               Memory
             </TabsTrigger>
+            <TabsTrigger value="graph" className="flex items-center gap-2">
+              <Network className="h-4 w-4" />
+              Graph
+            </TabsTrigger>
             <TabsTrigger value="sync" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               Sync Settings
@@ -650,6 +656,39 @@ function MemoryDashboardContent() {
                       Add Your First Note
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="graph">
+            <MemoryGraph 
+              memories={searchResults.length > 0 
+                ? searchResults.map(r => ({
+                    id: r.id,
+                    title: r.metadata.title || r.metadata.filename || 'Memory Item',
+                    source: r.source,
+                    timestamp: typeof r.metadata.createdAt === 'number' 
+                      ? new Date(r.metadata.createdAt).toISOString() 
+                      : new Date().toISOString(),
+                    tags: []
+                  }))
+                : []
+              }
+              onSelectMemory={(id) => {
+                const result = searchResults.find(r => r.id === id);
+                if (result) {
+                  console.log('Selected memory:', result);
+                }
+              }}
+            />
+            {searchResults.length === 0 && memory.isReady && (
+              <Card className="mt-4">
+                <CardContent className="py-8 text-center">
+                  <Network className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p className="text-muted-foreground">
+                    Search for memories above to visualize connections in the graph.
+                  </p>
                 </CardContent>
               </Card>
             )}
