@@ -48,6 +48,7 @@ import {
   IconBrain,
   Library,
   IconUpload,
+  FolderKanban,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -995,6 +996,11 @@ export function GhostSidebar({
             icon={IconBrain} 
             label={t('ghost.sidebar.memory')} 
             onClick={() => navigate('/ghost/memory')} 
+          />
+          <IconButton 
+            icon={FolderKanban} 
+            label="Projects" 
+            onClick={() => navigate('/ghost/projects')} 
           />
           <IconButton 
             icon={Library} 
