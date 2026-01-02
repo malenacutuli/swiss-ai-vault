@@ -77,6 +77,7 @@ import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
 import { supabase } from '@/integrations/supabase/client';
+import { useDistillationRunner } from '@/hooks/useDistillationRunner';
 import type { MemoryFolder } from '@/lib/memory/memory-manager';
 
 interface MemoryStats {
@@ -135,10 +136,8 @@ function MemoryDashboardContent() {
   const [sourceBreakdown, setSourceBreakdown] = useState<SourceBreakdown>({ document: 0, note: 0, chat: 0, url: 0 });
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   
-  // Insights distillation state
-  const [isDistilling, setIsDistilling] = useState(false);
-  const [distillProgress, setDistillProgress] = useState(0);
-  const [distillStatus, setDistillStatus] = useState('');
+  // Use global distillation runner
+  const { start: startDistillation } = useDistillationRunner();
   const insightsPanelRef = useRef<InsightsPanelRef>(null);
   
   // Wait for component to mount before rendering
@@ -307,136 +306,55 @@ function MemoryDashboardContent() {
     }
   }, [noteTitle, noteContent, memory, toast]);
   
-  // Distill insights handler with rate limit protection
-  const handleDistillInsights = useCallback(async () => {
+  // Distill insights handler - uses global runner for background processing
+  const handleDistillInsights = useCallback(async (options?: { resume?: boolean }) => {
     const key = getMasterKey();
     if (!key) {
       toast({ title: 'Vault Locked', description: 'Please unlock your vault first', variant: 'destructive' });
       return;
     }
 
-    // GET USER SESSION TOKEN - THIS IS THE KEY FIX
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session?.access_token) {
-      toast({ 
-        title: 'Authentication Required', 
-        description: 'Please log in to analyze your memories. Anonymous users have limited access.',
-        variant: 'destructive' 
-      });
+    // If resuming, just call the runner with resume flag
+    if (options?.resume) {
+      startDistillation([], { resume: true });
       return;
     }
 
-    setIsDistilling(true);
-    setDistillProgress(0);
-    setDistillStatus('Loading memories...');
-
+    // Load memories and filter to unprocessed
     try {
       const { getAllMemoriesDecrypted } = await import('@/lib/memory/memory-store');
-      const { distillConversation, saveInsight, getDistilledSourceIds, RateLimitError } = await import('@/lib/memory/distill');
+      const { getDistilledSourceIds } = await import('@/lib/memory/distill');
 
       const allMemories = await getAllMemoriesDecrypted(key);
       const distilledIds = await getDistilledSourceIds();
       
       // Filter to undistilled items with enough content
-      const undistilled = allMemories.filter(m => {
-        const isDistilled = distilledIds.has(m.id);
-        const hasContent = m.content && m.content.length > 100;
-        const isValidSource = ['chat', 'document'].includes(m.metadata?.source || '');
-        return !isDistilled && hasContent && isValidSource;
-      });
+      const toProcess = allMemories
+        .filter(m => {
+          const isDistilled = distilledIds.has(m.id);
+          const hasContent = m.content && m.content.length > 100;
+          return !isDistilled && hasContent;
+        })
+        .map(m => ({
+          id: m.id,
+          title: m.metadata?.title || m.metadata?.filename || 'Untitled',
+          content: m.content,
+          source: m.metadata?.source || 'chat',
+        }));
 
-      if (undistilled.length === 0) {
+      if (toProcess.length === 0) {
         toast({ title: 'All Caught Up!', description: 'All content has been analyzed.' });
-        setIsDistilling(false);
         return;
       }
 
-      // CRITICAL: Limit batch size to avoid rate limits
-      const MAX_ITEMS_PER_SESSION = 25;
-      const DELAY_BETWEEN_ITEMS = 1500; // 1.5 seconds
+      // Start the global runner
+      startDistillation(toProcess);
       
-      const itemsToProcess = undistilled.slice(0, MAX_ITEMS_PER_SESSION);
-      const remainingCount = undistilled.length - MAX_ITEMS_PER_SESSION;
-      
-      setDistillStatus(`Processing ${itemsToProcess.length} of ${undistilled.length} items...`);
-      
-      let processed = 0;
-      let successCount = 0;
-      let consecutiveErrors = 0;
-      let rateLimitHit = false;
-
-      for (const memory of itemsToProcess) {
-        // Stop on rate limit
-        if (rateLimitHit) break;
-        
-        // Stop after 3 consecutive errors
-        if (consecutiveErrors >= 3) {
-          toast({
-            title: 'Pausing Analysis',
-            description: 'Multiple errors detected. Please try again later.',
-            variant: 'destructive',
-          });
-          break;
-        }
-
-        try {
-          // PASS THE SESSION TOKEN to bypass anonymous rate limits
-          const insight = await distillConversation({
-            id: memory.id,
-            title: memory.metadata?.title || memory.metadata?.filename || 'Untitled',
-            content: memory.content.slice(0, 8000), // Limit content size
-            source: memory.metadata?.source || 'chat',
-            aiPlatform: memory.metadata?.aiPlatform,
-          }, session.access_token);
-          
-          if (insight) {
-            await saveInsight(insight);
-            successCount++;
-            consecutiveErrors = 0; // Reset on success
-          }
-        } catch (err: unknown) {
-          console.error('Failed to distill:', err);
-          consecutiveErrors++;
-          
-          // Check for rate limit error
-          if (err instanceof RateLimitError) {
-            rateLimitHit = true;
-            const waitMinutes = Math.ceil((err.retryAfterSeconds || 60) / 60);
-            toast({
-              title: '⏰ Rate Limit Reached',
-              description: `Processed ${successCount} items. Try again in ~${waitMinutes} minute${waitMinutes > 1 ? 's' : ''}.`,
-            });
-            break;
-          }
-        }
-        
-        processed++;
-        setDistillProgress(Math.round((processed / itemsToProcess.length) * 100));
-        setDistillStatus(`Analyzed ${processed} of ${itemsToProcess.length}...`);
-        
-        // Rate limiting delay between requests
-        await new Promise(r => setTimeout(r, DELAY_BETWEEN_ITEMS));
-      }
-
-      // Show completion message if not rate limited
-      if (!rateLimitHit && consecutiveErrors < 3) {
-        const message = remainingCount > 0
-          ? `Analyzed ${successCount} items. ${remainingCount} more remaining - click again to continue.`
-          : `Successfully analyzed ${successCount} items.`;
-        toast({ title: '✨ Batch Complete!', description: message });
-      }
-      
-      insightsPanelRef.current?.refresh();
     } catch (error) {
-      console.error('Distillation failed:', error);
-      toast({ title: 'Analysis Failed', variant: 'destructive' });
-    } finally {
-      setIsDistilling(false);
-      setDistillProgress(0);
-      setDistillStatus('');
+      console.error('Failed to start distillation:', error);
+      toast({ title: 'Failed to start analysis', variant: 'destructive' });
     }
-  }, [getMasterKey, toast]);
+  }, [getMasterKey, toast, startDistillation]);
   
   // Export handler
   const handleExport = useCallback(async () => {
@@ -809,6 +727,7 @@ function MemoryDashboardContent() {
               <MemoryDocumentList
                 documents={documentGroups}
                 folders={folders}
+                folderFilter={selectedFolderId}
                 isLoading={isLoadingDocs}
                 onDeleteDocument={handleDeleteDocument}
                 onMoveToFolder={handleMoveToFolder}
@@ -917,9 +836,6 @@ function MemoryDashboardContent() {
               totalChats={sourceBreakdown.chat}
               totalDocuments={documentGroups.length}
               onDistill={handleDistillInsights}
-              isDistilling={isDistilling}
-              distillProgress={distillProgress}
-              distillStatus={distillStatus}
             />
           </TabsContent>
           

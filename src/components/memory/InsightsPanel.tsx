@@ -18,19 +18,21 @@ import {
   CheckCircle2,
   ListChecks,
   Hash,
-  Loader2
+  Loader2,
+  Play,
+  Pause,
+  Square,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getInsights, type DistilledInsight } from '@/lib/memory/distill';
+import { useDistillationRunner } from '@/hooks/useDistillationRunner';
 
 interface InsightsPanelProps {
   totalItems: number;
   totalChats: number;
   totalDocuments: number;
-  onDistill: () => void;
-  isDistilling?: boolean;
-  distillProgress?: number;
-  distillStatus?: string;
+  onDistill: (options?: { resume?: boolean }) => void;
 }
 
 export interface InsightsPanelRef {
@@ -43,14 +45,28 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
     totalChats,
     totalDocuments,
     onDistill,
-    isDistilling = false,
-    distillProgress = 0,
-    distillStatus = '',
   }, ref) {
   const [insights, setInsights] = useState<DistilledInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedInsight, setSelectedInsight] = useState<DistilledInsight | null>(null);
+  
+  // Use the global distillation runner
+  const {
+    isRunning,
+    isPaused,
+    progress,
+    remaining,
+    total,
+    succeeded,
+    failed,
+    rateLimited,
+    hasResumable,
+    resumableCount,
+    pause,
+    resume,
+    stop,
+  } = useDistillationRunner();
 
   const loadInsights = useCallback(async () => {
     setLoading(true);
@@ -124,9 +140,16 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h2 className="text-xl font-semibold">Your Knowledge Brain</h2>
+                  {isRunning && (
+                    <Badge variant="secondary" className="animate-pulse">
+                      {isPaused ? 'Paused' : 'Analyzing...'}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-muted-foreground text-sm">
-                  AI-powered insights from {totalItems.toLocaleString()} memories
+                  {isRunning 
+                    ? `${remaining} items remaining`
+                    : `AI-powered insights from ${totalItems.toLocaleString()} memories`}
                 </p>
                 <div className="flex items-center gap-4 mt-3 text-sm">
                   <span className="flex items-center gap-1.5">
@@ -148,26 +171,53 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
               </div>
             </div>
             
-            <Button onClick={onDistill} disabled={isDistilling} size="lg">
-              {isDistilling ? (
+            <div className="flex items-center gap-2">
+              {isRunning ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  {distillProgress > 0 ? `${distillProgress}%` : 'Starting...'}
+                  {isPaused ? (
+                    <Button onClick={resume} size="lg" variant="outline">
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </Button>
+                  ) : (
+                    <Button onClick={pause} size="lg" variant="outline">
+                      <Pause className="h-4 w-4 mr-2" />
+                      Pause
+                    </Button>
+                  )}
+                  <Button onClick={stop} size="icon" variant="ghost" className="text-muted-foreground">
+                    <Square className="h-4 w-4" />
+                  </Button>
                 </>
+              ) : hasResumable ? (
+                <Button onClick={() => onDistill({ resume: true })} size="lg">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Resume ({resumableCount})
+                </Button>
               ) : (
-                <>
+                <Button onClick={() => onDistill()} size="lg">
                   <Sparkles className="h-4 w-4 mr-2" />
                   Discover More
-                </>
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
           
-          {/* Progress bar when distilling */}
-          {isDistilling && (
+          {/* Progress bar when running */}
+          {isRunning && (
             <div className="mt-4 space-y-2">
-              <Progress value={distillProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground text-center">{distillStatus}</p>
+              <Progress value={progress} className="h-2" />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{remaining} of {total} remaining</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-green-600">✓ {succeeded}</span>
+                  {failed > 0 && <span className="text-red-500">✗ {failed}</span>}
+                  {rateLimited > 0 && <span className="text-amber-500">⏰ {rateLimited}</span>}
+                </div>
+              </div>
+              {isPaused && (
+                <p className="text-xs text-amber-600 text-center">Paused - click Resume to continue</p>
+              )}
             </div>
           )}
         </CardContent>
