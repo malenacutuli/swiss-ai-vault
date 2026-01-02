@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   FileText, 
   StickyNote, 
@@ -7,17 +7,22 @@ import {
   MoreVertical,
   Trash2,
   Eye,
-  ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Loader2,
   FolderInput,
   Folder,
-  FolderOpen
+  FolderOpen,
+  Search,
+  SortAsc,
+  SortDesc,
+  Filter
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,11 +53,12 @@ import { cn } from '@/lib/utils';
 
 interface MemoryDocumentListProps {
   documents: DocumentGroup[];
-  folders?: Array<{ id: string; name: string }>;
+  chats?: DocumentGroup[];
+  folders: Array<{ id: string; name: string }>;
   isLoading?: boolean;
   onDeleteDocument: (chunkIds: string[], filename: string) => Promise<void>;
   onViewChunks?: (documentId: string) => void;
-  onMoveToFolder?: (chunkIds: string[], folderId: string | null) => Promise<void>;
+  onMoveToFolder: (chunkIds: string[], folderId: string | null) => Promise<void>;
 }
 
 const sourceConfig: Record<MemorySource, { icon: typeof FileText; label: string; color: string }> = {
@@ -62,28 +68,84 @@ const sourceConfig: Record<MemorySource, { icon: typeof FileText; label: string;
   url: { icon: Globe, label: 'Web', color: 'text-purple-500' }
 };
 
+const ITEMS_PER_PAGE = 20;
+
 export function MemoryDocumentList({ 
   documents,
+  chats = [],
   folders,
   isLoading,
   onDeleteDocument,
   onViewChunks,
   onMoveToFolder
 }: MemoryDocumentListProps) {
-  const [showAll, setShowAll] = useState(false);
+  // Tab and filter state
+  const [activeTab, setActiveTab] = useState<'all' | 'documents' | 'chats'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'name'>('newest');
+  const [selectedFolderFilter, setSelectedFolderFilter] = useState<string | null>(null);
+  
+  // Delete dialog state
   const [deleteConfirm, setDeleteConfirm] = useState<{ chunkIds: string[]; filename: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   
   // Move to folder dialog state
   const [moveToFolderDoc, setMoveToFolderDoc] = useState<{ chunkIds: string[]; filename: string } | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isMoving, setIsMoving] = useState(false);
+
+  // Separate documents from chats in the passed documents array
+  const { docItems, chatItems } = useMemo(() => {
+    const docs = documents.filter(d => d.source === 'document' || d.source === 'note' || d.source === 'url');
+    const chatDocs = documents.filter(d => d.source === 'chat' || (d as any).aiPlatform);
+    return { 
+      docItems: docs,
+      chatItems: [...chatDocs, ...chats]
+    };
+  }, [documents, chats]);
   
-  // Auto-show all if 15 or fewer documents, otherwise show first 10
-  const displayedDocs = showAll || documents.length <= 15 
-    ? documents 
-    : documents.slice(0, 10);
+  // Combined and filtered items
+  const filteredItems = useMemo(() => {
+    let items: DocumentGroup[] = [];
+    
+    if (activeTab === 'all') {
+      items = [...docItems, ...chatItems];
+    } else if (activeTab === 'documents') {
+      items = docItems;
+    } else {
+      items = chatItems;
+    }
+    
+    // Filter by search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      items = items.filter(item => 
+        item.filename.toLowerCase().includes(query)
+      );
+    }
+    
+    // Filter by folder
+    if (selectedFolderFilter) {
+      items = items.filter(item => (item as any).folderId === selectedFolderFilter);
+    }
+    
+    // Sort
+    items.sort((a, b) => {
+      if (sortOrder === 'newest') return b.createdAt - a.createdAt;
+      if (sortOrder === 'oldest') return a.createdAt - b.createdAt;
+      return a.filename.localeCompare(b.filename);
+    });
+    
+    return items;
+  }, [docItems, chatItems, activeTab, searchQuery, sortOrder, selectedFolderFilter]);
+  
+  // Pagination
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
   
   const handleDelete = async () => {
     if (!deleteConfirm) return;
@@ -97,7 +159,7 @@ export function MemoryDocumentList({
   };
   
   const handleMoveToFolder = async () => {
-    if (!moveToFolderDoc || !onMoveToFolder) return;
+    if (!moveToFolderDoc) return;
     setIsMoving(true);
     try {
       await onMoveToFolder(moveToFolderDoc.chunkIds, selectedFolderId);
@@ -108,10 +170,32 @@ export function MemoryDocumentList({
     }
   };
   
-  const getSourceIcon = (source: MemorySource) => {
-    const config = sourceConfig[source] || sourceConfig.document;
+  const getSourceIcon = (doc: DocumentGroup) => {
+    // Check for AI platform first (chat imports)
+    if ((doc as any).aiPlatform || doc.source === 'chat') {
+      return <MessageSquare className="h-4 w-4 text-green-500" />;
+    }
+    const config = sourceConfig[doc.source] || sourceConfig.document;
     const Icon = config.icon;
     return <Icon className={`h-4 w-4 ${config.color}`} />;
+  };
+  
+  const getSourceBadge = (doc: DocumentGroup) => {
+    const platform = (doc as any).aiPlatform || doc.source;
+    const colors: Record<string, string> = {
+      claude: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
+      chatgpt: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+      gemini: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+      document: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+      note: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+      url: 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800',
+      chat: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+    };
+    return (
+      <Badge variant="outline" className={cn("text-xs capitalize", colors[platform] || colors.document)}>
+        {platform}
+      </Badge>
+    );
   };
   
   const formatDate = (timestamp: number) => {
@@ -121,72 +205,173 @@ export function MemoryDocumentList({
     
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
   };
   
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Your Content
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
   }
   
-  if (documents.length === 0) {
+  const totalDocs = docItems.length;
+  const totalChats = chatItems.length;
+  const totalAll = totalDocs + totalChats;
+  
+  if (totalAll === 0) {
     return null;
   }
   
   return (
     <>
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Your Documents ({documents.length})
+              Your Content
+              <Badge variant="secondary" className="ml-1">
+                {filteredItems.length} items
+              </Badge>
             </CardTitle>
-            {documents.length > 15 && (
-              <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>
-                {showAll ? 'Show Less' : `Show All (${documents.length})`}
-              </Button>
+          </div>
+          
+          {/* Tabs for content type */}
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setCurrentPage(1); }}>
+            <TabsList className="h-9">
+              <TabsTrigger value="all" className="text-xs">
+                All ({totalAll})
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="text-xs">
+                <FileText className="h-3 w-3 mr-1" />
+                Documents ({totalDocs})
+              </TabsTrigger>
+              <TabsTrigger value="chats" className="text-xs">
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Chats ({totalChats})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {/* Search and filters */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="pl-8 h-9"
+              />
+            </div>
+            
+            {/* Folder filter */}
+            {folders.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1">
+                    <Filter className="h-3.5 w-3.5" />
+                    {selectedFolderFilter 
+                      ? folders.find(f => f.id === selectedFolderFilter)?.name || 'Folder'
+                      : 'All Folders'
+                    }
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                  <DropdownMenuItem onClick={() => { setSelectedFolderFilter(null); setCurrentPage(1); }}>
+                    All Folders
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {folders.map(folder => (
+                    <DropdownMenuItem 
+                      key={folder.id} 
+                      onClick={() => { setSelectedFolderFilter(folder.id); setCurrentPage(1); }}
+                    >
+                      <Folder className="h-4 w-4 mr-2" />
+                      {folder.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
+            
+            {/* Sort */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1">
+                  {sortOrder === 'newest' ? <SortDesc className="h-3.5 w-3.5" /> : <SortAsc className="h-3.5 w-3.5" />}
+                  {sortOrder === 'name' ? 'A-Z' : sortOrder === 'newest' ? 'Newest' : 'Oldest'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                <DropdownMenuItem onClick={() => setSortOrder('newest')}>
+                  Newest First
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOrder('oldest')}>
+                  Oldest First
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOrder('name')}>
+                  Name (A-Z)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
+        
         <CardContent>
-          <ScrollArea className={showAll && documents.length > 15 ? 'max-h-[600px]' : undefined}>
-            <div className="space-y-2">
-              {displayedDocs.map(doc => (
+          {/* Items list */}
+          <div className="space-y-2">
+            {paginatedItems.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchQuery ? 'No items match your search' : 'No items found'}
+              </div>
+            ) : (
+              paginatedItems.map((doc) => (
                 <div 
                   key={doc.documentId}
                   className="group flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <button
-                      onClick={() => setExpandedDoc(expandedDoc === doc.documentId ? null : doc.documentId)}
-                      className="p-1.5 rounded hover:bg-background/50 transition-colors"
-                    >
-                      {expandedDoc === doc.documentId ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-                    <div className="p-2 rounded bg-primary/10">
-                      {getSourceIcon(doc.source)}
+                    <div className="p-2 rounded bg-primary/10 shrink-0">
+                      {getSourceIcon(doc)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate">{doc.filename}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {doc.chunkCount} {doc.chunkCount === 1 ? 'chunk' : 'chunks'} • {sourceConfig[doc.source]?.label || 'Document'} • {formatDate(doc.createdAt)}
-                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span>{doc.chunkCount} chunks</span>
+                        <span>•</span>
+                        <span>{formatDate(doc.createdAt)}</span>
+                        {(doc as any).folderId && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-0.5">
+                              <Folder className="h-3 w-3" />
+                              {folders.find(f => f.id === (doc as any).folderId)?.name}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
+                    {getSourceBadge(doc)}
+                    <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                       {doc.chunkCount} items
                     </Badge>
                     <DropdownMenu>
@@ -200,43 +385,61 @@ export function MemoryDocumentList({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                        <DropdownMenuItem onClick={() => setMoveToFolderDoc({ chunkIds: doc.chunkIds, filename: doc.filename })}>
+                          <FolderInput className="h-4 w-4 mr-2" />
+                          Move to Folder
+                        </DropdownMenuItem>
                         {onViewChunks && (
                           <DropdownMenuItem onClick={() => onViewChunks(doc.documentId)}>
                             <Eye className="h-4 w-4 mr-2" />
                             View Chunks
                           </DropdownMenuItem>
                         )}
-                        {onMoveToFolder && folders && folders.length > 0 && (
-                          <>
-                            <DropdownMenuItem onClick={() => setMoveToFolderDoc({ chunkIds: doc.chunkIds, filename: doc.filename })}>
-                              <FolderInput className="h-4 w-4 mr-2" />
-                              Move to Folder
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                          </>
-                        )}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => setDeleteConfirm({ chunkIds: doc.chunkIds, filename: doc.filename })}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Document
+                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              ))
+            )}
+          </div>
           
-          {/* Scroll indicator for many documents */}
-          {showAll && documents.length > 15 && (
-            <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-border">
-              <ChevronDown className="h-4 w-4 text-muted-foreground animate-bounce" />
-              <p className="text-xs text-muted-foreground">
-                Scroll to see all {documents.length} documents
-              </p>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
+              <div className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} of {filteredItems.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -246,7 +449,7 @@ export function MemoryDocumentList({
       <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Item?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete "{deleteConfirm?.filename}" and all {deleteConfirm?.chunkIds.length} of its chunks from your memory. This action cannot be undone.
             </AlertDialogDescription>
@@ -267,7 +470,7 @@ export function MemoryDocumentList({
           <DialogHeader>
             <DialogTitle>Move to Folder</DialogTitle>
             <DialogDescription>
-              Choose a folder for "{moveToFolderDoc?.filename}"
+              Choose a destination folder for "{moveToFolderDoc?.filename}"
             </DialogDescription>
           </DialogHeader>
           
@@ -282,10 +485,13 @@ export function MemoryDocumentList({
               )}
             >
               <FolderOpen className="h-5 w-5 text-muted-foreground" />
-              <span className="font-medium">No Folder (Root)</span>
+              <div>
+                <p className="font-medium">Root (No Folder)</p>
+                <p className="text-xs text-muted-foreground">Remove from all folders</p>
+              </div>
             </button>
             
-            {folders?.map(folder => (
+            {folders.map(folder => (
               <button
                 key={folder.id}
                 onClick={() => setSelectedFolderId(folder.id)}
@@ -297,7 +503,7 @@ export function MemoryDocumentList({
                 )}
               >
                 <Folder className="h-5 w-5 text-primary" />
-                <span className="font-medium">{folder.name}</span>
+                <p className="font-medium">{folder.name}</p>
               </button>
             ))}
           </div>

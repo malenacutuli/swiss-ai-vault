@@ -70,6 +70,7 @@ import { MemoryOnboarding } from '@/components/memory/MemoryOnboarding';
 import { DistillInsightsButton } from '@/components/memory/DistillInsightsButton';
 import { ConnectorSettings } from '@/components/memory/ConnectorSettings';
 import { MemoryGraph } from '@/components/memory/MemoryGraph';
+import { InsightsPanel } from '@/components/memory/InsightsPanel';
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
@@ -535,10 +536,14 @@ function MemoryDashboardContent() {
         
         {/* Tabs */}
         <Tabs defaultValue="memory" className="space-y-6">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="memory" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
               Memory
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Insights
             </TabsTrigger>
             <TabsTrigger value="graph" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
@@ -550,7 +555,7 @@ function MemoryDashboardContent() {
             </TabsTrigger>
             <TabsTrigger value="sync" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Sync Settings
+              Settings
             </TabsTrigger>
           </TabsList>
           
@@ -765,6 +770,16 @@ function MemoryDashboardContent() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+          
+          <TabsContent value="insights">
+            <InsightsPanel
+              totalItems={stats?.count || 0}
+              totalChats={sourceBreakdown.chat}
+              totalDocuments={documentGroups.length}
+              onDistill={() => {}}
+              isDistilling={false}
+            />
           </TabsContent>
           
           <TabsContent value="graph">
