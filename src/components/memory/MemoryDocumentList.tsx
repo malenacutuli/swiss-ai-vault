@@ -58,7 +58,10 @@ export function MemoryDocumentList({
   const [deleting, setDeleting] = useState(false);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   
-  const displayedDocs = showAll ? documents : documents.slice(0, 5);
+  // Auto-show all if 15 or fewer documents, otherwise show first 10
+  const displayedDocs = showAll || documents.length <= 15 
+    ? documents 
+    : documents.slice(0, 10);
   
   const handleDelete = async () => {
     if (!deleteConfirm) return;
@@ -111,7 +114,7 @@ export function MemoryDocumentList({
               <FileText className="h-5 w-5" />
               Your Documents ({documents.length})
             </CardTitle>
-            {documents.length > 5 && (
+            {documents.length > 15 && (
               <Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>
                 {showAll ? 'Show Less' : `Show All (${documents.length})`}
               </Button>

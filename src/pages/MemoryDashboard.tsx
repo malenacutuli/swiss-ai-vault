@@ -367,9 +367,10 @@ function MemoryDashboardContent() {
     const result = await addDocumentsBulk(files, key, folderId);
     await memory.getStats().then(setStats);
     await loadFolders();
+    await loadDocumentGroups();
     
     return { successful: result.successful, failed: result.failed };
-  }, [getMasterKey, memory, loadFolders, toast]);
+  }, [getMasterKey, memory, loadFolders, loadDocumentGroups, toast]);
   
   // Source icon helper
   const getSourceIcon = (source: string) => {
@@ -748,7 +749,13 @@ function MemoryDashboardContent() {
                       : new Date().toISOString(),
                     tags: []
                   }))
-                : []
+                : documentGroups.map(doc => ({
+                    id: doc.documentId,
+                    title: doc.filename || 'Memory Item',
+                    source: doc.source,
+                    timestamp: new Date(doc.createdAt).toISOString(),
+                    tags: []
+                  }))
               }
               onSelectMemory={(id) => {
                 const result = searchResults.find(r => r.id === id);
@@ -757,12 +764,12 @@ function MemoryDashboardContent() {
                 }
               }}
             />
-            {searchResults.length === 0 && memory.isReady && (
+            {searchResults.length === 0 && documentGroups.length === 0 && memory.isReady && (
               <Card className="mt-4">
                 <CardContent className="py-8 text-center">
                   <Network className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground">
-                    Search for memories above to visualize connections in the graph.
+                    No memories to visualize. Add some content first.
                   </p>
                 </CardContent>
               </Card>
@@ -840,6 +847,10 @@ function MemoryDashboardContent() {
           onOpenChange={setShowBulkUpload}
           folders={folders}
           onUpload={handleBulkUpload}
+          onUploadComplete={() => {
+            loadDocumentGroups();
+            loadFolders();
+          }}
         />
         
         {/* Vault Unlock Dialog */}
@@ -875,6 +886,7 @@ function MemoryDashboardContent() {
           onOpenChange={setShowImportModal}
           onComplete={() => {
             memory.getStats().then(setStats);
+            loadDocumentGroups();
             toast({ title: 'Import complete!', description: 'Your AI history has been imported.' });
           }}
         />
