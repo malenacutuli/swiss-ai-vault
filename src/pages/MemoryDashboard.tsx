@@ -74,6 +74,8 @@ import { InsightsPanel, type InsightsPanelRef } from '@/components/memory/Insigh
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
+import { VoiceChatMemory } from '@/components/memory/VoiceChatMemory';
+import { saveVoiceChatToMemory, type VoiceMessage } from '@/lib/memory/voice-memory';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
 import type { MemoryFolder } from '@/lib/memory/memory-manager';
@@ -617,7 +619,7 @@ function MemoryDashboardContent() {
         
         {/* Tabs */}
         <Tabs defaultValue="memory" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="memory" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
               Memory
@@ -625,6 +627,10 @@ function MemoryDashboardContent() {
             <TabsTrigger value="insights" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               Insights
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Voice
             </TabsTrigger>
             <TabsTrigger value="graph" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
@@ -863,6 +869,22 @@ function MemoryDashboardContent() {
               isDistilling={isDistilling}
               distillProgress={distillProgress}
               distillStatus={distillStatus}
+            />
+          </TabsContent>
+          
+          <TabsContent value="voice" className="min-h-[500px]">
+            <VoiceChatMemory
+              encryptionKey={getMasterKey() || undefined}
+              onSave={async (transcript, messages) => {
+                const key = getMasterKey();
+                if (!key) {
+                  toast({ title: 'Vault locked', variant: 'destructive' });
+                  return;
+                }
+                await saveVoiceChatToMemory(transcript, messages, key);
+                await memory.getStats().then(setStats);
+                await loadDocumentGroups();
+              }}
             />
           </TabsContent>
           

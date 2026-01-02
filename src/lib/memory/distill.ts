@@ -1,12 +1,12 @@
 /**
- * Distill conversations and documents into structured insights
+ * Distill conversations, documents, and voice chats into structured insights
  * Extracts key points, topics, action items, decisions using AI
  */
 
 export interface DistilledInsight {
   id: string;
   sourceId: string;
-  sourceType: 'chat' | 'document';
+  sourceType: 'chat' | 'document' | 'voice';  // Added 'voice'
   title: string;
   aiPlatform?: string;
   summary: string;
@@ -25,6 +25,40 @@ export interface DistilledInsight {
   category?: string;
   createdAt: string;
 }
+
+// Voice-specific prompt for better spoken conversation analysis
+const VOICE_DISTILL_PROMPT = `You are an expert knowledge analyst. Analyze this voice conversation transcript and extract insights.
+
+VOICE TRANSCRIPT:
+{content}
+
+TITLE: {title}
+
+Since this is a spoken conversation:
+- Focus on the natural flow and key exchanges
+- Identify questions asked and answers given
+- Note verbal commitments and action items
+- Capture decisions made during discussion
+
+Extract in JSON format:
+{
+  "summary": "2-3 sentence summary of what was discussed",
+  "keyPoints": ["main points from the conversation"],
+  "topics": ["topics covered - 1-3 words each"],
+  "actionItems": ["specific tasks or commitments mentioned"],
+  "decisions": ["decisions reached or conclusions drawn"],
+  "questions": ["important questions raised"],
+  "entities": {
+    "people": ["names mentioned"],
+    "companies": ["organizations discussed"],
+    "technologies": ["tech/tools referenced"]
+  },
+  "sentiment": "positive|neutral|negative|mixed",
+  "importance": "high|medium|low",
+  "category": "meeting|brainstorm|planning|learning|personal"
+}
+
+Return ONLY valid JSON.`;
 
 const DISTILL_PROMPT = `You are an expert knowledge analyst. Analyze the following content and extract structured insights.
 
@@ -62,15 +96,25 @@ RULES:
  * Distill a single conversation into insights using Lovable AI
  */
 export async function distillConversation(
-  memory: { id: string; title: string; content: string; source: string; aiPlatform?: string }
+  memory: { id: string; title: string; content: string; source: string; aiPlatform?: string; metadata?: Record<string, unknown> }
 ): Promise<DistilledInsight | null> {
   // Truncate very long content
   const content = memory.content.slice(0, 12000);
   
-  const prompt = DISTILL_PROMPT
-    .replace('{content}', content)
-    .replace('{sourceType}', memory.source)
-    .replace('{title}', memory.title);
+  // Check if this is a voice conversation
+  const isVoice = memory.aiPlatform === 'swissvault' || 
+                  memory.metadata?.isVoiceChat === true ||
+                  memory.source === 'voice';
+  
+  // Use voice-specific prompt for voice content
+  const prompt = isVoice
+    ? VOICE_DISTILL_PROMPT
+        .replace('{content}', content)
+        .replace('{title}', memory.title)
+    : DISTILL_PROMPT
+        .replace('{content}', content)
+        .replace('{sourceType}', memory.source)
+        .replace('{title}', memory.title);
   
   try {
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`, {
@@ -128,10 +172,15 @@ export async function distillConversation(
     
     const parsed = JSON.parse(jsonMatch[0]);
     
+    // Determine source type - voice takes priority
+    const sourceType: 'chat' | 'document' | 'voice' = isVoice 
+      ? 'voice' 
+      : (memory.source as 'chat' | 'document');
+    
     return {
       id: `insight-${memory.id}-${Date.now()}`,
       sourceId: memory.id,
-      sourceType: memory.source as 'chat' | 'document',
+      sourceType,
       title: memory.title,
       aiPlatform: memory.aiPlatform,
       summary: parsed.summary || '',
