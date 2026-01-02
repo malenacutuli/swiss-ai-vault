@@ -9,6 +9,7 @@ interface MemoryNode {
   id: string;
   title: string;
   source: string;
+  aiPlatform?: string; // Specific AI platform: 'claude', 'chatgpt', etc.
   type?: string;
   tags?: string[];
   timestamp: string;
@@ -18,6 +19,7 @@ interface GraphNode extends d3.SimulationNodeDatum {
   id: string;
   title: string;
   source: string;
+  aiPlatform?: string;
   type?: string;
   tags?: string[];
   timestamp: string;
@@ -260,9 +262,13 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
       });
     
     // Node circles with source colors and shadow
+    // Prefer aiPlatform if available, fallback to source for coloring
     node.append('circle')
       .attr('r', 12)
-      .attr('fill', d => SOURCE_COLORS[d.source?.toLowerCase()] || SOURCE_COLORS.unknown)
+      .attr('fill', d => {
+        const platform = d.aiPlatform || d.source;
+        return SOURCE_COLORS[platform?.toLowerCase()] || SOURCE_COLORS.unknown;
+      })
       .attr('stroke', '#fff')
       .attr('stroke-width', 2)
       .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))');
@@ -390,11 +396,11 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
                       variant="secondary" 
                       className="text-xs"
                       style={{ 
-                        backgroundColor: `${SOURCE_COLORS[selectedNode.source?.toLowerCase()] || SOURCE_COLORS.unknown}20`,
-                        color: SOURCE_COLORS[selectedNode.source?.toLowerCase()] || SOURCE_COLORS.unknown
+                        backgroundColor: `${SOURCE_COLORS[(selectedNode.aiPlatform || selectedNode.source)?.toLowerCase()] || SOURCE_COLORS.unknown}20`,
+                        color: SOURCE_COLORS[(selectedNode.aiPlatform || selectedNode.source)?.toLowerCase()] || SOURCE_COLORS.unknown
                       }}
                     >
-                      {selectedNode.source}
+                      {selectedNode.aiPlatform || selectedNode.source}
                     </Badge>
                     {selectedNode.tags?.slice(0, 3).map(tag => (
                       <Badge key={tag} variant="outline" className="text-xs">

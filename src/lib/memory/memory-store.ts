@@ -27,8 +27,12 @@ const FOLDERS_STORE = 'folders';
 
 export type MemorySource = 'document' | 'chat' | 'note' | 'url';
 
+// AI platform identification for imported conversations
+export type AIPlatform = 'chatgpt' | 'claude' | 'gemini' | 'perplexity' | 'grok' | 'copilot' | 'swissvault' | 'unknown';
+
 export interface MemoryMetadata {
   source: MemorySource;
+  aiPlatform?: AIPlatform; // Stores specific AI platform: 'claude', 'chatgpt', etc.
   filename?: string;
   title?: string;
   url?: string;
@@ -697,6 +701,7 @@ export interface DocumentGroup {
   filename: string;
   chunkCount: number;
   source: MemorySource;
+  aiPlatform?: AIPlatform; // AI platform for imported conversations
   createdAt: number;
   chunkIds: string[];
 }
@@ -724,6 +729,7 @@ export async function getDocumentGroups(encryptionKey: CryptoKey): Promise<Docum
   const groups = new Map<string, {
     filename: string;
     source: MemorySource;
+    aiPlatform?: AIPlatform;
     createdAt: number;
     chunkIds: string[];
   }>();
@@ -763,10 +769,15 @@ export async function getDocumentGroups(encryptionKey: CryptoKey): Promise<Docum
         if (s.createdAt < existing.createdAt) {
           existing.createdAt = s.createdAt;
         }
+        // Preserve aiPlatform if present
+        if (metadata.aiPlatform && !existing.aiPlatform) {
+          existing.aiPlatform = metadata.aiPlatform;
+        }
       } else {
         groups.set(groupKey, {
           filename: displayName,
           source,
+          aiPlatform: metadata.aiPlatform,
           createdAt: s.createdAt,
           chunkIds: [s.id]
         });
@@ -783,6 +794,7 @@ export async function getDocumentGroups(encryptionKey: CryptoKey): Promise<Docum
       filename: data.filename,
       chunkCount: data.chunkIds.length,
       source: data.source,
+      aiPlatform: data.aiPlatform,
       createdAt: data.createdAt,
       chunkIds: data.chunkIds
     }))
