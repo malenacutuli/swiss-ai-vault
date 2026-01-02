@@ -35,27 +35,53 @@ interface Props {
 
 // Vibrant source colors for better visibility
 const SOURCE_COLORS: Record<string, string> = {
-  chatgpt: '#10B981',      // Green
-  claude: '#8B5CF6',       // Purple
-  gemini: '#3B82F6',       // Blue
-  perplexity: '#F59E0B',   // Amber
-  grok: '#EF4444',         // Red
-  copilot: '#06B6D4',      // Cyan
+  chatgpt: '#10B981',         // Emerald green
+  claude: '#8B5CF6',          // Purple
+  gemini: '#3B82F6',          // Blue
+  perplexity: '#F59E0B',      // Amber
+  grok: '#EF4444',            // Red
+  copilot: '#06B6D4',         // Cyan
   swissvault_chat: '#EC4899', // Pink
-  document: '#6B7280',     // Gray
-  note: '#F97316',         // Orange
-  chat: '#10B981',         // Green
-  url: '#14B8A6',          // Teal
+  document: '#6366F1',        // Indigo
+  note: '#F97316',            // Orange
+  chat: '#10B981',            // Green
+  url: '#14B8A6',             // Teal
+  captured: '#A855F7',        // Purple for captured memories
+  unknown: '#6B7280',         // Gray
 };
 
 /**
- * Find connections between memories based on shared tags and temporal proximity
+ * Find connections between memories based on shared tags, documents, and temporal proximity
  */
 function findConnections(memories: MemoryNode[]): GraphLink[] {
   const links: GraphLink[] = [];
-  const tagMap = new Map<string, string[]>();
+  
+  // Group by document (chunks from same file)
+  const byDocument = new Map<string, string[]>();
+  memories.forEach(m => {
+    // Check for documentId or filename to group chunks
+    const docId = (m as any).documentId || (m as any).metadata?.documentId || (m as any).metadata?.filename;
+    if (docId) {
+      const existing = byDocument.get(docId) || [];
+      existing.push(m.id);
+      byDocument.set(docId, existing);
+    }
+  });
+  
+  // Connect chunks from same document
+  byDocument.forEach(ids => {
+    for (let i = 0; i < ids.length - 1; i++) {
+      links.push({ 
+        source: ids[i], 
+        target: ids[i + 1], 
+        strength: 0.5, 
+        sharedTags: ['same-document'] 
+      });
+    }
+  });
   
   // Build tag -> memory IDs map
+  const tagMap = new Map<string, string[]>();
   memories.forEach(m => {
     (m.tags || []).forEach(tag => {
       const existing = tagMap.get(tag) || [];
@@ -66,25 +92,23 @@ function findConnections(memories: MemoryNode[]): GraphLink[] {
   
   // Create links for memories sharing tags
   tagMap.forEach((ids, tag) => {
-    if (ids.length < 2) return;
+    if (ids.length < 2 || ids.length > 10) return; // Skip very common tags
     
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const existing = links.find(
-          l => (l.source === ids[i] && l.target === ids[j]) ||
-               (l.source === ids[j] && l.target === ids[i])
-        );
-        if (existing) {
-          existing.strength += 0.15;
-          existing.sharedTags.push(tag);
-        } else {
-          links.push({ source: ids[i], target: ids[j], strength: 0.3, sharedTags: [tag] });
-        }
+    for (let i = 0; i < Math.min(ids.length - 1, 5); i++) {
+      const existing = links.find(
+        l => (l.source === ids[i] && l.target === ids[i + 1]) ||
+             (l.source === ids[i + 1] && l.target === ids[i])
+      );
+      if (existing) {
+        existing.strength += 0.15;
+        existing.sharedTags.push(tag);
+      } else {
+        links.push({ source: ids[i], target: ids[i + 1], strength: 0.3, sharedTags: [tag] });
       }
     }
   });
   
-  // Connect memories from the same source that are close in time
+  // Connect memories from the same source that are close in time (within 1 hour)
   const bySource = new Map<string, MemoryNode[]>();
   memories.forEach(m => {
     const arr = bySource.get(m.source) || [];
@@ -98,17 +122,23 @@ function findConnections(memories: MemoryNode[]): GraphLink[] {
     );
     
     for (let i = 0; i < sorted.length - 1; i++) {
-      const existing = links.find(
-        l => (l.source === sorted[i].id && l.target === sorted[i + 1].id) ||
-             (l.source === sorted[i + 1].id && l.target === sorted[i].id)
-      );
-      if (!existing) {
-        links.push({ 
-          source: sorted[i].id, 
-          target: sorted[i + 1].id, 
-          strength: 0.2, 
-          sharedTags: ['temporal'] 
-        });
+      const timeDiff = new Date(sorted[i + 1].timestamp).getTime() - new Date(sorted[i].timestamp).getTime();
+      const hourInMs = 60 * 60 * 1000;
+      
+      // Only connect if within 1 hour
+      if (timeDiff <= hourInMs) {
+        const existing = links.find(
+          l => (l.source === sorted[i].id && l.target === sorted[i + 1].id) ||
+               (l.source === sorted[i + 1].id && l.target === sorted[i].id)
+        );
+        if (!existing) {
+          links.push({ 
+            source: sorted[i].id, 
+            target: sorted[i + 1].id, 
+            strength: 0.2, 
+            sharedTags: ['temporal'] 
+          });
+        }
       }
     }
   });
@@ -232,7 +262,7 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
     // Node circles with source colors and shadow
     node.append('circle')
       .attr('r', 12)
-      .attr('fill', d => SOURCE_COLORS[d.source] || '#6B7280')
+      .attr('fill', d => SOURCE_COLORS[d.source?.toLowerCase()] || SOURCE_COLORS.unknown)
       .attr('stroke', '#fff')
       .attr('stroke-width', 2)
       .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))');
@@ -307,16 +337,19 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
             )}
           </div>
           <div className="flex flex-wrap gap-1">
-            {Object.entries(SOURCE_COLORS).slice(0, 6).map(([source, color]) => (
-              <Badge 
-                key={source} 
-                variant="outline" 
-                className="text-xs"
-                style={{ borderColor: color, color }}
-              >
-                {source}
-              </Badge>
-            ))}
+            {Object.entries(SOURCE_COLORS)
+              .filter(([key]) => key !== 'unknown')
+              .slice(0, 8)
+              .map(([source, color]) => (
+                <Badge 
+                  key={source} 
+                  variant="outline" 
+                  className="text-xs capitalize"
+                  style={{ borderColor: color, color }}
+                >
+                  {source.replace('_', ' ')}
+                </Badge>
+              ))}
           </div>
         </div>
       </CardHeader>
@@ -357,8 +390,8 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
                       variant="secondary" 
                       className="text-xs"
                       style={{ 
-                        backgroundColor: `${SOURCE_COLORS[selectedNode.source] || '#6B7280'}20`,
-                        color: SOURCE_COLORS[selectedNode.source] || '#6B7280'
+                        backgroundColor: `${SOURCE_COLORS[selectedNode.source?.toLowerCase()] || SOURCE_COLORS.unknown}20`,
+                        color: SOURCE_COLORS[selectedNode.source?.toLowerCase()] || SOURCE_COLORS.unknown
                       }}
                     >
                       {selectedNode.source}
