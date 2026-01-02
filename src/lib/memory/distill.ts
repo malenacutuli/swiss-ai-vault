@@ -1,131 +1,155 @@
 /**
- * Distill conversations into structured insights
- * Extracts key points, topics, action items, decisions from imported conversations
+ * Distill conversations and documents into structured insights
+ * Extracts key points, topics, action items, decisions using AI
  */
 
 export interface DistilledInsight {
   id: string;
   sourceId: string;
-  sourceType: string;
+  sourceType: 'chat' | 'document';
   title: string;
+  aiPlatform?: string;
   summary: string;
   keyPoints: string[];
   topics: string[];
   actionItems: string[];
   decisions: string[];
   questions: string[];
-  sentiment?: 'positive' | 'neutral' | 'negative';
+  entities?: {
+    people?: string[];
+    companies?: string[];
+    technologies?: string[];
+  };
+  sentiment?: 'positive' | 'neutral' | 'negative' | 'mixed';
+  importance?: 'high' | 'medium' | 'low';
+  category?: string;
   createdAt: string;
 }
 
-const DISTILL_PROMPT = `Analyze this conversation and extract structured insights.
+const DISTILL_PROMPT = `You are an expert knowledge analyst. Analyze the following content and extract structured insights.
 
-CONVERSATION:
+CONTENT TO ANALYZE:
 {content}
 
-Extract and return JSON with these fields:
-- summary: 2-3 sentence overview of what was discussed
-- keyPoints: Array of main points discussed (3-7 items)
-- topics: Array of topic keywords/themes (3-5 items)
-- actionItems: Array of action items or next steps mentioned (if any)
-- decisions: Array of decisions made (if any)
-- questions: Array of open questions or unresolved issues (if any)
-- sentiment: Overall sentiment - "positive", "neutral", or "negative"
+SOURCE TYPE: {sourceType}
+TITLE: {title}
 
-Return ONLY valid JSON, no markdown or explanation.`;
+Extract the following in JSON format:
+{
+  "summary": "A compelling 2-3 sentence summary that captures the essence",
+  "keyPoints": ["Key insight 1", "Key insight 2", "Key insight 3"],
+  "topics": ["topic1", "topic2", "topic3"],
+  "actionItems": ["Specific action that can be taken"],
+  "decisions": ["Decision or conclusion that was made"],
+  "questions": ["Important question that remains open"],
+  "entities": {
+    "people": ["Names mentioned"],
+    "companies": ["Companies mentioned"],
+    "technologies": ["Technologies discussed"]
+  },
+  "sentiment": "positive|neutral|negative|mixed",
+  "importance": "high|medium|low",
+  "category": "work|personal|learning|project|meeting|research"
+}
+
+RULES:
+1. Be specific and concrete, not generic
+2. Extract ACTUAL names, dates, numbers mentioned
+3. Topics should be 1-3 words each
+4. Return ONLY valid JSON, no markdown or explanation`;
 
 /**
  * Distill a single conversation into insights using Lovable AI
  */
 export async function distillConversation(
-  memory: { id: string; title: string; content: string; source: string }
-): Promise<DistilledInsight> {
-  // Truncate very long conversations
-  const content = memory.content.slice(0, 6000);
+  memory: { id: string; title: string; content: string; source: string; aiPlatform?: string }
+): Promise<DistilledInsight | null> {
+  // Truncate very long content
+  const content = memory.content.slice(0, 12000);
   
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`, {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-    },
-    body: JSON.stringify({
-      messages: [{
-        role: 'user',
-        content: DISTILL_PROMPT.replace('{content}', content)
-      }],
-      model: 'gemini-2.0-flash', // Fast and cheap
-      temperature: 0.3,
-      max_tokens: 1000
-    })
-  });
+  const prompt = DISTILL_PROMPT
+    .replace('{content}', content)
+    .replace('{sourceType}', memory.source)
+    .replace('{title}', memory.title);
   
-  if (!response.ok) {
-    throw new Error('Failed to distill conversation');
-  }
-  
-  // Handle streaming response
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('No response body');
-  
-  const decoder = new TextDecoder();
-  let fullContent = '';
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'gemini-2.0-flash',
+        temperature: 0.3,
+        max_tokens: 1500
+      })
+    });
     
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
+    if (!response.ok) {
+      console.error('Distillation API error:', response.status);
+      return null;
+    }
     
-    for (const line of lines) {
-      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-        try {
-          const data = JSON.parse(line.slice(6));
-          const content = data.choices?.[0]?.delta?.content;
-          if (content) fullContent += content;
-        } catch {
-          // Skip malformed chunks
+    // Handle streaming response
+    const reader = response.body?.getReader();
+    if (!reader) return null;
+    
+    const decoder = new TextDecoder();
+    let fullContent = '';
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          try {
+            const data = JSON.parse(line.slice(6));
+            const deltaContent = data.choices?.[0]?.delta?.content;
+            if (deltaContent) fullContent += deltaContent;
+          } catch {
+            // Skip malformed chunks
+          }
         }
       }
     }
-  }
-  
-  let parsed: any;
-  
-  try {
-    // Handle both direct JSON and markdown-wrapped JSON
-    let jsonStr = fullContent;
-    jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    parsed = JSON.parse(jsonStr);
-  } catch (e) {
-    console.error('Failed to parse distill response:', fullContent);
-    // Return minimal insight on parse failure
-    parsed = {
-      summary: 'Unable to extract summary',
-      keyPoints: [],
-      topics: [],
-      actionItems: [],
-      decisions: [],
-      questions: [],
-      sentiment: 'neutral'
+    
+    // Parse JSON from response
+    const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in distill response');
+      return null;
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    return {
+      id: `insight-${memory.id}-${Date.now()}`,
+      sourceId: memory.id,
+      sourceType: memory.source as 'chat' | 'document',
+      title: memory.title,
+      aiPlatform: memory.aiPlatform,
+      summary: parsed.summary || '',
+      keyPoints: parsed.keyPoints || [],
+      topics: parsed.topics || [],
+      actionItems: parsed.actionItems || [],
+      decisions: parsed.decisions || [],
+      questions: parsed.questions || [],
+      entities: parsed.entities || {},
+      sentiment: parsed.sentiment || 'neutral',
+      importance: parsed.importance || 'medium',
+      category: parsed.category || 'general',
+      createdAt: new Date().toISOString()
     };
+  } catch (error) {
+    console.error('Distillation error:', error);
+    return null;
   }
-  
-  return {
-    id: `insight-${memory.id}-${Date.now()}`,
-    sourceId: memory.id,
-    sourceType: memory.source,
-    title: memory.title,
-    summary: parsed.summary || '',
-    keyPoints: parsed.keyPoints || [],
-    topics: parsed.topics || [],
-    actionItems: parsed.actionItems || [],
-    decisions: parsed.decisions || [],
-    questions: parsed.questions || [],
-    sentiment: parsed.sentiment || 'neutral',
-    createdAt: new Date().toISOString()
-  };
 }
 
 /**
