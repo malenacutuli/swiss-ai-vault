@@ -59,6 +59,7 @@ import {
 import { GhostModeToggle } from './GhostModeToggle';
 import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
 import { ImportChatGPTModal } from '@/components/memory/ImportChatGPTModal';
+import { ImportClaudeModal } from '@/components/memory/ImportClaudeModal';
 
 // ============================================
 // CHAT ACTIONS MENU
@@ -328,6 +329,7 @@ export function GhostSidebar({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showClaudeImportModal, setShowClaudeImportModal] = useState(false);
   const [enabledModules, setEnabledModules] = useState<string[]>(() => {
     const saved = localStorage.getItem('ghost-discover-modules');
     return saved ? JSON.parse(saved) : DEFAULT_ENABLED_MODULES;
@@ -728,12 +730,35 @@ export function GhostSidebar({
             onClick={() => navigate('/')} 
           />
           
-          {/* Import ChatGPT */}
-          <IconButton 
-            icon={IconUpload} 
-            label="Import" 
-            onClick={() => setShowImportModal(true)} 
-          />
+          {/* Import Dropdown */}
+          {isExpanded ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 px-2"
+                >
+                  <IconUpload className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                  <span className="text-sm">Import</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[160px]">
+                <DropdownMenuItem onClick={() => setShowImportModal(true)}>
+                  Import ChatGPT
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowClaudeImportModal(true)}>
+                  Import Claude
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <IconButton 
+              icon={IconUpload} 
+              label="Import" 
+              onClick={() => setShowImportModal(true)} 
+            />
+          )}
 
           {/* Search - only when expanded */}
           {isExpanded && (
@@ -1004,6 +1029,12 @@ export function GhostSidebar({
       <ImportChatGPTModal
         open={showImportModal}
         onOpenChange={setShowImportModal}
+      />
+
+      {/* Import Claude Modal */}
+      <ImportClaudeModal
+        open={showClaudeImportModal}
+        onOpenChange={setShowClaudeImportModal}
       />
 
       {/* Mobile toggle button */}
