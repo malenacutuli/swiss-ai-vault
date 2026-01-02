@@ -129,6 +129,9 @@ export async function distillConversation(
     // Use session token if provided, otherwise fall back to anon key (will hit rate limits)
     const authToken = accessToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
+    // CRITICAL: Use gpt-4o-mini for distillation (500+ RPM vs 10 RPM for gemini-2.0-flash-exp)
+    const DISTILL_MODEL = 'gpt-4o-mini';
+    
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghost-inference`, {
       method: 'POST',
       headers: { 
@@ -137,9 +140,10 @@ export async function distillConversation(
       },
       body: JSON.stringify({
         messages: [{ role: 'user', content: prompt }],
-        model: 'gemini-2.0-flash',
+        model: DISTILL_MODEL,
         temperature: 0.3,
-        max_tokens: 1500
+        max_tokens: 1500,
+        stream: false  // Non-streaming for batch processing
       })
     });
     

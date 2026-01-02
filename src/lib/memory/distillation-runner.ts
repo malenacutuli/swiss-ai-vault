@@ -46,21 +46,46 @@ let state: RunnerState = {
 let accessToken: string | null = null;
 const listeners = new Set<RunnerListener>();
 const STORAGE_KEY = 'swissvault_distill_progress';
-const CONCURRENCY = 3; // Process 3 at a time
-const RATE_LIMIT_BACKOFF = 60000; // 1 minute
-const MIN_DELAY_BETWEEN_REQUESTS = 500; // 0.5s minimum between requests
 
-// Persist to localStorage
+// CRITICAL: Adaptive throttling config for gpt-4o-mini (500+ RPM)
+const THROTTLE_CONFIG = {
+  concurrency: 2,           // Process 2 at a time (conservative)
+  baseDelay: 300,           // 300ms between requests (safe for 500 RPM)
+  maxDelay: 30000,          // Max 30s backoff
+  rateLimitBackoff: 30000,  // Wait 30s on rate limit (not 60s)
+};
+
+let currentDelay = THROTTLE_CONFIG.baseDelay;
+
+// Persist to localStorage - ONLY IDs and status (not full content to avoid QuotaExceeded)
 function persist() {
   try {
+    // Only store minimal data - IDs and status, NOT content
+    const minimalJobs = state.jobs.map(j => ({
+      id: j.id,
+      memoryId: j.memoryId,
+      title: j.title.slice(0, 100), // Truncate title
+      status: j.status,
+      attempts: j.attempts,
+      error: j.error,
+    }));
+    
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      jobs: state.jobs,
+      jobs: minimalJobs,
       processed: state.processed,
       succeeded: state.succeeded,
       failed: state.failed,
     }));
   } catch (e) {
     console.error('[DistillRunner] Failed to persist:', e);
+    // If localStorage fails, try to at least save counts
+    try {
+      localStorage.setItem(STORAGE_KEY + '_counts', JSON.stringify({
+        processed: state.processed,
+        succeeded: state.succeeded,
+        failed: state.failed,
+      }));
+    } catch {}
   }
 }
 
@@ -127,15 +152,30 @@ async function processJob(job: DistillJob): Promise<boolean> {
   }
 }
 
-// Process jobs with concurrency
+// Process jobs with concurrency and adaptive delay
 async function processBatch(jobs: DistillJob[]): Promise<void> {
   const results = await Promise.allSettled(
     jobs.map(async (job, index) => {
-      // Stagger requests slightly
-      await new Promise(r => setTimeout(r, index * MIN_DELAY_BETWEEN_REQUESTS));
-      return processJob(job);
+      // Stagger requests with adaptive delay
+      await new Promise(r => setTimeout(r, index * currentDelay));
+      const success = await processJob(job);
+      
+      // Adaptive delay adjustment
+      if (success) {
+        // Reduce delay on success (min = baseDelay)
+        currentDelay = Math.max(currentDelay * 0.9, THROTTLE_CONFIG.baseDelay);
+      }
+      return success;
     })
   );
+  
+  // Check for rate limits in this batch
+  const hasRateLimit = jobs.some(j => j.status === 'rate_limited');
+  if (hasRateLimit) {
+    // Increase delay on rate limit (max = maxDelay)
+    currentDelay = Math.min(currentDelay * 3, THROTTLE_CONFIG.maxDelay);
+    console.log(`[DistillRunner] Rate limit detected, increasing delay to ${currentDelay}ms`);
+  }
   
   state.processed += jobs.length;
   notify('progress');
@@ -143,7 +183,7 @@ async function processBatch(jobs: DistillJob[]): Promise<void> {
 
 // Main processing loop
 async function runLoop() {
-  console.log('[DistillRunner] Starting loop');
+  console.log('[DistillRunner] Starting loop with model: gpt-4o-mini (500+ RPM)');
   
   while (state.isRunning && !state.isPaused) {
     const pending = state.jobs.filter(j => j.status === 'pending');
@@ -152,9 +192,9 @@ async function runLoop() {
       // Check rate-limited jobs that can be retried
       const rateLimited = state.jobs.filter(j => j.status === 'rate_limited' && j.attempts < 3);
       if (rateLimited.length > 0) {
-        console.log('[DistillRunner] Waiting for rate limit backoff...');
+        console.log(`[DistillRunner] Waiting ${THROTTLE_CONFIG.rateLimitBackoff / 1000}s for rate limit backoff...`);
         notify('rate_limit_backoff');
-        await new Promise(r => setTimeout(r, RATE_LIMIT_BACKOFF));
+        await new Promise(r => setTimeout(r, THROTTLE_CONFIG.rateLimitBackoff));
         rateLimited.forEach(j => { j.status = 'pending'; });
         continue;
       }
@@ -162,15 +202,11 @@ async function runLoop() {
     }
 
     // Process batch concurrently
-    const batch = pending.slice(0, CONCURRENCY);
+    const batch = pending.slice(0, THROTTLE_CONFIG.concurrency);
     await processBatch(batch);
 
-    // Brief pause if any rate limited in this batch
-    const hasRateLimit = batch.some(j => j.status === 'rate_limited');
-    if (hasRateLimit) {
-      console.log('[DistillRunner] Rate limit detected, backing off 10s');
-      await new Promise(r => setTimeout(r, 10000));
-    }
+    // Brief pause between batches
+    await new Promise(r => setTimeout(r, currentDelay));
   }
 
   state.isRunning = false;
