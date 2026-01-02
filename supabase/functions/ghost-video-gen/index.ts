@@ -22,10 +22,9 @@ interface VideoGenRequest {
 
 // Model routing configuration
 const VIDEO_MODEL_ROUTES: Record<string, { provider: string; creditCost: number; maxDuration: number }> = {
-  // Google Veo (coming soon)
-  'veo-3.1': { provider: 'google', creditCost: 150, maxDuration: 60 },
-  'veo-3': { provider: 'google', creditCost: 120, maxDuration: 30 },
-  'veo-2': { provider: 'google', creditCost: 80, maxDuration: 15 },
+  // Google Veo (LIVE - highest quality)
+  'veo-3': { provider: 'veo', creditCost: 120, maxDuration: 30 },
+  'veo-2': { provider: 'veo', creditCost: 80, maxDuration: 15 },
   // Runway
   'runway-gen3-alpha-turbo': { provider: 'runway', creditCost: 25, maxDuration: 10 },
   'runway-gen3-alpha': { provider: 'runway', creditCost: 50, maxDuration: 10 },
@@ -302,6 +301,192 @@ async function generateWithReplicate(
   throw new Error('No video URL returned from Replicate');
 }
 
+// Generate with Google Veo via Vertex AI
+async function generateWithVeo(
+  prompt: string,
+  mode: 'i2v' | 't2v',
+  inputImage?: string,
+  duration: number = 5,
+  aspectRatio: string = '16:9',
+  model: string = 'veo-2'
+): Promise<{ taskId: string } | { videoUrl: string }> {
+  // Try Vertex AI first (requires service account)
+  const GOOGLE_PROJECT_ID = Deno.env.get('GOOGLE_CLOUD_PROJECT') || Deno.env.get('GOOGLE_PROJECT_ID');
+  const GOOGLE_ACCESS_TOKEN = Deno.env.get('GOOGLE_ACCESS_TOKEN');
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY') || Deno.env.get('GOOGLE_API_KEY');
+  
+  const veoModel = model === 'veo-3' ? 'veo-003' : 'veo-002';
+  
+  console.log(`[ghost-video-gen] Generating with Google Veo ${veoModel}, mode: ${mode}, duration: ${duration}s`);
+
+  // Method 1: Vertex AI (production - requires GCP project)
+  if (GOOGLE_PROJECT_ID && GOOGLE_ACCESS_TOKEN) {
+    const location = 'us-central1';
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${GOOGLE_PROJECT_ID}/locations/${location}/publishers/google/models/${veoModel}:predict`;
+
+    const instance: Record<string, unknown> = {
+      prompt,
+      duration_seconds: Math.min(duration, model === 'veo-3' ? 30 : 15),
+      aspect_ratio: aspectRatio,
+    };
+
+    // Add image for i2v mode
+    if (mode === 'i2v' && inputImage) {
+      // Veo supports image conditioning
+      if (inputImage.startsWith('data:')) {
+        const base64Data = inputImage.split(',')[1];
+        instance.image = { bytesBase64Encoded: base64Data };
+      } else {
+        instance.image = { uri: inputImage };
+      }
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GOOGLE_ACCESS_TOKEN}`,
+      },
+      body: JSON.stringify({
+        instances: [instance],
+        parameters: {
+          sampleCount: 1,
+          safetyFilterLevel: 'block_some',
+          personGeneration: 'allow_adult',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[ghost-video-gen] Veo Vertex AI error:', response.status, errorText);
+      // Fall through to try alternative method
+    } else {
+      const data = await response.json();
+      console.log('[ghost-video-gen] Veo response:', JSON.stringify(data).substring(0, 500));
+
+      // Veo returns async operation - check if completed or needs polling
+      if (data.name) {
+        // Long-running operation - return task ID for polling
+        return { taskId: `veo:${data.name}` };
+      }
+
+      if (data.predictions?.[0]?.video?.uri) {
+        return { videoUrl: data.predictions[0].video.uri };
+      }
+
+      if (data.predictions?.[0]?.bytesBase64Encoded) {
+        return { videoUrl: `data:video/mp4;base64,${data.predictions[0].bytesBase64Encoded}` };
+      }
+    }
+  }
+
+  // Method 2: Generative Language API (simpler, uses API key)
+  if (GOOGLE_API_KEY) {
+    console.log('[ghost-video-gen] Trying Veo via Generative Language API');
+    
+    const glEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${veoModel}:generateVideo?key=${GOOGLE_API_KEY}`;
+    
+    const glResponse = await fetch(glEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        config: {
+          duration_seconds: Math.min(duration, 15),
+          aspect_ratio: aspectRatio,
+          sample_count: 1,
+        },
+      }),
+    });
+
+    if (glResponse.ok) {
+      const glData = await glResponse.json();
+      
+      if (glData.name) {
+        return { taskId: `veo:${glData.name}` };
+      }
+
+      if (glData.video?.uri) {
+        return { videoUrl: glData.video.uri };
+      }
+    } else {
+      console.error('[ghost-video-gen] Veo GL API error:', glResponse.status);
+    }
+  }
+
+  throw new Error('Google Veo requires GOOGLE_CLOUD_PROJECT + GOOGLE_ACCESS_TOKEN or GOOGLE_API_KEY');
+}
+
+// Check Veo generation status
+async function checkVeoStatus(taskId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
+  const GOOGLE_ACCESS_TOKEN = Deno.env.get('GOOGLE_ACCESS_TOKEN');
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY') || Deno.env.get('GOOGLE_API_KEY');
+
+  // The taskId is the operation name from Vertex AI
+  const operationName = taskId.replace('veo:', '');
+  
+  // Try Vertex AI endpoint
+  if (GOOGLE_ACCESS_TOKEN) {
+    const response = await fetch(`https://us-central1-aiplatform.googleapis.com/v1/${operationName}`, {
+      headers: {
+        'Authorization': `Bearer ${GOOGLE_ACCESS_TOKEN}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (data.done) {
+        if (data.error) {
+          return { status: 'failed', error: data.error.message };
+        }
+        
+        const videoUri = data.response?.predictions?.[0]?.video?.uri ||
+                        data.response?.predictions?.[0]?.uri;
+        
+        if (videoUri) {
+          return { status: 'completed', videoUrl: videoUri };
+        }
+        
+        // Check for base64 response
+        if (data.response?.predictions?.[0]?.bytesBase64Encoded) {
+          return { 
+            status: 'completed', 
+            videoUrl: `data:video/mp4;base64,${data.response.predictions[0].bytesBase64Encoded}` 
+          };
+        }
+      }
+      
+      return { status: 'processing' };
+    }
+  }
+
+  // Try Generative Language API
+  if (GOOGLE_API_KEY) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${operationName}?key=${GOOGLE_API_KEY}`,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (data.done) {
+        if (data.error) {
+          return { status: 'failed', error: data.error.message };
+        }
+        if (data.response?.video?.uri) {
+          return { status: 'completed', videoUrl: data.response.video.uri };
+        }
+      }
+      
+      return { status: 'processing' };
+    }
+  }
+
+  return { status: 'processing' };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -337,20 +522,21 @@ serve(async (req) => {
 
     // Handle status check
     if (body.checkStatus && body.taskId) {
+      let status;
+      
       // Route to appropriate status checker
-      if (body.taskId.startsWith('luma:')) {
-        const status = await checkLumaStatus(body.taskId.replace('luma:', ''));
-        return new Response(
-          JSON.stringify(status),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      if (body.taskId.startsWith('veo:')) {
+        status = await checkVeoStatus(body.taskId);
+      } else if (body.taskId.startsWith('luma:')) {
+        status = await checkLumaStatus(body.taskId.replace('luma:', ''));
       } else {
-        const status = await checkRunwayStatus(body.taskId);
-        return new Response(
-          JSON.stringify(status),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        status = await checkRunwayStatus(body.taskId);
       }
+      
+      return new Response(
+        JSON.stringify(status),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const {
@@ -435,13 +621,15 @@ serve(async (req) => {
         // Direct Replicate models - most reliable
         result = await generateWithReplicate(fullPrompt, mode, inputImage, model);
         break;
+      case 'veo':
+        result = await generateWithVeo(fullPrompt, mode, inputImage, duration, '16:9', model);
+        break;
       case 'luma':
         // Luma disabled until API key is added
         return new Response(
           JSON.stringify({ error: 'Luma Dream Machine coming soon. Try Replicate SVD or AnimateDiff instead.' }),
           { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      case 'google':
       case 'openai':
       case 'pika':
         // These are coming soon
