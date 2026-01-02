@@ -76,6 +76,7 @@ import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
+import { supabase } from '@/integrations/supabase/client';
 import type { MemoryFolder } from '@/lib/memory/memory-manager';
 
 interface MemoryStats {
@@ -314,6 +315,18 @@ function MemoryDashboardContent() {
       return;
     }
 
+    // GET USER SESSION TOKEN - THIS IS THE KEY FIX
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session?.access_token) {
+      toast({ 
+        title: 'Authentication Required', 
+        description: 'Please log in to analyze your memories. Anonymous users have limited access.',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setIsDistilling(true);
     setDistillProgress(0);
     setDistillStatus('Loading memories...');
@@ -368,13 +381,14 @@ function MemoryDashboardContent() {
         }
 
         try {
+          // PASS THE SESSION TOKEN to bypass anonymous rate limits
           const insight = await distillConversation({
             id: memory.id,
             title: memory.metadata?.title || memory.metadata?.filename || 'Untitled',
             content: memory.content.slice(0, 8000), // Limit content size
             source: memory.metadata?.source || 'chat',
             aiPlatform: memory.metadata?.aiPlatform,
-          });
+          }, session.access_token);
           
           if (insight) {
             await saveInsight(insight);
