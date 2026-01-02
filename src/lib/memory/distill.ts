@@ -216,3 +216,13 @@ export async function clearInsights(): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+export async function deleteInsight(id: string): Promise<void> {
+  const db = await getInsightsDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(INSIGHTS_STORE, 'readwrite');
+    tx.objectStore(INSIGHTS_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
