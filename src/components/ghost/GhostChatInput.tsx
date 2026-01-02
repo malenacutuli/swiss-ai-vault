@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { GhostModelPicker } from './GhostModelPicker';
 import { VoiceInputButton } from './VoiceInputButton';
+import { MemoryToggle } from '@/components/chat/MemoryToggle';
 import {
   Paperclip,
   Wand2,
@@ -55,6 +56,12 @@ interface GhostChatInputProps {
   // Initialization state props
   initPhase?: 'connecting' | 'ready' | 'error';
   hasPendingMessage?: boolean;
+  // Personal Memory props
+  memoryEnabled?: boolean;
+  onToggleMemory?: () => void;
+  memoryCount?: number;
+  isMemorySearching?: boolean;
+  memoryDisabled?: boolean;
 }
 
 // Text mode is default - only show other modes in dropdown when in text mode
@@ -105,6 +112,12 @@ export function GhostChatInput({
   className,
   initPhase = 'ready',
   hasPendingMessage = false,
+  // Memory props
+  memoryEnabled = false,
+  onToggleMemory,
+  memoryCount = 0,
+  isMemorySearching = false,
+  memoryDisabled = false,
 }: GhostChatInputProps) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -225,6 +238,18 @@ export function GhostChatInput({
                 </TooltipTrigger>
                 <TooltipContent>{t('ghost.input.attach', 'Attach')}</TooltipContent>
               </Tooltip>
+            )}
+
+            {/* Personal Memory Toggle - show in text mode */}
+            {onToggleMemory && mode === 'text' && (
+              <MemoryToggle
+                enabled={memoryEnabled}
+                onToggle={onToggleMemory}
+                memoryCount={memoryCount}
+                isSearching={isMemorySearching}
+                disabled={memoryDisabled}
+                className="h-8 w-8"
+              />
             )}
 
             {onToggleEnhance && (mode === 'image' || mode === 'video') && (

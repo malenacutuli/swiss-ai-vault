@@ -15,6 +15,8 @@ import { useGhostSettings } from '@/hooks/useGhostSettings';
 import { useGhostFolders } from '@/hooks/useGhostFolders';
 import { useGhostUsage } from '@/hooks/useGhostUsage';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMemory } from '@/hooks/useMemory';
+import * as vault from '@/lib/crypto/key-vault';
 
 // Components
 import { GhostSidebar, type GhostConversation } from '@/components/ghost/GhostSidebar';
@@ -33,6 +35,7 @@ import { GhostChatUsageBar } from '@/components/ghost/GhostChatUsageBar';
 import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { VerifiedSourcesDisplay } from '@/components/trust/VerifiedSourcesDisplay';
+import { MemorySourcesCard, type MemorySource } from '@/components/chat/MemorySourcesCard';
 
 import { UnifiedHeader } from '@/components/layout/UnifiedHeader';
 import {
@@ -108,6 +111,7 @@ interface GhostMessageData {
   mode?: 'text' | 'image' | 'video' | 'search' | 'research';
   sources?: Array<{ title: string; url: string; snippet?: string }>;
   verifiedResult?: VerifiedSearchResult;
+  memorySources?: MemorySource[]; // Personal memory sources used for this response
 }
 
 // Attached file for context - supports multiple files
@@ -381,6 +385,87 @@ function GhostChat() {
   // Verified search mode state
   const [verifiedMode, setVerifiedMode] = useState(true);
   const [lastVerifiedResult, setLastVerifiedResult] = useState<VerifiedSearchResult | null>(null);
+
+  // Personal Memory state
+  const memory = useMemory();
+  const [memoryEnabled, setMemoryEnabled] = useState(() => {
+    const saved = localStorage.getItem('swissvault_memory_enabled');
+    return saved === 'true';
+  });
+  const [memorySearching, setMemorySearching] = useState(false);
+  const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
+  const isVaultUnlocked = vault.isVaultUnlocked();
+  
+  // Persist memory preference
+  useEffect(() => {
+    localStorage.setItem('swissvault_memory_enabled', memoryEnabled.toString());
+  }, [memoryEnabled]);
+  
+  // Initialize memory when enabled and vault is unlocked
+  useEffect(() => {
+    if (memoryEnabled && isVaultUnlocked && !memory.isInitialized && !memory.isLoading) {
+      memory.initialize();
+    }
+  }, [memoryEnabled, isVaultUnlocked, memory.isInitialized, memory.isLoading]);
+  
+  // Search personal memory for relevant context
+  const searchPersonalMemory = useCallback(async (query: string): Promise<{
+    context: string;
+    sources: MemorySource[];
+  }> => {
+    if (!memoryEnabled || !isVaultUnlocked || !memory.isInitialized) {
+      return { context: '', sources: [] };
+    }
+    
+    setMemorySearching(true);
+    try {
+      // Search memory with query
+      const results = await memory.search(query, {
+        topK: 5,
+      });
+      
+      if (!results || results.length === 0) {
+        setLastMemorySources([]);
+        return { context: '', sources: [] };
+      }
+      
+      // Build context prompt from results
+      const contextParts = results.map((item, i) => {
+        const typeLabel = item.source || 'memory';
+        const score = Math.round((item.score || 0) * 100);
+        return `[${i + 1}. ${typeLabel} (${score}% relevant)]\n${item.content}`;
+      });
+      
+      const context = `
+[CONTEXT FROM YOUR PERSONAL MEMORY]
+The following information was retrieved from your stored documents, notes, and conversations:
+
+${contextParts.join('\n\n---\n\n')}
+
+[END CONTEXT]
+
+Use this context to inform your response when relevant. Cite sources by number when directly using information.
+`.trim();
+      
+      const sources: MemorySource[] = results.map((item, i) => ({
+        id: item.id || `memory-${i}`,
+        title: item.metadata?.title || item.metadata?.filename || `Memory ${i + 1}`,
+        content: item.content,
+        score: item.score || 0,
+        type: (item.source as MemorySource['type']) || 'document',
+        createdAt: item.metadata?.createdAt,
+      }));
+      
+      setLastMemorySources(sources);
+      return { context, sources };
+    } catch (error) {
+      console.error('[GhostChat] Memory search failed:', error);
+      setLastMemorySources([]);
+      return { context: '', sources: [] };
+    } finally {
+      setMemorySearching(false);
+    }
+  }, [memoryEnabled, isVaultUnlocked, memory]);
 
   // Usage tracking hook
   const { 
@@ -837,6 +922,21 @@ function GhostChat() {
         role: m.role,
         content: m.content,
       }));
+      
+      // Search personal memory if enabled (for text mode)
+      let memoryContext = '';
+      let memorySources: MemorySource[] = [];
+      if (mode === 'text' && memoryEnabled && isVaultUnlocked && memory.isInitialized) {
+        const memoryResult = await searchPersonalMemory(messageContent);
+        memoryContext = memoryResult.context;
+        memorySources = memoryResult.sources;
+      }
+      
+      // If we have memory context, prepend it as a system message
+      if (memoryContext) {
+        messageHistory.unshift({ role: 'system', content: memoryContext });
+      }
+      
       messageHistory.push({ role: 'user', content: apiMessageContent });
 
       // Save user message and update UI
@@ -857,6 +957,9 @@ function GhostChat() {
         isStreamingRef.current = true;
         console.log('[GhostChat] Streaming started, assistantId:', assistantId);
         
+        // Store memory sources for this response
+        const currentMemorySources = memorySources;
+        
         setMessages((prev) => [
           ...prev,
           {
@@ -865,6 +968,7 @@ function GhostChat() {
             content: '',
             timestamp: Date.now(),
             isStreaming: true,
+            memorySources: currentMemorySources.length > 0 ? currentMemorySources : undefined,
           },
         ]);
 
@@ -872,6 +976,8 @@ function GhostChat() {
           requestId,
           model: selectedModels[mode],
           historyLength: messageHistory.length,
+          hasMemoryContext: !!memoryContext,
+          memorySourceCount: memorySources.length,
         });
 
         await streamResponse(
@@ -2196,6 +2302,11 @@ function GhostChat() {
                 matureFilterEnabled={settings?.mature_filter_enabled ?? true}
                 initPhase={initPhase}
                 hasPendingMessage={!!pendingMessage}
+                memoryEnabled={memoryEnabled}
+                onToggleMemory={() => setMemoryEnabled(!memoryEnabled)}
+                memoryCount={lastMemorySources.length}
+                isMemorySearching={memorySearching}
+                memoryDisabled={!isVaultUnlocked}
               />
             </GhostTextViewEmpty>
           )}
@@ -2237,6 +2348,10 @@ function GhostChat() {
                             onReport={handleReport}
                             onStopGeneration={handleStopGeneration}
                           />
+                          {/* Show memory sources for assistant messages */}
+                          {msg.role === 'assistant' && msg.memorySources && msg.memorySources.length > 0 && (
+                            <MemorySourcesCard sources={msg.memorySources} className="mt-3" />
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2552,6 +2667,12 @@ function GhostChat() {
                   matureFilterEnabled={settings?.mature_filter_enabled ?? true}
                   initPhase={initPhase}
                   hasPendingMessage={!!pendingMessage}
+                  // Personal Memory props
+                  memoryEnabled={memoryEnabled}
+                  onToggleMemory={() => setMemoryEnabled(!memoryEnabled)}
+                  memoryCount={lastMemorySources.length}
+                  isMemorySearching={memorySearching}
+                  memoryDisabled={!isVaultUnlocked}
                 />
               </div>
             </div>
