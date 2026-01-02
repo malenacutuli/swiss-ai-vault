@@ -27,7 +27,8 @@ import {
   Brain,
   Loader2,
   Lock,
-  Lightbulb
+  Lightbulb,
+  ArrowLeft
 } from 'lucide-react';
 import { RecommendationsPanel } from '@/components/recommendations/RecommendationsPanel';
 import { Button } from '@/components/ui/button';
@@ -335,8 +336,19 @@ export default function ResearchDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Back to Chat */}
+      <div className="container max-w-6xl mx-auto px-4 pt-6">
+        <button 
+          onClick={() => navigate('/ghost')}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Chat
+        </button>
+      </div>
+      
       {/* Header */}
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border bg-card mt-4">
         <div className="container max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
