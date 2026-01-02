@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Sparkles,
@@ -14,7 +15,6 @@ import {
   Brain,
   ChevronRight,
   RefreshCw,
-  Trash2,
   CheckCircle2,
   ListChecks,
   Hash,
@@ -29,21 +29,30 @@ interface InsightsPanelProps {
   totalDocuments: number;
   onDistill: () => void;
   isDistilling?: boolean;
+  distillProgress?: number;
+  distillStatus?: string;
 }
 
-export function InsightsPanel({
-  totalItems,
-  totalChats,
-  totalDocuments,
-  onDistill,
-  isDistilling,
-}: InsightsPanelProps) {
+export interface InsightsPanelRef {
+  refresh: () => void;
+}
+
+export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
+  function InsightsPanel({
+    totalItems,
+    totalChats,
+    totalDocuments,
+    onDistill,
+    isDistilling = false,
+    distillProgress = 0,
+    distillStatus = '',
+  }, ref) {
   const [insights, setInsights] = useState<DistilledInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedInsight, setSelectedInsight] = useState<DistilledInsight | null>(null);
 
-  const loadInsights = async () => {
+  const loadInsights = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getInsights();
@@ -55,11 +64,16 @@ export function InsightsPanel({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Expose refresh method to parent
+  useImperativeHandle(ref, () => ({
+    refresh: loadInsights
+  }), [loadInsights]);
 
   useEffect(() => {
     loadInsights();
-  }, []);
+  }, [loadInsights]);
 
   // Aggregate stats from insights
   const allTopics = insights.flatMap(i => i.topics || []);
@@ -138,7 +152,7 @@ export function InsightsPanel({
               {isDistilling ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
+                  {distillProgress > 0 ? `${distillProgress}%` : 'Starting...'}
                 </>
               ) : (
                 <>
@@ -148,6 +162,14 @@ export function InsightsPanel({
               )}
             </Button>
           </div>
+          
+          {/* Progress bar when distilling */}
+          {isDistilling && (
+            <div className="mt-4 space-y-2">
+              <Progress value={distillProgress} className="h-2" />
+              <p className="text-xs text-muted-foreground text-center">{distillStatus}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -613,4 +635,4 @@ export function InsightsPanel({
       </Tabs>
     </div>
   );
-}
+});

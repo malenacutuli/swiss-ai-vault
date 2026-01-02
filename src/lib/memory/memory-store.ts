@@ -923,3 +923,45 @@ export async function moveDocumentsToFolder(
   console.log('[MemoryStore] Moved', moved, 'chunks to folder', folderId || '(root)');
   return { success: true, moved };
 }
+
+// ==========================================
+// FULL MEMORY EXPORT (for distillation)
+// ==========================================
+
+/**
+ * Get all memories decrypted - used for AI distillation
+ */
+export async function getAllMemoriesDecrypted(
+  encryptionKey: CryptoKey
+): Promise<MemoryItem[]> {
+  const database = await getDB();
+  
+  const stored: StoredMemory[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  const decrypted: MemoryItem[] = [];
+  
+  for (const s of stored) {
+    try {
+      const encryptedData = { ciphertext: s.encrypted, nonce: s.nonce };
+      const decryptedPayload = await decrypt(encryptedData, encryptionKey);
+      const { content, metadata } = JSON.parse(decryptedPayload);
+      
+      decrypted.push({
+        id: s.id,
+        content,
+        embedding: s.embedding,
+        metadata
+      });
+    } catch (error) {
+      console.warn('[MemoryStore] Failed to decrypt memory item:', s.id);
+    }
+  }
+  
+  console.log('[MemoryStore] Decrypted', decrypted.length, 'of', stored.length, 'memories');
+  return decrypted;
+}

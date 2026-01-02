@@ -1,7 +1,7 @@
 // src/pages/MemoryDashboard.tsx
 // Memory Dashboard for Personal AI Memory management
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Brain, 
@@ -70,7 +70,7 @@ import { MemoryOnboarding } from '@/components/memory/MemoryOnboarding';
 import { DistillInsightsButton } from '@/components/memory/DistillInsightsButton';
 import { ConnectorSettings } from '@/components/memory/ConnectorSettings';
 import { MemoryGraph } from '@/components/memory/MemoryGraph';
-import { InsightsPanel } from '@/components/memory/InsightsPanel';
+import { InsightsPanel, type InsightsPanelRef } from '@/components/memory/InsightsPanel';
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
@@ -133,6 +133,12 @@ function MemoryDashboardContent() {
   const [documentGroups, setDocumentGroups] = useState<DocumentGroup[]>([]);
   const [sourceBreakdown, setSourceBreakdown] = useState<SourceBreakdown>({ document: 0, note: 0, chat: 0, url: 0 });
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+  
+  // Insights distillation state
+  const [isDistilling, setIsDistilling] = useState(false);
+  const [distillProgress, setDistillProgress] = useState(0);
+  const [distillStatus, setDistillStatus] = useState('');
+  const insightsPanelRef = useRef<InsightsPanelRef>(null);
   
   // Wait for component to mount before rendering
   useEffect(() => {
@@ -299,6 +305,81 @@ function MemoryDashboardContent() {
       setIsAddingNote(false);
     }
   }, [noteTitle, noteContent, memory, toast]);
+  
+  // Distill insights handler
+  const handleDistillInsights = useCallback(async () => {
+    const key = getMasterKey();
+    if (!key) {
+      toast({ title: 'Vault Locked', description: 'Please unlock your vault first', variant: 'destructive' });
+      return;
+    }
+
+    setIsDistilling(true);
+    setDistillProgress(0);
+    setDistillStatus('Loading memories...');
+
+    try {
+      const { getAllMemoriesDecrypted } = await import('@/lib/memory/memory-store');
+      const { distillConversation, saveInsight, getDistilledSourceIds } = await import('@/lib/memory/distill');
+
+      const allMemories = await getAllMemoriesDecrypted(key);
+      const distilledIds = await getDistilledSourceIds();
+      
+      // Filter to undistilled items with enough content
+      const undistilled = allMemories.filter(m => {
+        const isDistilled = distilledIds.has(m.id);
+        const hasContent = m.content && m.content.length > 100;
+        const isValidSource = ['chat', 'document'].includes(m.metadata?.source || '');
+        return !isDistilled && hasContent && isValidSource;
+      });
+
+      if (undistilled.length === 0) {
+        toast({ title: 'All Caught Up!', description: 'All content has been analyzed.' });
+        setIsDistilling(false);
+        return;
+      }
+
+      setDistillStatus(`Analyzing ${undistilled.length} items...`);
+      let processed = 0;
+      let successCount = 0;
+
+      for (const memory of undistilled) {
+        try {
+          const insight = await distillConversation({
+            id: memory.id,
+            title: memory.metadata?.title || memory.metadata?.filename || 'Untitled',
+            content: memory.content,
+            source: memory.metadata?.source || 'chat',
+            aiPlatform: memory.metadata?.aiPlatform,
+          });
+          
+          if (insight) {
+            await saveInsight(insight);
+            successCount++;
+          }
+        } catch (err) {
+          console.error('Failed to distill:', err);
+        }
+        
+        processed++;
+        setDistillProgress(Math.round((processed / undistilled.length) * 100));
+        setDistillStatus(`Analyzed ${processed} of ${undistilled.length}...`);
+        
+        // Rate limit
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      toast({ title: '✨ Insights Extracted!', description: `Analyzed ${successCount} items.` });
+      insightsPanelRef.current?.refresh();
+    } catch (error) {
+      console.error('Distillation failed:', error);
+      toast({ title: 'Analysis Failed', variant: 'destructive' });
+    } finally {
+      setIsDistilling(false);
+      setDistillProgress(0);
+      setDistillStatus('');
+    }
+  }, [getMasterKey, toast]);
   
   // Export handler
   const handleExport = useCallback(async () => {
@@ -774,11 +855,14 @@ function MemoryDashboardContent() {
           
           <TabsContent value="insights">
             <InsightsPanel
+              ref={insightsPanelRef}
               totalItems={stats?.count || 0}
               totalChats={sourceBreakdown.chat}
               totalDocuments={documentGroups.length}
-              onDistill={() => {}}
-              isDistilling={false}
+              onDistill={handleDistillInsights}
+              isDistilling={isDistilling}
+              distillProgress={distillProgress}
+              distillStatus={distillStatus}
             />
           </TabsContent>
           
