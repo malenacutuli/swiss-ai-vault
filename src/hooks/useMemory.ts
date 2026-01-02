@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import * as vault from '@/lib/crypto/key-vault';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 
 // Lazy import to avoid circular dependencies
 const getMemoryManager = async () => {
@@ -95,6 +95,7 @@ export interface UseMemoryReturn {
 
 export function useMemory(): UseMemoryReturn {
   const { toast } = useToast();
+  const { isUnlocked, getMasterKey } = useEncryptionContext();
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -104,17 +105,13 @@ export function useMemory(): UseMemoryReturn {
   
   // Check if vault is unlocked (required for encryption)
   const isVaultReady = useCallback(() => {
-    return vault.isVaultUnlocked();
-  }, []);
+    return isUnlocked;
+  }, [isUnlocked]);
   
-  // Get encryption key from vault
+  // Get encryption key from context (NOT directly from vault)
   const getEncryptionKey = useCallback((): CryptoKey | null => {
-    try {
-      return vault.getMasterKey();
-    } catch {
-      return null;
-    }
-  }, []);
+    return getMasterKey();
+  }, [getMasterKey]);
   
   // Progress handler
   const handleProgress = useCallback((message: string, percent?: number) => {
