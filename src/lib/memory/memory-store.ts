@@ -846,3 +846,80 @@ export async function deleteDocumentChunks(chunkIds: string[]): Promise<number> 
   console.log('[MemoryStore] Deleted', deleted, 'chunks');
   return deleted;
 }
+
+/**
+ * Move documents to a folder by updating their metadata
+ */
+export async function moveDocumentsToFolder(
+  chunkIds: string[],
+  folderId: string | null,
+  encryptionKey: CryptoKey
+): Promise<{ success: boolean; moved: number }> {
+  const database = await getDB();
+  let moved = 0;
+  
+  for (const id of chunkIds) {
+    try {
+      // Get stored memory
+      const stored: StoredMemory | undefined = await new Promise((resolve, reject) => {
+        const tx = database.transaction(STORE_NAME, 'readonly');
+        const request = tx.objectStore(STORE_NAME).get(id);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      
+      if (!stored) continue;
+      
+      // Decrypt
+      const encryptedData = { ciphertext: stored.encrypted, nonce: stored.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { content, metadata } = JSON.parse(decrypted);
+      
+      // Update folderId in metadata
+      const updatedMetadata = {
+        ...metadata,
+        folderId: folderId,
+        updatedAt: Date.now()
+      };
+      
+      // Re-encrypt with updated metadata
+      const payload = JSON.stringify({
+        content,
+        metadata: updatedMetadata
+      });
+      const newEncrypted = await encrypt(payload, encryptionKey);
+      
+      // Store updated memory
+      const updatedStored: StoredMemory = {
+        id: stored.id,
+        embedding: stored.embedding,
+        encrypted: newEncrypted.ciphertext,
+        nonce: newEncrypted.nonce,
+        createdAt: stored.createdAt
+      };
+      
+      await new Promise<void>((resolve, reject) => {
+        const tx = database.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(updatedStored);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      
+      // Update hot cache if present
+      if (hotCache.has(id)) {
+        const cached = hotCache.get(id)!;
+        hotCache.set(id, {
+          ...cached,
+          metadata: updatedMetadata
+        });
+      }
+      
+      moved++;
+    } catch (error) {
+      console.error(`[MemoryStore] Failed to move chunk ${id}:`, error);
+    }
+  }
+  
+  console.log('[MemoryStore] Moved', moved, 'chunks to folder', folderId || '(root)');
+  return { success: true, moved };
+}

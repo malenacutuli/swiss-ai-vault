@@ -9,7 +9,10 @@ import {
   Eye,
   ChevronDown,
   ChevronRight,
-  Loader2
+  Loader2,
+  FolderInput,
+  Folder,
+  FolderOpen
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -31,13 +35,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { DocumentGroup, MemorySource } from '@/lib/memory/memory-store';
+import { cn } from '@/lib/utils';
 
 interface MemoryDocumentListProps {
   documents: DocumentGroup[];
+  folders?: Array<{ id: string; name: string }>;
   isLoading?: boolean;
   onDeleteDocument: (chunkIds: string[], filename: string) => Promise<void>;
   onViewChunks?: (documentId: string) => void;
+  onMoveToFolder?: (chunkIds: string[], folderId: string | null) => Promise<void>;
 }
 
 const sourceConfig: Record<MemorySource, { icon: typeof FileText; label: string; color: string }> = {
@@ -48,15 +63,22 @@ const sourceConfig: Record<MemorySource, { icon: typeof FileText; label: string;
 };
 
 export function MemoryDocumentList({ 
-  documents, 
+  documents,
+  folders,
   isLoading,
   onDeleteDocument,
-  onViewChunks 
+  onViewChunks,
+  onMoveToFolder
 }: MemoryDocumentListProps) {
   const [showAll, setShowAll] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ chunkIds: string[]; filename: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
+  
+  // Move to folder dialog state
+  const [moveToFolderDoc, setMoveToFolderDoc] = useState<{ chunkIds: string[]; filename: string } | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
   
   // Auto-show all if 15 or fewer documents, otherwise show first 10
   const displayedDocs = showAll || documents.length <= 15 
@@ -71,6 +93,18 @@ export function MemoryDocumentList({
     } finally {
       setDeleting(false);
       setDeleteConfirm(null);
+    }
+  };
+  
+  const handleMoveToFolder = async () => {
+    if (!moveToFolderDoc || !onMoveToFolder) return;
+    setIsMoving(true);
+    try {
+      await onMoveToFolder(moveToFolderDoc.chunkIds, selectedFolderId);
+      setMoveToFolderDoc(null);
+      setSelectedFolderId(null);
+    } finally {
+      setIsMoving(false);
     }
   };
   
@@ -122,7 +156,7 @@ export function MemoryDocumentList({
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className={showAll && documents.length > 10 ? 'max-h-[400px]' : undefined}>
+          <ScrollArea className={showAll && documents.length > 15 ? 'max-h-[600px]' : undefined}>
             <div className="space-y-2">
               {displayedDocs.map(doc => (
                 <div 
@@ -172,6 +206,15 @@ export function MemoryDocumentList({
                             View Chunks
                           </DropdownMenuItem>
                         )}
+                        {onMoveToFolder && folders && folders.length > 0 && (
+                          <>
+                            <DropdownMenuItem onClick={() => setMoveToFolderDoc({ chunkIds: doc.chunkIds, filename: doc.filename })}>
+                              <FolderInput className="h-4 w-4 mr-2" />
+                              Move to Folder
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem 
                           onClick={() => setDeleteConfirm({ chunkIds: doc.chunkIds, filename: doc.filename })}
                           className="text-destructive focus:text-destructive"
@@ -186,6 +229,16 @@ export function MemoryDocumentList({
               ))}
             </div>
           </ScrollArea>
+          
+          {/* Scroll indicator for many documents */}
+          {showAll && documents.length > 15 && (
+            <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-border">
+              <ChevronDown className="h-4 w-4 text-muted-foreground animate-bounce" />
+              <p className="text-xs text-muted-foreground">
+                Scroll to see all {documents.length} documents
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
       
@@ -207,6 +260,59 @@ export function MemoryDocumentList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Move to Folder Dialog */}
+      <Dialog open={!!moveToFolderDoc} onOpenChange={(open) => !open && setMoveToFolderDoc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move to Folder</DialogTitle>
+            <DialogDescription>
+              Choose a folder for "{moveToFolderDoc?.filename}"
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-2 py-4">
+            <button
+              onClick={() => setSelectedFolderId(null)}
+              className={cn(
+                "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
+                selectedFolderId === null 
+                  ? "bg-primary/10 border border-primary" 
+                  : "bg-muted/50 hover:bg-muted border border-transparent"
+              )}
+            >
+              <FolderOpen className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">No Folder (Root)</span>
+            </button>
+            
+            {folders?.map(folder => (
+              <button
+                key={folder.id}
+                onClick={() => setSelectedFolderId(folder.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
+                  selectedFolderId === folder.id 
+                    ? "bg-primary/10 border border-primary" 
+                    : "bg-muted/50 hover:bg-muted border border-transparent"
+                )}
+              >
+                <Folder className="h-5 w-5 text-primary" />
+                <span className="font-medium">{folder.name}</span>
+              </button>
+            ))}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMoveToFolderDoc(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleMoveToFolder} disabled={isMoving}>
+              {isMoving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isMoving ? 'Moving...' : 'Move'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

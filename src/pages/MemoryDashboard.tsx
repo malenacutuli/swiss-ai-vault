@@ -207,6 +207,34 @@ function MemoryDashboardContent() {
     }
   }, [memory, toast, loadDocumentGroups]);
   
+  const handleMoveToFolder = useCallback(async (chunkIds: string[], folderId: string | null) => {
+    const key = getMasterKey();
+    if (!key) {
+      toast({ title: 'Vault locked', description: 'Please unlock your vault first', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      const { moveDocumentsToFolder } = await import('@/lib/memory/memory-store');
+      const result = await moveDocumentsToFolder(chunkIds, folderId, key);
+      
+      toast({ 
+        title: 'Document moved', 
+        description: `Moved ${result.moved} chunks to ${folderId ? 'folder' : 'root'}` 
+      });
+      
+      // Refresh both folders and documents
+      await loadFolders();
+      await loadDocumentGroups();
+    } catch (error) {
+      toast({ 
+        title: 'Move failed', 
+        description: 'Could not move document to folder',
+        variant: 'destructive'
+      });
+    }
+  }, [getMasterKey, toast, loadFolders, loadDocumentGroups]);
+  
   // Check if vault needs unlock
   useEffect(() => {
     if (vaultInitialized && !isUnlocked) {
@@ -637,8 +665,10 @@ function MemoryDashboardContent() {
             {memory.isReady && (stats?.count || 0) > 0 && (
               <MemoryDocumentList
                 documents={documentGroups}
+                folders={folders}
                 isLoading={isLoadingDocs}
                 onDeleteDocument={handleDeleteDocument}
+                onMoveToFolder={handleMoveToFolder}
               />
             )}
             
