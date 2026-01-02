@@ -140,7 +140,7 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
       
       toast.info(`Syncing ${connectorId}...`);
       
-      const result = await syncConnector(connectorId, integrationId, encryptionKey);
+      const result = await syncConnector(connectorId, integrationId, encryptionKey, token);
       
       if (result.success) {
         const updated = {

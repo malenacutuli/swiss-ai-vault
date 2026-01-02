@@ -8,6 +8,70 @@ const corsHeaders = {
 };
 
 // ============================================
+// MODEL REDIRECTS & FALLBACK CONFIGURATION
+// ============================================
+
+// CRITICAL: Redirect low-quota models to high-quota alternatives
+const MODEL_REDIRECTS: Record<string, string> = {
+  'gemini-2.0-flash-exp': 'gpt-4o-mini',     // 10 RPM → 500+ RPM
+  'gemini-2.0-flash': 'gemini-2.5-flash',    // Redirect to stable version
+  'gemini-flash': 'gemini-2.5-flash',
+  'gpt-3.5-turbo': 'gpt-4o-mini',            // Deprecated → modern
+};
+
+// Default model for background processing
+const DEFAULT_MODEL = 'gpt-4o-mini';  // 500+ RPM - HIGHEST QUOTA
+
+// Fallback chain ordered by quota (highest first)
+const FALLBACK_CHAIN = [
+  'gpt-4o-mini',      // 500+ RPM - OpenAI
+  'deepseek-chat',    // 100+ RPM - DeepSeek (cheap)
+  'gemini-2.5-flash', // 50+ RPM  - Google
+];
+
+// ============================================
+// EXPONENTIAL BACKOFF RETRY
+// ============================================
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '0');
+        const delay = Math.max(retryAfter * 1000, Math.pow(2, attempt) * 2000);
+        
+        console.warn(`[RATE_LIMIT] Attempt ${attempt + 1}/${maxRetries}. Waiting ${delay}ms`);
+        
+        if (attempt < maxRetries - 1) {
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+      }
+      
+      return response;
+    } catch (error: any) {
+      lastError = error;
+      const delay = Math.pow(2, attempt) * 1000;
+      console.warn(`[FETCH_ERROR] Attempt ${attempt + 1}/${maxRetries}: ${error.message}`);
+      
+      if (attempt < maxRetries - 1) {
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded');
+}
+
+// ============================================
 // ENDPOINT CONFIGURATION
 // ============================================
 

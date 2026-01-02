@@ -26,13 +26,16 @@ async function getEmbedding(text: string): Promise<number[]> {
 /**
  * Sync GitHub issues/PRs to memory
  */
-async function syncGitHub(integrationId: string, encryptionKey: CryptoKey): Promise<SyncResult> {
+async function syncGitHub(integrationId: string, encryptionKey: CryptoKey, accessToken?: string): Promise<SyncResult> {
   const result: SyncResult = { success: true, itemsAdded: 0, errors: [] };
   
   try {
-    // Call the github-sync edge function to get data
+    // Call the github-sync edge function with proper auth
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+    
     const { data, error } = await supabase.functions.invoke('github-sync', {
-      body: { integration_id: integrationId, for_memory: true }
+      body: { integration_id: integrationId, for_memory: true },
+      headers,
     });
     
     if (error) {
@@ -89,13 +92,15 @@ ${item.labels?.length ? `## Labels\n${item.labels.join(', ')}` : ''}
 /**
  * Sync Google Drive documents to memory
  */
-async function syncGoogleDrive(integrationId: string, encryptionKey: CryptoKey): Promise<SyncResult> {
+async function syncGoogleDrive(integrationId: string, encryptionKey: CryptoKey, accessToken?: string): Promise<SyncResult> {
   const result: SyncResult = { success: true, itemsAdded: 0, errors: [] };
   
   try {
-    // Call the googledrive-import edge function
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+    
     const { data, error } = await supabase.functions.invoke('googledrive-import', {
-      body: { integration_id: integrationId, for_memory: true }
+      body: { integration_id: integrationId, for_memory: true },
+      headers,
     });
     
     if (error) {
@@ -139,12 +144,15 @@ async function syncGoogleDrive(integrationId: string, encryptionKey: CryptoKey):
 /**
  * Sync Slack messages to memory
  */
-async function syncSlack(integrationId: string, encryptionKey: CryptoKey): Promise<SyncResult> {
+async function syncSlack(integrationId: string, encryptionKey: CryptoKey, accessToken?: string): Promise<SyncResult> {
   const result: SyncResult = { success: true, itemsAdded: 0, errors: [] };
   
   try {
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+    
     const { data, error } = await supabase.functions.invoke('slack-sync', {
-      body: { integration_id: integrationId, for_memory: true }
+      body: { integration_id: integrationId, for_memory: true },
+      headers,
     });
     
     if (error) {
@@ -191,12 +199,15 @@ ${thread.messages?.map((m: any) => `**${m.user}**: ${m.text}`).join('\n\n') || t
 /**
  * Sync Gmail emails to memory
  */
-async function syncGmail(integrationId: string, encryptionKey: CryptoKey): Promise<SyncResult> {
+async function syncGmail(integrationId: string, encryptionKey: CryptoKey, accessToken?: string): Promise<SyncResult> {
   const result: SyncResult = { success: true, itemsAdded: 0, errors: [] };
   
   try {
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+    
     const { data, error } = await supabase.functions.invoke('gmail-sync', {
-      body: { integration_id: integrationId, for_memory: true }
+      body: { integration_id: integrationId, for_memory: true },
+      headers,
     });
     
     if (error) {
@@ -247,12 +258,15 @@ ${email.body || email.snippet || 'No content'}
 /**
  * Sync Notion pages to memory
  */
-async function syncNotion(integrationId: string, encryptionKey: CryptoKey): Promise<SyncResult> {
+async function syncNotion(integrationId: string, encryptionKey: CryptoKey, accessToken?: string): Promise<SyncResult> {
   const result: SyncResult = { success: true, itemsAdded: 0, errors: [] };
   
   try {
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+    
     const { data, error } = await supabase.functions.invoke('notion-sync', {
-      body: { integration_id: integrationId, for_memory: true }
+      body: { integration_id: integrationId, for_memory: true },
+      headers,
     });
     
     if (error) {
@@ -303,21 +317,22 @@ ${page.content || 'No content'}
 export async function syncConnector(
   connector: ConnectorType,
   integrationId: string,
-  encryptionKey: CryptoKey
+  encryptionKey: CryptoKey,
+  accessToken?: string
 ): Promise<SyncResult> {
   console.log(`[ConnectorSync] Starting sync for ${connector}`);
   
   switch (connector) {
     case 'github':
-      return syncGitHub(integrationId, encryptionKey);
+      return syncGitHub(integrationId, encryptionKey, accessToken);
     case 'googledrive':
-      return syncGoogleDrive(integrationId, encryptionKey);
+      return syncGoogleDrive(integrationId, encryptionKey, accessToken);
     case 'slack':
-      return syncSlack(integrationId, encryptionKey);
+      return syncSlack(integrationId, encryptionKey, accessToken);
     case 'gmail':
-      return syncGmail(integrationId, encryptionKey);
+      return syncGmail(integrationId, encryptionKey, accessToken);
     case 'notion':
-      return syncNotion(integrationId, encryptionKey);
+      return syncNotion(integrationId, encryptionKey, accessToken);
     default:
       return { 
         success: false, 
