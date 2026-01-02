@@ -1892,6 +1892,180 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_project_conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          messages: Json | null
+          metadata: Json | null
+          model: string
+          project_id: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          metadata?: Json | null
+          model: string
+          project_id: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          metadata?: Json | null
+          model?: string
+          project_id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_project_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_project_files: {
+        Row: {
+          chunk_count: number | null
+          created_at: string | null
+          document_id: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          metadata: Json | null
+          project_id: string
+          status: string | null
+        }
+        Insert: {
+          chunk_count?: number | null
+          created_at?: string | null
+          document_id: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id: string
+          status?: string | null
+        }
+        Update: {
+          chunk_count?: number | null
+          created_at?: string | null
+          document_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_project_memory: {
+        Row: {
+          category: string | null
+          confidence: number | null
+          content: string
+          created_at: string | null
+          id: string
+          project_id: string
+          source_id: string | null
+          source_type: string | null
+        }
+        Insert: {
+          category?: string | null
+          confidence?: number | null
+          content: string
+          created_at?: string | null
+          id?: string
+          project_id: string
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Update: {
+          category?: string | null
+          confidence?: number | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_project_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_projects: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          instructions: string | null
+          is_archived: boolean | null
+          name: string
+          settings: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          instructions?: string | null
+          is_archived?: boolean | null
+          name: string
+          settings?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          instructions?: string | null
+          is_archived?: boolean | null
+          name?: string
+          settings?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       metrics: {
         Row: {
           created_at: string | null
