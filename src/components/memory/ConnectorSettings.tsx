@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +11,17 @@ import {
   FileText,
   RefreshCw,
   Check,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
-import { useIntegrations } from '@/hooks/useIntegrations';
+import { useIntegrations, INTEGRATION_DEFINITIONS } from '@/hooks/useIntegrations';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
+import { syncConnector, getIntegrationId, type ConnectorType } from '@/lib/memory/connector-sync';
+import { toast } from 'sonner';
 
 interface ConnectorConfig {
-  id: string;
+  id: ConnectorType;
   name: string;
   icon: React.ReactNode;
   description: string;
@@ -55,9 +60,19 @@ const CONNECTOR_CONFIGS: ConnectorConfig[] = [
   }
 ];
 
-export function ConnectorSettings() {
-  const { integrations, isConnected } = useIntegrations();
+interface ConnectorSettingsProps {
+  encryptionKey?: CryptoKey | null;
+}
+
+export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsProps) {
+  const { user } = useAuth();
+  const { getMasterKey, isUnlocked } = useEncryptionContext();
+  const { integrations, isConnected, connect } = useIntegrations();
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncResults, setSyncResults] = useState<Record<string, { count: number; date: string }>>(() => {
+    const saved = localStorage.getItem('memory-sync-results');
+    return saved ? JSON.parse(saved) : {};
+  });
   const [syncSettings, setSyncSettings] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('memory-sync-settings');
     return saved ? JSON.parse(saved) : {};
@@ -69,23 +84,68 @@ export function ConnectorSettings() {
     localStorage.setItem('memory-sync-settings', JSON.stringify(updated));
   };
   
-  const handleSync = async (connectorId: string) => {
+  const handleSync = useCallback(async (connectorId: ConnectorType) => {
+    if (!user?.id) {
+      toast.error('Please sign in to sync');
+      return;
+    }
+    
+    // Get encryption key from props or context
+    const encryptionKey = propKey || getMasterKey?.();
+    if (!encryptionKey) {
+      toast.error('Please unlock your vault first');
+      return;
+    }
+    
     setSyncing(connectorId);
+    
     try {
-      // Trigger sync to memory - this would call the integration sync
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get the integration ID for this connector
+      const integrationId = await getIntegrationId(user.id, connectorId);
+      
+      if (!integrationId) {
+        toast.error(`${connectorId} is not connected. Please connect it first.`);
+        return;
+      }
+      
+      toast.info(`Syncing ${connectorId}...`);
+      
+      const result = await syncConnector(connectorId, integrationId, encryptionKey);
+      
+      if (result.success) {
+        const updated = {
+          ...syncResults,
+          [connectorId]: { count: result.itemsAdded, date: new Date().toISOString() }
+        };
+        setSyncResults(updated);
+        localStorage.setItem('memory-sync-results', JSON.stringify(updated));
+        
+        toast.success(`Synced ${result.itemsAdded} items from ${connectorId}`);
+      } else {
+        toast.error(`Sync failed: ${result.errors.join(', ')}`);
+      }
+    } catch (err) {
+      toast.error(`Sync error: ${(err as Error).message}`);
     } finally {
       setSyncing(null);
+    }
+  }, [user?.id, propKey, getMasterKey, syncResults]);
+  
+  const handleConnect = (connectorId: string) => {
+    const definition = INTEGRATION_DEFINITIONS.find(d => d.type === connectorId);
+    if (definition) {
+      connect(definition);
     }
   };
   
   const getIntegrationData = (id: string) => {
     const connected = isConnected(id);
     const integration = integrations?.find(i => i.integration_type === id);
+    const syncResult = syncResults[id];
     return {
       connected,
-      lastSync: integration?.last_synced_at,
-      itemCount: integration?.metadata?.last_sync_stats?.items_synced
+      lastSync: syncResult?.date || integration?.last_synced_at,
+      itemCount: syncResult?.count ?? integration?.metadata?.last_sync_stats?.items_synced
     };
   };
   
@@ -127,9 +187,9 @@ export function ConnectorSettings() {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">{connector.description}</p>
-                  {data.itemCount !== undefined && (
+                  {data.itemCount !== undefined && data.itemCount > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      {data.itemCount} items synced
+                      {data.itemCount} items in memory
                       {data.lastSync && ` • Last sync: ${new Date(data.lastSync).toLocaleDateString()}`}
                     </p>
                   )}
@@ -153,6 +213,7 @@ export function ConnectorSettings() {
                         size="icon"
                         onClick={() => handleSync(connector.id)}
                         disabled={syncing === connector.id}
+                        title="Sync now"
                       >
                         <RefreshCw className={`h-4 w-4 ${syncing === connector.id ? 'animate-spin' : ''}`} />
                       </Button>
@@ -162,8 +223,9 @@ export function ConnectorSettings() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.location.href = `/settings`}
+                    onClick={() => handleConnect(connector.id)}
                   >
+                    <ExternalLink className="h-3 w-3 mr-1" />
                     Connect
                   </Button>
                 )}
