@@ -168,47 +168,67 @@ export async function distillConversation(
       return null;
     }
     
-    // Handle streaming response
-    const reader = response.body?.getReader();
-    if (!reader) return null;
-    
-    const decoder = new TextDecoder();
+    // Parse response - handle both streaming and non-streaming
     let fullContent = '';
+    const contentType = response.headers.get('content-type') || '';
     
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    if (contentType.includes('application/json')) {
+      // Non-streaming JSON response (preferred for batch processing)
+      const data = await response.json();
       
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
+      if (data.error) {
+        if (data.error.includes('limit') || data.signup_required) {
+          throw new RateLimitError(data.error, data.resets_in_seconds);
+        }
+        console.error('Distillation API error:', data.error);
+        return null;
+      }
       
-      for (const line of lines) {
-        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-          try {
-            const data = JSON.parse(line.slice(6));
-            
-            // Check for error in streamed response
-            if (data.error) {
-              if (data.error.includes('limit') || data.signup_required) {
-                throw new RateLimitError(data.error, data.resets_in_seconds);
+      fullContent = data.choices?.[0]?.message?.content || '';
+    } else {
+      // Fallback: Handle streaming response (SSE)
+      const reader = response.body?.getReader();
+      if (!reader) return null;
+      
+      const decoder = new TextDecoder();
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.error) {
+                if (data.error.includes('limit') || data.signup_required) {
+                  throw new RateLimitError(data.error, data.resets_in_seconds);
+                }
               }
+              
+              const deltaContent = data.choices?.[0]?.delta?.content;
+              if (deltaContent) fullContent += deltaContent;
+            } catch (parseError) {
+              if (parseError instanceof RateLimitError) throw parseError;
             }
-            
-            const deltaContent = data.choices?.[0]?.delta?.content;
-            if (deltaContent) fullContent += deltaContent;
-          } catch (parseError) {
-            // Re-throw rate limit errors
-            if (parseError instanceof RateLimitError) throw parseError;
-            // Skip other malformed chunks
           }
         }
       }
     }
     
-    // Parse JSON from response
+    if (!fullContent) {
+      console.error('No content in distill response');
+      return null;
+    }
+    
+    // Parse JSON from response content
     const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('No JSON found in distill response');
+      console.error('No JSON found in distill response:', fullContent.slice(0, 200));
       return null;
     }
     
