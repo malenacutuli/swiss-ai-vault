@@ -65,6 +65,7 @@ import { MemoryOfflineIndicator } from '@/components/memory/MemoryOfflineIndicat
 import { MemoryFolderList } from '@/components/memory/MemoryFolderList';
 import { BulkUploadDialog } from '@/components/memory/BulkUploadDialog';
 import { MemoryOnboarding } from '@/components/memory/MemoryOnboarding';
+import { DistillInsightsButton } from '@/components/memory/DistillInsightsButton';
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
@@ -360,6 +361,8 @@ function MemoryDashboardContent() {
           </div>
           
           <div className="flex items-center gap-2">
+            <DistillInsightsButton onComplete={() => memory.getStats().then(setStats)} />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
