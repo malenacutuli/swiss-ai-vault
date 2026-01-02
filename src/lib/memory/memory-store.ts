@@ -728,6 +728,7 @@ export interface DocumentGroup {
   chunkCount: number;
   source: MemorySource;
   aiPlatform?: AIPlatform; // AI platform for imported conversations
+  folderId?: string; // Folder association for filtering
   createdAt: number;
   chunkIds: string[];
 }
@@ -756,6 +757,7 @@ export async function getDocumentGroups(encryptionKey: CryptoKey): Promise<Docum
     filename: string;
     source: MemorySource;
     aiPlatform?: AIPlatform;
+    folderId?: string;
     createdAt: number;
     chunkIds: string[];
   }>();
@@ -804,6 +806,7 @@ export async function getDocumentGroups(encryptionKey: CryptoKey): Promise<Docum
           filename: displayName,
           source,
           aiPlatform: metadata.aiPlatform,
+          folderId: metadata.folderId,
           createdAt: s.createdAt,
           chunkIds: [s.id]
         });
@@ -821,6 +824,7 @@ export async function getDocumentGroups(encryptionKey: CryptoKey): Promise<Docum
       chunkCount: data.chunkIds.length,
       source: data.source,
       aiPlatform: data.aiPlatform,
+      folderId: data.folderId,
       createdAt: data.createdAt,
       chunkIds: data.chunkIds
     }))

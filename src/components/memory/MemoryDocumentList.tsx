@@ -129,9 +129,9 @@ export function MemoryDocumentList({
     // Filter by folder (use prop from parent)
     if (folderFilter && folderFilter !== 'all') {
       if (folderFilter === 'uncategorized') {
-        items = items.filter(item => !(item as any).folderId);
+        items = items.filter(item => !item.folderId);
       } else {
-        items = items.filter(item => (item as any).folderId === folderFilter);
+        items = items.filter(item => item.folderId === folderFilter);
       }
     }
     
@@ -342,12 +342,12 @@ export function MemoryDocumentList({
                         <span>{doc.chunkCount} chunks</span>
                         <span>•</span>
                         <span>{formatDate(doc.createdAt)}</span>
-                        {(doc as any).folderId && (
+                        {doc.folderId && (
                           <>
                             <span>•</span>
                             <span className="flex items-center gap-0.5">
                               <Folder className="h-3 w-3" />
-                              {folders.find(f => f.id === (doc as any).folderId)?.name}
+                              {folders.find(f => f.id === doc.folderId)?.name}
                             </span>
                           </>
                         )}
