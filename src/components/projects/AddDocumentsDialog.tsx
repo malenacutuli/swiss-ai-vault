@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { FileText, Check, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search, FileText, Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getDocumentGroups, addDocumentToProject, type DocumentGroup } from '@/lib/memory/memory-store';
 import { useEncryptionContext } from '@/contexts/EncryptionContext';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface AddDocumentsDialogProps {
@@ -31,6 +32,7 @@ export function AddDocumentsDialog({
   existingDocIds,
   onAdded,
 }: AddDocumentsDialogProps) {
+  const { toast } = useToast();
   const { getMasterKey } = useEncryptionContext();
   const [allDocs, setAllDocs] = useState<DocumentGroup[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -54,7 +56,6 @@ export function AddDocumentsDialog({
       
       const groups = await getDocumentGroups(key);
       // Filter to only show documents not already in project
-      // Use documentId for filtering since that's the grouping key
       const available = groups.filter(
         (group) => !existingDocIds.some(id => group.chunkIds.includes(id) || group.documentId === id)
       );
@@ -64,18 +65,17 @@ export function AddDocumentsDialog({
     }
   }
 
-  const filteredDocs = allDocs.filter((doc) =>
-    doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDocs = useMemo(() => {
+    if (!searchQuery) return allDocs;
+    const query = searchQuery.toLowerCase();
+    return allDocs.filter((doc) => doc.filename.toLowerCase().includes(query));
+  }, [allDocs, searchQuery]);
 
-  function toggleDocument(docId: string) {
+  function toggleSelection(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(docId)) {
-        next.delete(docId);
-      } else {
-        next.add(docId);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -89,15 +89,16 @@ export function AddDocumentsDialog({
       if (!key) return;
       
       for (const docId of selectedIds) {
-        // Find the document group and add all its chunks to the project
         const group = allDocs.find(g => g.documentId === docId);
         if (group) {
-          // Add the first chunk ID as the document reference
           await addDocumentToProject(projectId, group.chunkIds[0], key);
         }
       }
+      toast({ title: `Added ${selectedIds.size} document(s)` });
       onAdded();
       onOpenChange(false);
+    } catch (error: any) {
+      toast({ title: 'Failed to add documents', variant: 'destructive' });
     } finally {
       setIsAdding(false);
     }
@@ -113,74 +114,73 @@ export function AddDocumentsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search documents..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search documents..."
+              className="pl-9"
+            />
+          </div>
 
-        <ScrollArea className="h-[300px] border rounded-lg">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              Loading...
-            </div>
-          ) : filteredDocs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
-              <FileText className="h-8 w-8 mb-2 opacity-50" />
-              <p className="text-sm text-center">
-                {allDocs.length === 0
-                  ? 'No documents in memory. Upload documents first.'
-                  : 'No matching documents found.'}
-              </p>
-            </div>
-          ) : (
-            <div className="p-2 space-y-1">
-              {filteredDocs.map((doc) => (
-                <button
-                  key={doc.documentId}
-                  onClick={() => toggleDocument(doc.documentId)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors',
-                    selectedIds.has(doc.documentId)
-                      ? 'bg-primary/10 border border-primary/20'
-                      : 'hover:bg-muted'
-                  )}
-                >
-                  <Checkbox
-                    checked={selectedIds.has(doc.documentId)}
-                    onCheckedChange={() => toggleDocument(doc.documentId)}
-                  />
-                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{doc.filename}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {doc.source} • {doc.chunkCount} chunks
-                    </p>
-                  </div>
-                  {selectedIds.has(doc.documentId) && (
-                    <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                  )}
-                </button>
-              ))}
-            </div>
+          <ScrollArea className="h-[300px] border rounded-lg">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p className="text-sm">Loading...</p>
+              </div>
+            ) : filteredDocs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
+                <FileText className="h-8 w-8 mb-2 opacity-50" />
+                <p className="text-sm">No documents available</p>
+              </div>
+            ) : (
+              <div className="p-2 space-y-1">
+                {filteredDocs.map((doc) => (
+                  <button
+                    key={doc.documentId}
+                    onClick={() => toggleSelection(doc.documentId)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors',
+                      selectedIds.has(doc.documentId)
+                        ? 'bg-primary/10 border border-primary/20'
+                        : 'hover:bg-muted'
+                    )}
+                  >
+                    <Checkbox
+                      checked={selectedIds.has(doc.documentId)}
+                      onCheckedChange={() => toggleSelection(doc.documentId)}
+                    />
+                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.filename}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {doc.source} • {doc.chunkCount} chunks
+                      </p>
+                    </div>
+                    {selectedIds.has(doc.documentId) && (
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
+          {selectedIds.size > 0 && (
+            <p className="text-sm text-muted-foreground text-center">
+              {selectedIds.size} document(s) selected
+            </p>
           )}
-        </ScrollArea>
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleAdd}
-            disabled={selectedIds.size === 0 || isAdding}
-          >
-            {isAdding
-              ? 'Adding...'
-              : `Add ${selectedIds.size} Document${selectedIds.size !== 1 ? 's' : ''}`}
+          <Button onClick={handleAdd} disabled={selectedIds.size === 0 || isAdding}>
+            {isAdding ? 'Adding...' : `Add ${selectedIds.size || ''} Document(s)`}
           </Button>
         </DialogFooter>
       </DialogContent>
