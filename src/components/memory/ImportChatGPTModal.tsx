@@ -2,13 +2,13 @@ import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Upload, CheckCircle, Brain, Calendar, MessageSquare, AlertCircle } from 'lucide-react';
+import { Upload, CheckCircle, Brain, Calendar, AlertCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { 
-  parseChatGPTExport, 
   importChatGPTHistory, 
   type ImportProgress, 
-  type ImportResult 
+  type ImportResult,
+  type ChatGPTConversation
 } from '@/lib/memory/importers/chatgpt-importer';
 import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,85 @@ interface ImportChatGPTModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Claude export format types
+interface ClaudeMessage {
+  uuid: string;
+  text: string;
+  sender: 'human' | 'assistant';
+  created_at: string;
+}
+
+interface ClaudeConversation {
+  uuid: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  chat_messages: ClaudeMessage[];
+}
+
+/**
+ * Convert Claude format to ChatGPT format for unified processing
+ */
+function convertClaudeToStandard(claudeConversations: ClaudeConversation[]): ChatGPTConversation[] {
+  return claudeConversations.map(conv => ({
+    id: conv.uuid,
+    title: conv.name || 'Untitled',
+    create_time: new Date(conv.created_at).getTime() / 1000,
+    update_time: new Date(conv.updated_at).getTime() / 1000,
+    mapping: Object.fromEntries(
+      conv.chat_messages.map((msg, i) => [
+        `msg-${i}`,
+        {
+          id: `msg-${i}`,
+          message: {
+            id: msg.uuid,
+            author: { role: msg.sender === 'human' ? 'user' as const : 'assistant' as const },
+            content: { content_type: 'text', parts: [msg.text] },
+            create_time: new Date(msg.created_at).getTime() / 1000
+          }
+        }
+      ])
+    )
+  }));
+}
+
+/**
+ * Detect format and parse file
+ */
+async function parseExportFile(file: File): Promise<{ 
+  conversations: ChatGPTConversation[]; 
+  source: 'chatgpt' | 'claude' 
+}> {
+  const text = await file.text();
+  const data = JSON.parse(text);
+  
+  // Check for Claude format (array with chat_messages)
+  if (Array.isArray(data) && data.length > 0 && data[0]?.chat_messages) {
+    return {
+      conversations: convertClaudeToStandard(data as ClaudeConversation[]),
+      source: 'claude'
+    };
+  }
+  
+  // Check for ChatGPT format (array with mapping)
+  if (Array.isArray(data) && data.length > 0 && data[0]?.mapping) {
+    return {
+      conversations: data.filter(item => item.mapping && item.id) as ChatGPTConversation[],
+      source: 'chatgpt'
+    };
+  }
+  
+  // Single ChatGPT conversation
+  if (data.mapping && data.id) {
+    return {
+      conversations: [data] as ChatGPTConversation[],
+      source: 'chatgpt'
+    };
+  }
+  
+  throw new Error('Unrecognized export format. Please upload a ChatGPT or Claude export file.');
+}
+
 export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalProps) {
   const navigate = useNavigate();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
@@ -27,6 +106,7 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [detectedSource, setDetectedSource] = useState<'chatgpt' | 'claude' | null>(null);
   
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -43,7 +123,9 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
     setStage('importing');
     
     try {
-      const conversations = await parseChatGPTExport(file);
+      // Parse and detect format
+      const { conversations, source } = await parseExportFile(file);
+      setDetectedSource(source);
       
       if (conversations.length === 0) {
         throw new Error('No valid conversations found in file');
@@ -59,7 +141,7 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
       setStage('complete');
       
     } catch (err) {
-      console.error('[ImportChatGPT] Error:', err);
+      console.error('[ImportHistory] Error:', err);
       setError(err instanceof Error ? err.message : 'Import failed');
       setStage('upload');
     }
@@ -77,6 +159,7 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
     setProgress(null);
     setResult(null);
     setError(null);
+    setDetectedSource(null);
     onOpenChange(false);
   };
   
@@ -89,17 +172,19 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
     ? Math.round((progress.current / progress.total) * 100) 
     : 0;
   
+  const sourceLabel = detectedSource === 'claude' ? 'Claude' : 'ChatGPT';
+  
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            {stage === 'complete' ? 'Import Complete!' : 'Import ChatGPT History'}
+            {stage === 'complete' ? 'Import Complete!' : 'Import AI History'}
           </DialogTitle>
           <DialogDescription>
-            {stage === 'upload' && 'Upload your conversations.json file from ChatGPT export'}
-            {stage === 'importing' && 'Processing your conversations...'}
+            {stage === 'upload' && 'Upload your conversations export from ChatGPT or Claude'}
+            {stage === 'importing' && `Processing ${sourceLabel} conversations...`}
             {stage === 'complete' && 'Your memories are ready to use'}
           </DialogDescription>
         </DialogHeader>
@@ -131,13 +216,14 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
               <p className="text-sm text-muted-foreground">
                 {isDragActive 
                   ? 'Drop your file here' 
-                  : 'Drag & drop conversations.json, or click to browse'}
+                  : 'Drag & drop your export file, or click to browse'}
               </p>
             </div>
             
-            <p className="text-xs text-muted-foreground text-center">
-              Export from ChatGPT: Settings → Data Controls → Export Data
-            </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p><strong>ChatGPT:</strong> Settings → Data Controls → Export Data → conversations.json</p>
+              <p><strong>Claude:</strong> Settings → Export Data → conversations.json</p>
+            </div>
             
             {error && (
               <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
@@ -176,6 +262,15 @@ export function ImportChatGPTModal({ open, onOpenChange }: ImportChatGPTModalPro
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
             </div>
+            
+            {/* Source Badge */}
+            {detectedSource && (
+              <div className="flex justify-center">
+                <span className="px-2 py-1 bg-muted text-xs rounded-full">
+                  Imported from {sourceLabel}
+                </span>
+              </div>
+            )}
             
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-3 text-center">
