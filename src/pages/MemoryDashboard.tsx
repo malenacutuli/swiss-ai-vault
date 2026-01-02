@@ -67,6 +67,7 @@ import { BulkUploadDialog } from '@/components/memory/BulkUploadDialog';
 import { MemoryOnboarding } from '@/components/memory/MemoryOnboarding';
 import { DistillInsightsButton } from '@/components/memory/DistillInsightsButton';
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
+import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
 import type { MemoryFolder } from '@/lib/memory/memory-manager';
@@ -95,6 +96,7 @@ function MemoryDashboardContent() {
   const [showUnlock, setShowUnlock] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   
   const [folders, setFolders] = useState<MemoryFolder[]>([]);
@@ -363,6 +365,12 @@ function MemoryDashboardContent() {
           <div className="flex items-center gap-2">
             <DistillInsightsButton onComplete={() => memory.getStats().then(setStats)} />
             
+            {/* Import AI History Button */}
+            <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -390,6 +398,10 @@ function MemoryDashboardContent() {
                 <DropdownMenuItem onClick={() => setShowAddNote(true)}>
                   <StickyNote className="h-4 w-4 mr-2" />
                   Add Note
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowImportModal(true)}>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Import AI History
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -471,6 +483,28 @@ function MemoryDashboardContent() {
                     onDeleteFolder={handleDeleteFolder}
                     totalItems={stats?.count || 0}
                   />
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Hero Import CTA - show when memory has few items */}
+            {memory.isReady && (stats?.count || 0) < 10 && (
+              <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+                <CardContent className="flex flex-col md:flex-row items-center gap-6 py-8">
+                  <div className="p-4 rounded-2xl bg-primary/10">
+                    <Brain className="h-12 w-12 text-primary" />
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-xl font-semibold mb-2">Build Your AI Memory</h3>
+                    <p className="text-muted-foreground">
+                      Import conversations from ChatGPT, Claude, Gemini, Perplexity, and more. 
+                      Your AI will remember everything across all your chats.
+                    </p>
+                  </div>
+                  <Button size="lg" onClick={() => setShowImportModal(true)}>
+                    <Download className="h-5 w-5 mr-2" />
+                    Import AI History
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -716,6 +750,16 @@ function MemoryDashboardContent() {
             onSkip={skipOnboarding}
           />
         )}
+        
+        {/* Import AI History Modal */}
+        <ImportAIHistoryModal
+          open={showImportModal}
+          onOpenChange={setShowImportModal}
+          onComplete={() => {
+            memory.getStats().then(setStats);
+            toast({ title: 'Import complete!', description: 'Your AI history has been imported.' });
+          }}
+        />
       </div>
     </div>
   );
