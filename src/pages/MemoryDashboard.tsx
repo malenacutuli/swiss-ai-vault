@@ -308,7 +308,7 @@ function MemoryDashboardContent() {
     }
   }, [noteTitle, noteContent, memory, toast]);
   
-  // Distill insights handler
+  // Distill insights handler with rate limit protection
   const handleDistillInsights = useCallback(async () => {
     const key = getMasterKey();
     if (!key) {
@@ -322,7 +322,7 @@ function MemoryDashboardContent() {
 
     try {
       const { getAllMemoriesDecrypted } = await import('@/lib/memory/memory-store');
-      const { distillConversation, saveInsight, getDistilledSourceIds } = await import('@/lib/memory/distill');
+      const { distillConversation, saveInsight, getDistilledSourceIds, RateLimitError } = await import('@/lib/memory/distill');
 
       const allMemories = await getAllMemoriesDecrypted(key);
       const distilledIds = await getDistilledSourceIds();
@@ -341,16 +341,39 @@ function MemoryDashboardContent() {
         return;
       }
 
-      setDistillStatus(`Analyzing ${undistilled.length} items...`);
+      // CRITICAL: Limit batch size to avoid rate limits
+      const MAX_ITEMS_PER_SESSION = 25;
+      const DELAY_BETWEEN_ITEMS = 1500; // 1.5 seconds
+      
+      const itemsToProcess = undistilled.slice(0, MAX_ITEMS_PER_SESSION);
+      const remainingCount = undistilled.length - MAX_ITEMS_PER_SESSION;
+      
+      setDistillStatus(`Processing ${itemsToProcess.length} of ${undistilled.length} items...`);
+      
       let processed = 0;
       let successCount = 0;
+      let consecutiveErrors = 0;
+      let rateLimitHit = false;
 
-      for (const memory of undistilled) {
+      for (const memory of itemsToProcess) {
+        // Stop on rate limit
+        if (rateLimitHit) break;
+        
+        // Stop after 3 consecutive errors
+        if (consecutiveErrors >= 3) {
+          toast({
+            title: 'Pausing Analysis',
+            description: 'Multiple errors detected. Please try again later.',
+            variant: 'destructive',
+          });
+          break;
+        }
+
         try {
           const insight = await distillConversation({
             id: memory.id,
             title: memory.metadata?.title || memory.metadata?.filename || 'Untitled',
-            content: memory.content,
+            content: memory.content.slice(0, 8000), // Limit content size
             source: memory.metadata?.source || 'chat',
             aiPlatform: memory.metadata?.aiPlatform,
           });
@@ -358,20 +381,40 @@ function MemoryDashboardContent() {
           if (insight) {
             await saveInsight(insight);
             successCount++;
+            consecutiveErrors = 0; // Reset on success
           }
-        } catch (err) {
+        } catch (err: unknown) {
           console.error('Failed to distill:', err);
+          consecutiveErrors++;
+          
+          // Check for rate limit error
+          if (err instanceof RateLimitError) {
+            rateLimitHit = true;
+            const waitMinutes = Math.ceil((err.retryAfterSeconds || 60) / 60);
+            toast({
+              title: '⏰ Rate Limit Reached',
+              description: `Processed ${successCount} items. Try again in ~${waitMinutes} minute${waitMinutes > 1 ? 's' : ''}.`,
+            });
+            break;
+          }
         }
         
         processed++;
-        setDistillProgress(Math.round((processed / undistilled.length) * 100));
-        setDistillStatus(`Analyzed ${processed} of ${undistilled.length}...`);
+        setDistillProgress(Math.round((processed / itemsToProcess.length) * 100));
+        setDistillStatus(`Analyzed ${processed} of ${itemsToProcess.length}...`);
         
-        // Rate limit
-        await new Promise(r => setTimeout(r, 500));
+        // Rate limiting delay between requests
+        await new Promise(r => setTimeout(r, DELAY_BETWEEN_ITEMS));
       }
 
-      toast({ title: '✨ Insights Extracted!', description: `Analyzed ${successCount} items.` });
+      // Show completion message if not rate limited
+      if (!rateLimitHit && consecutiveErrors < 3) {
+        const message = remainingCount > 0
+          ? `Analyzed ${successCount} items. ${remainingCount} more remaining - click again to continue.`
+          : `Successfully analyzed ${successCount} items.`;
+        toast({ title: '✨ Batch Complete!', description: message });
+      }
+      
       insightsPanelRef.current?.refresh();
     } catch (error) {
       console.error('Distillation failed:', error);
