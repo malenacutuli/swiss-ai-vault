@@ -687,3 +687,150 @@ export async function getFolderItemCounts(encryptionKey: CryptoKey): Promise<Map
   
   return counts;
 }
+
+// ==========================================
+// DOCUMENT GROUPING & SOURCE BREAKDOWN
+// ==========================================
+
+export interface DocumentGroup {
+  documentId: string;
+  filename: string;
+  chunkCount: number;
+  source: MemorySource;
+  createdAt: number;
+  chunkIds: string[];
+}
+
+export interface SourceBreakdown {
+  document: number;
+  note: number;
+  chat: number;
+  url: number;
+}
+
+/**
+ * Get all memories grouped by document/source file
+ */
+export async function getDocumentGroups(encryptionKey: CryptoKey): Promise<DocumentGroup[]> {
+  const database = await getDB();
+  
+  const stored: StoredMemory[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  const groups = new Map<string, {
+    filename: string;
+    source: MemorySource;
+    createdAt: number;
+    chunkIds: string[];
+  }>();
+  
+  for (const s of stored) {
+    try {
+      const encryptedData = { ciphertext: s.encrypted, nonce: s.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { metadata } = JSON.parse(decrypted);
+      
+      // Group by filename or title for documents, or by ID for notes/urls/chats
+      const source = metadata.source || 'document';
+      let groupKey: string;
+      let displayName: string;
+      
+      if (source === 'document' && metadata.filename) {
+        groupKey = metadata.filename;
+        displayName = metadata.filename;
+      } else if (source === 'note') {
+        groupKey = `note_${metadata.title || s.id}`;
+        displayName = metadata.title || 'Untitled Note';
+      } else if (source === 'url') {
+        groupKey = metadata.url || s.id;
+        displayName = metadata.title || metadata.url || 'Web Page';
+      } else if (source === 'chat') {
+        groupKey = metadata.conversationId || s.id;
+        displayName = metadata.title || 'Chat Conversation';
+      } else {
+        groupKey = metadata.filename || s.id;
+        displayName = metadata.filename || metadata.title || 'Unknown';
+      }
+      
+      const existing = groups.get(groupKey);
+      if (existing) {
+        existing.chunkIds.push(s.id);
+        // Use earliest timestamp
+        if (s.createdAt < existing.createdAt) {
+          existing.createdAt = s.createdAt;
+        }
+      } else {
+        groups.set(groupKey, {
+          filename: displayName,
+          source,
+          createdAt: s.createdAt,
+          chunkIds: [s.id]
+        });
+      }
+    } catch (e) {
+      console.error('[MemoryStore] Failed to decrypt for grouping:', s.id);
+    }
+  }
+  
+  // Convert to array and sort by creation date (newest first)
+  return Array.from(groups.entries())
+    .map(([documentId, data]) => ({
+      documentId,
+      filename: data.filename,
+      chunkCount: data.chunkIds.length,
+      source: data.source,
+      createdAt: data.createdAt,
+      chunkIds: data.chunkIds
+    }))
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/**
+ * Get source breakdown counts
+ */
+export async function getSourceBreakdown(encryptionKey: CryptoKey): Promise<SourceBreakdown> {
+  const database = await getDB();
+  
+  const stored: StoredMemory[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  const breakdown: SourceBreakdown = { document: 0, note: 0, chat: 0, url: 0 };
+  
+  for (const s of stored) {
+    try {
+      const encryptedData = { ciphertext: s.encrypted, nonce: s.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { metadata } = JSON.parse(decrypted);
+      
+      const source = metadata.source || 'document';
+      if (source in breakdown) {
+        breakdown[source as keyof SourceBreakdown]++;
+      }
+    } catch (e) {
+      // Skip items we can't decrypt
+    }
+  }
+  
+  return breakdown;
+}
+
+/**
+ * Delete all chunks belonging to a document
+ */
+export async function deleteDocumentChunks(chunkIds: string[]): Promise<number> {
+  let deleted = 0;
+  for (const id of chunkIds) {
+    await deleteMemory(id);
+    deleted++;
+  }
+  console.log('[MemoryStore] Deleted', deleted, 'chunks');
+  return deleted;
+}
