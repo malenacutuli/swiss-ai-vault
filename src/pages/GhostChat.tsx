@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
@@ -480,7 +480,19 @@ Use this context to inform your response when relevant. Cite sources by number w
     }
   }, [memoryEnabled, isVaultUnlocked, memory]);
 
-  // Usage tracking hook
+  // Compute last assistant message for TTS
+  const lastAssistantMessage = useMemo(() => {
+    if (!messages || messages.length === 0) return undefined;
+    
+    // Find the last assistant message that is not streaming
+    const assistantMessages = messages.filter(m => m.role === 'assistant' && !m.isStreaming && !m.isError);
+    const lastMsg = assistantMessages[assistantMessages.length - 1];
+    
+    // Return content, handling potential markdown or long content
+    // TTS has 4096 char limit
+    return lastMsg?.content?.substring(0, 4096);
+  }, [messages]);
+
   const { 
     tier, 
     isPro, 
@@ -2384,6 +2396,7 @@ Use this context to inform your response when relevant. Cite sources by number w
                 memoryCount={lastMemorySources.length}
                 isMemorySearching={memorySearching}
                 memoryDisabled={!isVaultUnlocked}
+                lastAssistantMessage={lastAssistantMessage}
               />
             </GhostTextViewEmpty>
           )}
@@ -2640,6 +2653,7 @@ Use this context to inform your response when relevant. Cite sources by number w
                     matureFilterEnabled={settings?.mature_filter_enabled ?? true}
                     initPhase={initPhase}
                     hasPendingMessage={!!pendingMessage}
+                    lastAssistantMessage={lastAssistantMessage}
                   />
                 </GhostTextViewEmpty>
               )
@@ -2750,6 +2764,7 @@ Use this context to inform your response when relevant. Cite sources by number w
                   memoryCount={lastMemorySources.length}
                   isMemorySearching={memorySearching}
                   memoryDisabled={!isVaultUnlocked}
+                  lastAssistantMessage={lastAssistantMessage}
                 />
               </div>
             </div>
