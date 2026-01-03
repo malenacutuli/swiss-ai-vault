@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
     totalDocuments,
     onDistill,
   }, ref) {
+  const { t } = useTranslation();
   const [insights, setInsights] = useState<DistilledInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -122,7 +124,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
         <CardContent className="py-12">
           <div className="flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading insights...</p>
+            <p className="text-muted-foreground">{t('memory.insights.loading', 'Loading insights...')}</p>
           </div>
         </CardContent>
       </Card>
@@ -142,33 +144,33 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <h2 className="text-xl font-semibold">Your Knowledge Brain</h2>
+                  <h2 className="text-xl font-semibold">{t('memory.insights.knowledgeBrain', 'Your Knowledge Brain')}</h2>
                   {isRunning && (
                     <Badge variant="secondary" className="animate-pulse">
-                      {isPaused ? 'Paused' : 'Analyzing...'}
+                      {isPaused ? t('memory.insights.paused', 'Paused') : t('memory.insights.analyzing', 'Analyzing...')}
                     </Badge>
                   )}
                 </div>
                 <p className="text-muted-foreground text-sm">
                   {isRunning 
-                    ? `${remaining} items remaining`
-                    : `AI-powered insights from ${totalItems.toLocaleString()} memories`}
+                    ? `${remaining} ${t('memory.insights.itemsRemaining', 'items remaining')}`
+                    : t('memory.insights.fromMemories', 'AI-powered insights from {{count}} memories').replace('{{count}}', totalItems.toLocaleString())}
                 </p>
                 <div className="flex items-center gap-4 mt-3 text-sm">
                   <span className="flex items-center gap-1.5">
                     <MessageSquare className="h-4 w-4 text-green-500" />
                     <strong>{totalChats}</strong>
-                    <span className="text-muted-foreground">chats</span>
+                    <span className="text-muted-foreground">{t('memory.insights.chats', 'chats')}</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <FileText className="h-4 w-4 text-blue-500" />
                     <strong>{totalDocuments}</strong>
-                    <span className="text-muted-foreground">documents</span>
+                    <span className="text-muted-foreground">{t('memory.insights.documents', 'documents')}</span>
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Lightbulb className="h-4 w-4 text-amber-500" />
                     <strong>{discoveryStats.totalInsights}</strong>
-                    <span className="text-muted-foreground">insights</span>
+                    <span className="text-muted-foreground">{t('memory.insights.title', 'insights')}</span>
                   </span>
                 </div>
               </div>
@@ -180,12 +182,12 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                   {isPaused ? (
                     <Button onClick={resume} size="lg" variant="outline">
                       <Play className="h-4 w-4 mr-2" />
-                      Resume
+                      {t('memory.insights.resume', 'Resume')}
                     </Button>
                   ) : (
                     <Button onClick={pause} size="lg" variant="outline">
                       <Pause className="h-4 w-4 mr-2" />
-                      Pause
+                      {t('memory.insights.pause', 'Pause')}
                     </Button>
                   )}
                   <Button onClick={stop} size="icon" variant="ghost" className="text-muted-foreground">
@@ -195,12 +197,12 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
               ) : hasResumable ? (
                 <Button onClick={() => onDistill({ resume: true })} size="lg">
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Resume ({resumableCount})
+                  {t('memory.insights.resumeCount', 'Resume ({{count}})')} ({resumableCount})
                 </Button>
               ) : (
                 <Button onClick={() => onDistill()} size="lg">
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Discover More
+                  {t('memory.insights.discoverMore', 'Discover More')}
                 </Button>
               )}
             </div>
@@ -231,7 +233,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                 )}
               </div>
               {isPaused && (
-                <p className="text-xs text-amber-600 text-center">Paused - click Resume to continue</p>
+                <p className="text-xs text-amber-600 text-center">{t('memory.insights.pausedHint', 'Paused - click Resume to continue')}</p>
               )}
             </div>
           )}
@@ -250,7 +252,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
           <CardContent className="p-4 text-center">
             <Hash className="h-5 w-5 mx-auto mb-1 text-purple-500" />
             <p className="text-2xl font-bold">{discoveryStats.topicsDiscovered}</p>
-            <p className="text-xs text-muted-foreground">Topics</p>
+            <p className="text-xs text-muted-foreground">{t('memory.insights.topics', 'Topics')}</p>
           </CardContent>
         </Card>
         <Card 
@@ -263,7 +265,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
           <CardContent className="p-4 text-center">
             <Target className="h-5 w-5 mx-auto mb-1 text-red-500" />
             <p className="text-2xl font-bold">{discoveryStats.actionItems}</p>
-            <p className="text-xs text-muted-foreground">Actions</p>
+            <p className="text-xs text-muted-foreground">{t('memory.insights.actions', 'Actions')}</p>
           </CardContent>
         </Card>
         <Card 
@@ -276,7 +278,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
           <CardContent className="p-4 text-center">
             <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-green-500" />
             <p className="text-2xl font-bold">{discoveryStats.decisions}</p>
-            <p className="text-xs text-muted-foreground">Decisions</p>
+            <p className="text-xs text-muted-foreground">{t('memory.insights.decisions', 'Decisions')}</p>
           </CardContent>
         </Card>
         <Card 
@@ -289,7 +291,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
           <CardContent className="p-4 text-center">
             <ListChecks className="h-5 w-5 mx-auto mb-1 text-blue-500" />
             <p className="text-2xl font-bold">{discoveryStats.keyPoints}</p>
-            <p className="text-xs text-muted-foreground">Key Points</p>
+            <p className="text-xs text-muted-foreground">{t('memory.insights.keyPoints', 'Key Points')}</p>
           </CardContent>
         </Card>
         <Card 
@@ -302,7 +304,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
           <CardContent className="p-4 text-center">
             <Lightbulb className="h-5 w-5 mx-auto mb-1 text-amber-500" />
             <p className="text-2xl font-bold">{discoveryStats.totalInsights}</p>
-            <p className="text-xs text-muted-foreground">Insights</p>
+            <p className="text-xs text-muted-foreground">{t('memory.insights.title', 'Insights')}</p>
           </CardContent>
         </Card>
       </div>
@@ -310,11 +312,11 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="topics">Topics</TabsTrigger>
-          <TabsTrigger value="actions">Actions</TabsTrigger>
-          <TabsTrigger value="insights">All Insights</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="overview">{t('memory.insights.tabs.overview', 'Overview')}</TabsTrigger>
+          <TabsTrigger value="topics">{t('memory.insights.tabs.topics', 'Topics')}</TabsTrigger>
+          <TabsTrigger value="actions">{t('memory.insights.tabs.actions', 'Actions')}</TabsTrigger>
+          <TabsTrigger value="insights">{t('memory.insights.tabs.allInsights', 'All Insights')}</TabsTrigger>
+          <TabsTrigger value="timeline">{t('memory.insights.tabs.timeline', 'Timeline')}</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -325,7 +327,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Hash className="h-4 w-4 text-purple-500" />
-                  Top Topics
+                  {t('memory.insights.topTopics', 'Top Topics')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -335,11 +337,11 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                       {topic}
                       <span className="ml-1 text-muted-foreground">({count})</span>
                     </Badge>
-                  ))}
-                  {topTopics.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      No topics discovered yet. Run "Discover More" to analyze your content.
-                    </p>
+                    ))}
+                    {topTopics.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        {t('memory.insights.noTopicsYet', 'No topics discovered yet. Run "Discover More" to analyze your content.')}
+                      </p>
                   )}
                 </div>
               </CardContent>
@@ -350,7 +352,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Target className="h-4 w-4 text-red-500" />
-                  Recent Action Items
+                  {t('memory.insights.recentActions', 'Recent Action Items')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -360,10 +362,10 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                       <div className="h-1.5 w-1.5 rounded-full bg-red-500 mt-2 shrink-0" />
                       <span className="line-clamp-2">{item}</span>
                     </div>
-                  ))}
-                  {allActionItems.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No action items found yet.</p>
-                  )}
+                    ))}
+                    {allActionItems.length === 0 && (
+                      <p className="text-sm text-muted-foreground">{t('memory.insights.noActionsYet', 'No action items found yet.')}</p>
+                    )}
                 </div>
               </CardContent>
             </Card>
@@ -372,8 +374,8 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
           {/* Recent Insights */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Recent Discoveries</CardTitle>
-              <CardDescription>Latest insights extracted from your conversations</CardDescription>
+              <CardTitle className="text-base">{t('memory.insights.recentDiscoveries', 'Recent Discoveries')}</CardTitle>
+              <CardDescription>{t('memory.insights.latestInsights', 'Latest insights extracted from your conversations')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -388,7 +390,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{insight.title || 'Untitled Insight'}</p>
+                        <p className="font-medium truncate">{insight.title || t('memory.insights.untitled', 'Untitled Insight')}</p>
                         <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                           {insight.summary}
                         </p>
@@ -409,8 +411,8 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                 {insights.length === 0 && (
                   <div className="text-center py-8">
                     <Lightbulb className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="font-medium">No insights yet</p>
-                    <p className="text-sm text-muted-foreground">Click "Discover More" to analyze your content</p>
+                    <p className="font-medium">{t('memory.insights.noInsights')}</p>
+                    <p className="text-sm text-muted-foreground">{t('memory.insights.clickDiscover', 'Click "Discover More" to analyze your content')}</p>
                   </div>
                 )}
               </div>
@@ -424,9 +426,9 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Hash className="h-5 w-5" />
-                All Topics ({Object.keys(topicCounts).length})
+                {t('memory.insights.allTopics', 'All Topics')} ({Object.keys(topicCounts).length})
               </CardTitle>
-              <CardDescription>Topics discovered across all your conversations and documents</CardDescription>
+              <CardDescription>{t('memory.insights.topicsDesc', 'Topics discovered across all your conversations and documents')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -437,9 +439,9 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
                       {topic}
                       <span className="ml-1.5 text-muted-foreground">×{count}</span>
                     </Badge>
-                  ))}
+                    ))}
                 {Object.keys(topicCounts).length === 0 && (
-                  <p className="text-muted-foreground">No topics discovered yet.</p>
+                  <p className="text-muted-foreground">{t('memory.insights.noTopicsDiscovered', 'No topics discovered yet.')}</p>
                 )}
               </div>
             </CardContent>

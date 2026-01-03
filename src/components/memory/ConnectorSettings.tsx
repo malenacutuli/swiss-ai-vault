@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -67,6 +68,7 @@ interface ConnectorSettingsProps {
 }
 
 export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   const { integrations, isConnected, connect } = useIntegrations();
@@ -104,16 +106,16 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
   
   const handleSync = useCallback(async (connectorId: ConnectorType) => {
     if (!user?.id) {
-      toast.error('Please sign in to sync');
+      toast.error(t('memory.connectors.signInToSync', 'Please sign in to sync'));
       return;
     }
     
     // CRITICAL: Validate session BEFORE calling edge function
     const token = await ensureValidSession();
     if (!token) {
-      toast.error('Session expired. Please sign in again.', {
+      toast.error(t('memory.connectors.sessionExpired', 'Session expired. Please sign in again.'), {
         action: {
-          label: 'Sign In',
+          label: t('common.login'),
           onClick: () => window.location.href = '/auth',
         },
       });
@@ -123,7 +125,7 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
     // Get encryption key from props or context
     const encryptionKey = propKey || getMasterKey?.();
     if (!encryptionKey) {
-      toast.error('Please unlock your vault first');
+      toast.error(t('memory.encryption.unlockVault'));
       return;
     }
     
@@ -134,11 +136,11 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
       const integrationId = await getIntegrationId(user.id, connectorId);
       
       if (!integrationId) {
-        toast.error(`${connectorId} is not connected. Please connect it first.`);
+        toast.error(t('memory.connectors.notConnected', '{{name}} is not connected. Please connect it first.').replace('{{name}}', connectorId));
         return;
       }
       
-      toast.info(`Syncing ${connectorId}...`);
+      toast.info(t('memory.connectors.syncing'));
       
       const result = await syncConnector(connectorId, integrationId, encryptionKey, token);
       
@@ -150,24 +152,23 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
         setSyncResults(updated);
         localStorage.setItem('memory-sync-results', JSON.stringify(updated));
         
-        toast.success(`Synced ${result.itemsAdded} items from ${connectorId}`);
+        toast.success(t('memory.connectors.syncSuccess', 'Synced {{count}} items').replace('{{count}}', String(result.itemsAdded)));
       } else {
-        // Check for auth errors
         const errorMsg = result.errors.join(', ');
         if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('unauthorized')) {
-          toast.error(`Please reconnect your ${connectorId} account`, {
-            description: 'Authorization has expired.',
+          toast.error(t('memory.connectors.reconnect'), {
+            description: t('memory.connectors.authExpired', 'Authorization has expired.'),
           });
         } else {
-          toast.error(`Sync failed: ${errorMsg}`);
+          toast.error(t('memory.connectors.syncFailed') + `: ${errorMsg}`);
         }
       }
     } catch (err) {
       const error = err as Error;
       if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-        toast.error('Session expired. Please sign in again.');
+        toast.error(t('memory.connectors.sessionExpired', 'Session expired. Please sign in again.'));
       } else {
-        toast.error(`Sync error: ${error.message}`);
+        toast.error(`${t('memory.connectors.syncError', 'Sync error')}: ${error.message}`);
       }
     } finally {
       setSyncing(null);
@@ -175,12 +176,11 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
   }, [user?.id, propKey, getMasterKey, syncResults, ensureValidSession]);
   
   const handleConnect = useCallback(async (connectorId: string) => {
-    // Validate session before starting OAuth
     const token = await ensureValidSession();
     if (!token) {
-      toast.error('Please sign in to connect integrations', {
+      toast.error(t('memory.connectors.signInToConnect', 'Please sign in to connect integrations'), {
         action: {
-          label: 'Sign In',
+          label: t('common.login'),
           onClick: () => window.location.href = '/auth',
         },
       });
@@ -207,10 +207,9 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Memory Connectors</CardTitle>
+        <CardTitle>{t('memory.connectors.title')}</CardTitle>
         <CardDescription>
-          Choose which integrations sync to your AI Memory. 
-          Data is encrypted and stored locally.
+          {t('memory.connectors.description', 'Choose which integrations sync to your AI Memory. Data is encrypted and stored locally.')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -233,19 +232,19 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
                     {data.connected ? (
                       <Badge variant="outline" className="text-green-600 border-green-600">
                         <Check className="h-3 w-3 mr-1" />
-                        Connected
+                        {t('memory.connectors.connected')}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-muted-foreground">
-                        Not connected
+                        {t('memory.connectors.notConnected')}
                       </Badge>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">{connector.description}</p>
                   {data.itemCount !== undefined && data.itemCount > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      {data.itemCount} items in memory
-                      {data.lastSync && ` • Last sync: ${new Date(data.lastSync).toLocaleDateString()}`}
+                      {data.itemCount} {t('memory.connectors.itemsInMemory', 'items in memory')}
+                      {data.lastSync && ` • ${t('memory.connectors.lastSync', 'Last sync')}: ${new Date(data.lastSync).toLocaleDateString()}`}
                     </p>
                   )}
                 </div>
@@ -255,7 +254,7 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
                 {data.connected ? (
                   <>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Sync to Memory</span>
+                      <span className="text-sm text-muted-foreground">{t('memory.connectors.syncToMemory', 'Sync to Memory')}</span>
                       <Switch
                         checked={syncEnabled}
                         onCheckedChange={(checked) => handleToggleSync(connector.id, checked)}
@@ -268,7 +267,7 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
                         size="icon"
                         onClick={() => handleSync(connector.id)}
                         disabled={syncing === connector.id}
-                        title="Sync now"
+                        title={t('memory.connectors.syncNow')}
                       >
                         <RefreshCw className={`h-4 w-4 ${syncing === connector.id ? 'animate-spin' : ''}`} />
                       </Button>
@@ -281,7 +280,7 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
                     onClick={() => handleConnect(connector.id)}
                   >
                     <ExternalLink className="h-3 w-3 mr-1" />
-                    Connect
+                    {t('memory.connectors.connect')}
                   </Button>
                 )}
               </div>
@@ -291,7 +290,7 @@ export function ConnectorSettings({ encryptionKey: propKey }: ConnectorSettingsP
         
         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
           <AlertCircle className="h-4 w-4" />
-          All synced data is encrypted with your vault password and stored locally.
+          {t('memory.connectors.encryptedNote', 'All synced data is encrypted with your vault password and stored locally.')}
         </div>
       </CardContent>
     </Card>
