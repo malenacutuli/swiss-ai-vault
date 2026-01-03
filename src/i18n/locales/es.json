@@ -2003,6 +2003,46 @@
         "connectSources": "Conectar Fuentes"
       }
     },
+    "stats": {
+      "totalItems": "Total",
+      "chunks": "Fragmentos"
+    },
+    "notes": {
+      "title": "Notas",
+      "addNote": "Añadir nota a Memoria",
+      "addNoteDesc": "Esta nota será cifrada y buscable en tus conversaciones de IA.",
+      "titlePlaceholder": "Título de la nota (opcional)",
+      "contentPlaceholder": "Escribe tu nota...",
+      "addToMemory": "Añadir a Memoria"
+    },
+    "actions": {
+      "exportMemory": "Exportar memoria",
+      "importMemory": "Importar memoria",
+      "clearAll": "Limpiar toda la memoria"
+    },
+    "clearAll": {
+      "title": "¿Limpiar toda la memoria?",
+      "description": "Esto eliminará permanentemente todos los elementos de tu memoria IA. Esta acción no se puede deshacer.",
+      "confirm": "Limpiar Todo"
+    },
+    "empty": {
+      "title": "Tu memoria IA está vacía",
+      "description": "Añade documentos o notas para construir tu base de conocimiento personal.",
+      "addFirst": "Añadir tu primera nota"
+    },
+    "onboarding": {
+      "buildMemory": "Construye tu Memoria IA",
+      "importDescription": "Importa conversaciones de ChatGPT, Claude, Gemini, Perplexity y más. Tu IA recordará todo en todos tus chats."
+    },
+    "graph": {
+      "title": "Grafo",
+      "empty": "No hay memorias para visualizar. Añade contenido primero."
+    },
+    "pagination": {
+      "showing": "Mostrando",
+      "of": "de",
+      "page": "Página"
+    },
     "upload": {
       "title": "Subir a Memoria",
       "dragDrop": "Arrastra y suelta archivos aquí",
@@ -2018,9 +2058,13 @@
     },
     "documents": {
       "title": "Documentos",
+      "yourContent": "Tu Contenido",
+      "items": "elementos",
       "noDocuments": "No hay documentos aún",
       "addFirst": "Sube tu primer documento para empezar",
       "search": "Buscar documentos...",
+      "deleteTitle": "¿Eliminar elemento?",
+      "deleteDescription": "Esto eliminará permanentemente este elemento y todos sus fragmentos de tu memoria. Esta acción no se puede deshacer.",
       "filter": {
         "all": "Todos",
         "pdf": "PDFs",
@@ -2035,7 +2079,7 @@
         "size": "Por tamaño"
       },
       "actions": {
-        "view": "Ver",
+        "view": "Ver fragmentos",
         "download": "Descargar",
         "delete": "Eliminar",
         "moveToFolder": "Mover a carpeta"
@@ -2048,8 +2092,15 @@
       "delete": "Eliminar",
       "empty": "Carpeta vacía",
       "uncategorized": "Sin categoría",
-      "moveHere": "Mover aquí",
-      "itemCount": "{{count}} elementos"
+      "moveHere": "Mover a carpeta",
+      "itemCount": "{{count}} elementos",
+      "createDescription": "Organiza tus elementos de memoria en carpetas.",
+      "namePlaceholder": "Nombre de la carpeta",
+      "selectDestination": "Elige una carpeta de destino",
+      "root": "Raíz (Sin carpeta)",
+      "removeFromFolders": "Quitar de todas las carpetas",
+      "moving": "Moviendo...",
+      "move": "Mover"
     },
     "insights": {
       "title": "Insights",

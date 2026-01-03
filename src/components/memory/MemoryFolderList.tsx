@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { 
-  Folder, 
+import { useTranslation } from 'react-i18next';
+import {
+  Folder,
   FolderPlus, 
   MoreVertical, 
   Pencil, 
@@ -54,6 +55,7 @@ export function MemoryFolderList({
   onDeleteFolder,
   totalItems = 0
 }: MemoryFolderListProps) {
+  const { t } = useTranslation();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -100,7 +102,7 @@ export function MemoryFolderList({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">Folders</span>
+        <span className="text-sm font-medium text-muted-foreground">{t('memory.folders.title')}</span>
         <Button
           variant="ghost"
           size="icon"
@@ -124,7 +126,7 @@ export function MemoryFolderList({
             )}
           >
             <FileText className="h-4 w-4" />
-            <span className="flex-1 text-left">All Items</span>
+            <span className="flex-1 text-left">{t('memory.documents.filter.all', 'Todos')}</span>
             <Badge variant="secondary" className="text-xs">{totalItems}</Badge>
           </button>
           
@@ -140,7 +142,7 @@ export function MemoryFolderList({
               )}
             >
               <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-left">Uncategorized</span>
+              <span className="flex-1 text-left">{t('memory.folders.uncategorized')}</span>
               <Badge variant="secondary" className="text-xs">{uncategorizedCount}</Badge>
             </button>
           )}
@@ -173,14 +175,14 @@ export function MemoryFolderList({
                 <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
                   <DropdownMenuItem onClick={() => openRenameDialog(folder)}>
                     <Pencil className="h-4 w-4 mr-2" />
-                    Rename
+                    {t('memory.folders.rename')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onDeleteFolder(folder.id)}
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
+                    {t('memory.folders.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -193,24 +195,24 @@ export function MemoryFolderList({
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Folder</DialogTitle>
+            <DialogTitle>{t('memory.folders.newFolder')}</DialogTitle>
             <DialogDescription>
-              Organize your memory items into folders.
+              {t('memory.folders.createDescription', 'Organiza tus elementos de memoria en carpetas.')}
             </DialogDescription>
           </DialogHeader>
           <Input
-            placeholder="Folder name"
+            placeholder={t('memory.folders.namePlaceholder', 'Nombre de la carpeta')}
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleCreate} disabled={isCreating || !newFolderName.trim()}>
               {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Create
+              {t('common.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -220,21 +222,21 @@ export function MemoryFolderList({
       <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename Folder</DialogTitle>
+            <DialogTitle>{t('memory.folders.rename')}</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Folder name"
+            placeholder={t('memory.folders.namePlaceholder', 'Nombre de la carpeta')}
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRenameDialog(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleRename} disabled={isCreating || !newFolderName.trim()}>
               {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Rename
+              {t('memory.folders.rename')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Brain, 
   FileText, 
@@ -108,6 +109,7 @@ interface DocumentGroup {
 
 function MemoryDashboardContent() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { isUnlocked, isInitialized: vaultInitialized, getMasterKey } = useEncryptionContext();
   const memory = useMemory();
@@ -496,7 +498,7 @@ function MemoryDashboardContent() {
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Chat
+          {t('common.back')} {t('ghost.chat.title', 'Chat')}
         </button>
         
         <div className="flex items-center justify-between mb-8">
@@ -506,10 +508,10 @@ function MemoryDashboardContent() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold text-foreground">Personal AI Memory</h1>
+                <h1 className="text-2xl font-semibold text-foreground">{t('memory.title')}</h1>
                 <SyncStatusIndicator />
               </div>
-              <p className="text-sm text-muted-foreground">Your private knowledge base</p>
+              <p className="text-sm text-muted-foreground">{t('memory.dashboard.subtitle')}</p>
             </div>
           </div>
           
@@ -519,25 +521,25 @@ function MemoryDashboardContent() {
             {/* Import AI History Button */}
             <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
               <Download className="h-4 w-4 mr-2" />
-              Import
+              {t('common.import')}
             </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add
+                  {t('common.add')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
                 <DropdownMenuItem onClick={() => setShowBulkUpload(true)}>
                   <Upload className="h-4 w-4 mr-2" />
-                  Upload Documents
+                  {t('memory.upload.bulkUpload')}
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <label className="cursor-pointer flex items-center">
                     <Upload className="h-4 w-4 mr-2" />
-                    Single Document
+                    {t('memory.documents.title')}
                     <input
                       type="file"
                       accept=".txt,.md,.pdf"
@@ -548,11 +550,11 @@ function MemoryDashboardContent() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowAddNote(true)}>
                   <StickyNote className="h-4 w-4 mr-2" />
-                  Add Note
+                  {t('memory.notes.addNote', 'Añadir nota')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowImportModal(true)}>
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  Import AI History
+                  {t('memory.dashboard.quickStart.importChats')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -566,12 +568,12 @@ function MemoryDashboardContent() {
               <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
                 <DropdownMenuItem onClick={handleExport}>
                   <Download className="h-4 w-4 mr-2" />
-                  Export Memory
+                  {t('memory.actions.exportMemory', 'Exportar memoria')}
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <label className="cursor-pointer flex items-center">
                     <Upload className="h-4 w-4 mr-2" />
-                    Import Memory
+                    {t('memory.actions.importMemory', 'Importar memoria')}
                     <input
                       type="file"
                       accept=".json"
@@ -585,7 +587,7 @@ function MemoryDashboardContent() {
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Clear All Memory
+                  {t('memory.actions.clearAll', 'Limpiar toda la memoria')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -597,27 +599,27 @@ function MemoryDashboardContent() {
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="memory" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
-              Memory
+              {t('memory.dashboard.tabs.all', 'Memoria')}
             </TabsTrigger>
             <TabsTrigger value="voice" className="flex items-center gap-2">
               <Mic className="h-4 w-4" />
-              Voice Notes
+              {t('memory.dashboard.tabs.voiceNotes', 'Notas de Voz')}
             </TabsTrigger>
             <TabsTrigger value="insights" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
-              Insights
+              {t('memory.dashboard.tabs.insights', 'Insights')}
             </TabsTrigger>
             <TabsTrigger value="graph" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
-              Graph
+              {t('memory.graph.title', 'Grafo')}
             </TabsTrigger>
             <TabsTrigger value="connectors" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />
-              Connectors
+              {t('memory.connectors.title', 'Conectores')}
             </TabsTrigger>
             <TabsTrigger value="sync" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Settings
+              {t('common.settings')}
             </TabsTrigger>
           </TabsList>
           
@@ -662,15 +664,14 @@ function MemoryDashboardContent() {
                     <Brain className="h-12 w-12 text-primary" />
                   </div>
                   <div className="flex-1 text-center md:text-left">
-                    <h3 className="text-xl font-semibold mb-2">Build Your AI Memory</h3>
+                    <h3 className="text-xl font-semibold mb-2">{t('memory.onboarding.buildMemory', 'Construye tu Memoria IA')}</h3>
                     <p className="text-muted-foreground">
-                      Import conversations from ChatGPT, Claude, Gemini, Perplexity, and more. 
-                      Your AI will remember everything across all your chats.
+                      {t('memory.onboarding.importDescription', 'Importa conversaciones de ChatGPT, Claude, Gemini, Perplexity y más. Tu IA recordará todo en todos tus chats.')}
                     </p>
                   </div>
                   <Button size="lg" onClick={() => setShowImportModal(true)}>
                     <Download className="h-5 w-5 mr-2" />
-                    Import AI History
+                    {t('memory.dashboard.quickStart.importChats')}
                   </Button>
                 </CardContent>
               </Card>
@@ -692,31 +693,31 @@ function MemoryDashboardContent() {
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold">{stats.count}</div>
-                    <div className="text-xs text-muted-foreground">Total Items</div>
+                    <div className="text-xs text-muted-foreground">{t('memory.stats.totalItems', 'Total')}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-blue-500">{documentGroups.length}</div>
-                    <div className="text-xs text-muted-foreground">Documents</div>
+                    <div className="text-xs text-muted-foreground">{t('memory.documents.title')}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-purple-500">{sourceBreakdown.document}</div>
-                    <div className="text-xs text-muted-foreground">Doc Chunks</div>
+                    <div className="text-xs text-muted-foreground">{t('memory.stats.chunks', 'Fragmentos')}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-amber-500">{sourceBreakdown.note}</div>
-                    <div className="text-xs text-muted-foreground">Notes</div>
+                    <div className="text-xs text-muted-foreground">{t('memory.notes.title', 'Notas')}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-green-500">{sourceBreakdown.chat}</div>
-                    <div className="text-xs text-muted-foreground">Chats</div>
+                    <div className="text-xs text-muted-foreground">{t('memory.dashboard.tabs.chats')}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -743,15 +744,15 @@ function MemoryDashboardContent() {
             {/* Search */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Search Memory</CardTitle>
-                <CardDescription>Find relevant content from your knowledge base</CardDescription>
+                <CardTitle className="text-lg">{t('memory.search.title', 'Buscar en Memoria')}</CardTitle>
+                <CardDescription>{t('memory.search.subtitle', 'Encuentra contenido relevante en tu base de conocimiento')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search your memory..."
+                      placeholder={t('memory.search.placeholder', 'Buscar en tu memoria...')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -762,7 +763,7 @@ function MemoryDashboardContent() {
                     {isSearching ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      'Search'
+                      t('common.search')
                     )}
                   </Button>
                 </div>
@@ -773,7 +774,7 @@ function MemoryDashboardContent() {
             {searchResults.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Results ({searchResults.length})</CardTitle>
+                  <CardTitle className="text-lg">{t('memory.search.results', 'Resultados')} ({searchResults.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="max-h-[400px]">
@@ -821,13 +822,13 @@ function MemoryDashboardContent() {
                 <CardContent className="py-12">
                   <div className="text-center">
                     <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                    <h3 className="text-lg font-medium mb-2">Your AI memory is empty</h3>
+                    <h3 className="text-lg font-medium mb-2">{t('memory.empty.title', 'Tu memoria IA está vacía')}</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Add documents or notes to build your personal knowledge base.
+                      {t('memory.empty.description', 'Añade documentos o notas para construir tu base de conocimiento personal.')}
                     </p>
                     <Button onClick={() => setShowAddNote(true)}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Note
+                      {t('memory.empty.addFirst', 'Añadir tu primera nota')}
                     </Button>
                   </div>
                 </CardContent>
@@ -880,7 +881,7 @@ function MemoryDashboardContent() {
                 <CardContent className="py-8 text-center">
                   <Network className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground">
-                    No memories to visualize. Add some content first.
+                    {t('memory.graph.empty', 'No hay memorias para visualizar. Añade contenido primero.')}
                   </p>
                 </CardContent>
               </Card>
@@ -909,19 +910,19 @@ function MemoryDashboardContent() {
         <Dialog open={showAddNote} onOpenChange={setShowAddNote}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Note to Memory</DialogTitle>
+              <DialogTitle>{t('memory.notes.addNote', 'Añadir nota a Memoria')}</DialogTitle>
               <DialogDescription>
-                This note will be encrypted and searchable in your AI conversations.
+                {t('memory.notes.addNoteDesc', 'Esta nota será cifrada y buscable en tus conversaciones de IA.')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <Input
-                placeholder="Note title (optional)"
+                placeholder={t('memory.notes.titlePlaceholder', 'Título de la nota (opcional)')}
                 value={noteTitle}
                 onChange={(e) => setNoteTitle(e.target.value)}
               />
               <Textarea
-                placeholder="Write your note..."
+                placeholder={t('memory.notes.contentPlaceholder', 'Escribe tu nota...')}
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
                 rows={6}
@@ -929,14 +930,14 @@ function MemoryDashboardContent() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddNote(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button 
                 onClick={handleAddNote} 
                 disabled={!noteContent.trim() || isAddingNote}
               >
                 {isAddingNote && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Add to Memory
+                {t('memory.notes.addToMemory', 'Añadir a Memoria')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -946,16 +947,15 @@ function MemoryDashboardContent() {
         <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Clear all memory?</AlertDialogTitle>
+              <AlertDialogTitle>{t('memory.clearAll.title', '¿Limpiar toda la memoria?')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all items from your AI memory. 
-                This action cannot be undone.
+                {t('memory.clearAll.description', 'Esto eliminará permanentemente todos los elementos de tu memoria IA. Esta acción no se puede deshacer.')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction onClick={handleClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Clear All
+                {t('memory.clearAll.confirm', 'Limpiar Todo')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

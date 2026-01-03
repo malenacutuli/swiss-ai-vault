@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { 
-  FileText, 
+import { useTranslation } from 'react-i18next';
+import {
+  FileText,
   StickyNote, 
   MessageSquare, 
   Globe, 
@@ -81,6 +82,7 @@ export function MemoryDocumentList({
   onViewChunks,
   onMoveToFolder
 }: MemoryDocumentListProps) {
+  const { t } = useTranslation();
   // Tab and filter state
   const [activeTab, setActiveTab] = useState<'all' | 'documents' | 'chats'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,7 +222,7 @@ export function MemoryDocumentList({
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Your Content
+            {t('memory.documents.yourContent', 'Tu Contenido')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -249,9 +251,9 @@ export function MemoryDocumentList({
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Your Content
+              {t('memory.documents.yourContent', 'Tu Contenido')}
               <Badge variant="secondary" className="ml-1">
-                {filteredItems.length} items
+                {filteredItems.length} {t('memory.documents.items', 'elementos')}
               </Badge>
             </CardTitle>
           </div>
@@ -260,15 +262,15 @@ export function MemoryDocumentList({
           <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setCurrentPage(1); }}>
             <TabsList className="h-9">
               <TabsTrigger value="all" className="text-xs">
-                All ({totalAll})
+                {t('memory.documents.filter.all', 'Todos')} ({totalAll})
               </TabsTrigger>
               <TabsTrigger value="documents" className="text-xs">
                 <FileText className="h-3 w-3 mr-1" />
-                Documents ({totalDocs})
+                {t('memory.documents.title')} ({totalDocs})
               </TabsTrigger>
               <TabsTrigger value="chats" className="text-xs">
                 <MessageSquare className="h-3 w-3 mr-1" />
-                Chats ({totalChats})
+                {t('memory.dashboard.tabs.chats')} ({totalChats})
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -278,7 +280,7 @@ export function MemoryDocumentList({
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name..."
+                placeholder={t('memory.documents.search')}
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="pl-8 h-9"
@@ -301,18 +303,18 @@ export function MemoryDocumentList({
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9 gap-1">
                   {sortOrder === 'newest' ? <SortDesc className="h-3.5 w-3.5" /> : <SortAsc className="h-3.5 w-3.5" />}
-                  {sortOrder === 'name' ? 'A-Z' : sortOrder === 'newest' ? 'Newest' : 'Oldest'}
+                  {sortOrder === 'name' ? 'A-Z' : sortOrder === 'newest' ? t('memory.documents.sort.newest') : t('memory.documents.sort.oldest')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
                 <DropdownMenuItem onClick={() => setSortOrder('newest')}>
-                  Newest First
+                  {t('memory.documents.sort.newest')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSortOrder('oldest')}>
-                  Oldest First
+                  {t('memory.documents.sort.oldest')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSortOrder('name')}>
-                  Name (A-Z)
+                  {t('memory.documents.sort.name')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -324,7 +326,7 @@ export function MemoryDocumentList({
           <div className="space-y-2">
             {paginatedItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                {searchQuery ? 'No items match your search' : 'No items found'}
+                {searchQuery ? t('memory.search.noResults') : t('memory.documents.noDocuments')}
               </div>
             ) : (
               paginatedItems.map((doc) => (
@@ -373,12 +375,12 @@ export function MemoryDocumentList({
                       <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
                         <DropdownMenuItem onClick={() => setMoveToFolderDoc({ chunkIds: doc.chunkIds, filename: doc.filename })}>
                           <FolderInput className="h-4 w-4 mr-2" />
-                          Move to Folder
+                          {t('memory.documents.actions.moveToFolder')}
                         </DropdownMenuItem>
                         {onViewChunks && (
                           <DropdownMenuItem onClick={() => onViewChunks(doc.documentId)}>
                             <Eye className="h-4 w-4 mr-2" />
-                            View Chunks
+                            {t('memory.documents.actions.view')}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
@@ -387,7 +389,7 @@ export function MemoryDocumentList({
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                          {t('common.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -401,7 +403,7 @@ export function MemoryDocumentList({
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
               <div className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} of {filteredItems.length}
+                {t('memory.pagination.showing', 'Mostrando')} {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredItems.length)} {t('memory.pagination.of', 'de')} {filteredItems.length}
               </div>
               <div className="flex items-center gap-2">
                 <Button 
@@ -411,10 +413,10 @@ export function MemoryDocumentList({
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  {t('common.back')}
                 </Button>
                 <span className="text-sm text-muted-foreground px-2">
-                  Page {currentPage} of {totalPages}
+                  {t('memory.pagination.page', 'Página')} {currentPage} {t('memory.pagination.of', 'de')} {totalPages}
                 </span>
                 <Button 
                   variant="outline" 
@@ -422,7 +424,7 @@ export function MemoryDocumentList({
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                 >
-                  Next
+                  {t('common.next')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
@@ -435,16 +437,16 @@ export function MemoryDocumentList({
       <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Item?</AlertDialogTitle>
+            <AlertDialogTitle>{t('memory.documents.deleteTitle', '¿Eliminar elemento?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{deleteConfirm?.filename}" and all {deleteConfirm?.chunkIds.length} of its chunks from your memory. This action cannot be undone.
+              {t('memory.documents.deleteDescription', 'Esto eliminará permanentemente este elemento y todos sus fragmentos de tu memoria. Esta acción no se puede deshacer.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -454,9 +456,9 @@ export function MemoryDocumentList({
       <Dialog open={!!moveToFolderDoc} onOpenChange={(open) => !open && setMoveToFolderDoc(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Move to Folder</DialogTitle>
+            <DialogTitle>{t('memory.folders.moveHere')}</DialogTitle>
             <DialogDescription>
-              Choose a destination folder for "{moveToFolderDoc?.filename}"
+              {t('memory.folders.selectDestination', 'Elige una carpeta de destino')}
             </DialogDescription>
           </DialogHeader>
           
@@ -472,8 +474,8 @@ export function MemoryDocumentList({
             >
               <FolderOpen className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">Root (No Folder)</p>
-                <p className="text-xs text-muted-foreground">Remove from all folders</p>
+                <p className="font-medium">{t('memory.folders.root', 'Raíz (Sin carpeta)')}</p>
+                <p className="text-xs text-muted-foreground">{t('memory.folders.removeFromFolders', 'Quitar de todas las carpetas')}</p>
               </div>
             </button>
             
@@ -496,11 +498,11 @@ export function MemoryDocumentList({
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoveToFolderDoc(null)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleMoveToFolder} disabled={isMoving}>
               {isMoving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {isMoving ? 'Moving...' : 'Move'}
+              {isMoving ? t('memory.folders.moving', 'Moviendo...') : t('memory.folders.move', 'Mover')}
             </Button>
           </DialogFooter>
         </DialogContent>
