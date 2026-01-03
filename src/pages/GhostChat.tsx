@@ -35,7 +35,8 @@ import { GhostChatUsageBar } from '@/components/ghost/GhostChatUsageBar';
 import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { VerifiedSourcesDisplay } from '@/components/trust/VerifiedSourcesDisplay';
-import { MemorySourcesCard, type MemorySource } from '@/components/chat/MemorySourcesCard';
+import { MemorySourcesCard, type MemorySource, GroundedResponse, GroundedModeToggle } from '@/components/chat';
+import type { GroundedChatMessage, SourceDocument } from '@/types/grounded';
 
 import { UnifiedHeader } from '@/components/layout/UnifiedHeader';
 import {
@@ -112,6 +113,10 @@ interface GhostMessageData {
   sources?: Array<{ title: string; url: string; snippet?: string }>;
   verifiedResult?: VerifiedSearchResult;
   memorySources?: MemorySource[]; // Personal memory sources used for this response
+  // Grounded response fields
+  isGrounded?: boolean;
+  groundedSources?: SourceDocument[];
+  citations?: Array<{ sourceIndex: number; sourceId: string; text: string }>;
 }
 
 // Attached file for context - supports multiple files
@@ -395,6 +400,36 @@ function GhostChat() {
   const [memorySearching, setMemorySearching] = useState(false);
   const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
   const isVaultUnlocked = vault.isVaultUnlocked();
+  
+  // Grounded mode state - AI responses backed by document citations
+  const [groundedMode, setGroundedMode] = useState(() => {
+    try {
+      return localStorage.getItem('swissvault_grounded_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [documentsCount, setDocumentsCount] = useState(0);
+  
+  // Persist grounded mode preference
+  useEffect(() => {
+    localStorage.setItem('swissvault_grounded_mode', groundedMode.toString());
+  }, [groundedMode]);
+  
+  // Update documents count when memory changes
+  useEffect(() => {
+    const updateDocCount = async () => {
+      if (memory.isInitialized) {
+        try {
+          const stats = await memory.getStats();
+          setDocumentsCount(stats.count);
+        } catch {
+          setDocumentsCount(0);
+        }
+      }
+    };
+    updateDocCount();
+  }, [memory.isInitialized, memory.getStats]);
   
   // Auto-save to memory state
   const [autoSaveToMemory, setAutoSaveToMemory] = useState(() => {
@@ -2328,6 +2363,20 @@ Use this context to inform your response when relevant. Cite sources by number w
           {/* Text Mode - Empty state with centered input (Perplexity-style) */}
           {mode === 'text' && messages.length === 0 && (
             <GhostTextViewEmpty>
+              {/* Grounded Mode Toggle */}
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <GroundedModeToggle
+                  isGrounded={groundedMode}
+                  onToggle={setGroundedMode}
+                  disabled={isStreaming || !memory.isInitialized}
+                  documentsCount={documentsCount}
+                />
+                {groundedMode && documentsCount > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    Citations from {documentsCount} document{documentsCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
               {/* Attachment preview above input */}
               {attachedFiles.length > 0 && (
                 <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
@@ -2413,33 +2462,53 @@ Use this context to inform your response when relevant. Cite sources by number w
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-muted/60 rounded-2xl px-4 py-3' : ''}`}>
-                          <GhostMessageComponent
-                            id={msg.id}
-                            role={msg.role}
-                            content={msg.content}
-                            timestamp={msg.timestamp}
-                            isStreaming={msg.isStreaming}
-                            responseTimeMs={msg.responseTimeMs}
-                            tokenCount={msg.tokenCount}
-                            contextUsagePercent={msg.contextUsagePercent}
-                            attachments={msg.attachments}
-                            showDate={settings?.show_message_date ?? true}
-                            showExternalLinkWarning={settings?.show_external_link_warning ?? false}
-                            onEdit={handleMessageEdit}
-                            onRegenerate={handleRegenerate}
-                            onDelete={handleDeleteMessage}
-                            onFork={handleForkConversation}
-                            onShorten={handleShortenResponse}
-                            onElaborate={handleElaborateResponse}
-                            onCreateImage={handleCreateImage}
-                            onCreateVideo={handleCreateVideo}
-                            onFeedback={handleFeedback}
-                            onShare={handleShare}
-                            onReport={handleReport}
-                            onStopGeneration={handleStopGeneration}
-                          />
+                          {/* Render GroundedResponse for grounded assistant messages */}
+                          {msg.role === 'assistant' && msg.isGrounded ? (
+                            <GroundedResponse
+                              message={{
+                                id: msg.id,
+                                role: msg.role,
+                                content: msg.content,
+                                isGrounded: true,
+                                citations: msg.citations,
+                                sources: msg.groundedSources,
+                                timestamp: new Date(msg.timestamp).toISOString(),
+                              }}
+                              onSourceClick={(source) => {
+                                if (source.url) {
+                                  window.open(source.url, '_blank', 'noopener,noreferrer');
+                                }
+                              }}
+                            />
+                          ) : (
+                            <GhostMessageComponent
+                              id={msg.id}
+                              role={msg.role}
+                              content={msg.content}
+                              timestamp={msg.timestamp}
+                              isStreaming={msg.isStreaming}
+                              responseTimeMs={msg.responseTimeMs}
+                              tokenCount={msg.tokenCount}
+                              contextUsagePercent={msg.contextUsagePercent}
+                              attachments={msg.attachments}
+                              showDate={settings?.show_message_date ?? true}
+                              showExternalLinkWarning={settings?.show_external_link_warning ?? false}
+                              onEdit={handleMessageEdit}
+                              onRegenerate={handleRegenerate}
+                              onDelete={handleDeleteMessage}
+                              onFork={handleForkConversation}
+                              onShorten={handleShortenResponse}
+                              onElaborate={handleElaborateResponse}
+                              onCreateImage={handleCreateImage}
+                              onCreateVideo={handleCreateVideo}
+                              onFeedback={handleFeedback}
+                              onShare={handleShare}
+                              onReport={handleReport}
+                              onStopGeneration={handleStopGeneration}
+                            />
+                          )}
                           {/* Show memory sources for assistant messages */}
-                          {msg.role === 'assistant' && msg.memorySources && msg.memorySources.length > 0 && (
+                          {msg.role === 'assistant' && msg.memorySources && msg.memorySources.length > 0 && !msg.isGrounded && (
                             <MemorySourcesCard sources={msg.memorySources} className="mt-3" />
                           )}
                         </div>
@@ -2683,6 +2752,22 @@ Use this context to inform your response when relevant. Cite sources by number w
                   }}
                   className="mb-2"
                 />
+                {/* Grounded Mode Toggle - for text mode only */}
+                {mode === 'text' && (
+                  <div className="mb-2 flex items-center gap-2">
+                    <GroundedModeToggle
+                      isGrounded={groundedMode}
+                      onToggle={setGroundedMode}
+                      disabled={isStreaming || !memory.isInitialized}
+                      documentsCount={documentsCount}
+                    />
+                    {groundedMode && documentsCount > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        AI will cite from {documentsCount} document{documentsCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {/* Multi-file attachment preview */}
                 {attachedFiles.length > 0 && (
                   <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
