@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Lock, Eye, EyeOff, Loader2 } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ interface VaultUnlockDialogProps {
 }
 
 export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnlockDialogProps) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +37,7 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
     e.preventDefault();
     
     if (!password) {
-      setError('Please enter your password');
+      setError(t('vault.unlock.enterPassword', 'Please enter your password'));
       return;
     }
     
@@ -50,10 +52,10 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
         onOpenChange(false);
         onUnlocked?.();
       } else {
-        setError('Incorrect password. Please try again.');
+        setError(t('vault.unlock.incorrectPassword', 'Incorrect password. Please try again.'));
       }
     } catch (err) {
-      setError('Failed to unlock vault');
+      setError(t('vault.unlock.failed', 'Failed to unlock vault'));
     } finally {
       setIsUnlocking(false);
     }
@@ -68,9 +70,9 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
               <Lock className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <DialogTitle>Unlock Your Vault</DialogTitle>
+              <DialogTitle>{t('vault.unlock.title', 'Unlock Your Vault')}</DialogTitle>
               <DialogDescription>
-                Enter your encryption password to access your secure messages
+                {t('vault.unlock.description', 'Enter your encryption password to access your secure messages')}
               </DialogDescription>
             </div>
           </div>
@@ -78,7 +80,7 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
         
         <form onSubmit={handleUnlock} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Encryption Password</Label>
+            <Label htmlFor="password">{t('vault.unlock.passwordLabel', 'Encryption Password')}</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -88,7 +90,7 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
                   setPassword(e.target.value);
                   setError('');
                 }}
-                placeholder="Enter your password"
+                placeholder={t('vault.unlock.passwordPlaceholder', 'Enter your password')}
                 autoFocus
                 disabled={isUnlocking}
               />
@@ -119,7 +121,7 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
               className="flex-1"
               disabled={isUnlocking}
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button 
               type="submit" 
@@ -129,10 +131,10 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: VaultUnloc
               {isUnlocking ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Unlocking...
+                  {t('vault.unlock.unlocking', 'Unlocking...')}
                 </>
               ) : (
-                'Unlock Vault'
+                t('vault.unlock.submit', 'Unlock Vault')
               )}
             </Button>
           </div>

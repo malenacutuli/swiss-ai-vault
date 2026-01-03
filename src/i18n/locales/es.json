@@ -2427,8 +2427,18 @@
   "vault": {
     "title": "Bóveda",
     "subtitle": "Tu almacenamiento cifrado personal",
-    "unlock": "Desbloquear Bóveda",
     "lock": "Bloquear Bóveda",
+    "unlock": {
+      "title": "Desbloquear Tu Bóveda",
+      "description": "Ingresa tu contraseña de cifrado para acceder a tus mensajes seguros",
+      "passwordLabel": "Contraseña de Cifrado",
+      "passwordPlaceholder": "Ingresa tu contraseña",
+      "enterPassword": "Por favor ingresa tu contraseña",
+      "incorrectPassword": "Contraseña incorrecta. Por favor intenta de nuevo.",
+      "failed": "Error al desbloquear la bóveda",
+      "unlocking": "Desbloqueando...",
+      "submit": "Desbloquear Bóveda"
+    },
     "setup": {
       "title": "Configurar Bóveda",
       "subtitle": "Crea una contraseña para proteger tus datos",
