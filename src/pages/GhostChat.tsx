@@ -2752,22 +2752,6 @@ Use this context to inform your response when relevant. Cite sources by number w
                   }}
                   className="mb-2"
                 />
-                {/* Grounded Mode Toggle - for text mode only */}
-                {mode === 'text' && (
-                  <div className="mb-2 flex items-center gap-2">
-                    <GroundedModeToggle
-                      isGrounded={groundedMode}
-                      onToggle={setGroundedMode}
-                      disabled={isStreaming || !memory.isInitialized}
-                      documentsCount={documentsCount}
-                    />
-                    {groundedMode && documentsCount > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        AI will cite from {documentsCount} document{documentsCount !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
-                )}
                 {/* Multi-file attachment preview */}
                 {attachedFiles.length > 0 && (
                   <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">

@@ -2466,5 +2466,20 @@
       "unlocked": "Vault Unlocked",
       "notInitialized": "Vault Not Initialized"
     }
+  },
+  "library": {
+    "title": "Library",
+    "items": "items",
+    "delete": "Delete",
+    "all": "All",
+    "images": "Images",
+    "videos": "Videos",
+    "searchPlaceholder": "Search library...",
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "name": "Name"
+  },
+  "common": {
+    "cancel": "Cancel"
   }
 }
