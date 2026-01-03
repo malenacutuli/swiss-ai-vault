@@ -143,7 +143,6 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-primary" />
                   <h2 className="text-xl font-semibold">{t('memory.insights.knowledgeBrain', 'Your Knowledge Brain')}</h2>
                   {isRunning && (
                     <Badge variant="secondary" className="animate-pulse">
