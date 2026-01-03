@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
@@ -403,6 +403,19 @@ Use this context to inform your response when relevant. Cite sources by number w
       setMemorySearching(false);
     }
   }, [memoryEnabled, isVaultUnlocked, memory]);
+
+  // Compute last assistant message for TTS
+  const lastAssistantMessage = useMemo(() => {
+    if (!messages || messages.length === 0) return undefined;
+    
+    // Find the last assistant message that is fully decrypted
+    const assistantMessages = messages.filter(m => m.role === 'assistant' && m.decrypted);
+    const lastMsg = assistantMessages[assistantMessages.length - 1];
+    
+    // Return content, handling potential markdown or long content
+    // TTS has 4096 char limit
+    return lastMsg?.content?.substring(0, 4096);
+  }, [messages]);
 
   // Integration handlers
   const handleToggleIntegration = useCallback(async (type: string) => {
@@ -1942,6 +1955,7 @@ Assistant: "${assistantResponse.substring(0, 200)}"`
                   onConnectIntegration={handleConnectIntegration}
                   retentionMode={currentRetentionMode}
                   onRetentionModeChange={handleRetentionModeChange}
+                  lastAssistantMessage={lastAssistantMessage}
                 />
                 {hasContext && (
                   <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
