@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function DistillInsightsButton({ onComplete }: Props) {
+  const { t } = useTranslation();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   const { toast } = useToast();
   
@@ -52,7 +54,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
     try {
       const key = getMasterKey();
       if (!key) {
-        setError('Please unlock your vault first');
+        setError(t('memory.distill.unlockFirst', 'Please unlock your vault first'));
         setStage('idle');
         return;
       }
@@ -75,10 +77,10 @@ export function DistillInsightsButton({ onComplete }: Props) {
       
     } catch (err) {
       console.error('Failed to scan memories:', err);
-      setError('Failed to scan memories');
+      setError(t('memory.distill.scanFailed', 'Failed to scan memories'));
       setStage('idle');
     }
-  }, [getMasterKey]);
+  }, [getMasterKey, t]);
   
   const handleDistill = useCallback(async () => {
     setStage('processing');
@@ -88,7 +90,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
     try {
       const key = getMasterKey();
       if (!key) {
-        setError('Please unlock your vault first');
+        setError(t('memory.distill.unlockFirst', 'Please unlock your vault first'));
         setStage('idle');
         return;
       }
@@ -109,7 +111,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
         .filter(m => !distilledIds.has(m.item.id))
         .map(m => ({
           id: m.item.id,
-          title: m.item.metadata.title || 'Untitled',
+          title: m.item.metadata.title || t('memory.distill.untitled', 'Untitled'),
           content: m.item.content,
           source: m.item.metadata.source
         }));
@@ -136,16 +138,16 @@ export function DistillInsightsButton({ onComplete }: Props) {
       onComplete?.(insights);
       
       toast({
-        title: 'Insights extracted',
-        description: `Created ${insights.length} structured insights from your conversations`
+        title: t('memory.distill.insightsExtracted', 'Insights extracted'),
+        description: t('memory.distill.createdInsights', 'Created {{count}} structured insights from your conversations').replace('{{count}}', String(insights.length))
       });
       
     } catch (err) {
       console.error('Distill failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to distill conversations');
+      setError(err instanceof Error ? err.message : t('memory.distill.failed', 'Failed to distill conversations'));
       setStage('idle');
     }
-  }, [getMasterKey, onComplete, toast]);
+  }, [getMasterKey, onComplete, toast, t]);
   
   const handleClose = () => {
     setIsOpen(false);
@@ -168,7 +170,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
         disabled={!isUnlocked}
       >
         <Sparkles className="h-4 w-4 mr-2" />
-        Distill Insights
+        {t('memory.distill.button', 'Distill Insights')}
       </Button>
       
       <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -176,10 +178,10 @@ export function DistillInsightsButton({ onComplete }: Props) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              Distill Insights
+              {t('memory.distill.title', 'Distill Insights')}
             </DialogTitle>
             <DialogDescription>
-              AI extracts key points, topics, and action items from your conversations.
+              {t('memory.distill.description', 'AI extracts key points, topics, and action items from your conversations.')}
             </DialogDescription>
           </DialogHeader>
           
@@ -193,20 +195,19 @@ export function DistillInsightsButton({ onComplete }: Props) {
               </div>
               
               <p className="text-center text-sm text-muted-foreground">
-                Analyze your imported conversations to extract structured insights like 
-                key points, topics, action items, and decisions.
+                {t('memory.distill.analyzeDescription', 'Analyze your imported conversations to extract structured insights like key points, topics, action items, and decisions.')}
               </p>
               
               {undistilledCount > 0 ? (
                 <div className="text-center">
                   <Badge variant="secondary" className="mb-4">
-                    {undistilledCount} conversation{undistilledCount !== 1 ? 's' : ''} to analyze
+                    {t('memory.distill.conversationsToAnalyze', '{{count}} conversation(s) to analyze').replace('{{count}}', String(undistilledCount))}
                   </Badge>
                 </div>
               ) : undistilledCount === 0 && (
                 <div className="text-center">
                   <Badge variant="outline" className="mb-4">
-                    All conversations already analyzed
+                    {t('memory.distill.allAnalyzed', 'All conversations already analyzed')}
                   </Badge>
                 </div>
               )}
@@ -217,7 +218,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
                 disabled={undistilledCount === 0}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Start Distilling
+                {t('memory.distill.startDistilling', 'Start Distilling')}
               </Button>
             </div>
           )}
@@ -231,7 +232,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
                 </div>
               </div>
               <p className="text-center text-sm text-muted-foreground">
-                Scanning your memories...
+                {t('memory.distill.scanning', 'Scanning your memories...')}
               </p>
             </div>
           )}
@@ -249,10 +250,10 @@ export function DistillInsightsButton({ onComplete }: Props) {
               
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium truncate">
-                  Analyzing: {progress.title}
+                  {t('memory.distill.analyzing', 'Analyzing')}: {progress.title}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {progress.current} of {progress.total} conversations
+                  {progress.current} {t('memory.distill.of', 'of')} {progress.total} {t('memory.distill.conversations', 'conversations')}
                 </p>
               </div>
             </div>
@@ -268,7 +269,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
               </div>
               <p className="text-center text-sm text-destructive">{error}</p>
               <Button variant="outline" onClick={handleClose} className="w-full">
-                Close
+                {t('common.close', 'Close')}
               </Button>
             </div>
           )}
@@ -285,7 +286,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
               
               <div className="text-center">
                 <p className="text-2xl font-bold">{results.length}</p>
-                <p className="text-sm text-muted-foreground">insights created</p>
+                <p className="text-sm text-muted-foreground">{t('memory.distill.insightsCreated', 'insights created')}</p>
               </div>
               
               {/* Results Preview */}
@@ -307,7 +308,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
                               <div>
                                 <div className="flex items-center gap-1 text-xs font-medium mb-1">
                                   <Lightbulb className="h-3 w-3" />
-                                  Key Points
+                                  {t('memory.distill.keyPoints', 'Key Points')}
                                 </div>
                                 <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
                                   {insight.keyPoints.slice(0, 3).map((point, i) => (
@@ -333,7 +334,7 @@ export function DistillInsightsButton({ onComplete }: Props) {
                               <div>
                                 <div className="flex items-center gap-1 text-xs font-medium mb-1">
                                   <ListChecks className="h-3 w-3" />
-                                  Action Items
+                                  {t('memory.distill.actionItems', 'Action Items')}
                                 </div>
                                 <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
                                   {insight.actionItems.map((item, i) => (
@@ -350,14 +351,14 @@ export function DistillInsightsButton({ onComplete }: Props) {
                   
                   {results.length > 5 && (
                     <p className="text-xs text-muted-foreground text-center py-2">
-                      +{results.length - 5} more insights
+                      +{results.length - 5} {t('memory.distill.moreInsights', 'more insights')}
                     </p>
                   )}
                 </ScrollArea>
               )}
               
               <Button onClick={handleClose} className="w-full">
-                Done
+                {t('common.done', 'Done')}
               </Button>
             </div>
           )}

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -34,6 +35,7 @@ interface ImportResult {
 }
 
 export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportChatGPTModalProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   
@@ -50,12 +52,12 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
     // Check vault is unlocked
     const key = getMasterKey();
     if (!key) {
-      setError('Please unlock your vault first to import conversations');
+      setError(t('memory.import.unlockFirst', 'Please unlock your vault first to import conversations'));
       return;
     }
     
     if (!file.name.endsWith('.json')) {
-      setError('Please upload a JSON file');
+      setError(t('memory.import.jsonOnly', 'Please upload a JSON file'));
       return;
     }
     
@@ -68,7 +70,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
       setDetectedSource(source);
       
       if (conversations.length === 0) {
-        throw new Error('No valid conversations found in file');
+        throw new Error(t('memory.import.noConversations', 'No valid conversations found in file'));
       }
       
       // Import using universal importer
@@ -85,10 +87,10 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
       
     } catch (err) {
       console.error('[ImportHistory] Error:', err);
-      setError(err instanceof Error ? err.message : 'Import failed');
+      setError(err instanceof Error ? err.message : t('memory.import.failed', 'Import failed'));
       setStage('error');
     }
-  }, [getMasterKey]);
+  }, [getMasterKey, t]);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -131,13 +133,13 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            {stage === 'complete' ? 'Import Complete!' : 'Import AI History'}
+            {stage === 'complete' ? t('memory.import.complete', 'Import Complete!') : t('memory.import.title', 'Import AI History')}
           </DialogTitle>
           <DialogDescription>
-            {stage === 'upload' && 'Import conversations from any AI platform. We auto-detect the format.'}
-            {stage === 'importing' && `Processing ${sourceLabel} conversations...`}
-            {stage === 'complete' && 'Your memories are ready to use'}
-            {stage === 'error' && 'Something went wrong'}
+            {stage === 'upload' && t('memory.import.uploadDescription', 'Import conversations from any AI platform. We auto-detect the format.')}
+            {stage === 'importing' && t('memory.import.processing', 'Processing {{source}} conversations...').replace('{{source}}', sourceLabel)}
+            {stage === 'complete' && t('memory.import.ready', 'Your memories are ready to use')}
+            {stage === 'error' && t('memory.import.error', 'Something went wrong')}
           </DialogDescription>
         </DialogHeader>
         
@@ -157,7 +159,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
                 <p className="text-sm text-amber-600 dark:text-amber-400">
-                  Please unlock your vault first to import conversations
+                  {t('memory.import.unlockFirst', 'Please unlock your vault first to import conversations')}
                 </p>
               </div>
             )}
@@ -176,11 +178,11 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
               <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
                 {isDragActive 
-                  ? 'Drop your file here' 
-                  : 'Drag & drop your export file, or click to browse'}
+                  ? t('memory.import.dropHere', 'Drop your file here') 
+                  : t('memory.import.dragDrop', 'Drag & drop your export file, or click to browse')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Accepts .json files
+                {t('memory.import.acceptsJson', 'Accepts .json files')}
               </p>
             </div>
             
@@ -190,7 +192,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
                 <AccordionTrigger className="text-sm py-2">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Export from ChatGPT
+                    {t('memory.import.exportFrom', 'Export from')} ChatGPT
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-muted-foreground">
@@ -202,7 +204,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
                 <AccordionTrigger className="text-sm py-2">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Export from Claude
+                    {t('memory.import.exportFrom', 'Export from')} Claude
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-muted-foreground">
@@ -214,7 +216,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
                 <AccordionTrigger className="text-sm py-2">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Export from Gemini
+                    {t('memory.import.exportFrom', 'Export from')} Gemini
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-muted-foreground">
@@ -234,7 +236,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
                 <AccordionTrigger className="text-sm py-2">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Export from Perplexity
+                    {t('memory.import.exportFrom', 'Export from')} Perplexity
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-muted-foreground">
@@ -246,7 +248,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
                 <AccordionTrigger className="text-sm py-2">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Export from Grok
+                    {t('memory.import.exportFrom', 'Export from')} Grok
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-muted-foreground">
@@ -258,7 +260,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
                 <AccordionTrigger className="text-sm py-2">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Export from Copilot
+                    {t('memory.import.exportFrom', 'Export from')} Copilot
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="text-xs text-muted-foreground">
@@ -283,15 +285,15 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
               {progress && (
                 <>
                   <p className="text-sm font-medium truncate">
-                    Importing "{progress.title}"
+                    {t('memory.import.importing', 'Importing')} "{progress.title}"
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {progress.current} of {progress.total} conversations
+                    {progress.current} {t('memory.distill.of', 'of')} {progress.total} {t('memory.distill.conversations', 'conversations')}
                   </p>
                 </>
               )}
               <p className="text-xs text-primary">
-                Generating embeddings for memory search...
+                {t('memory.import.generatingEmbeddings', 'Generating embeddings for memory search...')}
               </p>
             </div>
           </div>
@@ -311,7 +313,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
             </div>
             
             <Button onClick={handleReset} variant="outline" className="w-full">
-              Try Again
+              {t('memory.import.tryAgain', 'Try Again')}
             </Button>
           </div>
         )}
@@ -330,7 +332,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
             {detectedSource && (
               <div className="flex justify-center">
                 <Badge variant="secondary" className="text-xs">
-                  Imported from {sourceLabel}
+                  {t('memory.import.importedFrom', 'Imported from')} {sourceLabel}
                 </Badge>
               </div>
             )}
@@ -339,22 +341,22 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-2xl font-bold text-foreground">{result.imported}</p>
-                <p className="text-xs text-muted-foreground">Conversations</p>
+                <p className="text-xs text-muted-foreground">{t('memory.import.conversations', 'Conversations')}</p>
               </div>
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-2xl font-bold text-foreground">{result.totalMessages}</p>
-                <p className="text-xs text-muted-foreground">Messages</p>
+                <p className="text-xs text-muted-foreground">{t('memory.import.messages', 'Messages')}</p>
               </div>
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-2xl font-bold text-foreground">{result.topTopics.length}</p>
-                <p className="text-xs text-muted-foreground">Topics</p>
+                <p className="text-xs text-muted-foreground">{t('memory.import.topics', 'Topics')}</p>
               </div>
             </div>
             
             {/* Top Topics */}
             {result.topTopics.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Your Top Topics</p>
+                <p className="text-xs font-medium text-muted-foreground">{t('memory.import.yourTopTopics', 'Your Top Topics')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {result.topTopics.slice(0, 5).map((topic, i) => (
                     <Badge 
@@ -373,7 +375,7 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
             {result.failed > 0 && (
               <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                  {result.failed} conversation(s) couldn't be imported
+                  {t('memory.import.someFailed', "{{count}} conversation(s) couldn't be imported").replace('{{count}}', String(result.failed))}
                 </p>
               </div>
             )}
@@ -385,14 +387,14 @@ export function ImportChatGPTModal({ open, onOpenChange, onComplete }: ImportCha
                 variant="outline"
                 className="flex-1"
               >
-                Import More
+                {t('memory.import.importMore', 'Import More')}
               </Button>
               <Button 
                 onClick={handleExploreMemory}
                 className="flex-1"
               >
                 <Brain className="h-4 w-4 mr-2" />
-                View Memory
+                {t('memory.import.viewMemory', 'View Memory')}
               </Button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 // src/components/memory/SyncStatusIndicator.tsx
 
+import { useTranslation } from 'react-i18next';
 import { Cloud, CloudOff, Loader2, AlertCircle, Check, HardDrive } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import {
 import { useMemorySync } from '@/hooks/useMemorySync';
 
 export function SyncStatusIndicator() {
+  const { t } = useTranslation();
   const { 
     status, 
     connected, 
@@ -24,12 +26,12 @@ export function SyncStatusIndicator() {
   
   // Format last sync time
   const formatTime = (timestamp: number | null) => {
-    if (!timestamp) return 'Never synced';
+    if (!timestamp) return t('memory.sync.never', 'Never synced');
     
     const diff = Date.now() - timestamp;
     const minutes = Math.floor(diff / 60000);
     
-    if (minutes < 1) return 'Just now';
+    if (minutes < 1) return t('memory.sync.justNow', 'Just now');
     if (minutes < 60) return `${minutes}m ago`;
     
     const hours = Math.floor(minutes / 60);
@@ -44,7 +46,7 @@ export function SyncStatusIndicator() {
       case 'google-drive': return 'Google Drive';
       case 's3': return 'Amazon S3';
       case 'swissvault-cloud': return 'SwissVault Cloud';
-      default: return 'Local';
+      default: return t('memory.sync.localOnly', 'Local Only');
     }
   };
   
@@ -55,13 +57,13 @@ export function SyncStatusIndicator() {
           <TooltipTrigger asChild>
             <Badge variant="secondary" className="gap-1 cursor-default">
               <HardDrive className="h-3 w-3" />
-              Local Only
+              {t('memory.sync.localOnly', 'Local Only')}
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="font-medium">Memory is stored locally on this device only.</p>
+            <p className="font-medium">{t('memory.sync.localOnlyDesc', 'Memory is stored locally on this device only.')}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Enable sync in Sync Settings for backup.
+              {t('memory.sync.enableSyncHint', 'Enable sync in Sync Settings for backup.')}
             </p>
           </TooltipContent>
         </Tooltip>
