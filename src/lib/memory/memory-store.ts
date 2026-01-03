@@ -1582,3 +1582,133 @@ export async function getVoiceNotesCount(encryptionKey: CryptoKey): Promise<numb
   const voiceNotes = await getVoiceNotes(encryptionKey);
   return voiceNotes.length;
 }
+
+// ==========================================
+// AUDIO BRIEFINGS
+// ==========================================
+
+import type { AudioBriefing, DialoguePart, BriefingOutline } from '@/types/audio-briefing';
+
+interface StoredAudioBriefing {
+  id: string;
+  type: 'audio_briefing';
+  title: string;
+  content: string;
+  metadata: {
+    format: string;
+    duration: string;
+    audioDataUrl?: string;
+    transcript: DialoguePart[];
+    outline: BriefingOutline;
+    sourceDocuments: string[];
+    createdAt: string;
+    status: string;
+    projectId?: string;
+  };
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * Save audio briefing to IndexedDB
+ * Audio stays LOCAL - never sent to servers
+ */
+export async function saveAudioBriefing(briefing: AudioBriefing): Promise<string> {
+  const database = await getDB();
+  
+  const id = briefing.id || crypto.randomUUID();
+  
+  const item: StoredAudioBriefing = {
+    id,
+    type: 'audio_briefing',
+    title: briefing.title,
+    content: briefing.transcript.map(p => `${p.speaker}: ${p.text}`).join('\n'),
+    metadata: {
+      format: briefing.format,
+      duration: briefing.duration,
+      audioDataUrl: briefing.audioDataUrl,
+      transcript: briefing.transcript,
+      outline: briefing.outline,
+      sourceDocuments: briefing.sourceDocuments,
+      createdAt: briefing.createdAt,
+      status: briefing.status,
+      projectId: briefing.projectId,
+    },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(item);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Audio briefing saved:', id);
+  return id;
+}
+
+/**
+ * Get all audio briefings
+ */
+export async function getAudioBriefings(): Promise<AudioBriefing[]> {
+  const database = await getDB();
+  
+  const allItems: StoredAudioBriefing[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  
+  return allItems
+    .filter(item => item.type === 'audio_briefing')
+    .map(item => ({
+      id: item.id,
+      projectId: item.metadata.projectId,
+      title: item.title,
+      format: item.metadata.format as AudioBriefing['format'],
+      duration: item.metadata.duration as AudioBriefing['duration'],
+      audioUrl: undefined,
+      audioDataUrl: item.metadata.audioDataUrl,
+      transcript: item.metadata.transcript,
+      outline: item.metadata.outline,
+      sourceDocuments: item.metadata.sourceDocuments,
+      createdAt: item.metadata.createdAt,
+      status: item.metadata.status as AudioBriefing['status'],
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+/**
+ * Get audio briefings for a specific project
+ */
+export async function getProjectAudioBriefings(projectId: string): Promise<AudioBriefing[]> {
+  const allBriefings = await getAudioBriefings();
+  return allBriefings.filter(b => b.projectId === projectId);
+}
+
+/**
+ * Delete audio briefing
+ */
+export async function deleteAudioBriefing(id: string): Promise<void> {
+  const database = await getDB();
+  
+  await new Promise<void>((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  
+  console.log('[MemoryStore] Audio briefing deleted:', id);
+}
+
+/**
+ * Get audio briefings count
+ */
+export async function getAudioBriefingsCount(): Promise<number> {
+  const briefings = await getAudioBriefings();
+  return briefings.length;
+}
