@@ -1507,19 +1507,220 @@
       },
       "security": {
         "title": "Seguridad",
-        "description": "Ciber, herramientas de privacidad"
+        "subtitle": "Inteligencia de ciberseguridad privada",
+        "description": "Ciber, herramientas de privacidad",
+        "placeholder": "Buscar amenazas de seguridad, vulnerabilidades, herramientas...",
+        "exploreByCategory": "Explorar por Categoría",
+        "latestThreats": "Últimas Amenazas",
+        "threatIntelFor": "Inteligencia de amenazas para {{category}}",
+        "proRequired": {
+          "title": "Inteligencia de Seguridad es una Función Pro",
+          "description": "Accede a inteligencia de ciberseguridad privada, análisis de amenazas y herramientas de privacidad con Ghost Pro.",
+          "upgrade": "Mejorar a Pro"
+        },
+        "actions": {
+          "threats": "Amenazas",
+          "vulnerabilities": "Vulnerabilidades",
+          "tools": "Herramientas"
+        },
+        "suggestions": {
+          "threats": {
+            "1": "Últimas campañas de ransomware dirigidas a empresas",
+            "2": "Principales brechas de datos en los últimos 6 meses",
+            "3": "Riesgos de exposición de datos personales en sistemas de IA"
+          },
+          "vulnerabilities": {
+            "1": "CVEs críticos en software empresarial este mes",
+            "2": "Exploits de día cero activos en la naturaleza",
+            "3": "Análisis de vulnerabilidades de hardware y firmware"
+          },
+          "tools": {
+            "1": "Mejores herramientas de privacidad para navegación segura",
+            "2": "Software de cifrado de código abierto recomendado",
+            "3": "Herramientas de análisis de seguridad empresarial"
+          }
+        }
       },
       "health": {
         "title": "Salud",
-        "description": "Longevidad, clínico"
+        "subtitle": "Inteligencia de salud privada",
+        "description": "Ensayos clínicos, tratamientos e investigación médica",
+        "placeholder": "Buscar condiciones, tratamientos, ensayos clínicos...",
+        "exploreByCategory": "Explorar por especialidad",
+        "researchIn": "Últimas investigaciones en {{category}}",
+        "privacyNotice": "Tus consultas de salud están cifradas y nunca se almacenan",
+        "disclaimer": "Esta información es solo para fines educativos. Siempre consulta con profesionales de salud calificados para consejos médicos.",
+        "proRequired": {
+          "title": "Inteligencia de Salud es una Función Pro",
+          "description": "Accede a inteligencia de salud privada, ensayos clínicos e investigación médica con Ghost Pro.",
+          "upgrade": "Mejorar a Pro"
+        },
+        "actions": {
+          "conditions": "Condiciones",
+          "treatments": "Tratamientos",
+          "trials": "Ensayos Clínicos"
+        },
+        "suggestions": {
+          "conditions": {
+            "1": "Últimas investigaciones sobre manejo de diabetes tipo 2",
+            "2": "Avances en tratamiento de enfermedad de Alzheimer",
+            "3": "Nuevos hallazgos sobre condiciones autoinmunes"
+          },
+          "treatments": {
+            "1": "Medicamentos GLP-1 para salud metabólica",
+            "2": "Avances en inmunoterapia para tratamiento del cáncer",
+            "3": "Aplicaciones actuales de terapia con células madre"
+          },
+          "trials": {
+            "1": "Ensayos Fase 3 activos para enfermedad cardiovascular",
+            "2": "Ensayos clínicos reclutando para investigación de longevidad",
+            "3": "Ensayos de terapia génica aceptando participantes"
+          }
+        }
       },
       "travel": {
         "title": "Viajes",
-        "description": "Privado, exclusivo"
+        "subtitle": "Inteligencia de viajes de lujo",
+        "description": "Destinos de lujo, hoteles y experiencias exclusivas",
+        "placeholder": "Buscar destinos, hoteles, experiencias...",
+        "trendingDestinations": "Destinos en Tendencia",
+        "inspiration": "Inspiración",
+        "exploreRegion": "Explorar viajes de lujo en {{region}}",
+        "proRequired": {
+          "title": "Inteligencia de Viajes es una Función Pro",
+          "description": "Accede a planificación de viajes de lujo, insights de destinos y experiencias exclusivas con Ghost Pro.",
+          "upgrade": "Mejorar a Pro"
+        },
+        "actions": {
+          "destinations": "Destinos",
+          "hotels": "Hoteles de Lujo",
+          "experiences": "Experiencias"
+        },
+        "suggestions": {
+          "destinations": {
+            "1": "Mejores destinos de lujo en Europa para invierno 2025",
+            "2": "Resorts de islas privadas exclusivos en las Maldivas",
+            "3": "Mejores retiros de bienestar en el Sudeste Asiático"
+          },
+          "hotels": {
+            "1": "Mejores resorts Aman para visitantes primerizos",
+            "2": "Hoteles palacio mejor valorados en India para viajeros de lujo",
+            "3": "Nuevas aperturas de hoteles de lujo en 2025"
+          },
+          "experiences": {
+            "1": "Experiencias de safari privado en África Oriental",
+            "2": "Viajes culinarios exclusivos en Japón",
+            "3": "Acceso VIP a eventos culturales en Europa"
+          }
+        }
       },
       "realestate": {
         "title": "Bienes Raíces",
-        "description": "Propiedades de lujo"
+        "subtitle": "Inteligencia de inversión inmobiliaria",
+        "description": "Propiedades de lujo, análisis de mercado e insights de inversión",
+        "placeholder": "Buscar propiedades, mercados, inversiones...",
+        "featuredMarkets": "Mercados Destacados",
+        "exploreByCategory": "Explorar por Categoría",
+        "categorySearch": "Propiedades de {{category}} en {{region}}",
+        "proRequired": {
+          "title": "Inteligencia Inmobiliaria es una Función Pro",
+          "description": "Accede a análisis del mercado inmobiliario, insights de inversión y datos de propiedades de lujo con Ghost Pro.",
+          "upgrade": "Mejorar a Pro"
+        },
+        "actions": {
+          "properties": "Propiedades",
+          "market": "Análisis de Mercado",
+          "investment": "Inversión"
+        },
+        "suggestions": {
+          "properties": {
+            "1": "Propiedades residenciales de lujo en los Alpes Suizos",
+            "2": "Propiedades frente al mar en el Mediterráneo",
+            "3": "Áticos en los principales centros financieros"
+          },
+          "market": {
+            "1": "Tendencias del mercado inmobiliario comercial en Londres",
+            "2": "Pronóstico del mercado residencial para {{region}} 2025",
+            "3": "Mercados inmobiliarios emergentes en el Sudeste Asiático"
+          },
+          "investment": {
+            "1": "Análisis de rendimiento de REITs para Q4 2024",
+            "2": "Mejores oportunidades de inversión inmobiliaria en {{region}}",
+            "3": "Tendencias de inversión en propiedades industriales"
+          }
+        }
+      },
+      "art": {
+        "title": "Arte",
+        "subtitle": "Inteligencia de inversión y subastas de arte",
+        "description": "Insights de subastas, análisis de artistas y tendencias del mercado del arte",
+        "placeholder": "Buscar artistas, subastas, tendencias del mercado...",
+        "exploreByCategory": "Explorar por Categoría",
+        "upcomingAuctions": "Próximas Subastas",
+        "marketTrendsIn": "Tendencias del mercado en {{category}}",
+        "proRequired": {
+          "title": "Inteligencia de Arte es una Función Pro",
+          "description": "Accede a insights de subastas, análisis del mercado de artistas e inteligencia de inversión en arte con Ghost Pro.",
+          "upgrade": "Mejorar a Pro"
+        },
+        "actions": {
+          "auctions": "Subastas",
+          "artists": "Artistas",
+          "investment": "Inversión"
+        },
+        "suggestions": {
+          "auctions": {
+            "1": "Próximas subastas de arte contemporáneo de Christie's y Sotheby's",
+            "2": "Ventas récord recientes en arte moderno",
+            "3": "Resultados de subastas de arte asiático en Hong Kong"
+          },
+          "artists": {
+            "1": "Artistas emergentes a seguir en 2025",
+            "2": "Tendencias de precios de obras de Basquiat en los últimos 5 años",
+            "3": "Artistas contemporáneos más coleccionados por museos"
+          },
+          "investment": {
+            "1": "Rendimiento del mercado del arte comparado con S&P 500",
+            "2": "Artistas blue-chip con apreciación consistente",
+            "3": "Fondos de inversión en arte y opciones de propiedad fraccional"
+          }
+        }
+      },
+      "vc": {
+        "title": "Capital de Riesgo",
+        "subtitle": "Inteligencia de deal flow y startups",
+        "description": "Rondas de financiación, análisis de startups y seguimiento de inversores",
+        "placeholder": "Buscar deals, startups, inversores, sectores...",
+        "exploreBySector": "Explorar por Sector",
+        "recentRounds": "Rondas Importantes Recientes",
+        "dealsIn": "Deals recientes de {{sector}} en {{region}}",
+        "proRequired": {
+          "title": "Inteligencia de Capital de Riesgo es una Función Pro",
+          "description": "Accede a insights de deal flow, inteligencia de startups y seguimiento de inversores con Ghost Pro.",
+          "upgrade": "Mejorar a Pro"
+        },
+        "actions": {
+          "deals": "Deal Flow",
+          "startups": "Startups",
+          "investors": "Inversores"
+        },
+        "suggestions": {
+          "deals": {
+            "1": "Mayores rondas Serie A en IA este trimestre",
+            "2": "Rondas de financiación fintech recientes en {{region}}",
+            "3": "Deals de climate tech superiores a $50M este año"
+          },
+          "startups": {
+            "1": "Startups de IA de rápido crecimiento a seguir en 2025",
+            "2": "Destacados del batch YC Winter 2024",
+            "3": "Startups emergentes de healthtech en Europa"
+          },
+          "investors": {
+            "1": "VCs más activos en SaaS empresarial",
+            "2": "Principales inversores seed en {{region}}",
+            "3": "Corporate VCs invirtiendo en IA"
+          }
+        }
       }
     },
     "discover": {
@@ -1541,7 +1742,43 @@
       "financialRegulations": "Regulaciones Financieras",
       "dataProtection": "Protección de Datos",
       "corporateSecurities": "Corporativo y Valores",
-      "crossBorderCompliance": "Cumplimiento Transfronterizo"
+      "crossBorderCompliance": "Cumplimiento Transfronterizo",
+      "ransomware": "Ransomware",
+      "dataBreaches": "Brechas de Datos",
+      "phishing": "Phishing e Ingeniería Social",
+      "zeroDay": "Exploits de Día Cero",
+      "nationState": "Amenazas de Estados-Nación",
+      "cryptoSecurity": "Seguridad Cripto",
+      "cardiology": "Cardiología",
+      "oncology": "Oncología",
+      "neurology": "Neurología",
+      "longevity": "Longevidad",
+      "mentalHealth": "Salud Mental",
+      "preventive": "Cuidado Preventivo",
+      "europe": "Europa",
+      "asia": "Asia",
+      "caribbean": "Caribe",
+      "middleEast": "Medio Oriente",
+      "africa": "África",
+      "oceania": "Oceanía",
+      "residential": "Residencial",
+      "commercial": "Comercial",
+      "industrial": "Industrial",
+      "land": "Terrenos",
+      "international": "Internacional",
+      "reits": "REITs",
+      "contemporaryArt": "Arte Contemporáneo",
+      "modernArt": "Arte Moderno",
+      "oldMasters": "Maestros Antiguos",
+      "photography": "Fotografía",
+      "sculpture": "Escultura",
+      "digitalArt": "Arte Digital y NFTs",
+      "aiMl": "IA y Machine Learning",
+      "fintech": "Fintech",
+      "healthtech": "Healthtech",
+      "climatetech": "Climate Tech",
+      "saas": "SaaS Empresarial",
+      "web3": "Web3 y Cripto"
     },
     "search": {
       "placeholder": "Buscar en la web...",
@@ -1736,5 +1973,343 @@
     "successMessage": "¡Cuenta creada! Redirigiendo a Ghost Chat...",
     "signupFailed": "Error al registrarse",
     "oauthFailed": "Error en registro OAuth"
+  },
+  "memory": {
+    "title": "Memoria Personal de IA",
+    "subtitle": "Tu segundo cerebro privado y cifrado",
+    "description": "Sube documentos, notas de voz y conversaciones. Todo cifrado localmente con conocimiento cero.",
+    "dashboard": {
+      "title": "Panel de Memoria",
+      "subtitle": "Tu base de conocimiento personal cifrada",
+      "stats": {
+        "totalDocuments": "Total de Documentos",
+        "totalInsights": "Insights Generados",
+        "storageUsed": "Almacenamiento Usado",
+        "lastSync": "Última Sincronización"
+      },
+      "tabs": {
+        "all": "Todo",
+        "documents": "Documentos",
+        "chats": "Conversaciones",
+        "insights": "Insights",
+        "voiceNotes": "Notas de Voz",
+        "briefings": "Briefings de Audio"
+      },
+      "quickStart": {
+        "title": "Inicio Rápido",
+        "uploadDocs": "Subir Documentos",
+        "importChats": "Importar Conversaciones",
+        "recordVoice": "Grabar Nota de Voz",
+        "connectSources": "Conectar Fuentes"
+      }
+    },
+    "upload": {
+      "title": "Subir a Memoria",
+      "dragDrop": "Arrastra y suelta archivos aquí",
+      "or": "o",
+      "browse": "Seleccionar archivos",
+      "supportedFormats": "Formatos soportados: PDF, DOCX, TXT, MD, CSV, JSON",
+      "uploading": "Subiendo...",
+      "processing": "Procesando...",
+      "success": "Subido correctamente",
+      "failed": "Error al subir",
+      "bulkUpload": "Subida Masiva",
+      "bulkUploadDesc": "Sube múltiples archivos a la vez"
+    },
+    "documents": {
+      "title": "Documentos",
+      "noDocuments": "No hay documentos aún",
+      "addFirst": "Sube tu primer documento para empezar",
+      "search": "Buscar documentos...",
+      "filter": {
+        "all": "Todos",
+        "pdf": "PDFs",
+        "docs": "Documentos",
+        "text": "Texto",
+        "other": "Otros"
+      },
+      "sort": {
+        "newest": "Más recientes",
+        "oldest": "Más antiguos",
+        "name": "Por nombre",
+        "size": "Por tamaño"
+      },
+      "actions": {
+        "view": "Ver",
+        "download": "Descargar",
+        "delete": "Eliminar",
+        "moveToFolder": "Mover a carpeta"
+      }
+    },
+    "folders": {
+      "title": "Carpetas",
+      "newFolder": "Nueva Carpeta",
+      "rename": "Renombrar",
+      "delete": "Eliminar",
+      "empty": "Carpeta vacía",
+      "uncategorized": "Sin categoría",
+      "moveHere": "Mover aquí",
+      "itemCount": "{{count}} elementos"
+    },
+    "insights": {
+      "title": "Insights",
+      "subtitle": "Descubrimientos generados por IA de tus documentos",
+      "noInsights": "No hay insights aún",
+      "generateFirst": "Destila insights de tus documentos",
+      "distill": "Destilar Insights",
+      "distilling": "Destilando...",
+      "distillComplete": "Destilación completada",
+      "distillFailed": "Error al destilar",
+      "scanMemories": "Escanear Memorias",
+      "scanFailed": "Error al escanear memorias",
+      "types": {
+        "summary": "Resumen",
+        "keyPoints": "Puntos Clave",
+        "connections": "Conexiones",
+        "questions": "Preguntas"
+      }
+    },
+    "voiceNotes": {
+      "title": "Notas de Voz",
+      "record": "Grabar Nota de Voz",
+      "recording": "Grabando...",
+      "stop": "Detener",
+      "transcribing": "Transcribiendo...",
+      "transcribed": "Transcrito",
+      "play": "Reproducir",
+      "pause": "Pausar",
+      "delete": "Eliminar",
+      "noNotes": "No hay notas de voz",
+      "recordFirst": "Graba tu primera nota de voz",
+      "microphoneDenied": "Acceso al micrófono denegado",
+      "microphoneHint": "Por favor, permite el acceso al micrófono en la configuración de tu navegador",
+      "uploadAudio": "O sube un archivo de audio"
+    },
+    "connectors": {
+      "title": "Conectores",
+      "subtitle": "Sincroniza datos de fuentes externas",
+      "googleDrive": "Google Drive",
+      "notion": "Notion",
+      "slack": "Slack",
+      "gmail": "Gmail",
+      "github": "GitHub",
+      "connected": "Conectado",
+      "notConnected": "No conectado",
+      "connect": "Conectar",
+      "disconnect": "Desconectar",
+      "syncing": "Sincronizando...",
+      "lastSync": "Última sincronización: {{time}}",
+      "syncNow": "Sincronizar ahora",
+      "syncFailed": "Error de sincronización",
+      "reconnect": "Reconectar",
+      "comingSoon": "Próximamente"
+    },
+    "import": {
+      "title": "Importar Conversaciones",
+      "chatgpt": "Importar de ChatGPT",
+      "claude": "Importar de Claude",
+      "uploadExport": "Sube tu archivo de exportación",
+      "importing": "Importando...",
+      "imported": "{{count}} conversaciones importadas",
+      "importFailed": "Error al importar"
+    },
+    "encryption": {
+      "title": "Cifrado de Memoria",
+      "status": "Estado del Cifrado",
+      "encrypted": "Cifrado Activo",
+      "setupRequired": "Configuración Requerida",
+      "unlockVault": "Desbloquear Bóveda",
+      "enterPassword": "Introduce tu contraseña",
+      "incorrectPassword": "Contraseña incorrecta",
+      "vaultLocked": "Bóveda Bloqueada",
+      "vaultUnlocked": "Bóveda Desbloqueada"
+    },
+    "search": {
+      "title": "Buscar en Memoria",
+      "placeholder": "Busca en todos tus documentos...",
+      "noResults": "No se encontraron resultados",
+      "searching": "Buscando...",
+      "resultsCount": "{{count}} resultados encontrados"
+    },
+    "sync": {
+      "title": "Sincronización",
+      "status": "Estado de Sincronización",
+      "synced": "Sincronizado",
+      "syncing": "Sincronizando...",
+      "offline": "Sin conexión",
+      "lastSync": "Última sincronización",
+      "syncNow": "Sincronizar ahora"
+    }
+  },
+  "projects": {
+    "title": "Proyectos",
+    "subtitle": "Espacios de trabajo para tus documentos",
+    "memoryTitle": "Proyectos de Memoria",
+    "memorySubtitle": "Organiza documentos en espacios de trabajo temáticos",
+    "newProject": "Nuevo Proyecto",
+    "createProject": "Crear Proyecto",
+    "projectName": "Nombre del proyecto",
+    "projectDescription": "Descripción del proyecto",
+    "projectColor": "Color del proyecto",
+    "customInstructions": "Instrucciones personalizadas",
+    "customInstructionsPlaceholder": "Instrucciones específicas para consultas en este proyecto...",
+    "noProjects": "Aún no hay proyectos",
+    "noProjectsYet": "Aún no hay proyectos",
+    "createFirstProject": "Crea tu primer proyecto para empezar",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar este proyecto?",
+    "deleteProject": "Eliminar Proyecto",
+    "deleteWarning": "Esta acción no se puede deshacer. Todos los documentos vinculados se desasociarán de este proyecto.",
+    "deleting": "Eliminando...",
+    "noMatchingProjects": "No hay proyectos que coincidan",
+    "adjustFilters": "Intenta ajustar tu búsqueda o filtros",
+    "noDescription": "Sin descripción",
+    "documents": "documentos",
+    "models": "modelos",
+    "created": "Creado",
+    "failedToLoad": "Error al cargar proyectos",
+    "addDocuments": "Añadir Documentos",
+    "addDocumentsDesc": "Añade documentos de tu memoria a este proyecto",
+    "removeDocument": "Quitar del Proyecto",
+    "noDocumentsInProject": "No hay documentos en este proyecto",
+    "addDocumentsFirst": "Añade documentos para empezar a consultar",
+    "askQuestion": "Haz una pregunta sobre este proyecto...",
+    "asking": "Consultando...",
+    "answerBased": "Respuesta basada en {{count}} documentos",
+    "citations": "Citas",
+    "noCitations": "Sin citas",
+    "briefMe": "Generar Briefing",
+    "briefMeDesc": "Genera un briefing de audio de los documentos del proyecto",
+    "projectQuery": {
+      "title": "Consultar Proyecto",
+      "placeholder": "Pregunta algo sobre los documentos de este proyecto...",
+      "noContext": "No hay documentos para consultar",
+      "thinking": "Analizando documentos...",
+      "sources": "Fuentes utilizadas"
+    },
+    "status": {
+      "setup": "Configuración",
+      "dataset": "Conjunto de datos",
+      "finetuning": "Ajuste fino",
+      "evaluation": "Evaluación",
+      "complete": "Completo",
+      "active": "Activo"
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar proyectos...",
+      "sortBy": "Ordenar por",
+      "allStatus": "Todos los estados",
+      "newest": "Más recientes",
+      "oldest": "Más antiguos",
+      "nameAsc": "Nombre (A-Z)",
+      "nameDesc": "Nombre (Z-A)"
+    }
+  },
+  "researchLibrary": {
+    "title": "Biblioteca de Investigación",
+    "subtitle": "Tu repositorio de investigación cifrado",
+    "description": "Guarda y organiza tus investigaciones con total privacidad",
+    "noItems": "No hay elementos en la biblioteca",
+    "addFirst": "Guarda tu primera investigación para empezar",
+    "tabs": {
+      "all": "Todo",
+      "reports": "Informes",
+      "summaries": "Resúmenes",
+      "sources": "Fuentes"
+    },
+    "actions": {
+      "save": "Guardar en Biblioteca",
+      "saved": "Guardado",
+      "export": "Exportar",
+      "delete": "Eliminar",
+      "share": "Compartir"
+    },
+    "filters": {
+      "dateRange": "Rango de fechas",
+      "topic": "Tema",
+      "source": "Fuente"
+    }
+  },
+  "briefings": {
+    "title": "Briefings de Audio",
+    "subtitle": "Podcasts generados por IA de tus documentos",
+    "generate": "Generar Briefing",
+    "generating": "Generando briefing...",
+    "generated": "Briefing generado",
+    "saved": "Briefing guardado",
+    "failed": "Error al generar briefing",
+    "noCredits": "Créditos insuficientes",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "download": "Descargar MP3",
+    "delete": "Eliminar",
+    "noBriefings": "No hay briefings aún",
+    "generateFirst": "Genera uno desde tus proyectos",
+    "format": {
+      "title": "Formato",
+      "deepDive": "Análisis Profundo",
+      "deepDiveDesc": "Discusión detallada entre dos expertos",
+      "quickBrief": "Resumen Rápido",
+      "quickBriefDesc": "Resumen conciso de puntos clave",
+      "debate": "Debate",
+      "debateDesc": "Perspectivas contrapuestas sobre el tema",
+      "critique": "Crítica",
+      "critiqueDesc": "Análisis crítico del contenido",
+      "tutorial": "Tutorial",
+      "tutorialDesc": "Explicación educativa paso a paso"
+    },
+    "duration": {
+      "title": "Duración",
+      "short": "Corto (3-5 min)",
+      "medium": "Medio (8-12 min)",
+      "long": "Largo (15-20 min)"
+    },
+    "progress": {
+      "analyzing": "Analizando documentos...",
+      "generating": "Generando guión...",
+      "synthesizing": "Sintetizando audio...",
+      "finalizing": "Finalizando..."
+    },
+    "deleteConfirm": {
+      "title": "¿Eliminar Briefing de Audio?",
+      "description": "Esto eliminará permanentemente este briefing y su audio. Esta acción no se puede deshacer."
+    }
+  },
+  "distill": {
+    "title": "Destilar Insights",
+    "subtitle": "Extrae conocimiento de tus documentos",
+    "scanning": "Escaneando memorias...",
+    "processing": "Procesando {{current}} de {{total}}",
+    "complete": "Destilación completada",
+    "failed": "Error en la destilación",
+    "noDocuments": "No hay documentos para destilar",
+    "startDistilling": "Iniciar Destilación",
+    "insightsGenerated": "{{count}} insights generados",
+    "types": {
+      "keyInsights": "Insights Clave",
+      "themes": "Temas Principales",
+      "connections": "Conexiones",
+      "questions": "Preguntas Abiertas",
+      "actionItems": "Elementos de Acción"
+    }
+  },
+  "vault": {
+    "title": "Bóveda",
+    "subtitle": "Tu almacenamiento cifrado personal",
+    "unlock": "Desbloquear Bóveda",
+    "lock": "Bloquear Bóveda",
+    "setup": {
+      "title": "Configurar Bóveda",
+      "subtitle": "Crea una contraseña para proteger tus datos",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "passwordHint": "Esta contraseña cifra todos tus datos localmente",
+      "create": "Crear Bóveda",
+      "creating": "Creando bóveda..."
+    },
+    "status": {
+      "locked": "Bóveda Bloqueada",
+      "unlocked": "Bóveda Desbloqueada",
+      "notInitialized": "Bóveda No Inicializada"
+    }
   }
 }
