@@ -88,16 +88,36 @@ export function useMemoryContext() {
         return { context: null, sources: [] };
       }
 
-      // Build context string
+      // Build context string with voice note support
       const contextParts = filtered.map((r, i) => {
-        const sourceLabel = r.source?.toUpperCase() || 'MEMORY';
-        const title = r.metadata?.title || r.metadata?.filename || `Memory ${i + 1}`;
+        const metadata = r.metadata as Record<string, unknown>;
+        const isVoiceNote = metadata?.isVoiceNote === true;
+        
+        // Determine source label
+        let sourceLabel: string;
+        if (isVoiceNote) {
+          sourceLabel = 'VOICE NOTE';
+        } else {
+          sourceLabel = (r.source?.toUpperCase() || 'MEMORY');
+        }
+        
+        const title = metadata?.title || metadata?.filename || `Memory ${i + 1}`;
         const score = Math.round((r.score || 0) * 100);
-        return `[${i + 1}. ${sourceLabel} - ${title} (${score}% relevant)]\n${r.content.slice(0, 400)}`;
+        
+        // Build content with voice note metadata
+        let content = r.content.slice(0, 400);
+        if (isVoiceNote && metadata?.recordedAt) {
+          const recordedDate = new Date(metadata.recordedAt as string).toLocaleDateString();
+          const duration = metadata?.duration as number;
+          const durationStr = duration ? ` (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')})` : '';
+          content = `[Recorded: ${recordedDate}${durationStr}]\n${content}`;
+        }
+        
+        return `[${i + 1}. ${sourceLabel} - ${title} (${score}% relevant)]\n${content}`;
       });
 
       const context = `[CONTEXT FROM YOUR PERSONAL MEMORY]
-The following information was retrieved from your stored documents, notes, and conversations:
+The following information was retrieved from your stored documents, notes, voice recordings, and conversations:
 
 ${contextParts.join('\n\n---\n\n')}
 
@@ -105,13 +125,17 @@ ${contextParts.join('\n\n---\n\n')}
 
 Use this context to inform your response when relevant. Cite sources by number when directly using information.`;
 
-      const sources = filtered.map((r, i) => ({
-        id: r.id || `memory-${i}`,
-        title: r.metadata?.title || r.metadata?.filename || `Memory ${i + 1}`,
-        content: r.content,
-        score: r.score || 0,
-        type: r.source || 'document',
-      }));
+      const sources = filtered.map((r, i) => {
+        const metadata = r.metadata as Record<string, unknown>;
+        const isVoiceNote = metadata?.isVoiceNote === true;
+        return {
+          id: r.id || `memory-${i}`,
+          title: (metadata?.title || metadata?.filename || `Memory ${i + 1}`) as string,
+          content: r.content,
+          score: r.score || 0,
+          type: isVoiceNote ? 'voice_note' : (r.source || 'document'),
+        };
+      });
 
       return { context, sources };
     } catch (error) {
