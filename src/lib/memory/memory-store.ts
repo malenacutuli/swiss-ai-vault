@@ -1438,3 +1438,147 @@ export async function searchMemoriesInProject(
   console.log('[MemoryStore] Found', results.length, 'relevant memories in project', projectId);
   return results;
 }
+
+// ==========================================
+// VOICE NOTES
+// ==========================================
+
+export interface VoiceNoteMetadata extends MemoryMetadata {
+  audioDataUrl: string;           // Base64 encoded audio data URL
+  duration: number;               // Duration in seconds
+  language: string;               // Recording language (e.g., 'en')
+  recordedAt: string;             // ISO timestamp
+  transcriptionConfidence?: number;
+  isVoiceNote: true;              // Type discriminator
+}
+
+export interface VoiceNoteItem extends Omit<MemoryItem, 'metadata'> {
+  metadata: VoiceNoteMetadata;
+}
+
+/**
+ * Save a voice note with audio to IndexedDB
+ * Audio is stored as base64 data URL within encrypted metadata
+ */
+export async function saveVoiceNote(
+  audioBlob: Blob,
+  transcript: string,
+  duration: number,
+  embedding: number[],
+  encryptionKey: CryptoKey,
+  options: {
+    folderId?: string;
+    projectIds?: string[];
+    title?: string;
+    language?: string;
+  } = {}
+): Promise<string> {
+  // Convert audio blob to base64 data URL
+  const audioDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(audioBlob);
+  });
+
+  const now = Date.now();
+  const id = crypto.randomUUID();
+
+  const metadata: VoiceNoteMetadata = {
+    source: 'note',
+    audioDataUrl,
+    duration,
+    language: options.language || 'en',
+    recordedAt: new Date().toISOString(),
+    isVoiceNote: true,
+    title: options.title || `Voice Note - ${new Date().toLocaleString()}`,
+    folderId: options.folderId,
+    projectIds: options.projectIds || [],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const voiceNote: MemoryItem = {
+    id,
+    content: transcript,
+    embedding,
+    metadata,
+  };
+
+  // Use existing addMemory function which handles encryption
+  await addMemory(voiceNote, encryptionKey);
+
+  console.log('[MemoryStore] Voice note saved:', id);
+  return id;
+}
+
+/**
+ * Get all voice notes (decrypted)
+ */
+export async function getVoiceNotes(encryptionKey: CryptoKey): Promise<VoiceNoteItem[]> {
+  const database = await getDB();
+  
+  const stored: StoredMemory[] = await new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+
+  const voiceNotes: VoiceNoteItem[] = [];
+
+  for (const s of stored) {
+    try {
+      const encryptedData = { ciphertext: s.encrypted, nonce: s.nonce };
+      const decrypted = await decrypt(encryptedData, encryptionKey);
+      const { content, metadata } = JSON.parse(decrypted);
+
+      // Check if this is a voice note
+      if (metadata.isVoiceNote) {
+        voiceNotes.push({
+          id: s.id,
+          content,
+          embedding: s.embedding,
+          metadata: metadata as VoiceNoteMetadata,
+        });
+      }
+    } catch (e) {
+      console.error('[MemoryStore] Failed to decrypt memory:', s.id);
+    }
+  }
+
+  // Sort by creation date, newest first
+  return voiceNotes.sort((a, b) => b.metadata.createdAt - a.metadata.createdAt);
+}
+
+/**
+ * Get a single voice note by ID
+ */
+export async function getVoiceNote(
+  id: string,
+  encryptionKey: CryptoKey
+): Promise<VoiceNoteItem | null> {
+  const item = await getMemory(id, encryptionKey);
+  
+  if (item && (item.metadata as VoiceNoteMetadata).isVoiceNote) {
+    return item as VoiceNoteItem;
+  }
+  
+  return null;
+}
+
+/**
+ * Delete a voice note by ID
+ */
+export async function deleteVoiceNote(id: string): Promise<void> {
+  await deleteMemory(id);
+  console.log('[MemoryStore] Voice note deleted:', id);
+}
+
+/**
+ * Get voice notes count
+ */
+export async function getVoiceNotesCount(encryptionKey: CryptoKey): Promise<number> {
+  const voiceNotes = await getVoiceNotes(encryptionKey);
+  return voiceNotes.length;
+}
