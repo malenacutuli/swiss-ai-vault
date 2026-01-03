@@ -2026,5 +2026,282 @@
     "successMessage": "Account created! Redirecting to Ghost Chat...",
     "signupFailed": "Signup failed",
     "oauthFailed": "OAuth signup failed"
+  },
+  "memory": {
+    "title": "Personal AI Memory",
+    "subtitle": "Your private, encrypted second brain",
+    "description": "Upload documents, voice notes, and conversations. Everything encrypted locally with zero knowledge.",
+    "dashboard": {
+      "title": "Memory Dashboard",
+      "subtitle": "Your encrypted personal knowledge base",
+      "stats": {
+        "totalDocuments": "Total Documents",
+        "totalInsights": "Insights Generated",
+        "storageUsed": "Storage Used",
+        "lastSync": "Last Sync"
+      },
+      "tabs": {
+        "all": "All",
+        "documents": "Documents",
+        "chats": "Conversations",
+        "insights": "Insights",
+        "voiceNotes": "Voice Notes",
+        "briefings": "Audio Briefings"
+      },
+      "quickStart": {
+        "title": "Quick Start",
+        "uploadDocs": "Upload Documents",
+        "importChats": "Import Conversations",
+        "recordVoice": "Record Voice Note",
+        "connectSources": "Connect Sources"
+      }
+    },
+    "stats": {
+      "totalItems": "Total",
+      "chunks": "Chunks"
+    },
+    "notes": {
+      "title": "Notes",
+      "addNote": "Add note to Memory",
+      "addNoteDesc": "This note will be encrypted and searchable in your AI conversations.",
+      "titlePlaceholder": "Note title (optional)",
+      "contentPlaceholder": "Write your note...",
+      "addToMemory": "Add to Memory"
+    },
+    "actions": {
+      "exportMemory": "Export memory",
+      "importMemory": "Import memory",
+      "clearAll": "Clear all memory"
+    },
+    "clearAll": {
+      "title": "Clear all memory?",
+      "description": "This will permanently delete all items from your AI memory. This action cannot be undone.",
+      "confirm": "Clear All"
+    },
+    "empty": {
+      "title": "Your AI memory is empty",
+      "description": "Add documents or notes to build your personal knowledge base.",
+      "addFirst": "Add your first note"
+    },
+    "onboarding": {
+      "buildMemory": "Build your AI Memory",
+      "importDescription": "Import conversations from ChatGPT, Claude, Gemini, Perplexity, and more. Your AI will remember everything across all your chats."
+    },
+    "graph": {
+      "title": "Graph",
+      "empty": "No memories to visualize. Add content first."
+    },
+    "pagination": {
+      "showing": "Showing",
+      "of": "of",
+      "page": "Page"
+    },
+    "upload": {
+      "title": "Upload to Memory",
+      "dragDrop": "Drag and drop files here",
+      "or": "or",
+      "browse": "Browse files",
+      "supportedFormats": "Supported formats: PDF, DOCX, TXT, MD, CSV, JSON",
+      "uploading": "Uploading...",
+      "processing": "Processing...",
+      "success": "Uploaded successfully",
+      "failed": "Upload failed",
+      "bulkUpload": "Bulk Upload",
+      "bulkUploadDesc": "Upload multiple files at once"
+    },
+    "documents": {
+      "title": "Documents",
+      "yourContent": "Your Content",
+      "items": "items",
+      "noDocuments": "No documents yet",
+      "addFirst": "Upload your first document to get started",
+      "search": "Search documents...",
+      "deleteTitle": "Delete item?",
+      "deleteDescription": "This will permanently delete this item and all its chunks from your memory. This action cannot be undone.",
+      "filter": {
+        "all": "All",
+        "pdf": "PDFs",
+        "docs": "Documents",
+        "text": "Text",
+        "other": "Other"
+      },
+      "sort": {
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "name": "By name",
+        "size": "By size"
+      },
+      "actions": {
+        "view": "View chunks",
+        "download": "Download",
+        "delete": "Delete",
+        "moveToFolder": "Move to folder"
+      }
+    },
+    "folders": {
+      "title": "Folders",
+      "newFolder": "New Folder",
+      "rename": "Rename",
+      "delete": "Delete",
+      "empty": "Empty folder",
+      "uncategorized": "Uncategorized",
+      "moveHere": "Move to folder",
+      "itemCount": "{{count}} items",
+      "createDescription": "Organize your memory items into folders.",
+      "namePlaceholder": "Folder name",
+      "selectDestination": "Choose a destination folder",
+      "root": "Root (No folder)",
+      "removeFromFolders": "Remove from all folders",
+      "moving": "Moving...",
+      "move": "Move"
+    },
+    "insights": {
+      "title": "Insights",
+      "subtitle": "AI-generated discoveries from your documents",
+      "noInsights": "No insights yet",
+      "generateFirst": "Distill insights from your documents",
+      "distill": "Distill Insights",
+      "distilling": "Distilling...",
+      "distillComplete": "Distillation complete",
+      "distillFailed": "Distillation failed",
+      "scanMemories": "Scan Memories",
+      "scanFailed": "Failed to scan memories",
+      "types": {
+        "summary": "Summary",
+        "keyPoints": "Key Points",
+        "connections": "Connections",
+        "questions": "Questions"
+      }
+    },
+    "voiceNotes": {
+      "title": "Voice Notes",
+      "record": "Record Voice Note",
+      "recording": "Recording...",
+      "stop": "Stop",
+      "transcribing": "Transcribing...",
+      "transcribed": "Transcribed",
+      "play": "Play",
+      "pause": "Pause",
+      "delete": "Delete",
+      "noNotes": "No voice notes",
+      "recordFirst": "Record your first voice note",
+      "microphoneDenied": "Microphone access denied",
+      "microphoneHint": "Please allow microphone access in your browser settings",
+      "uploadAudio": "Or upload an audio file"
+    },
+    "connectors": {
+      "title": "Connectors",
+      "subtitle": "Sync data from external sources",
+      "googleDrive": "Google Drive",
+      "notion": "Notion",
+      "slack": "Slack",
+      "gmail": "Gmail",
+      "github": "GitHub",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "syncing": "Syncing...",
+      "lastSync": "Last sync: {{time}}",
+      "syncNow": "Sync now",
+      "syncFailed": "Sync failed",
+      "reconnect": "Reconnect",
+      "comingSoon": "Coming soon"
+    },
+    "import": {
+      "title": "Import Conversations",
+      "chatgpt": "Import from ChatGPT",
+      "claude": "Import from Claude",
+      "uploadExport": "Upload your export file",
+      "importing": "Importing...",
+      "imported": "{{count}} conversations imported",
+      "importFailed": "Import failed"
+    },
+    "encryption": {
+      "title": "Memory Encryption",
+      "status": "Encryption Status",
+      "encrypted": "Encryption Active",
+      "setupRequired": "Setup Required",
+      "unlockVault": "Unlock Vault",
+      "enterPassword": "Enter your password",
+      "incorrectPassword": "Incorrect password",
+      "vaultLocked": "Vault Locked",
+      "vaultUnlocked": "Vault Unlocked"
+    },
+    "search": {
+      "title": "Search Memory",
+      "subtitle": "Find relevant content in your knowledge base",
+      "placeholder": "Search across all your documents...",
+      "noResults": "No results found",
+      "searching": "Searching...",
+      "resultsCount": "{{count}} results found"
+    },
+    "sync": {
+      "title": "Sync",
+      "status": "Sync Status",
+      "synced": "Synced",
+      "syncing": "Syncing...",
+      "offline": "Offline",
+      "lastSync": "Last sync",
+      "syncNow": "Sync now"
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Workspaces for your documents",
+    "memoryTitle": "Memory Projects",
+    "memorySubtitle": "Organize documents into themed workspaces",
+    "newProject": "New Project",
+    "createProject": "Create Project",
+    "projectName": "Project name",
+    "projectDescription": "Project description",
+    "projectColor": "Project color",
+    "customInstructions": "Custom instructions",
+    "customInstructionsPlaceholder": "Specific instructions for queries in this project...",
+    "noProjects": "No projects yet",
+    "noProjectsYet": "No projects yet",
+    "createFirstProject": "Create your first project to get started",
+    "deleteConfirm": "Are you sure you want to delete this project?",
+    "deleteProject": "Delete Project",
+    "deleteWarning": "This action cannot be undone. All linked documents will be unlinked from this project.",
+    "deleting": "Deleting...",
+    "noMatchingProjects": "No matching projects",
+    "adjustFilters": "Try adjusting your search or filters",
+    "noDescription": "No description",
+    "documents": "documents",
+    "models": "models",
+    "created": "Created",
+    "failedToLoad": "Failed to load projects",
+    "addDocuments": "Add Documents",
+    "addDocumentsDesc": "Add documents from your memory to this project",
+    "removeDocument": "Remove from Project",
+    "noDocumentsInProject": "No documents in this project",
+    "addDocumentsFirst": "Add documents to start querying",
+    "askQuestion": "Ask a question about this project...",
+    "asking": "Querying...",
+    "answerBased": "Answer based on {{count}} documents",
+    "citations": "Citations",
+    "noCitations": "No citations",
+    "briefMe": "Generate Briefing",
+    "briefMeDesc": "Generate an audio briefing from project documents",
+    "projectQuery": {
+      "title": "Query Project",
+      "placeholder": "Ask something about the documents in this project...",
+      "noContext": "No documents to query",
+      "thinking": "Analyzing documents...",
+      "sources": "Sources used"
+    },
+    "status": {
+      "setup": "Setup",
+      "dataset": "Dataset",
+      "finetuning": "Fine-tuning",
+      "evaluation": "Evaluation",
+      "complete": "Complete",
+      "active": "Active"
+    },
+    "filters": {
+      "searchPlaceholder": "Search projects...",
+      "sortBy": "Sort by"
+    }
   }
 }
