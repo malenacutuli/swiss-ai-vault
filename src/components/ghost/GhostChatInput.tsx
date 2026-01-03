@@ -12,8 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { GhostModelPicker } from './GhostModelPicker';
-import { VoiceInputButton } from './VoiceInputButton';
 import { MemoryToggle } from '@/components/chat/MemoryToggle';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useVoiceOutput } from '@/hooks/useVoiceOutput';
+import { VoiceRecordingOverlay } from '@/components/voice/VoiceRecordingOverlay';
+import { VoiceInputButton, VoiceOutputButton } from '@/components/voice/VoiceButtons';
 import {
   Paperclip,
   Wand2,
@@ -62,6 +65,8 @@ interface GhostChatInputProps {
   memoryCount?: number;
   isMemorySearching?: boolean;
   memoryDisabled?: boolean;
+  // TTS props
+  lastAssistantMessage?: string;
 }
 
 // Text mode is default - only show other modes in dropdown when in text mode
@@ -118,6 +123,8 @@ export function GhostChatInput({
   memoryCount = 0,
   isMemorySearching = false,
   memoryDisabled = false,
+  // TTS props
+  lastAssistantMessage,
 }: GhostChatInputProps) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -125,9 +132,33 @@ export function GhostChatInput({
   const currentModeConfig = MODE_CONFIG.find(m => m.id === mode) || MODE_CONFIG[0];
   const CurrentIcon = currentModeConfig.icon;
 
-  const handleVoiceTranscript = (text: string) => {
-    onChange(value ? `${value} ${text}` : text);
-    textareaRef.current?.focus();
+  // Voice Input Hook (STT)
+  const voiceInput = useVoiceInput({
+    onTranscription: (text) => {
+      onChange(value ? `${value} ${text}` : text);
+      textareaRef.current?.focus();
+    },
+    language: voiceLanguage,
+  });
+
+  // Voice Output Hook (TTS)
+  const voiceOutput = useVoiceOutput({
+    voice: 'nova',
+    speed: 1.0,
+  });
+
+  const handleVoiceToggle = () => {
+    if (voiceInput.isRecording) {
+      voiceInput.stopRecording();
+    } else {
+      voiceInput.startRecording();
+    }
+  };
+
+  const handleTTSToggle = () => {
+    if (lastAssistantMessage) {
+      voiceOutput.toggle(lastAssistantMessage);
+    }
   };
 
   useEffect(() => {
@@ -292,9 +323,23 @@ export function GhostChatInput({
           <div className="flex items-center gap-0.5 pb-0.5">
             {mode === 'text' && (
               <VoiceInputButton
-                onTranscript={handleVoiceTranscript}
+                isRecording={voiceInput.isRecording}
+                isProcessing={voiceInput.isProcessing}
+                isSupported={voiceInput.isSupported}
+                onToggle={handleVoiceToggle}
                 disabled={disabled || isLoading}
-                language={voiceLanguage}
+                className="h-8 w-8"
+              />
+            )}
+
+            {/* TTS Button - only show if there's a response to read */}
+            {mode === 'text' && lastAssistantMessage && (
+              <VoiceOutputButton
+                isPlaying={voiceOutput.isPlaying}
+                isLoading={voiceOutput.isLoading}
+                onToggle={handleTTSToggle}
+                disabled={disabled}
+                className="h-8 w-8"
               />
             )}
 
@@ -329,6 +374,15 @@ export function GhostChatInput({
             )}
           </div>
         </div>
+
+        {/* Voice Recording Overlay */}
+        <VoiceRecordingOverlay
+          isRecording={voiceInput.isRecording}
+          duration={voiceInput.duration}
+          onStop={voiceInput.stopRecording}
+          onCancel={voiceInput.cancelRecording}
+          variant="ghost"
+        />
 
         {/* Minimal hint */}
         <p className="mt-2 text-center text-[11px] text-muted-foreground/50">
