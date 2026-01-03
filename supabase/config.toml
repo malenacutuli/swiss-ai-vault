@@ -110,3 +110,6 @@ verify_jwt = true
 
 [functions.ghost-deep-research]
 verify_jwt = false
+
+[functions.audio-briefing]
+verify_jwt = true
