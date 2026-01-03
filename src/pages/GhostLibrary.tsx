@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ type ViewMode = 'grid' | 'list';
 
 export default function GhostLibrary() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -225,9 +227,9 @@ export default function GhostLibrary() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-lg font-medium tracking-tight">Library</h1>
+            <h1 className="text-lg font-medium tracking-tight">{t('library.title', 'Library')}</h1>
             <span className="text-xs text-muted-foreground uppercase tracking-wider">
-              {items.length} items
+              {items.length} {t('library.items', 'items')}
             </span>
           </div>
 
@@ -243,7 +245,7 @@ export default function GhostLibrary() {
                 onClick={handleBulkDelete}
               >
                 <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                Delete ({selectedItems.size})
+                {t('library.delete', 'Delete')} ({selectedItems.size})
               </Button>
             )}
           </div>
@@ -269,15 +271,15 @@ export default function GhostLibrary() {
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
               <TabsList className="bg-muted/50">
                 <TabsTrigger value="all" className="text-xs">
-                  All ({items.length})
+                  {t('library.all', 'All')} ({items.length})
                 </TabsTrigger>
                 <TabsTrigger value="images" className="text-xs">
                   <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
-                  Images ({imageCount})
+                  {t('library.images', 'Images')} ({imageCount})
                 </TabsTrigger>
                 <TabsTrigger value="videos" className="text-xs">
                   <Video className="h-3.5 w-3.5 mr-1.5" />
-                  Videos ({videoCount})
+                  {t('library.videos', 'Videos')} ({videoCount})
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -288,7 +290,7 @@ export default function GhostLibrary() {
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search library..."
+                placeholder={t('library.searchPlaceholder', 'Search library...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 h-9 text-sm bg-muted/50 border-border/40"
@@ -311,9 +313,9 @@ export default function GhostLibrary() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="newest">{t('library.newest', 'Newest')}</SelectItem>
+                <SelectItem value="oldest">{t('library.oldest', 'Oldest')}</SelectItem>
+                <SelectItem value="name">{t('library.name', 'Name')}</SelectItem>
               </SelectContent>
             </Select>
 

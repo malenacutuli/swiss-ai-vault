@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Plus, 
   FolderKanban, 
@@ -48,6 +49,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function MemoryProjectsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { isUnlocked, isInitialized: vaultInitialized, getMasterKey } = useEncryptionContext();
   const [projects, setProjects] = useState<MemoryProject[]>([]);
@@ -137,7 +139,7 @@ export default function MemoryProjectsPage() {
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Chat
+          {t('projects.backToChat', 'Back to Chat')}
         </button>
 
         {/* Header */}
@@ -147,15 +149,15 @@ export default function MemoryProjectsPage() {
               <FolderKanban className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Projects</h1>
+              <h1 className="text-2xl font-semibold text-foreground">{t('projects.title', 'Projects')}</h1>
               <p className="text-sm text-muted-foreground">
-                Organize documents and chat with specific context
+                {t('projects.subtitle', 'Organize documents and chat with specific context')}
               </p>
             </div>
           </div>
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            New Project
+            {t('projects.newProject', 'New Project')}
           </Button>
         </div>
 
@@ -167,7 +169,7 @@ export default function MemoryProjectsPage() {
               size="sm"
               onClick={() => setShowArchived(false)}
             >
-              Active ({projects.length})
+              {t('projects.active', 'Active')} ({projects.length})
             </Button>
             <Button
               variant={showArchived ? 'default' : 'outline'}
@@ -175,7 +177,7 @@ export default function MemoryProjectsPage() {
               onClick={() => setShowArchived(true)}
             >
               <Archive className="h-4 w-4 mr-1" />
-              Archived ({archivedProjects.length})
+              {t('projects.archived', 'Archived')} ({archivedProjects.length})
             </Button>
           </div>
         )}
@@ -200,18 +202,18 @@ export default function MemoryProjectsPage() {
                 <FolderKanban className="h-10 w-10 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-medium mb-2">
-                {showArchived ? 'No archived projects' : 'No projects yet'}
+                {showArchived ? t('projects.noArchivedProjects', 'No archived projects') : t('projects.noProjectsYet', 'No projects yet')}
               </h3>
               <CardDescription className="text-center mb-4 max-w-sm">
                 {showArchived 
-                  ? 'Archived projects will appear here'
-                  : 'Create a project to organize documents and chat with specific context'
+                  ? t('projects.archivedWillAppear', 'Archived projects will appear here')
+                  : t('projects.createToOrganize', 'Create a project to organize documents and chat with specific context')
                 }
               </CardDescription>
               {!showArchived && (
                 <Button onClick={() => setShowCreateDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Project
+                  {t('projects.createFirst', 'Create Your First Project')}
                 </Button>
               )}
             </CardContent>
@@ -251,7 +253,7 @@ export default function MemoryProjectsPage() {
                           navigate(`/ghost/projects/${project.id}`);
                         }}>
                           <Edit2 className="h-4 w-4 mr-2" />
-                          Edit
+                          {t('projects.edit', 'Edit')}
                         </DropdownMenuItem>
                         {showArchived ? (
                           <DropdownMenuItem onClick={(e) => {
@@ -259,7 +261,7 @@ export default function MemoryProjectsPage() {
                             handleUnarchive(project.id);
                           }}>
                             <Archive className="h-4 w-4 mr-2" />
-                            Restore
+                            {t('projects.restore', 'Restore')}
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem onClick={(e) => {
@@ -267,7 +269,7 @@ export default function MemoryProjectsPage() {
                             handleArchive(project.id);
                           }}>
                             <Archive className="h-4 w-4 mr-2" />
-                            Archive
+                            {t('projects.archive', 'Archive')}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
@@ -279,28 +281,28 @@ export default function MemoryProjectsPage() {
                           }}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                          {t('projects.delete', 'Delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                   <CardDescription className="line-clamp-2 text-sm">
-                    {project.description || 'No description'}
+                    {project.description || t('projects.noDescription', 'No description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <FileText className="h-3 w-3" />
-                      {project.documentIds.length} documents
+                      {project.documentIds.length} {t('projects.documents', 'documents')}
                     </span>
                     <span>•</span>
-                    <span>Updated {formatDistanceToNow(project.updatedAt, { addSuffix: true })}</span>
+                    <span>{t('projects.updated', 'Updated')} {formatDistanceToNow(project.updatedAt, { addSuffix: true })}</span>
                   </div>
                   {project.instructions && (
                     <Badge variant="secondary" className="mt-2 text-xs">
                       <Brain className="h-3 w-3 mr-1" />
-                      Custom instructions
+                      {t('projects.customInstructions', 'Custom instructions')}
                     </Badge>
                   )}
                 </CardContent>
@@ -320,18 +322,18 @@ export default function MemoryProjectsPage() {
         <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+              <AlertDialogTitle>{t('projects.deleteConfirmTitle', 'Delete Project?')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete this project. Documents in the project will not be deleted from your memory.
+                {t('projects.deleteConfirmDescription', 'This will permanently delete this project. Documents in the project will not be deleted from your memory.')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel', 'Cancel')}</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Delete
+                {t('projects.delete', 'Delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

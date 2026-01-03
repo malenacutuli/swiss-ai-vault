@@ -2386,7 +2386,22 @@
       "oldest": "Más antiguos",
       "nameAsc": "Nombre (A-Z)",
       "nameDesc": "Nombre (Z-A)"
-    }
+    },
+    "backToChat": "Volver al Chat",
+    "newProject": "Nuevo Proyecto",
+    "activeProjects": "Activos",
+    "archivedProjects": "Archivados",
+    "noArchivedProjects": "No hay proyectos archivados",
+    "archivedWillAppear": "Los proyectos archivados aparecerán aquí",
+    "createToOrganize": "Crea un proyecto para organizar documentos y chatear con contexto específico",
+    "createFirst": "Crea Tu Primer Proyecto",
+    "edit": "Editar",
+    "restore": "Restaurar",
+    "archive": "Archivar",
+    "delete": "Eliminar",
+    "updated": "Actualizado",
+    "deleteConfirmTitle": "¿Eliminar Proyecto?",
+    "deleteConfirmDescription": "Esto eliminará permanentemente este proyecto. Los documentos del proyecto no se eliminarán de tu memoria."
   },
   "researchLibrary": {
     "title": "Biblioteca de Investigación",
@@ -2412,6 +2427,18 @@
       "topic": "Tema",
       "source": "Fuente"
     }
+  },
+  "library": {
+    "title": "Biblioteca",
+    "items": "elementos",
+    "delete": "Eliminar",
+    "all": "Todo",
+    "images": "Imágenes",
+    "videos": "Vídeos",
+    "searchPlaceholder": "Buscar biblioteca...",
+    "newest": "Más recientes",
+    "oldest": "Más antiguos",
+    "name": "Nombre"
   },
   "briefings": {
     "title": "Briefings de Audio",
@@ -2505,5 +2532,8 @@
       "unlocked": "Bóveda Desbloqueada",
       "notInitialized": "Bóveda No Inicializada"
     }
+  },
+  "common": {
+    "cancel": "Cancelar"
   }
 }
