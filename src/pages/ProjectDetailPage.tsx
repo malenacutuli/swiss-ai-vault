@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Settings, FileText, Send, 
-  Loader2, Quote, ChevronRight, Plus, Shield, Lock
+  Loader2, Quote, ChevronRight, Plus, Shield, Lock, Mic
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AudioBriefingDialog } from '@/components/briefings/AudioBriefingDialog';
 import {
   getProject,
   getProjectDocuments,
@@ -38,6 +39,7 @@ export default function ProjectDetailPage() {
   const [documents, setDocuments] = useState<MemoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddDocs, setShowAddDocs] = useState(false);
+  const [showBriefingDialog, setShowBriefingDialog] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
   
   // Chat state
@@ -223,7 +225,7 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-foreground">Documents</span>
             <Button variant="ghost" size="sm" onClick={() => setShowAddDocs(true)}>
@@ -231,6 +233,16 @@ export default function ProjectDetailPage() {
               Add
             </Button>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => setShowBriefingDialog(true)}
+            disabled={documents.length === 0}
+          >
+            <Mic className="h-4 w-4" />
+            Brief Me
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -400,6 +412,20 @@ export default function ProjectDetailPage() {
         projectId={projectId!}
         existingDocIds={documents.map((d) => d.id)}
         onAdded={loadProject}
+      />
+
+      <AudioBriefingDialog
+        open={showBriefingDialog}
+        onOpenChange={setShowBriefingDialog}
+        documents={documents.map((doc) => ({
+          id: doc.id,
+          title: doc.metadata.title || doc.metadata.filename || 'Untitled',
+          content: doc.content || '',
+        }))}
+        projectId={projectId}
+        onComplete={(briefing) => {
+          console.log('[ProjectDetailPage] Briefing created:', briefing.id);
+        }}
       />
     </div>
   );
