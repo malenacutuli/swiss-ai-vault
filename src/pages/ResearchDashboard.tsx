@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Search,
   BookOpen,
@@ -108,6 +109,7 @@ interface ResearchStats {
 }
 
 export default function ResearchDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isUnlocked, isInitialized, isLoading: encryptionLoading } = useEncryptionContext();
@@ -314,14 +316,14 @@ export default function ResearchDashboard() {
             <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Lock className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle>Research Library</CardTitle>
+            <CardTitle>{t('researchLibrary.title', 'Research Library')}</CardTitle>
             <CardDescription>
-              Unlock your vault to access your saved research
+              {t('researchLibrary.unlockDesc', 'Unlock your vault to access your saved research')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => setShowUnlock(true)} className="w-full">
-              Unlock Vault
+              {t('vault.unlock.title', 'Unlock Vault')}
             </Button>
           </CardContent>
         </Card>
@@ -343,7 +345,7 @@ export default function ResearchDashboard() {
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Chat
+          {t('projects.backToChat', 'Back to Chat')}
         </button>
       </div>
       
@@ -356,19 +358,19 @@ export default function ResearchDashboard() {
                 <BookOpen className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-foreground">Research Library</h1>
-                <p className="text-sm text-muted-foreground">Your curated knowledge base</p>
+                <h1 className="text-2xl font-semibold text-foreground">{t('researchLibrary.title', 'Research Library')}</h1>
+                <p className="text-sm text-muted-foreground">{t('researchLibrary.subtitle', 'Your curated knowledge base')}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                {t('researchLibrary.actions.export', 'Export')}
               </Button>
               <Button size="sm" onClick={() => navigate('/ghost')}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Research
+                {t('researchLibrary.newResearch', 'New Research')}
               </Button>
             </div>
           </div>
@@ -383,7 +385,7 @@ export default function ResearchDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Sources</p>
+                    <p className="text-sm text-muted-foreground">{t('researchLibrary.stats.totalSources', 'Total Sources')}</p>
                     <p className="text-2xl font-semibold">{stats.totalSources}</p>
                   </div>
                   <BookmarkCheck className="h-8 w-8 text-primary/20" />
@@ -395,7 +397,7 @@ export default function ResearchDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">This Month</p>
+                    <p className="text-sm text-muted-foreground">{t('researchLibrary.stats.thisMonth', 'This Month')}</p>
                     <p className="text-2xl font-semibold">{stats.sourcesThisMonth}</p>
                   </div>
                   <TrendingUp className="h-8 w-8 text-primary/20" />
@@ -407,7 +409,7 @@ export default function ResearchDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Avg Trust Score</p>
+                    <p className="text-sm text-muted-foreground">{t('researchLibrary.stats.avgTrustScore', 'Avg Trust Score')}</p>
                     <p className="text-2xl font-semibold">{stats.averageTrustScore.toFixed(0)}%</p>
                   </div>
                   <BookOpen className="h-8 w-8 text-primary/20" />
@@ -419,7 +421,7 @@ export default function ResearchDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Sessions</p>
+                    <p className="text-sm text-muted-foreground">{t('researchLibrary.stats.sessions', 'Sessions')}</p>
                     <p className="text-2xl font-semibold">{stats.totalSessions}</p>
                   </div>
                   <Folder className="h-8 w-8 text-primary/20" />
@@ -434,19 +436,19 @@ export default function ResearchDashboard() {
           <TabsList>
             <TabsTrigger value="sources" className="gap-2">
               <Globe className="h-4 w-4" />
-              Saved Sources
+              {t('researchLibrary.tabs.savedSources', 'Saved Sources')}
             </TabsTrigger>
             <TabsTrigger value="sessions" className="gap-2">
               <Folder className="h-4 w-4" />
-              Research Sessions
+              {t('researchLibrary.tabs.researchSessions', 'Research Sessions')}
             </TabsTrigger>
             <TabsTrigger value="insights" className="gap-2">
               <TrendingUp className="h-4 w-4" />
-              Insights
+              {t('researchLibrary.tabs.insights', 'Insights')}
             </TabsTrigger>
             <TabsTrigger value="recommendations" className="gap-2">
               <Lightbulb className="h-4 w-4" />
-              Smart Recommendations
+              {t('researchLibrary.tabs.recommendations', 'Smart Recommendations')}
             </TabsTrigger>
           </TabsList>
           
@@ -457,7 +459,7 @@ export default function ResearchDashboard() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search sources..."
+                  placeholder={t('researchLibrary.searchPlaceholder', 'Search sources...')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -471,10 +473,10 @@ export default function ResearchDashboard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Sources</SelectItem>
-                    <SelectItem value="authoritative">Authoritative</SelectItem>
-                    <SelectItem value="government">Government</SelectItem>
-                    <SelectItem value="academic">Academic</SelectItem>
+                    <SelectItem value="all">{t('researchLibrary.filters.allSources', 'All Sources')}</SelectItem>
+                    <SelectItem value="authoritative">{t('researchLibrary.filters.authoritative', 'Authoritative')}</SelectItem>
+                    <SelectItem value="government">{t('researchLibrary.filters.government', 'Government')}</SelectItem>
+                    <SelectItem value="academic">{t('researchLibrary.filters.academic', 'Academic')}</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -483,9 +485,9 @@ export default function ResearchDashboard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date">Date Saved</SelectItem>
-                    <SelectItem value="trust">Trust Score</SelectItem>
-                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="date">{t('researchLibrary.sort.dateSaved', 'Date Saved')}</SelectItem>
+                    <SelectItem value="trust">{t('researchLibrary.sort.trustScore', 'Trust Score')}</SelectItem>
+                    <SelectItem value="name">{t('researchLibrary.sort.name', 'Name')}</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -578,17 +580,21 @@ export default function ResearchDashboard() {
       <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleteConfirm?.type}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteConfirm?.type === 'session' 
+                ? t('researchLibrary.deleteSession', 'Delete session?')
+                : t('researchLibrary.deleteSource', 'Delete source?')}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteConfirm?.type === 'session'
-                ? 'This will delete the research session. Saved sources will remain in your memory.'
-                : 'This will remove the source from your memory. This action cannot be undone.'}
+                ? t('researchLibrary.deleteSessionDesc', 'This will delete the research session. Saved sources will remain in your memory.')
+                : t('researchLibrary.deleteSourceDesc', 'This will remove the source from your memory. This action cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              {t('common.delete', 'Delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -607,6 +613,7 @@ function SourceCard({
   onDelete: () => void;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   const getTierIcon = () => {
@@ -649,16 +656,16 @@ function SourceCard({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={onOpen}>
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Open URL
+                    {t('researchLibrary.openUrl', 'Open URL')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(`/ghost/memory?highlight=${source.id}`)}>
                     <FileText className="h-4 w-4 mr-2" />
-                    View in Memory
+                    {t('researchLibrary.viewInMemory', 'View in Memory')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onDelete} className="text-destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Remove
+                    {t('researchLibrary.remove', 'Remove')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -670,11 +677,11 @@ function SourceCard({
                 {source.tierLabel}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {source.trustScore}% trust
+                {source.trustScore}% {t('researchLibrary.trust', 'trust')}
               </Badge>
               {source.isPeerReviewed && (
                 <Badge variant="outline" className="text-xs text-green-600 border-green-200">
-                  Peer Reviewed
+                  {t('researchLibrary.peerReviewed', 'Peer Reviewed')}
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -694,7 +701,7 @@ function SourceCard({
                 ))}
                 {source.tags.length > 3 && (
                   <span className="text-xs text-muted-foreground">
-                    +{source.tags.length - 3} more
+                    +{source.tags.length - 3} {t('common.more', 'more')}
                   </span>
                 )}
               </div>
@@ -723,6 +730,8 @@ function SessionCard({
   onSelect: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
+  
   return (
     <Card 
       className="hover:border-primary/30 transition-colors cursor-pointer"
@@ -739,7 +748,7 @@ function SessionCard({
             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <BookmarkCheck className="h-3 w-3" />
-                {session.sources.length} sources
+                {session.sources.length} {t('researchLibrary.sources', 'sources')}
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
@@ -789,6 +798,7 @@ function SessionDetailDialog({
   onOpenChange: (open: boolean) => void;
   sources: SavedSource[];
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   if (!session) return null;
@@ -801,21 +811,21 @@ function SessionDetailDialog({
         <DialogHeader>
           <DialogTitle>{session.name}</DialogTitle>
           <DialogDescription>
-            Research session from {new Date(session.createdAt).toLocaleDateString()}
+            {t('researchLibrary.sessionFrom', 'Research session from {{date}}').replace('{{date}}', new Date(session.createdAt).toLocaleDateString())}
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 overflow-auto flex-1">
           {/* Query */}
           <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-1">Original Query</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">{t('researchLibrary.originalQuery', 'Original Query')}</h4>
             <p className="text-foreground">"{session.query}"</p>
           </div>
           
           {/* Notes */}
           {session.notes && (
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-1">Notes</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">{t('researchLibrary.notes', 'Notes')}</h4>
               <p className="text-foreground">{session.notes}</p>
             </div>
           )}
@@ -823,7 +833,7 @@ function SessionDetailDialog({
           {/* Sources */}
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">
-              Sources ({sessionSources.length})
+              {t('researchLibrary.tabs.sources', 'Sources')} ({sessionSources.length})
             </h4>
             
             <ScrollArea className="h-64">
@@ -857,7 +867,7 @@ function SessionDetailDialog({
                 
                 {sessionSources.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No sources found for this session
+                    {t('researchLibrary.noSourcesForSession', 'No sources found for this session')}
                   </p>
                 )}
               </div>
@@ -867,13 +877,13 @@ function SessionDetailDialog({
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+            {t('researchLibrary.close', 'Close')}
           </Button>
           <Button onClick={() => {
             navigate('/ghost');
             onOpenChange(false);
           }}>
-            Continue Research
+            {t('researchLibrary.continueResearch', 'Continue Research')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -891,6 +901,8 @@ function InsightsPanel({
   sources: SavedSource[];
   sessions: ResearchSession[];
 }) {
+  const { t } = useTranslation();
+  
   if (!stats) return null;
   
   return (
@@ -898,8 +910,8 @@ function InsightsPanel({
       {/* Source Distribution */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Source Distribution</CardTitle>
-          <CardDescription>By trust tier</CardDescription>
+          <CardTitle className="text-base">{t('researchLibrary.sourceDistribution', 'Source Distribution')}</CardTitle>
+          <CardDescription>{t('researchLibrary.byTrustTier', 'By trust tier')}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats.sourcesByTier.length > 0 ? (
@@ -915,7 +927,7 @@ function InsightsPanel({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No sources yet</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t('researchLibrary.noSourcesYet', 'No sources yet')}</p>
           )}
         </CardContent>
       </Card>
@@ -923,8 +935,8 @@ function InsightsPanel({
       {/* Top Domains */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Top Domains</CardTitle>
-          <CardDescription>Most saved sources from</CardDescription>
+          <CardTitle className="text-base">{t('researchLibrary.topDomains', 'Top Domains')}</CardTitle>
+          <CardDescription>{t('researchLibrary.mostSavedFrom', 'Most saved sources from')}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats.topDomains.length > 0 ? (
@@ -940,7 +952,7 @@ function InsightsPanel({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No sources yet</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t('researchLibrary.noSourcesYet', 'No sources yet')}</p>
           )}
         </CardContent>
       </Card>
@@ -948,23 +960,23 @@ function InsightsPanel({
       {/* Research Activity */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Research Activity</CardTitle>
-          <CardDescription>Your knowledge growth</CardDescription>
+          <CardTitle className="text-base">{t('researchLibrary.researchActivity', 'Research Activity')}</CardTitle>
+          <CardDescription>{t('researchLibrary.knowledgeGrowth', 'Your knowledge growth')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Total Sources</span>
+              <span className="text-sm">{t('researchLibrary.totalSources', 'Total Sources')}</span>
               <span className="font-medium">{stats.totalSources}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Added This Month</span>
+              <span className="text-sm">{t('researchLibrary.addedThisMonth', 'Added This Month')}</span>
               <span className="font-medium text-green-600">
                 +{stats.sourcesThisMonth}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Research Sessions</span>
+              <span className="text-sm">{t('researchLibrary.researchSessions', 'Research Sessions')}</span>
               <span className="font-medium">{stats.totalSessions}</span>
             </div>
           </div>
@@ -974,8 +986,8 @@ function InsightsPanel({
       {/* Quality Score */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Knowledge Quality</CardTitle>
-          <CardDescription>Based on source authority</CardDescription>
+          <CardTitle className="text-base">{t('researchLibrary.knowledgeQuality', 'Knowledge Quality')}</CardTitle>
+          <CardDescription>{t('researchLibrary.basedOnAuthority', 'Based on source authority')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center">
@@ -985,17 +997,17 @@ function InsightsPanel({
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Average trust score across all sources
+              {t('researchLibrary.avgTrustDesc', 'Average trust score across all sources')}
             </p>
             <div className="flex justify-center gap-2 mt-3">
               <Badge variant="outline" className="text-xs">
-                {sources.filter(s => s.isGovernment).length} gov
+                {sources.filter(s => s.isGovernment).length} {t('researchLibrary.gov', 'gov')}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {sources.filter(s => s.isAcademic).length} academic
+                {sources.filter(s => s.isAcademic).length} {t('researchLibrary.academic', 'academic')}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {sources.filter(s => s.isPeerReviewed).length} peer-reviewed
+                {sources.filter(s => s.isPeerReviewed).length} {t('researchLibrary.peerReviewed', 'peer-reviewed')}
               </Badge>
             </div>
           </div>
@@ -1007,17 +1019,19 @@ function InsightsPanel({
 
 // Empty States
 function EmptySourcesState({ onStartResearch }: { onStartResearch: () => void }) {
+  const { t } = useTranslation();
+  
   return (
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center justify-center py-12">
         <BookOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No saved sources yet</h3>
+        <h3 className="text-lg font-medium text-foreground mb-2">{t('researchLibrary.emptySourcesTitle', 'No saved sources yet')}</h3>
         <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-          Start a research session and save authoritative sources to build your personal knowledge base.
+          {t('researchLibrary.emptySourcesDesc', 'Start a research session and save authoritative sources to build your personal knowledge base.')}
         </p>
         <Button onClick={onStartResearch}>
           <Plus className="h-4 w-4 mr-2" />
-          Start Research
+          {t('researchLibrary.startResearch', 'Start Research')}
         </Button>
       </CardContent>
     </Card>
@@ -1025,17 +1039,19 @@ function EmptySourcesState({ onStartResearch }: { onStartResearch: () => void })
 }
 
 function EmptySessionsState({ onStartResearch }: { onStartResearch: () => void }) {
+  const { t } = useTranslation();
+  
   return (
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center justify-center py-12">
         <Folder className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No research sessions</h3>
+        <h3 className="text-lg font-medium text-foreground mb-2">{t('researchLibrary.emptySessionsTitle', 'No research sessions')}</h3>
         <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-          Research sessions help you organize and revisit related sources from your investigations.
+          {t('researchLibrary.emptySessionsDesc', 'Research sessions help you organize and revisit related sources from your investigations.')}
         </p>
         <Button onClick={onStartResearch}>
           <Plus className="h-4 w-4 mr-2" />
-          New Research Session
+          {t('researchLibrary.newSession', 'New Research Session')}
         </Button>
       </CardContent>
     </Card>

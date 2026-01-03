@@ -2422,15 +2422,42 @@
   },
   "researchLibrary": {
     "title": "Biblioteca de Investigación",
-    "subtitle": "Tu repositorio de investigación cifrado",
+    "subtitle": "Tu base de conocimiento curada",
     "description": "Guarda y organiza tus investigaciones con total privacidad",
+    "unlockDesc": "Desbloquea tu bóveda para acceder a tus investigaciones guardadas",
+    "newResearch": "Nueva Investigación",
     "noItems": "No hay elementos en la biblioteca",
     "addFirst": "Guarda tu primera investigación para empezar",
+    "searchPlaceholder": "Buscar fuentes...",
+    "stats": {
+      "totalSources": "Total de Fuentes",
+      "thisMonth": "Este Mes",
+      "avgTrustScore": "Puntuación Media",
+      "sessions": "Sesiones"
+    },
     "tabs": {
       "all": "Todo",
       "reports": "Informes",
       "summaries": "Resúmenes",
-      "sources": "Fuentes"
+      "sources": "Fuentes",
+      "savedSources": "Fuentes Guardadas",
+      "researchSessions": "Sesiones de Investigación",
+      "insights": "Análisis",
+      "recommendations": "Recomendaciones Inteligentes"
+    },
+    "filters": {
+      "allSources": "Todas las Fuentes",
+      "authoritative": "Autorizadas",
+      "government": "Gubernamentales",
+      "academic": "Académicas",
+      "dateRange": "Rango de fechas",
+      "topic": "Tema",
+      "source": "Fuente"
+    },
+    "sort": {
+      "dateSaved": "Fecha Guardado",
+      "trustScore": "Puntuación",
+      "name": "Nombre"
     },
     "actions": {
       "save": "Guardar en Biblioteca",
@@ -2439,11 +2466,44 @@
       "delete": "Eliminar",
       "share": "Compartir"
     },
-    "filters": {
-      "dateRange": "Rango de fechas",
-      "topic": "Tema",
-      "source": "Fuente"
-    }
+    "deleteSession": "¿Eliminar sesión?",
+    "deleteSessionDesc": "Esto eliminará la sesión de investigación. Las fuentes guardadas permanecerán en tu memoria.",
+    "deleteSource": "¿Eliminar fuente?",
+    "deleteSourceDesc": "Esto eliminará la fuente de tu memoria. Esta acción no se puede deshacer.",
+    "emptySourcesTitle": "Aún no hay fuentes guardadas",
+    "emptySourcesDesc": "Inicia una sesión de investigación y guarda fuentes autorizadas para construir tu base de conocimiento personal.",
+    "startResearch": "Iniciar Investigación",
+    "emptySessionsTitle": "Sin sesiones de investigación",
+    "emptySessionsDesc": "Las sesiones de investigación te ayudan a organizar y revisar fuentes relacionadas de tus investigaciones.",
+    "newSession": "Nueva Sesión de Investigación",
+    "sourceDistribution": "Distribución de Fuentes",
+    "byTrustTier": "Por nivel de confianza",
+    "noSourcesYet": "Sin fuentes aún",
+    "topDomains": "Dominios Principales",
+    "mostSavedFrom": "Fuentes más guardadas de",
+    "researchActivity": "Actividad de Investigación",
+    "knowledgeGrowth": "Crecimiento de tu conocimiento",
+    "totalSources": "Fuentes Totales",
+    "addedThisMonth": "Añadidas este mes",
+    "researchSessions": "Sesiones de Investigación",
+    "knowledgeQuality": "Calidad del Conocimiento",
+    "basedOnAuthority": "Basado en autoridad de fuentes",
+    "avgTrustDesc": "Puntuación media de confianza en todas las fuentes",
+    "gov": "gov",
+    "academic": "académico",
+    "peerReviewed": "revisado por pares",
+    "openUrl": "Abrir URL",
+    "viewInMemory": "Ver en Memoria",
+    "remove": "Quitar",
+    "moreTag": "+{{count}} más",
+    "sources": "fuentes",
+    "originalQuery": "Consulta Original",
+    "notes": "Notas",
+    "close": "Cerrar",
+    "continueResearch": "Continuar Investigación",
+    "sessionFrom": "Sesión de investigación del {{date}}",
+    "noSourcesForSession": "No se encontraron fuentes para esta sesión",
+    "trust": "confianza"
   },
   "library": {
     "title": "Biblioteca",
