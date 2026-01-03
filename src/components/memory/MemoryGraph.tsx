@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as d3 from 'd3';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -149,6 +150,7 @@ function findConnections(memories: MemoryNode[]): GraphLink[] {
 }
 
 export function MemoryGraph({ memories, onSelectMemory }: Props) {
+  const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -326,7 +328,7 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">No memories to visualize. Add some content first.</p>
+          <p className="text-muted-foreground">{t('memory.graph.empty')}</p>
         </CardContent>
       </Card>
     );
@@ -337,7 +339,7 @@ export function MemoryGraph({ memories, onSelectMemory }: Props) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">Memory Graph</CardTitle>
+            <CardTitle className="text-lg">{t('memory.graph.title', 'Gráfico de Memoria')}</CardTitle>
             {isSimulating && (
               <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
             )}

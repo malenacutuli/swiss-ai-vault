@@ -611,7 +611,7 @@ function MemoryDashboardContent() {
             </TabsTrigger>
             <TabsTrigger value="graph" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
-              {t('memory.graph.title', 'Grafo')}
+              {t('memory.graph.title')}
             </TabsTrigger>
             <TabsTrigger value="connectors" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />

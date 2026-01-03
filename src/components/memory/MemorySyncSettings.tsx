@@ -1,6 +1,7 @@
 // src/components/memory/MemorySyncSettings.tsx
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Cloud, 
   CloudOff, 
@@ -40,6 +41,7 @@ interface MemorySyncSettingsProps {
 }
 
 export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   
   const [selectedProvider, setSelectedProvider] = useState<SyncProviderType>(getSavedProviderType());
@@ -80,8 +82,8 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
     setSelectedProvider(type);
     saveProviderType(type);
     
-    toast({ title: 'Sync provider updated' });
-  }, [provider, toast]);
+    toast({ title: t('memory.sync.providerUpdated', 'Sync provider updated') });
+  }, [provider, toast, t]);
   
   // Handle connect
   const handleConnect = useCallback(async () => {
@@ -93,19 +95,19 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
       const newStatus = await provider.getStatus();
       setStatus(newStatus);
       toast({ 
-        title: 'Connected', 
-        description: `Syncing to ${provider.name}` 
+        title: t('memory.sync.connected', 'Connected'), 
+        description: t('memory.sync.syncingTo', 'Syncing to {{name}}').replace('{{name}}', provider.name)
       });
     } catch (error) {
       toast({ 
-        title: 'Connection failed', 
+        title: t('memory.sync.connectionFailed', 'Connection failed'), 
         description: String(error), 
         variant: 'destructive' 
       });
     } finally {
       setIsConnecting(false);
     }
-  }, [provider, selectedProvider, toast]);
+  }, [provider, selectedProvider, toast, t]);
   
   // Handle disconnect
   const handleDisconnect = useCallback(async () => {
@@ -115,15 +117,15 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
       await provider.disconnect();
       const newStatus = await provider.getStatus();
       setStatus(newStatus);
-      toast({ title: 'Disconnected' });
+      toast({ title: t('memory.sync.disconnected', 'Disconnected') });
     } catch (error) {
       toast({ 
-        title: 'Disconnect failed', 
+        title: t('memory.sync.disconnectFailed', 'Disconnect failed'), 
         description: String(error), 
         variant: 'destructive' 
       });
     }
-  }, [provider, toast]);
+  }, [provider, toast, t]);
   
   // Handle manual sync
   const handleSync = useCallback(async () => {
@@ -143,32 +145,32 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
       const newStatus = await provider.getStatus();
       setStatus(newStatus);
       
-      toast({ title: 'Sync complete' });
+      toast({ title: t('memory.sync.syncComplete', 'Sync complete') });
       onSyncComplete?.();
     } catch (error) {
       toast({ 
-        title: 'Sync failed', 
+        title: t('memory.sync.syncFailed', 'Sync failed'), 
         description: String(error), 
         variant: 'destructive' 
       });
     } finally {
       setIsSyncing(false);
     }
-  }, [provider, toast, onSyncComplete]);
+  }, [provider, toast, onSyncComplete, t]);
   
   // Format last sync time
   const formatLastSync = (timestamp: number | null) => {
-    if (!timestamp) return 'Never';
+    if (!timestamp) return t('memory.sync.never', 'Never');
     
     const diff = Date.now() - timestamp;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
     
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (minutes < 1) return t('memory.sync.justNow', 'Just now');
+    if (minutes < 60) return t('memory.sync.minutesAgo', '{{count}} minutes ago').replace('{{count}}', String(minutes));
+    if (hours < 24) return t('memory.sync.hoursAgo', '{{count}} hours ago').replace('{{count}}', String(hours));
+    return t('memory.sync.daysAgo', '{{count}} days ago').replace('{{count}}', String(days));
   };
 
   return (
@@ -176,9 +178,9 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
       {/* Provider Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Sync Provider</CardTitle>
+          <CardTitle>{t('memory.sync.provider', 'Sync Provider')}</CardTitle>
           <CardDescription>
-            Choose where to backup your encrypted memory. Data is encrypted before upload.
+            {t('memory.sync.providerDesc', 'Choose where to backup your encrypted memory. Data is encrypted before upload.')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -199,14 +201,14 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
                   <div className="flex-1">
                     <p className="font-medium">{p.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {p.type === 'none' && 'Memory stays on this device only'}
-                      {p.type === 'google-drive' && 'Sync to your personal Google Drive'}
-                      {p.type === 's3' && 'Enterprise: Use your own S3 bucket'}
-                      {p.type === 'swissvault-cloud' && 'Swiss-hosted zero-knowledge sync'}
+                      {p.type === 'none' && t('memory.sync.localOnly', 'Memory stays on this device only')}
+                      {p.type === 'google-drive' && t('memory.sync.googleDriveDesc', 'Sync to your personal Google Drive')}
+                      {p.type === 's3' && t('memory.sync.s3Desc', 'Enterprise: Use your own S3 bucket')}
+                      {p.type === 'swissvault-cloud' && t('memory.sync.swissvaultDesc', 'Swiss-hosted zero-knowledge sync')}
                     </p>
                   </div>
                   {!p.available && (
-                    <Badge variant="secondary">Coming Soon</Badge>
+                    <Badge variant="secondary">{t('memory.connectors.comingSoon')}</Badge>
                   )}
                 </Label>
               </div>
@@ -219,7 +221,7 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
       {selectedProvider !== 'none' && (
         <Card>
           <CardHeader>
-            <CardTitle>Connection Status</CardTitle>
+            <CardTitle>{t('memory.sync.connectionStatus', 'Connection Status')}</CardTitle>
           </CardHeader>
           <CardContent>
             {status?.connected ? (
@@ -227,14 +229,14 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
-                    <span className="font-medium">Connected</span>
+                    <span className="font-medium">{t('memory.connectors.connected')}</span>
                     {status.email && (
                       <span className="text-sm text-muted-foreground">({status.email})</span>
                     )}
                   </div>
                   <Button variant="outline" size="sm" onClick={handleDisconnect}>
                     <LogOut className="h-4 w-4 mr-2" />
-                    Disconnect
+                    {t('memory.connectors.disconnect')}
                   </Button>
                 </div>
                 
@@ -242,7 +244,7 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Last Sync</p>
+                    <p className="font-medium">{t('memory.sync.lastSync')}</p>
                     <p className="text-sm text-muted-foreground">
                       {formatLastSync(status.lastSync)}
                     </p>
@@ -253,7 +255,7 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    Sync Now
+                    {t('memory.connectors.syncNow')}
                   </Button>
                 </div>
               </>
@@ -261,7 +263,7 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <CloudOff className="h-5 w-5" />
-                  <span>Not connected</span>
+                  <span>{t('memory.connectors.notConnected')}</span>
                 </div>
                 
                 <Button onClick={handleConnect} disabled={isConnecting}>
@@ -270,7 +272,7 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
                   ) : (
                     <Cloud className="h-4 w-4 mr-2" />
                   )}
-                  Connect to {provider?.name}
+                  {t('memory.sync.connectTo', 'Connect to {{name}}').replace('{{name}}', provider?.name || '')}
                 </Button>
               </div>
             )}
@@ -281,10 +283,9 @@ export function MemorySyncSettings({ onSyncComplete }: MemorySyncSettingsProps) 
       {/* Security Notice */}
       <Alert>
         <Shield className="h-4 w-4" />
-        <AlertTitle>End-to-End Encrypted</AlertTitle>
+        <AlertTitle>{t('memory.sync.e2eEncrypted', 'End-to-End Encrypted')}</AlertTitle>
         <AlertDescription>
-          Your memory is encrypted with your vault password before upload. 
-          The sync provider only sees encrypted data and cannot read your content.
+          {t('memory.sync.e2eDesc', 'Your memory is encrypted with your vault password before upload. The sync provider only sees encrypted data and cannot read your content.')}
         </AlertDescription>
       </Alert>
     </div>

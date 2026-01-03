@@ -2,6 +2,7 @@
 // Panel for recording and managing voice notes in Personal AI Memory
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mic, MicOff, Play, Pause, Trash2, Loader2, Clock, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,7 @@ interface VoiceNotesPanelProps {
 }
 
 export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   
@@ -91,12 +93,12 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
       
     } catch (error) {
       toast({
-        title: 'Microphone access denied',
-        description: 'Please allow microphone access to record voice notes',
+        title: t('memory.voiceNotes.microphoneDenied'),
+        description: t('memory.voiceNotes.microphoneHint'),
         variant: 'destructive',
       });
     }
-  }, [toast]);
+  }, [toast, t]);
   
   // Stop recording and save
   const stopRecording = useCallback(async () => {
@@ -105,8 +107,8 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
     const key = getMasterKey();
     if (!key) {
       toast({
-        title: 'Vault locked',
-        description: 'Please unlock your vault to save voice notes',
+        title: t('memory.encryption.vaultLocked'),
+        description: t('memory.encryption.unlockVault'),
         variant: 'destructive',
       });
       return;
@@ -135,8 +137,8 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
     
     if (audioBlob.size < 1000) {
       toast({
-        title: 'Recording too short',
-        description: 'Please record for at least a second',
+        title: t('memory.voiceNotes.recordingTooShort', 'Recording too short'),
+        description: t('memory.voiceNotes.recordAtLeast', 'Please record for at least a second'),
         variant: 'destructive',
       });
       return;
@@ -168,8 +170,8 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
       
       if (!transcript.trim()) {
         toast({
-          title: 'No speech detected',
-          description: 'Could not detect any speech in the recording',
+          title: t('memory.voiceNotes.noSpeech', 'No speech detected'),
+          description: t('memory.voiceNotes.noSpeechDesc', 'Could not detect any speech in the recording'),
           variant: 'destructive',
         });
         setIsProcessing(false);
@@ -187,8 +189,8 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
       });
       
       toast({
-        title: 'Voice note saved',
-        description: `${formatDuration(duration)} recorded and transcribed`,
+        title: t('memory.voiceNotes.saved', 'Voice note saved'),
+        description: `${formatDuration(duration)} ${t('memory.voiceNotes.recordedAndTranscribed', 'recorded and transcribed')}`,
       });
       
       await loadVoiceNotes();
@@ -197,7 +199,7 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
     } catch (error) {
       console.error('Failed to save voice note:', error);
       toast({
-        title: 'Failed to save voice note',
+        title: t('memory.voiceNotes.saveFailed', 'Failed to save voice note'),
         description: String(error),
         variant: 'destructive',
       });
@@ -256,7 +258,7 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
       await deleteVoiceNote(id);
       
       setVoiceNotes(prev => prev.filter(n => n.id !== id));
-      toast({ title: 'Voice note deleted' });
+      toast({ title: t('memory.voiceNotes.deleted', 'Voice note deleted') });
       
       if (playingId === id) {
         if (audioRef.current) {
@@ -297,7 +299,7 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
       <Card>
         <CardContent className="py-12 text-center">
           <Mic className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Unlock your vault to access voice notes</p>
+          <p className="text-muted-foreground">{t('memory.encryption.unlockVault')}</p>
         </CardContent>
       </Card>
     );
@@ -310,10 +312,10 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Mic className="h-5 w-5" />
-            Record Voice Note
+            {t('memory.voiceNotes.record')}
           </CardTitle>
           <CardDescription>
-            Record audio notes that are transcribed and searchable in your memory
+            {t('memory.voiceNotes.recordDesc', 'Record audio notes that are transcribed and searchable in your memory')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -325,22 +327,22 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
                   <span className="font-mono text-lg">{formatDuration(recordingDuration)}</span>
                 </div>
                 <Button variant="outline" onClick={cancelRecording}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={stopRecording}>
                   <MicOff className="h-4 w-4 mr-2" />
-                  Stop & Save
+                  {t('memory.voiceNotes.stop')}
                 </Button>
               </>
             ) : isProcessing ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Transcribing...</span>
+                <span>{t('memory.voiceNotes.transcribing')}</span>
               </div>
             ) : (
               <Button size="lg" onClick={startRecording}>
                 <Mic className="h-5 w-5 mr-2" />
-                Start Recording
+                {t('memory.voiceNotes.startRecording', 'Start Recording')}
               </Button>
             )}
           </div>
@@ -350,9 +352,9 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
       {/* Voice Notes List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Your Voice Notes</CardTitle>
+          <CardTitle className="text-lg">{t('memory.voiceNotes.title')}</CardTitle>
           <CardDescription>
-            {voiceNotes.length} voice note{voiceNotes.length !== 1 ? 's' : ''} recorded
+            {voiceNotes.length} {t('memory.voiceNotes.notesRecorded', 'voice notes recorded')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -363,8 +365,8 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
           ) : voiceNotes.length === 0 ? (
             <div className="py-12 text-center">
               <Volume2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No voice notes yet</p>
-              <p className="text-sm text-muted-foreground">Record your first voice note above</p>
+              <p className="text-muted-foreground">{t('memory.voiceNotes.noNotes')}</p>
+              <p className="text-sm text-muted-foreground">{t('memory.voiceNotes.recordFirst')}</p>
             </div>
           ) : (
             <ScrollArea className="max-h-[500px]">
@@ -425,18 +427,18 @@ export function VoiceNotesPanel({ onNoteAdded }: VoiceNotesPanelProps) {
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete voice note?</AlertDialogTitle>
+            <AlertDialogTitle>{t('memory.voiceNotes.deleteTitle', 'Delete voice note?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the voice note and its transcript.
+              {t('memory.voiceNotes.deleteDesc', 'This will permanently delete the voice note and its transcript.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
