@@ -21,7 +21,8 @@ import {
   Settings,
   ArrowLeft,
   Network,
-  Link2
+  Link2,
+  Mic
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,6 +75,7 @@ import { InsightsPanel, type InsightsPanelRef } from '@/components/memory/Insigh
 import { MemoryQuickStart } from '@/components/memory/MemoryQuickStart';
 import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
+import { VoiceNotesPanel } from '@/components/memory/VoiceNotesPanel';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
 import { supabase } from '@/integrations/supabase/client';
@@ -592,10 +594,14 @@ function MemoryDashboardContent() {
         
         {/* Tabs */}
         <Tabs defaultValue="memory" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="memory" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
               Memory
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-2">
+              <Mic className="h-4 w-4" />
+              Voice Notes
             </TabsTrigger>
             <TabsTrigger value="insights" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
@@ -879,6 +885,15 @@ function MemoryDashboardContent() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+          
+          <TabsContent value="voice">
+            <VoiceNotesPanel
+              onNoteAdded={() => {
+                memory.getStats().then(setStats);
+                loadDocumentGroups();
+              }}
+            />
           </TabsContent>
           
           <TabsContent value="connectors">
