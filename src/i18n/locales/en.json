@@ -2384,5 +2384,35 @@
       "searchPlaceholder": "Search projects...",
       "sortBy": "Sort by"
     }
+  },
+  "vault": {
+    "title": "Vault",
+    "subtitle": "Your personal encrypted storage",
+    "lock": "Lock Vault",
+    "unlock": {
+      "title": "Unlock Your Vault",
+      "description": "Enter your encryption password to access your secure messages",
+      "passwordLabel": "Encryption Password",
+      "passwordPlaceholder": "Enter your password",
+      "enterPassword": "Please enter your password",
+      "incorrectPassword": "Incorrect password. Please try again.",
+      "failed": "Failed to unlock vault",
+      "unlocking": "Unlocking...",
+      "submit": "Unlock Vault"
+    },
+    "setup": {
+      "title": "Setup Vault",
+      "subtitle": "Create a password to protect your data",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "passwordHint": "This password encrypts all your data locally",
+      "create": "Create Vault",
+      "creating": "Creating vault..."
+    },
+    "status": {
+      "locked": "Vault Locked",
+      "unlocked": "Vault Unlocked",
+      "notInitialized": "Vault Not Initialized"
+    }
   }
 }

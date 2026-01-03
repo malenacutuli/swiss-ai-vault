@@ -197,7 +197,7 @@ export const InsightsPanel = forwardRef<InsightsPanelRef, InsightsPanelProps>(
               ) : hasResumable ? (
                 <Button onClick={() => onDistill({ resume: true })} size="lg">
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  {t('memory.insights.resumeCount', 'Resume ({{count}})')} ({resumableCount})
+                  {t('memory.insights.resumeCount', 'Resume ({{count}})').replace('{{count}}', String(resumableCount))}
                 </Button>
               ) : (
                 <Button onClick={() => onDistill()} size="lg">
