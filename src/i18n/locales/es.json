@@ -2401,7 +2401,24 @@
     "delete": "Eliminar",
     "updated": "Actualizado",
     "deleteConfirmTitle": "¿Eliminar Proyecto?",
-    "deleteConfirmDescription": "Esto eliminará permanentemente este proyecto. Los documentos del proyecto no se eliminarán de tu memoria."
+    "deleteConfirmDescription": "Esto eliminará permanentemente este proyecto. Los documentos del proyecto no se eliminarán de tu memoria.",
+    "create": {
+      "title": "Crear Proyecto",
+      "description": "Organiza documentos y establece instrucciones de IA personalizadas para este proyecto.",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Documentos Fiscales 2024",
+      "descriptionLabel": "Descripción (opcional)",
+      "descriptionPlaceholder": "Breve descripción de este proyecto",
+      "instructionsLabel": "Instrucciones Personalizadas (opcional)",
+      "instructionsPlaceholder": "Instrucciones del sistema para la IA al chatear sobre este proyecto...",
+      "instructionsHint": "Estas instrucciones se utilizarán cuando chatees con documentos en este proyecto.",
+      "color": "Color",
+      "submit": "Crear Proyecto",
+      "success": "Proyecto creado",
+      "failed": "Error al crear el proyecto",
+      "nameRequired": "Nombre requerido",
+      "enterName": "Por favor, introduce un nombre para el proyecto"
+    }
   },
   "researchLibrary": {
     "title": "Biblioteca de Investigación",

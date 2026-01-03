@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FolderKanban, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ const PROJECT_COLORS = [
 ];
 
 export function CreateProjectDialog({ open, onOpenChange, onCreated }: CreateProjectDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -42,7 +44,7 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: CreatePro
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      toast({ title: 'Name required', description: 'Please enter a project name', variant: 'destructive' });
+      toast({ title: t('projects.create.nameRequired', 'Name required'), description: t('projects.create.enterName', 'Please enter a project name'), variant: 'destructive' });
       return;
     }
 
@@ -54,7 +56,7 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: CreatePro
         instructions: instructions.trim() || undefined,
         color,
       });
-      toast({ title: 'Project created' });
+      toast({ title: t('projects.create.success', 'Project created') });
       onCreated();
       // Reset form
       setName('');
@@ -62,7 +64,7 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: CreatePro
       setInstructions('');
       setColor(PROJECT_COLORS[5]);
     } catch (error) {
-      toast({ title: 'Failed to create project', variant: 'destructive' });
+      toast({ title: t('projects.create.failed', 'Failed to create project'), variant: 'destructive' });
     } finally {
       setIsCreating(false);
     }
@@ -74,19 +76,19 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: CreatePro
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FolderKanban className="h-5 w-5" style={{ color }} />
-            Create Project
+            {t('projects.create.title', 'Create Project')}
           </DialogTitle>
           <DialogDescription>
-            Organize documents and set custom AI instructions for this project.
+            {t('projects.create.description', 'Organize documents and set custom AI instructions for this project.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t('projects.create.name', 'Name')}</Label>
             <Input
               id="name"
-              placeholder="e.g., Tax Documents 2024"
+              placeholder={t('projects.create.namePlaceholder', 'e.g., Tax Documents 2024')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -94,31 +96,31 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: CreatePro
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description">{t('projects.create.descriptionLabel', 'Description (optional)')}</Label>
             <Input
               id="description"
-              placeholder="Brief description of this project"
+              placeholder={t('projects.create.descriptionPlaceholder', 'Brief description of this project')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="instructions">Custom Instructions (optional)</Label>
+            <Label htmlFor="instructions">{t('projects.create.instructionsLabel', 'Custom Instructions (optional)')}</Label>
             <Textarea
               id="instructions"
-              placeholder="Custom system prompt for AI when chatting about this project..."
+              placeholder={t('projects.create.instructionsPlaceholder', 'Custom system prompt for AI when chatting about this project...')}
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               rows={3}
             />
             <p className="text-xs text-muted-foreground">
-              These instructions will be used when you chat with documents in this project.
+              {t('projects.create.instructionsHint', 'These instructions will be used when you chat with documents in this project.')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Color</Label>
+            <Label>{t('projects.create.color', 'Color')}</Label>
             <div className="flex items-center gap-2">
               {PROJECT_COLORS.map((c) => (
                 <button
@@ -137,11 +139,11 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated }: CreatePro
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </Button>
           <Button onClick={handleCreate} disabled={isCreating || !name.trim()}>
             {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Create Project
+            {t('projects.create.submit', 'Create Project')}
           </Button>
         </DialogFooter>
       </DialogContent>
