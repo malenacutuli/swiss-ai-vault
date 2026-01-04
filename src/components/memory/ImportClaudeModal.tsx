@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -15,6 +16,7 @@ interface ImportClaudeModalProps {
 }
 
 export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   const [stage, setStage] = useState<'upload' | 'importing' | 'complete'>('upload');
@@ -28,7 +30,7 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
     
     const encryptionKey = getMasterKey();
     if (!isUnlocked || !encryptionKey) {
-      setError('Please unlock your vault first to import conversations');
+      setError(t('memory.import.unlockFirst', 'Please unlock your vault first to import conversations'));
       return;
     }
     
@@ -39,7 +41,7 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
       const conversations = await parseClaudeExport(file);
       
       if (conversations.length === 0) {
-        throw new Error('No conversations found in file');
+        throw new Error(t('memory.import.noConversations', 'No conversations found in file'));
       }
       
       const importResult = await importClaudeHistory(
@@ -52,7 +54,7 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
       setStage('complete');
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      setError(err instanceof Error ? err.message : t('memory.import.failed', 'Import failed'));
       setStage('upload');
     }
   }, [getMasterKey, isUnlocked]);
@@ -82,12 +84,12 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            {stage === 'complete' ? 'Import Complete!' : 'Import Claude History'}
+            {stage === 'complete' ? t('memory.import.complete', 'Import Complete!') : t('memory.import.claudeTitle', 'Import Claude History')}
           </DialogTitle>
           <DialogDescription>
-            {stage === 'upload' && 'Upload your conversations.json file from Claude export'}
-            {stage === 'importing' && 'Processing your conversations...'}
-            {stage === 'complete' && 'Your memories are ready to use'}
+            {stage === 'upload' && t('memory.import.claudeUploadDesc', 'Upload your conversations.json file from Claude export')}
+            {stage === 'importing' && t('memory.import.processing', 'Processing your conversations...')}
+            {stage === 'complete' && t('memory.import.ready', 'Your memories are ready to use')}
           </DialogDescription>
         </DialogHeader>
         
@@ -103,18 +105,18 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
               <input {...getInputProps()} />
               <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                {isDragActive ? 'Drop your file here' : 'Drag & drop conversations.json, or click to browse'}
+                {isDragActive ? t('memory.import.dropHere', 'Drop your file here') : t('memory.import.claudeDragDrop', 'Drag & drop conversations.json, or click to browse')}
               </p>
             </div>
             
             <p className="text-xs text-muted-foreground text-center">
-              Export from Claude: Settings → Account → Export Data
+              {t('memory.import.claudeExportHint', 'Export from Claude: Settings → Account → Export Data')}
             </p>
             
             {!isUnlocked && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                 <AlertCircle className="h-4 w-4 text-amber-500" />
-                <p className="text-xs text-amber-500">Please unlock your vault first</p>
+                <p className="text-xs text-amber-500">{t('memory.import.unlockFirst', 'Please unlock your vault first')}</p>
               </div>
             )}
             
@@ -128,9 +130,9 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
           <div className="space-y-4 py-4">
             <Progress value={(progress.current / progress.total) * 100} />
             <div className="text-center">
-              <p className="text-sm font-medium truncate">Importing "{progress.currentTitle}"</p>
+              <p className="text-sm font-medium truncate">{t('memory.import.importing', 'Importing')} "{progress.currentTitle}"</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {progress.current} of {progress.total} conversations
+                {progress.current} {t('memory.distill.of', 'of')} {progress.total} {t('memory.distill.conversations', 'conversations')}
               </p>
             </div>
           </div>
@@ -147,21 +149,21 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="space-y-1">
                 <p className="text-2xl font-bold">{result.imported}</p>
-                <p className="text-xs text-muted-foreground">Conversations</p>
+                <p className="text-xs text-muted-foreground">{t('memory.import.conversations', 'Conversations')}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-2xl font-bold">{result.totalMessages}</p>
-                <p className="text-xs text-muted-foreground">Messages</p>
+                <p className="text-xs text-muted-foreground">{t('memory.import.messages', 'Messages')}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-2xl font-bold">{result.topTopics.length}</p>
-                <p className="text-xs text-muted-foreground">Topics</p>
+                <p className="text-xs text-muted-foreground">{t('memory.import.topics', 'Topics')}</p>
               </div>
             </div>
             
             {result.topTopics.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Your Top Topics</p>
+                <p className="text-xs font-medium text-muted-foreground">{t('memory.import.yourTopTopics', 'Your Top Topics')}</p>
                 <div className="flex flex-wrap gap-1">
                   {result.topTopics.slice(0, 5).map((topic, i) => (
                     <span
@@ -188,7 +190,7 @@ export function ImportClaudeModal({ open, onOpenChange }: ImportClaudeModalProps
             <div className="pt-2">
               <Button onClick={handleExploreMemory} className="w-full">
                 <Brain className="h-4 w-4 mr-2" />
-                Explore Your Memory
+                {t('memory.import.viewMemory', 'View Memory')}
               </Button>
             </div>
           </div>

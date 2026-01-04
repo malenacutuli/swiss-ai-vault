@@ -2101,13 +2101,23 @@
       "dragDrop": "Drag and drop files here",
       "or": "or",
       "browse": "Browse files",
-      "supportedFormats": "Supported formats: PDF, DOCX, TXT, MD, CSV, JSON",
+      "supportedFormats": "Supported formats",
       "uploading": "Uploading...",
       "processing": "Processing...",
-      "success": "Uploaded successfully",
+      "success": "success",
       "failed": "Upload failed",
-      "bulkUpload": "Bulk Upload",
-      "bulkUploadDesc": "Upload multiple files at once"
+      "error": "error",
+      "pending": "pending",
+      "bulkUpload": "Upload Documents",
+      "bulkUploadDesc": "Upload multiple files at once",
+      "dropHere": "Drop files here...",
+      "dragDropFiles": "Drag & drop files here, or click to select",
+      "extracting": "extracting",
+      "uploadingProgress": "Uploading {{current}} of {{total}}...",
+      "uploadComplete": "Upload Complete",
+      "documentsAdded": "{{count}} of {{total}} documents added to memory",
+      "failedCount": "{{count}} failed",
+      "uploadCount": "Upload {{count}} File(s)"
     },
     "documents": {
       "title": "Documents",
@@ -2376,7 +2386,11 @@
       "yourTopTopics": "Your Top Topics",
       "someFailed": "{{count}} conversation(s) couldn't be imported",
       "importMore": "Import More",
-      "viewMemory": "View Memory"
+      "viewMemory": "View Memory",
+      "claudeTitle": "Import Claude History",
+      "claudeUploadDesc": "Upload your conversations.json file from Claude export",
+      "claudeDragDrop": "Drag & drop conversations.json, or click to browse",
+      "claudeExportHint": "Export from Claude: Settings → Account → Export Data"
     }
   },
   "projects": {
@@ -2435,6 +2449,17 @@
     "filters": {
       "searchPlaceholder": "Search projects...",
       "sortBy": "Sort by"
+    },
+    "addDocs": {
+      "title": "Add Documents to Project",
+      "description": "Select documents from your memory to add to this project.",
+      "searchPlaceholder": "Search documents...",
+      "noDocuments": "No documents available",
+      "selectedCount": "{{count}} document(s) selected",
+      "adding": "Adding...",
+      "addButton": "Add {{count}} Document(s)",
+      "addedCount": "Added {{count}} document(s)",
+      "addFailed": "Failed to add documents"
     }
   },
   "vault": {

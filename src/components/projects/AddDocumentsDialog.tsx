@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, FileText, Check } from 'lucide-react';
 import {
   Dialog,
@@ -32,6 +33,7 @@ export function AddDocumentsDialog({
   existingDocIds,
   onAdded,
 }: AddDocumentsDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { getMasterKey } = useEncryptionContext();
   const [allDocs, setAllDocs] = useState<DocumentGroup[]>([]);
@@ -94,11 +96,11 @@ export function AddDocumentsDialog({
           await addDocumentToProject(projectId, group.chunkIds[0], key);
         }
       }
-      toast({ title: `Added ${selectedIds.size} document(s)` });
+      toast({ title: t('projects.addDocs.addedCount', 'Added {{count}} document(s)').replace('{{count}}', String(selectedIds.size)) });
       onAdded();
       onOpenChange(false);
     } catch (error: any) {
-      toast({ title: 'Failed to add documents', variant: 'destructive' });
+      toast({ title: t('projects.addDocs.addFailed', 'Failed to add documents'), variant: 'destructive' });
     } finally {
       setIsAdding(false);
     }
@@ -108,9 +110,9 @@ export function AddDocumentsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Documents to Project</DialogTitle>
+          <DialogTitle>{t('projects.addDocs.title', 'Add Documents to Project')}</DialogTitle>
           <DialogDescription>
-            Select documents from your memory to add to this project.
+            {t('projects.addDocs.description', 'Select documents from your memory to add to this project.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -120,7 +122,7 @@ export function AddDocumentsDialog({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search documents..."
+              placeholder={t('projects.addDocs.searchPlaceholder', 'Search documents...')}
               className="pl-9"
             />
           </div>
@@ -128,12 +130,12 @@ export function AddDocumentsDialog({
           <ScrollArea className="h-[300px] border rounded-lg">
             {isLoading ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p className="text-sm">Loading...</p>
+                <p className="text-sm">{t('common.loading', 'Loading...')}</p>
               </div>
             ) : filteredDocs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
                 <FileText className="h-8 w-8 mb-2 opacity-50" />
-                <p className="text-sm">No documents available</p>
+                <p className="text-sm">{t('projects.addDocs.noDocuments', 'No documents available')}</p>
               </div>
             ) : (
               <div className="p-2 space-y-1">
@@ -170,17 +172,17 @@ export function AddDocumentsDialog({
 
           {selectedIds.size > 0 && (
             <p className="text-sm text-muted-foreground text-center">
-              {selectedIds.size} document(s) selected
+              {t('projects.addDocs.selectedCount', '{{count}} document(s) selected').replace('{{count}}', String(selectedIds.size))}
             </p>
           )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </Button>
           <Button onClick={handleAdd} disabled={selectedIds.size === 0 || isAdding}>
-            {isAdding ? 'Adding...' : `Add ${selectedIds.size || ''} Document(s)`}
+            {isAdding ? t('projects.addDocs.adding', 'Adding...') : t('projects.addDocs.addButton', 'Add {{count}} Document(s)').replace('{{count}}', String(selectedIds.size || ''))}
           </Button>
         </DialogFooter>
       </DialogContent>

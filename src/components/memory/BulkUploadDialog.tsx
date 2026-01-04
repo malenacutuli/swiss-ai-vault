@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Upload, 
   FileText, 
@@ -92,6 +93,7 @@ export function BulkUploadDialog({
   onUpload,
   onUploadComplete
 }: BulkUploadDialogProps) {
+  const { t } = useTranslation();
   const [files, setFiles] = useState<FileToUpload[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('none');
   const [isUploading, setIsUploading] = useState(false);
@@ -227,10 +229,10 @@ export function BulkUploadDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Upload Documents
+            {t('memory.upload.bulkUpload', 'Upload Documents')}
           </DialogTitle>
           <DialogDescription>
-            Supported: {getSupportedFormatsText()}
+            {t('memory.upload.supportedFormats', 'Supported')}: {getSupportedFormatsText()}
           </DialogDescription>
         </DialogHeader>
         
@@ -247,10 +249,10 @@ export function BulkUploadDialog({
               <input {...getInputProps()} />
               <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
               {isDragActive ? (
-                <p className="text-sm text-foreground">Drop files here...</p>
+                <p className="text-sm text-foreground">{t('memory.upload.dropHere', 'Drop files here...')}</p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Drag & drop files here, or click to select
+                  {t('memory.upload.dragDropFiles', 'Drag & drop files here, or click to select')}
                 </p>
               )}
             </div>
@@ -261,10 +263,10 @@ export function BulkUploadDialog({
                 <FolderOpen className="h-4 w-4 text-muted-foreground" />
                 <Select value={selectedFolder} onValueChange={setSelectedFolder}>
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select folder" />
+                    <SelectValue placeholder={t('memory.folders.selectDestination', 'Select folder')} />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border border-border z-50">
-                    <SelectItem value="none">No folder (root)</SelectItem>
+                    <SelectItem value="none">{t('memory.folders.root', 'No folder (root)')}</SelectItem>
                     {folders.map(folder => (
                       <SelectItem key={folder.id} value={folder.id}>
                         {folder.name}
@@ -304,7 +306,11 @@ export function BulkUploadDialog({
                         {f.status === 'uploading' && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
                         {f.status === 'success' && <CheckCircle2 className="h-3 w-3 mr-1 text-green-500" />}
                         {f.status === 'error' && <AlertCircle className="h-3 w-3 mr-1 text-destructive" />}
-                        {f.status === 'extracting' ? 'extracting' : f.status}
+                        {f.status === 'extracting' ? t('memory.upload.extracting', 'extracting') : 
+                         f.status === 'pending' ? t('memory.upload.pending', 'pending') :
+                         f.status === 'uploading' ? t('memory.upload.uploading', 'uploading') :
+                         f.status === 'success' ? t('memory.upload.success', 'success') :
+                         t('memory.upload.error', 'error')}
                       </Badge>
                       {(f.status === 'pending' || f.status === 'error') && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeFile(f.file)}>
@@ -322,7 +328,7 @@ export function BulkUploadDialog({
               <div className="space-y-2">
                 <Progress value={(uploadProgress.current / uploadProgress.total) * 100} />
                 <p className="text-xs text-muted-foreground text-center">
-                  Uploading {uploadProgress.current} of {uploadProgress.total}...
+                  {t('memory.upload.uploadingProgress', 'Uploading {{current}} of {{total}}...').replace('{{current}}', String(uploadProgress.current)).replace('{{total}}', String(uploadProgress.total))}
                 </p>
               </div>
             )}
@@ -331,13 +337,13 @@ export function BulkUploadDialog({
           /* Upload Complete */
           <div className="py-8 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
-            <h3 className="text-lg font-medium mb-2">Upload Complete</h3>
+            <h3 className="text-lg font-medium mb-2">{t('memory.upload.uploadComplete', 'Upload Complete')}</h3>
             <p className="text-sm text-muted-foreground">
-              {results?.successful} of {files.length} documents added to memory
+              {t('memory.upload.documentsAdded', '{{count}} of {{total}} documents added to memory').replace('{{count}}', String(results?.successful)).replace('{{total}}', String(files.length))}
             </p>
             {results?.failed && results.failed > 0 && (
               <p className="text-sm text-destructive mt-1">
-                {results.failed} failed
+                {t('memory.upload.failedCount', '{{count}} failed').replace('{{count}}', String(results.failed))}
               </p>
             )}
           </div>
@@ -347,7 +353,7 @@ export function BulkUploadDialog({
           {!uploadComplete ? (
             <>
               <Button variant="outline" onClick={handleClose}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
               <Button 
                 onClick={handleUpload} 
@@ -356,24 +362,24 @@ export function BulkUploadDialog({
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Uploading...
+                    {t('memory.upload.uploading', 'Uploading...')}
                   </>
                 ) : extractingCount > 0 ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Extracting...
+                    {t('memory.upload.extracting', 'Extracting...')}
                   </>
                 ) : (
                   <>
                     <Upload className="h-4 w-4 mr-2" />
-                    Upload {pendingCount} File{pendingCount !== 1 ? 's' : ''}
+                    {t('memory.upload.uploadCount', 'Upload {{count}} File(s)').replace('{{count}}', String(pendingCount))}
                   </>
                 )}
               </Button>
             </>
           ) : (
             <Button onClick={handleClose}>
-              Done
+              {t('common.close', 'Done')}
             </Button>
           )}
         </DialogFooter>
