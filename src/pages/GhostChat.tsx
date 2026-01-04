@@ -1126,7 +1126,14 @@ Use this context to inform your response when relevant. Cite sources by number w
       saveMessage(convId, 'user', displayContent);
 
       // Ensure sidebar shows a meaningful name immediately (instead of "New Chat")
-      if (createdNewConversation) {
+      const convMetaForTitle = conversations.find((c) => c.id === convId);
+      const isDefaultTitle =
+        !convMetaForTitle?.title ||
+        convMetaForTitle.title === 'New Chat' ||
+        convMetaForTitle.title === 'New Ghost Chat' ||
+        convMetaForTitle.title === 'New Ghost Session';
+
+      if (createdNewConversation || (isDefaultTitle && (convMetaForTitle?.messageCount ?? 0) === 0)) {
         const title = displayContent.slice(0, 50) + (displayContent.length > 50 ? '...' : '');
         updateConversationTitle(convId, title);
       }
