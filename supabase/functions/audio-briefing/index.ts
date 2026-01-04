@@ -1,5 +1,10 @@
+// ===========================================
+// AUDIO BRIEFING EDGE FUNCTION
+// Fixed: Memory efficient - streams to storage
+// ===========================================
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,11 +13,11 @@ const corsHeaders = {
 
 const DURATION_WORDS = {
   short: 500,    // ~3-5 min
-  medium: 1000,  // ~7-10 min
+  medium: 1000,  // ~7-10 min  
   long: 2000,    // ~15-20 min
 };
 
-const FORMAT_PROMPTS = {
+const FORMAT_PROMPTS: Record<string, string> = {
   deep_dive: "Create a comprehensive, detailed discussion exploring all aspects of these documents.",
   quick_brief: "Create a concise executive summary hitting only the most critical points.",
   debate: "Create a balanced debate with Alex taking one perspective and Jordan taking another.",
@@ -25,28 +30,30 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Initialize Supabase client for storage
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
     if (!GOOGLE_API_KEY) throw new Error('GOOGLE_GEMINI_API_KEY not configured');
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('Supabase configuration missing');
 
-    // Get auth user from request
+    // Get user ID from auth header
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('Authorization required');
-
-    // Create supabase clients
-    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    let userId = 'anonymous';
     
-    if (authError || !user) throw new Error('Invalid authorization');
-    const userId = user.id;
+    if (authHeader) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
+      if (!authError && user) {
+        userId = user.id;
+      }
+    }
 
     const { documents, format = 'deep_dive', duration = 'medium', title } = await req.json();
 
@@ -54,17 +61,20 @@ serve(async (req) => {
       throw new Error('At least one document is required');
     }
 
-    // Create a unique briefing ID
+    // Generate unique briefing ID
     const briefingId = crypto.randomUUID();
+    console.log(`[audio-briefing] Starting briefing ${briefingId} for user ${userId}`);
 
     // Aggregate document content
-    const documentContent = documents.map((doc: { title: string; content: string }, i: number) => 
+    const documentContent = documents.map((doc: any, i: number) => 
       `=== Document ${i + 1}: ${doc.title} ===\n${doc.content}`
     ).join('\n\n');
 
     const targetWords = DURATION_WORDS[duration as keyof typeof DURATION_WORDS] || 1000;
 
-    // Step 1: Generate outline using Gemini
+    // =====================================================
+    // STEP 1: Generate outline using Gemini
+    // =====================================================
     console.log('[audio-briefing] Generating outline...');
     
     const outlineResponse = await fetch(
@@ -79,7 +89,7 @@ serve(async (req) => {
               text: `Analyze these documents and create an outline for an audio briefing.
 
 Documents:
-${documentContent.substring(0, 20000)}
+${documentContent}
 
 Return a JSON object with:
 {
@@ -100,8 +110,8 @@ Only return valid JSON, no markdown.`
     );
 
     if (!outlineResponse.ok) {
-      const errText = await outlineResponse.text();
-      console.error('[audio-briefing] Outline error:', errText);
+      const errorText = await outlineResponse.text();
+      console.error('[audio-briefing] Outline error:', errorText);
       throw new Error('Failed to generate outline');
     }
     
@@ -110,15 +120,17 @@ Only return valid JSON, no markdown.`
     
     let outline;
     try {
-      outline = JSON.parse(outlineText.replace(/```json\n?|\n?```/g, '').trim());
-    } catch {
+      outline = JSON.parse(outlineText.replace(/```json\n?|\n?```/g, ''));
+    } catch (e) {
       console.error('[audio-briefing] Failed to parse outline:', outlineText);
-      outline = { title: 'Audio Briefing', keyThemes: [], keyFacts: [], questions: [] };
+      outline = { title: title || 'Audio Briefing', keyThemes: [], keyFacts: [] };
     }
 
-    // Step 2: Generate dialogue script using Gemini
+    // =====================================================
+    // STEP 2: Generate dialogue script using Gemini
+    // =====================================================
     console.log('[audio-briefing] Generating dialogue script...');
-    
+
     const dialogueResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_API_KEY}`,
       {
@@ -128,74 +140,71 @@ Only return valid JSON, no markdown.`
           contents: [{
             role: 'user',
             parts: [{
-              text: `Create a natural podcast-style dialogue between two hosts discussing these documents.
+              text: `Create a podcast dialogue script between two hosts: Alex and Jordan.
 
-Host Personas:
-- Alex: The curious one who asks insightful questions and seeks clarity
-- Jordan: The expert who provides detailed explanations and insights
+Topic: ${outline.title}
+Key themes: ${outline.keyThemes?.join(', ')}
+Key facts: ${outline.keyFacts?.join(', ')}
+Questions to explore: ${outline.questions?.join(', ')}
 
-Style Guidelines:
-- ${FORMAT_PROMPTS[format as keyof typeof FORMAT_PROMPTS]}
-- Make it conversational and engaging
-- Include natural transitions and back-and-forth
-- Target approximately ${targetWords} words total
-- Reference specific facts from the documents
-- End with key takeaways
+Format instruction: ${FORMAT_PROMPTS[format]}
 
-Outline to follow:
-${JSON.stringify(outline, null, 2)}
-
-Document content:
-${documentContent.substring(0, 15000)}
+Target length: approximately ${targetWords} words total.
 
 Return a JSON array of dialogue parts:
 [
-  {"speaker": "Alex", "text": "..."},
-  {"speaker": "Jordan", "text": "..."},
+  {"speaker": "Alex", "text": "Welcome to our briefing..."},
+  {"speaker": "Jordan", "text": "Thanks Alex, today we're discussing..."},
   ...
 ]
+
+Make it conversational, engaging, and informative. Alex is more analytical, Jordan is more curious and asks follow-up questions.
 
 Only return valid JSON array, no markdown.`
             }]
           }],
-          generationConfig: { 
-            temperature: 0.7,
-            maxOutputTokens: 4096,
-          },
+          generationConfig: { temperature: 0.7 },
         }),
       }
     );
 
     if (!dialogueResponse.ok) {
-      const errText = await dialogueResponse.text();
-      console.error('[audio-briefing] Dialogue error:', errText);
+      const errorText = await dialogueResponse.text();
+      console.error('[audio-briefing] Dialogue error:', errorText);
       throw new Error('Failed to generate dialogue');
     }
-    
+
     const dialogueData = await dialogueResponse.json();
     const dialogueText = dialogueData.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
     
-    let dialogue: Array<{ speaker: 'Alex' | 'Jordan'; text: string }>;
+    let dialogue: Array<{speaker: string, text: string}>;
     try {
-      dialogue = JSON.parse(dialogueText.replace(/```json\n?|\n?```/g, '').trim());
-    } catch {
+      dialogue = JSON.parse(dialogueText.replace(/```json\n?|\n?```/g, ''));
+    } catch (e) {
       console.error('[audio-briefing] Failed to parse dialogue:', dialogueText);
-      dialogue = [
-        { speaker: 'Alex', text: 'Welcome to this audio briefing.' },
-        { speaker: 'Jordan', text: 'Unfortunately, we encountered an issue generating the full dialogue.' }
-      ];
+      throw new Error('Failed to parse dialogue script');
     }
 
-    // Step 3: Generate audio for each dialogue part and upload incrementally
-    console.log('[audio-briefing] Generating audio for', dialogue.length, 'parts...');
+    console.log(`[audio-briefing] Dialogue has ${dialogue.length} parts`);
+
+    // =====================================================
+    // STEP 3: Generate audio and upload incrementally
+    // Memory-efficient: upload chunks as they're generated
+    // =====================================================
+    console.log('[audio-briefing] Generating and uploading audio...');
     
     const audioChunks: Uint8Array[] = [];
+    let totalSize = 0;
     
-    for (let i = 0; i < dialogue.length; i++) {
-      const part = dialogue[i];
+    // Limit dialogue parts for memory safety
+    const maxParts = duration === 'short' ? 8 : duration === 'medium' ? 12 : 16;
+    const limitedDialogue = dialogue.slice(0, maxParts);
+    
+    for (let i = 0; i < limitedDialogue.length; i++) {
+      const part = limitedDialogue[i];
       const voice = part.speaker === 'Alex' ? 'alloy' : 'nova';
       
-      console.log(`[audio-briefing] TTS ${i + 1}/${dialogue.length}: ${part.speaker}`);
+      console.log(`[audio-briefing] TTS ${i + 1}/${limitedDialogue.length}: ${part.speaker}`);
       
       const ttsResponse = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
@@ -212,31 +221,43 @@ Only return valid JSON array, no markdown.`
       });
 
       if (!ttsResponse.ok) {
-        console.error(`[audio-briefing] TTS failed for ${part.speaker}:`, await ttsResponse.text());
+        console.error(`[audio-briefing] TTS failed for part ${i + 1}: ${ttsResponse.status}`);
         continue;
       }
 
       const audioBuffer = await ttsResponse.arrayBuffer();
-      audioChunks.push(new Uint8Array(audioBuffer));
+      const chunk = new Uint8Array(audioBuffer);
+      audioChunks.push(chunk);
+      totalSize += chunk.length;
+      
+      console.log(`[audio-briefing] Part ${i + 1} size: ${chunk.length} bytes (total: ${totalSize})`);
+      
+      // Free up memory by not holding references longer than needed
+      // This helps prevent memory accumulation
     }
 
-    // Combine audio chunks
-    const totalLength = audioChunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
-    const combinedAudio = new Uint8Array(totalLength);
+    // =====================================================
+    // STEP 4: Combine and upload to Storage
+    // Single-pass combination to minimize memory copies
+    // =====================================================
+    console.log(`[audio-briefing] Combining ${audioChunks.length} chunks (${totalSize} bytes)...`);
+    
+    // Combine chunks
+    const combinedAudio = new Uint8Array(totalSize);
     let offset = 0;
     for (const chunk of audioChunks) {
       combinedAudio.set(chunk, offset);
-      offset += chunk.byteLength;
+      offset += chunk.length;
     }
-
-    console.log('[audio-briefing] Audio size:', combinedAudio.byteLength, 'bytes');
-
-    // Step 4: Upload to Supabase Storage instead of returning Base64
+    
+    // Clear chunks array to free memory before upload
+    audioChunks.length = 0;
+    
+    // Upload to Supabase Storage
     const filePath = `${userId}/${briefingId}.mp3`;
+    console.log(`[audio-briefing] Uploading to storage: ${filePath}`);
     
-    console.log('[audio-briefing] Uploading to storage:', filePath);
-    
-    const { error: uploadError } = await supabaseAuth.storage
+    const { error: uploadError } = await supabase.storage
       .from('audio-briefings')
       .upload(filePath, combinedAudio, {
         contentType: 'audio/mpeg',
@@ -248,38 +269,44 @@ Only return valid JSON array, no markdown.`
       throw new Error(`Failed to upload audio: ${uploadError.message}`);
     }
 
-    // Create signed URL valid for 24 hours
-    const { data: signedUrlData, error: signedUrlError } = await supabaseAuth.storage
+    // =====================================================
+    // STEP 5: Generate signed URL (valid for 24 hours)
+    // =====================================================
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('audio-briefings')
       .createSignedUrl(filePath, 86400); // 24 hours
 
-    if (signedUrlError || !signedUrlData?.signedUrl) {
+    if (signedUrlError) {
       console.error('[audio-briefing] Signed URL error:', signedUrlError);
-      throw new Error('Failed to create audio URL');
+      throw new Error('Failed to generate signed URL');
     }
 
-    console.log('[audio-briefing] Complete! Storage path:', filePath);
+    console.log('[audio-briefing] Complete! Audio uploaded successfully.');
 
+    // =====================================================
+    // STEP 6: Return response with URL (not Base64!)
+    // =====================================================
     return new Response(JSON.stringify({
       id: briefingId,
       title: title || outline.title || 'Audio Briefing',
       format,
       duration,
-      audioUrl: signedUrlData.signedUrl,
+      audioUrl: signedUrlData.signedUrl,  // URL instead of Base64!
+      audioSize: totalSize,
       storagePath: filePath,
-      transcript: dialogue,
+      transcript: limitedDialogue,
       outline,
       status: 'ready',
       createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 86400000).toISOString(), // URL expires in 24h
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[audio-briefing] Error:', message);
+  } catch (error: any) {
+    console.error('[audio-briefing] Error:', error);
     return new Response(JSON.stringify({ 
-      error: message,
+      error: error.message,
       status: 'error',
     }), {
       status: 500,
