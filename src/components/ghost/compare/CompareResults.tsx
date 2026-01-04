@@ -61,7 +61,7 @@ function ResponseCard({
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-4 overflow-y-auto min-h-[200px] max-h-[400px]">
+      <div className="flex-1 p-4 overflow-y-auto min-h-[200px]">
         {isLoading && (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

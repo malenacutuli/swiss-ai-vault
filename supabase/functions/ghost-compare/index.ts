@@ -13,33 +13,34 @@ const corsHeaders = {
 
 // Model configurations - Real API model IDs
 const MODEL_CONFIGS: Record<string, {
-  provider: 'openai' | 'anthropic' | 'google' | 'deepseek' | 'xai' | 'mistral' | 'meta';
+  provider: 'openai' | 'google' | 'swissvault';
   modelId: string;
   displayName: string;
 }> = {
-  // OpenAI - Real models
+  // SwissVault (aliased to OpenAI for reliability)
+  'swissvault-1.0': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault 1.0' },
+  'swissvault-pro': { provider: 'swissvault', modelId: 'gpt-4o', displayName: 'SwissVault Pro' },
+  'swissvault-code': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault Code' },
+  'swissvault-fast': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault Fast' },
+  // OpenAI
   'gpt-4o': { provider: 'openai', modelId: 'gpt-4o', displayName: 'GPT-4o' },
   'gpt-4o-mini': { provider: 'openai', modelId: 'gpt-4o-mini', displayName: 'GPT-4o Mini' },
-  'gpt-4-turbo': { provider: 'openai', modelId: 'gpt-4-turbo', displayName: 'GPT-4 Turbo' },
   'o1': { provider: 'openai', modelId: 'o1', displayName: 'o1' },
-  'o1-mini': { provider: 'openai', modelId: 'o1-mini', displayName: 'o1-mini' },
-  // Anthropic - Real models
-  'claude-3.5-sonnet': { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', displayName: 'Claude 3.5 Sonnet' },
-  'claude-3.5-haiku': { provider: 'anthropic', modelId: 'claude-3-5-haiku-20241022', displayName: 'Claude 3.5 Haiku' },
-  'claude-3-opus': { provider: 'anthropic', modelId: 'claude-3-opus-20240229', displayName: 'Claude 3 Opus' },
-  // Google - Real models
-  'gemini-2.0-flash': { provider: 'google', modelId: 'gemini-2.0-flash-exp', displayName: 'Gemini 2.0 Flash' },
+  'o1-mini': { provider: 'openai', modelId: 'o1-mini', displayName: 'o1 Mini' },
+  'o3-mini': { provider: 'openai', modelId: 'o3-mini', displayName: 'o3 Mini' },
+  'o3': { provider: 'openai', modelId: 'o3', displayName: 'o3' },
+  'o4-mini': { provider: 'openai', modelId: 'o4-mini', displayName: 'o4 Mini' },
+  'gpt-5.2': { provider: 'openai', modelId: 'gpt-5.2', displayName: 'GPT-5.2' },
+  'gpt-5.2-mini': { provider: 'openai', modelId: 'gpt-5.2-mini', displayName: 'GPT-5.2 Mini' },
+  // Google
+  'gemini-3-pro': { provider: 'google', modelId: 'gemini-2.5-pro-preview-06-05', displayName: 'Gemini 3 Pro' },
+  'gemini-3-flash': { provider: 'google', modelId: 'gemini-2.5-flash-preview-05-20', displayName: 'Gemini 3 Flash' },
+  'gemini-2.5-pro': { provider: 'google', modelId: 'gemini-2.5-pro-preview-06-05', displayName: 'Gemini 2.5 Pro' },
+  'gemini-2.5-flash': { provider: 'google', modelId: 'gemini-2.5-flash-preview-05-20', displayName: 'Gemini 2.5 Flash' },
+  'gemini-2.5-flash-lite': { provider: 'google', modelId: 'gemini-2.0-flash-lite', displayName: 'Gemini 2.5 Flash-Lite' },
+  'gemini-2.0-flash': { provider: 'google', modelId: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash' },
+  'gemini-2.0-pro': { provider: 'google', modelId: 'gemini-2.0-pro-exp', displayName: 'Gemini 2.0 Pro' },
   'gemini-1.5-pro': { provider: 'google', modelId: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
-  'gemini-1.5-flash': { provider: 'google', modelId: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' },
-  // DeepSeek - Real models
-  'deepseek-r1': { provider: 'deepseek', modelId: 'deepseek-reasoner', displayName: 'DeepSeek R1' },
-  'deepseek-v3': { provider: 'deepseek', modelId: 'deepseek-chat', displayName: 'DeepSeek V3' },
-  // xAI - Real models
-  'grok-2': { provider: 'xai', modelId: 'grok-2-latest', displayName: 'Grok 2' },
-  // Mistral - Real models
-  'mistral-large': { provider: 'mistral', modelId: 'mistral-large-latest', displayName: 'Mistral Large' },
-  // Meta via Together
-  'llama-3.3-70b': { provider: 'meta', modelId: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', displayName: 'Llama 3.3 70B' },
 };
 
 // Provider API calls
@@ -66,29 +67,6 @@ async function callOpenAI(prompt: string, modelId: string, apiKey: string): Prom
   };
 }
 
-async function callAnthropic(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: modelId,
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  
-  if (!response.ok) throw new Error(`Anthropic error: ${response.status}`);
-  const data = await response.json();
-  return {
-    text: data.content?.[0]?.text || '',
-    tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
-  };
-}
-
 async function callGoogle(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`,
@@ -110,95 +88,6 @@ async function callGoogle(prompt: string, modelId: string, apiKey: string): Prom
   };
 }
 
-async function callDeepSeek(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
-  const response = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 2048,
-    }),
-  });
-  
-  if (!response.ok) throw new Error(`DeepSeek error: ${response.status}`);
-  const data = await response.json();
-  return {
-    text: data.choices[0]?.message?.content || '',
-    tokens: data.usage?.total_tokens || 0,
-  };
-}
-
-async function callXAI(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
-  const response = await fetch('https://api.x.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 2048,
-    }),
-  });
-  
-  if (!response.ok) throw new Error(`xAI error: ${response.status}`);
-  const data = await response.json();
-  return {
-    text: data.choices[0]?.message?.content || '',
-    tokens: data.usage?.total_tokens || 0,
-  };
-}
-
-async function callMeta(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
-  // Meta Llama via Together API
-  const response = await fetch('https://api.together.xyz/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 2048,
-    }),
-  });
-  
-  if (!response.ok) throw new Error(`Meta/Together error: ${response.status}`);
-  const data = await response.json();
-  return {
-    text: data.choices[0]?.message?.content || '',
-    tokens: data.usage?.total_tokens || 0,
-  };
-}
-
-async function callMistral(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
-  const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 2048,
-    }),
-  });
-  
-  if (!response.ok) throw new Error(`Mistral error: ${response.status}`);
-  const data = await response.json();
-  return {
-    text: data.choices[0]?.message?.content || '',
-    tokens: data.usage?.total_tokens || 0,
-  };
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -207,12 +96,7 @@ serve(async (req) => {
   try {
     // Get API keys
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
-    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
-    const XAI_API_KEY = Deno.env.get('XAI_API_KEY');
-    const MISTRAL_API_KEY = Deno.env.get('MISTRAL_API_KEY');
-    const TOGETHER_API_KEY = Deno.env.get('TOGETHER_API_KEY');
     const { prompt, models, systemPrompt } = await req.json();
 
     if (!prompt) throw new Error('Prompt is required');
@@ -236,32 +120,13 @@ serve(async (req) => {
 
         switch (config.provider) {
           case 'openai':
+          case 'swissvault':
             if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
             result = await callOpenAI(fullPrompt, config.modelId, OPENAI_API_KEY);
-            break;
-          case 'anthropic':
-            if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
-            result = await callAnthropic(fullPrompt, config.modelId, ANTHROPIC_API_KEY);
             break;
           case 'google':
             if (!GOOGLE_API_KEY) throw new Error('Google API key not configured');
             result = await callGoogle(fullPrompt, config.modelId, GOOGLE_API_KEY);
-            break;
-          case 'deepseek':
-            if (!DEEPSEEK_API_KEY) throw new Error('DeepSeek API key not configured');
-            result = await callDeepSeek(fullPrompt, config.modelId, DEEPSEEK_API_KEY);
-            break;
-          case 'xai':
-            if (!XAI_API_KEY) throw new Error('xAI API key not configured');
-            result = await callXAI(fullPrompt, config.modelId, XAI_API_KEY);
-            break;
-          case 'mistral':
-            if (!MISTRAL_API_KEY) throw new Error('Mistral API key not configured');
-            result = await callMistral(fullPrompt, config.modelId, MISTRAL_API_KEY);
-            break;
-          case 'meta':
-            if (!TOGETHER_API_KEY) throw new Error('Together API key not configured for Meta models');
-            result = await callMeta(fullPrompt, config.modelId, TOGETHER_API_KEY);
             break;
           default:
             throw new Error(`Unsupported provider: ${config.provider}`);
