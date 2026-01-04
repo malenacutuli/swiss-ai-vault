@@ -101,7 +101,7 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
       title: t('auth.signedOut'),
       description: t('auth.signedOutDescription'),
     });
-    navigate("/");
+    navigate("/labs");
   };
 
   const userInitials = user?.user_metadata?.full_name
