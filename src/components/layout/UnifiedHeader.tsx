@@ -58,7 +58,7 @@ export function UnifiedHeader({
         )}
 
         {/* Logo */}
-        <Link to="/" className="flex items-center">
+        <Link to={product === 'ghost' ? '/ghost/chat' : '/'} className="flex items-center">
           <SwissFlag className="h-10" />
         </Link>
 
@@ -109,7 +109,7 @@ export function UnifiedHeader({
             size="sm"
             onClick={async () => {
               await supabase.auth.signOut();
-              navigate('/');
+              navigate(product === 'ghost' ? '/ghost/chat' : product === 'vault' ? '/chat' : '/');
             }}
             className="text-muted-foreground hover:text-foreground gap-1.5"
           >

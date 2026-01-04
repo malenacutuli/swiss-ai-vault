@@ -83,7 +83,7 @@ export function LabsLayout() {
         {/* Header with logo and breadcrumbs */}
         <header className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background/95 backdrop-blur sticky top-0 z-30">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center">
+            <Link to="/labs" className="flex items-center">
               <SwissFlag className="h-10" />
             </Link>
             {showBreadcrumbs && (

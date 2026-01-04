@@ -94,9 +94,9 @@ export const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps)
           "flex h-16 items-center border-b border-sidebar-border px-4",
           collapsed ? "justify-center" : "justify-between"
         )}>
-          <a href="/" className="flex items-center">
+          <Link to="/" className="flex items-center">
             <SwissFlag className={cn("transition-all", collapsed ? "h-8" : "h-9")} />
-          </a>
+          </Link>
         </div>
 
         {/* Organization Switcher */}
