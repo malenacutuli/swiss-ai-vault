@@ -35,13 +35,12 @@ export const MemoryToggle: React.FC<MemoryToggleProps> = ({
             variant="ghost"
             size="icon"
             onClick={onToggle}
-            disabled={disabled}
             className={cn(
               "relative h-9 w-9 transition-colors",
               enabled 
                 ? "text-primary bg-primary/10 hover:bg-primary/20" 
                 : "text-muted-foreground hover:text-foreground",
-              disabled && "opacity-50 cursor-not-allowed",
+              disabled && "opacity-50",
               className
             )}
           >
