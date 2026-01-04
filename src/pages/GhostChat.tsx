@@ -2443,7 +2443,20 @@ Use this context to inform your response when relevant. Cite sources by number w
           
           {/* Text Mode - Empty state with centered input (Perplexity-style) */}
           {mode === 'text' && messages.length === 0 && (
-            <GhostTextViewEmpty>
+            <>
+            {/* Compare Results - rendered OUTSIDE GhostTextViewEmpty for full width */}
+            {isCompareMode && compareResult && (
+              <div className="w-full max-w-5xl mx-auto px-4 pt-8 pb-4">
+                <CompareResults
+                  result={compareResult}
+                  onRate={rateCompareResponse}
+                  onUseResponse={handleUseCompareResponse}
+                />
+              </div>
+            )}
+            
+            {/* Only show empty state welcome when no compare results */}
+            <GhostTextViewEmpty hasCompareResults={isCompareMode && !!compareResult}>
               {/* Mode Toggles: Grounded Mode and Compare Mode */}
               <div className="mb-3 flex items-center justify-center gap-4 flex-wrap">
                 <GroundedModeToggle
@@ -2484,16 +2497,6 @@ Use this context to inform your response when relevant. Cite sources by number w
                 )}
               </div>
               
-              {/* Compare Results Display */}
-              {isCompareMode && compareResult && (
-                <div className="mb-4 w-full max-w-5xl mx-auto">
-                  <CompareResults
-                    result={compareResult}
-                    onRate={rateCompareResponse}
-                    onUseResponse={handleUseCompareResponse}
-                  />
-                </div>
-              )}
               {/* Attachment preview above input */}
               {attachedFiles.length > 0 && (
                 <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
@@ -2565,6 +2568,7 @@ Use this context to inform your response when relevant. Cite sources by number w
                 lastAssistantMessage={lastAssistantMessage}
               />
             </GhostTextViewEmpty>
+            </>
           )}
           
           {/* Text Mode - With messages (input at bottom) */}
