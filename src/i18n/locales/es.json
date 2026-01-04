@@ -2235,6 +2235,7 @@
     },
     "search": {
       "title": "Buscar en Memoria",
+      "subtitle": "Encuentra contenido relevante en tu base de conocimiento",
       "placeholder": "Busca en todos tus documentos...",
       "noResults": "No se encontraron resultados",
       "searching": "Buscando...",
@@ -2647,8 +2648,5 @@
       "unlocked": "Bóveda Desbloqueada",
       "notInitialized": "Bóveda No Inicializada"
     }
-  },
-  "common": {
-    "cancel": "Cancelar"
   }
 }
