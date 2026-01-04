@@ -1597,6 +1597,12 @@ interface StoredAudioBriefing {
   metadata: {
     format: string;
     duration: string;
+    // URL-based audio (from Supabase Storage)
+    audioUrl?: string;
+    audioSize?: number;
+    storagePath?: string;
+    expiresAt?: string;
+    // Legacy Base64 format
     audioDataUrl?: string;
     transcript: DialoguePart[];
     outline: BriefingOutline;
@@ -1626,6 +1632,12 @@ export async function saveAudioBriefing(briefing: AudioBriefing): Promise<string
     metadata: {
       format: briefing.format,
       duration: briefing.duration,
+      // URL-based audio (from Supabase Storage)
+      audioUrl: briefing.audioUrl,
+      audioSize: briefing.audioSize,
+      storagePath: briefing.storagePath,
+      expiresAt: briefing.expiresAt,
+      // Legacy Base64 format
       audioDataUrl: briefing.audioDataUrl,
       transcript: briefing.transcript,
       outline: briefing.outline,
@@ -1670,7 +1682,12 @@ export async function getAudioBriefings(): Promise<AudioBriefing[]> {
       title: item.title,
       format: item.metadata.format as AudioBriefing['format'],
       duration: item.metadata.duration as AudioBriefing['duration'],
-      audioUrl: undefined,
+      // URL-based audio (from Supabase Storage)
+      audioUrl: item.metadata.audioUrl,
+      audioSize: item.metadata.audioSize,
+      storagePath: item.metadata.storagePath,
+      expiresAt: item.metadata.expiresAt,
+      // Legacy Base64 format
       audioDataUrl: item.metadata.audioDataUrl,
       transcript: item.metadata.transcript,
       outline: item.metadata.outline,

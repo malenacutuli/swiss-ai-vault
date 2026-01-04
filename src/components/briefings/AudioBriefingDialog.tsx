@@ -67,8 +67,8 @@ export function AudioBriefingDialog({
       const progressInterval = setInterval(() => {
         setProgress((p) => {
           if (p >= 90) return p;
-          const stages = ['Analyzing documents...', 'Creating outline...', 'Writing script...', 'Generating audio...'];
-          const stageIndex = Math.floor(p / 25);
+          const stages = ['Analyzing documents...', 'Creating outline...', 'Writing script...', 'Generating audio...', 'Uploading audio...'];
+          const stageIndex = Math.floor(p / 20);
           setStage(stages[Math.min(stageIndex, stages.length - 1)]);
           return p + 2;
         });
@@ -97,9 +97,13 @@ export function AudioBriefingDialog({
         title: data.title,
         format: data.format,
         duration: data.duration,
+        // URL-based audio (from Supabase Storage)
         audioUrl: data.audioUrl,
+        audioSize: data.audioSize,
         storagePath: data.storagePath,
-        audioDataUrl: data.audioDataUrl, // Legacy support
+        expiresAt: data.expiresAt,
+        // Legacy support
+        audioDataUrl: data.audioDataUrl,
         transcript: data.transcript || [],
         outline: data.outline || { title: data.title, keyThemes: [], keyFacts: [], questions: [] },
         sourceDocuments: documents.map(d => d.id),

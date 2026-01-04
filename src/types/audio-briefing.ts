@@ -27,19 +27,23 @@ export interface AudioBriefing {
   title: string;
   format: BriefingFormat;
   duration: BriefingDuration;
-  audioUrl?: string;         // Signed URL from storage
-  audioDataUrl?: string;     // Legacy Base64 for old briefings
-  storagePath?: string;      // Storage bucket path for refresh
+  // NEW: URL-based audio (from Supabase Storage)
+  audioUrl?: string;           // Signed URL from storage
+  audioSize?: number;          // Size in bytes
+  storagePath?: string;        // Path in storage bucket
+  expiresAt?: string;          // When signed URL expires
+  // DEPRECATED: Base64 data (keeping for backwards compatibility)
+  audioDataUrl?: string;       // Legacy Base64 format
   transcript: DialoguePart[];
   outline: BriefingOutline;
-  sourceDocuments: string[]; // Document IDs used
+  sourceDocuments: string[];   // Document IDs used
   createdAt: string;
   status: 'generating' | 'ready' | 'error';
   error?: string;
 }
 
 export interface BriefingGenerationProgress {
-  stage: 'analyzing' | 'outlining' | 'scripting' | 'synthesizing' | 'complete';
+  stage: 'analyzing' | 'outlining' | 'scripting' | 'synthesizing' | 'uploading' | 'complete';
   progress: number; // 0-100
   message: string;
 }

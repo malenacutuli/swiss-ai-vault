@@ -43,8 +43,14 @@ export function AudioBriefingsList() {
   };
 
   const getAudioUrl = async (briefing: AudioBriefing): Promise<string | null> => {
-    // If we have a direct audioUrl (signed URL), use it
-    if (briefing.audioUrl) return briefing.audioUrl;
+    // Check if URL might be expired
+    if (briefing.expiresAt && new Date(briefing.expiresAt) < new Date()) {
+      console.log('[AudioBriefingsList] URL expired, refreshing...');
+      // Fall through to get fresh signed URL
+    } else if (briefing.audioUrl) {
+      // If we have a non-expired audioUrl, use it
+      return briefing.audioUrl;
+    }
     
     // Legacy: use base64 data URL
     if (briefing.audioDataUrl) return briefing.audioDataUrl;
@@ -53,9 +59,13 @@ export function AudioBriefingsList() {
     if (briefing.storagePath) {
       const { data, error } = await supabase.storage
         .from('audio-briefings')
-        .createSignedUrl(briefing.storagePath, 3600);
+        .createSignedUrl(briefing.storagePath, 86400); // 24 hours
       
-      if (!error && data?.signedUrl) return data.signedUrl;
+      if (!error && data?.signedUrl) {
+        console.log('[AudioBriefingsList] Got fresh signed URL');
+        return data.signedUrl;
+      }
+      console.error('[AudioBriefingsList] Failed to get signed URL:', error);
     }
     
     return null;
