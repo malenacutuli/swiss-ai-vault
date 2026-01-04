@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,15 +28,34 @@ serve(async (req) => {
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
     if (!GOOGLE_API_KEY) throw new Error('GOOGLE_GEMINI_API_KEY not configured');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('Supabase configuration missing');
+
+    // Get auth user from request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error('Authorization required');
+
+    // Create supabase clients
+    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+    
+    if (authError || !user) throw new Error('Invalid authorization');
+    const userId = user.id;
 
     const { documents, format = 'deep_dive', duration = 'medium', title } = await req.json();
 
     if (!documents || documents.length === 0) {
       throw new Error('At least one document is required');
     }
+
+    // Create a unique briefing ID
+    const briefingId = crypto.randomUUID();
 
     // Aggregate document content
     const documentContent = documents.map((doc: { title: string; content: string }, i: number) => 
@@ -167,7 +186,7 @@ Only return valid JSON array, no markdown.`
       ];
     }
 
-    // Step 3: Generate audio for each dialogue part
+    // Step 3: Generate audio for each dialogue part and upload incrementally
     console.log('[audio-briefing] Generating audio for', dialogue.length, 'parts...');
     
     const audioChunks: Uint8Array[] = [];
@@ -210,16 +229,44 @@ Only return valid JSON array, no markdown.`
       offset += chunk.byteLength;
     }
 
-    // Convert to base64 using Deno's encoding library (handles large buffers)
-    const audioBase64 = base64Encode(combinedAudio.buffer);
+    console.log('[audio-briefing] Audio size:', combinedAudio.byteLength, 'bytes');
 
-    console.log('[audio-briefing] Complete! Audio size:', combinedAudio.byteLength, 'bytes');
+    // Step 4: Upload to Supabase Storage instead of returning Base64
+    const filePath = `${userId}/${briefingId}.mp3`;
+    
+    console.log('[audio-briefing] Uploading to storage:', filePath);
+    
+    const { error: uploadError } = await supabaseAuth.storage
+      .from('audio-briefings')
+      .upload(filePath, combinedAudio, {
+        contentType: 'audio/mpeg',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('[audio-briefing] Upload error:', uploadError);
+      throw new Error(`Failed to upload audio: ${uploadError.message}`);
+    }
+
+    // Create signed URL valid for 24 hours
+    const { data: signedUrlData, error: signedUrlError } = await supabaseAuth.storage
+      .from('audio-briefings')
+      .createSignedUrl(filePath, 86400); // 24 hours
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('[audio-briefing] Signed URL error:', signedUrlError);
+      throw new Error('Failed to create audio URL');
+    }
+
+    console.log('[audio-briefing] Complete! Storage path:', filePath);
 
     return new Response(JSON.stringify({
+      id: briefingId,
       title: title || outline.title || 'Audio Briefing',
       format,
       duration,
-      audioDataUrl: `data:audio/mpeg;base64,${audioBase64}`,
+      audioUrl: signedUrlData.signedUrl,
+      storagePath: filePath,
       transcript: dialogue,
       outline,
       status: 'ready',
