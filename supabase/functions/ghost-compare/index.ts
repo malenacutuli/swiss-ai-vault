@@ -11,21 +11,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Model configurations
+// Model configurations - Updated January 2026
 const MODEL_CONFIGS: Record<string, {
-  provider: 'openai' | 'anthropic' | 'google' | 'deepseek' | 'xai' | 'mistral';
+  provider: 'openai' | 'anthropic' | 'google' | 'deepseek' | 'xai' | 'mistral' | 'meta';
   modelId: string;
   displayName: string;
 }> = {
+  // OpenAI
+  'gpt-5.2': { provider: 'openai', modelId: 'gpt-5.2', displayName: 'GPT-5.2' },
+  'gpt-5': { provider: 'openai', modelId: 'gpt-5', displayName: 'GPT-5' },
   'gpt-4o': { provider: 'openai', modelId: 'gpt-4o', displayName: 'GPT-4o' },
-  'gpt-4o-mini': { provider: 'openai', modelId: 'gpt-4o-mini', displayName: 'GPT-4o Mini' },
-  'claude-3-5-sonnet': { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', displayName: 'Claude 3.5 Sonnet' },
-  'claude-3-5-haiku': { provider: 'anthropic', modelId: 'claude-3-5-haiku-20241022', displayName: 'Claude 3.5 Haiku' },
-  'gemini-2.0-flash': { provider: 'google', modelId: 'gemini-2.0-flash-exp', displayName: 'Gemini 2.0 Flash' },
-  'gemini-1.5-pro': { provider: 'google', modelId: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
-  'deepseek-chat': { provider: 'deepseek', modelId: 'deepseek-chat', displayName: 'DeepSeek V3' },
-  'grok-2': { provider: 'xai', modelId: 'grok-2-latest', displayName: 'Grok 2' },
-  'mistral-large': { provider: 'mistral', modelId: 'mistral-large-latest', displayName: 'Mistral Large' },
+  'o3': { provider: 'openai', modelId: 'o3', displayName: 'o3' },
+  'o4-mini': { provider: 'openai', modelId: 'o4-mini', displayName: 'o4-mini' },
+  // Anthropic
+  'claude-4.5-opus': { provider: 'anthropic', modelId: 'claude-opus-4-5-20251101', displayName: 'Claude 4.5 Opus' },
+  'claude-4-sonnet': { provider: 'anthropic', modelId: 'claude-sonnet-4-5', displayName: 'Claude 4 Sonnet' },
+  'claude-3.5-haiku': { provider: 'anthropic', modelId: 'claude-3-5-haiku-20241022', displayName: 'Claude 3.5 Haiku' },
+  // Google
+  'gemini-3.0-pro': { provider: 'google', modelId: 'gemini-3.0-pro', displayName: 'Gemini 3.0 Pro' },
+  'gemini-2.5-pro': { provider: 'google', modelId: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro' },
+  'gemini-2.5-flash': { provider: 'google', modelId: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' },
+  // DeepSeek
+  'deepseek-r1': { provider: 'deepseek', modelId: 'deepseek-reasoner', displayName: 'DeepSeek R1' },
+  'deepseek-v3': { provider: 'deepseek', modelId: 'deepseek-chat', displayName: 'DeepSeek V3' },
+  // xAI
+  'grok-3': { provider: 'xai', modelId: 'grok-3', displayName: 'Grok 3' },
+  // Mistral
+  'mistral-large': { provider: 'mistral', modelId: 'mistral-large-latest', displayName: 'Mistral Large 2' },
+  // Meta (via Together API)
+  'llama-4': { provider: 'meta', modelId: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', displayName: 'Llama 4' },
 };
 
 // Provider API calls
@@ -140,6 +154,29 @@ async function callXAI(prompt: string, modelId: string, apiKey: string): Promise
   };
 }
 
+async function callMeta(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
+  // Meta Llama via Together API
+  const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: modelId,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 2048,
+    }),
+  });
+  
+  if (!response.ok) throw new Error(`Meta/Together error: ${response.status}`);
+  const data = await response.json();
+  return {
+    text: data.choices[0]?.message?.content || '',
+    tokens: data.usage?.total_tokens || 0,
+  };
+}
+
 async function callMistral(prompt: string, modelId: string, apiKey: string): Promise<{ text: string; tokens: number }> {
   const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST',
@@ -175,7 +212,7 @@ serve(async (req) => {
     const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
     const XAI_API_KEY = Deno.env.get('XAI_API_KEY');
     const MISTRAL_API_KEY = Deno.env.get('MISTRAL_API_KEY');
-
+    const TOGETHER_API_KEY = Deno.env.get('TOGETHER_API_KEY');
     const { prompt, models, systemPrompt } = await req.json();
 
     if (!prompt) throw new Error('Prompt is required');
@@ -221,6 +258,10 @@ serve(async (req) => {
           case 'mistral':
             if (!MISTRAL_API_KEY) throw new Error('Mistral API key not configured');
             result = await callMistral(fullPrompt, config.modelId, MISTRAL_API_KEY);
+            break;
+          case 'meta':
+            if (!TOGETHER_API_KEY) throw new Error('Together API key not configured for Meta models');
+            result = await callMeta(fullPrompt, config.modelId, TOGETHER_API_KEY);
             break;
           default:
             throw new Error(`Unsupported provider: ${config.provider}`);
