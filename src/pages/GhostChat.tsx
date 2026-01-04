@@ -2430,9 +2430,9 @@ Use this context to inform your response when relevant. Cite sources by number w
         )}
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-y-auto">
           {/* Mode-specific view */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col">
           
           {/* Text Mode - Empty state with centered input (Perplexity-style) */}
           {mode === 'text' && messages.length === 0 && (

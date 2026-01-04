@@ -56,7 +56,7 @@ function ResponseCard({
   const isLoading = response.status === 'pending' || response.status === 'streaming';
 
   return (
-    <div className="flex flex-col border rounded-lg bg-card overflow-hidden min-h-[300px] h-[70vh]">
+    <div className="flex flex-col border rounded-lg bg-card overflow-hidden min-h-[300px] max-h-[70vh]">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b bg-muted/30">
         <div className="flex items-center gap-2">
