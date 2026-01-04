@@ -80,8 +80,10 @@ const REALESTATE_CATEGORIES = [
   },
 ];
 
+import swissAlpsImage from '@/assets/locations/swiss-alps-zermatt.jpg';
+
 const FEATURED_MARKETS = [
-  { name: 'Swiss Alps', tagline: 'Luxury chalets & ski properties', image: 'https://images.unsplash.com/photo-1529734905203-1417e46890a6?w=400&h=300&fit=crop&q=80' },
+  { name: 'Swiss Alps', tagline: 'Luxury chalets & ski properties', image: swissAlpsImage },
   { name: 'Monaco', tagline: 'Ultra-prime Mediterranean', image: 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=400&h=300&fit=crop&q=80' },
   { name: 'Dubai', tagline: 'Emerging luxury hub', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop&q=80' },
 ];
