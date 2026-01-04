@@ -724,12 +724,6 @@ export function GhostSidebar({
             onClick={onCreateFolder} 
           />
           
-          {/* Home */}
-          <IconButton 
-            icon={IconHome} 
-            label={t('ghost.sidebar.home')} 
-            onClick={() => navigate('/')} 
-          />
           
           {/* Import Dropdown */}
           {isExpanded ? (
