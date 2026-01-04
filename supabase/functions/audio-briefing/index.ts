@@ -1,6 +1,6 @@
 // ===========================================
 // AUDIO BRIEFING EDGE FUNCTION
-// Fixed: Memory efficient - streams to storage
+// Multilingual support with custom context
 // ===========================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -17,12 +17,81 @@ const DURATION_WORDS = {
   long: 2000,    // ~15-20 min
 };
 
-const FORMAT_PROMPTS: Record<string, string> = {
-  deep_dive: "Create a comprehensive, detailed discussion exploring all aspects of these documents.",
-  quick_brief: "Create a concise executive summary hitting only the most critical points.",
-  debate: "Create a balanced debate with Alex taking one perspective and Jordan taking another.",
-  critique: "Create a critical analysis examining strengths, weaknesses, and potential issues.",
-  tutorial: "Create an educational walkthrough explaining concepts step by step.",
+const FORMAT_PROMPTS: Record<string, Record<string, string>> = {
+  en: {
+    deep_dive: "Create a comprehensive, detailed discussion exploring all aspects of these documents.",
+    quick_brief: "Create a concise executive summary hitting only the most critical points.",
+    debate: "Create a balanced debate with Alex taking one perspective and Jordan taking another.",
+    critique: "Create a critical analysis examining strengths, weaknesses, and potential issues.",
+    tutorial: "Create an educational walkthrough explaining concepts step by step.",
+  },
+  es: {
+    deep_dive: "Crea una discusión completa y detallada explorando todos los aspectos de estos documentos.",
+    quick_brief: "Crea un resumen ejecutivo conciso enfocándote solo en los puntos más críticos.",
+    debate: "Crea un debate equilibrado donde Alex tome una perspectiva y Jordan otra.",
+    critique: "Crea un análisis crítico examinando fortalezas, debilidades y posibles problemas.",
+    tutorial: "Crea una explicación educativa paso a paso de los conceptos.",
+  },
+  fr: {
+    deep_dive: "Créez une discussion complète et détaillée explorant tous les aspects de ces documents.",
+    quick_brief: "Créez un résumé exécutif concis ne touchant que les points les plus critiques.",
+    debate: "Créez un débat équilibré où Alex prend une perspective et Jordan une autre.",
+    critique: "Créez une analyse critique examinant les forces, faiblesses et problèmes potentiels.",
+    tutorial: "Créez une présentation éducative expliquant les concepts étape par étape.",
+  },
+  de: {
+    deep_dive: "Erstellen Sie eine umfassende, detaillierte Diskussion, die alle Aspekte dieser Dokumente untersucht.",
+    quick_brief: "Erstellen Sie eine prägnante Zusammenfassung mit nur den wichtigsten Punkten.",
+    debate: "Erstellen Sie eine ausgewogene Debatte, bei der Alex eine Perspektive und Jordan eine andere vertritt.",
+    critique: "Erstellen Sie eine kritische Analyse, die Stärken, Schwächen und mögliche Probleme untersucht.",
+    tutorial: "Erstellen Sie eine Schritt-für-Schritt-Erklärung der Konzepte.",
+  },
+  it: {
+    deep_dive: "Crea una discussione completa e dettagliata esplorando tutti gli aspetti di questi documenti.",
+    quick_brief: "Crea un riassunto esecutivo conciso toccando solo i punti più critici.",
+    debate: "Crea un dibattito equilibrato dove Alex prende una prospettiva e Jordan un'altra.",
+    critique: "Crea un'analisi critica esaminando punti di forza, debolezze e potenziali problemi.",
+    tutorial: "Crea una spiegazione educativa passo dopo passo dei concetti.",
+  },
+  pt: {
+    deep_dive: "Crie uma discussão abrangente e detalhada explorando todos os aspectos destes documentos.",
+    quick_brief: "Crie um resumo executivo conciso focando apenas nos pontos mais críticos.",
+    debate: "Crie um debate equilibrado onde Alex tem uma perspectiva e Jordan outra.",
+    critique: "Crie uma análise crítica examinando forças, fraquezas e potenciais problemas.",
+    tutorial: "Crie uma explicação educacional passo a passo dos conceitos.",
+  },
+};
+
+// Language names for prompts
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  nl: 'Dutch',
+  ja: 'Japanese',
+  zh: 'Chinese',
+  ko: 'Korean',
+  ar: 'Arabic',
+  ru: 'Russian',
+};
+
+// OpenAI TTS voice mapping for different languages
+const VOICE_MAPPING: Record<string, { alex: string; jordan: string }> = {
+  en: { alex: 'alloy', jordan: 'nova' },
+  es: { alex: 'onyx', jordan: 'nova' },
+  fr: { alex: 'onyx', jordan: 'nova' },
+  de: { alex: 'echo', jordan: 'nova' },
+  it: { alex: 'onyx', jordan: 'nova' },
+  pt: { alex: 'onyx', jordan: 'nova' },
+  nl: { alex: 'echo', jordan: 'nova' },
+  ja: { alex: 'echo', jordan: 'shimmer' },
+  zh: { alex: 'echo', jordan: 'shimmer' },
+  ko: { alex: 'echo', jordan: 'shimmer' },
+  ar: { alex: 'onyx', jordan: 'nova' },
+  ru: { alex: 'onyx', jordan: 'nova' },
 };
 
 serve(async (req) => {
@@ -55,7 +124,14 @@ serve(async (req) => {
       }
     }
 
-    const { documents, format = 'deep_dive', duration = 'medium', title } = await req.json();
+    const { 
+      documents, 
+      format = 'deep_dive', 
+      duration = 'medium', 
+      language = 'en',
+      customContext,
+      title 
+    } = await req.json();
 
     if (!documents || documents.length === 0) {
       throw new Error('At least one document is required');
@@ -63,7 +139,7 @@ serve(async (req) => {
 
     // Generate unique briefing ID
     const briefingId = crypto.randomUUID();
-    console.log(`[audio-briefing] Starting briefing ${briefingId} for user ${userId}`);
+    console.log(`[audio-briefing] Starting briefing ${briefingId} for user ${userId} in ${language}`);
 
     // Aggregate document content
     const documentContent = documents.map((doc: any, i: number) => 
@@ -71,6 +147,14 @@ serve(async (req) => {
     ).join('\n\n');
 
     const targetWords = DURATION_WORDS[duration as keyof typeof DURATION_WORDS] || 1000;
+    const languageName = LANGUAGE_NAMES[language] || 'English';
+    const formatPrompt = FORMAT_PROMPTS[language]?.[format] || FORMAT_PROMPTS.en[format] || FORMAT_PROMPTS.en.deep_dive;
+    const voices = VOICE_MAPPING[language] || VOICE_MAPPING.en;
+
+    // Build custom context instruction
+    const customContextInstruction = customContext 
+      ? `\n\nIMPORTANT USER CONTEXT - The user has specifically requested to focus on the following perspectives and information:\n"""${customContext}"""\nMake sure to address these points prominently in the discussion.`
+      : '';
 
     // =====================================================
     // STEP 1: Generate outline using Gemini
@@ -86,14 +170,15 @@ serve(async (req) => {
           contents: [{
             role: 'user',
             parts: [{
-              text: `Analyze these documents and create an outline for an audio briefing.
+              text: `Analyze these documents and create an outline for an audio briefing in ${languageName}.
+${customContextInstruction}
 
 Documents:
 ${documentContent}
 
-Return a JSON object with:
+Return a JSON object with all text in ${languageName}:
 {
-  "title": "Briefing title",
+  "title": "Briefing title in ${languageName}",
   "keyThemes": ["theme1", "theme2", ...],
   "keyFacts": ["fact1", "fact2", ...],
   "questions": ["question to explore 1", ...],
@@ -141,24 +226,27 @@ Only return valid JSON, no markdown.`
             role: 'user',
             parts: [{
               text: `Create a podcast dialogue script between two hosts: Alex and Jordan.
+The entire script MUST be in ${languageName}.
 
 Topic: ${outline.title}
 Key themes: ${outline.keyThemes?.join(', ')}
 Key facts: ${outline.keyFacts?.join(', ')}
 Questions to explore: ${outline.questions?.join(', ')}
+${customContextInstruction}
 
-Format instruction: ${FORMAT_PROMPTS[format]}
+Format instruction: ${formatPrompt}
 
 Target length: approximately ${targetWords} words total.
 
-Return a JSON array of dialogue parts:
+Return a JSON array of dialogue parts (all in ${languageName}):
 [
-  {"speaker": "Alex", "text": "Welcome to our briefing..."},
-  {"speaker": "Jordan", "text": "Thanks Alex, today we're discussing..."},
+  {"speaker": "Alex", "text": "${language === 'es' ? 'Bienvenidos a nuestro briefing...' : language === 'fr' ? 'Bienvenue à notre briefing...' : 'Welcome to our briefing...'}"},
+  {"speaker": "Jordan", "text": "..."},
   ...
 ]
 
 Make it conversational, engaging, and informative. Alex is more analytical, Jordan is more curious and asks follow-up questions.
+ALL dialogue must be in ${languageName}.
 
 Only return valid JSON array, no markdown.`
             }]
@@ -185,11 +273,10 @@ Only return valid JSON array, no markdown.`
       throw new Error('Failed to parse dialogue script');
     }
 
-    console.log(`[audio-briefing] Dialogue has ${dialogue.length} parts`);
+    console.log(`[audio-briefing] Dialogue has ${dialogue.length} parts in ${languageName}`);
 
     // =====================================================
     // STEP 3: Generate audio and upload incrementally
-    // Memory-efficient: upload chunks as they're generated
     // =====================================================
     console.log('[audio-briefing] Generating and uploading audio...');
     
@@ -202,9 +289,9 @@ Only return valid JSON array, no markdown.`
     
     for (let i = 0; i < limitedDialogue.length; i++) {
       const part = limitedDialogue[i];
-      const voice = part.speaker === 'Alex' ? 'alloy' : 'nova';
+      const voice = part.speaker === 'Alex' ? voices.alex : voices.jordan;
       
-      console.log(`[audio-briefing] TTS ${i + 1}/${limitedDialogue.length}: ${part.speaker}`);
+      console.log(`[audio-briefing] TTS ${i + 1}/${limitedDialogue.length}: ${part.speaker} (${voice})`);
       
       const ttsResponse = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
@@ -231,14 +318,10 @@ Only return valid JSON array, no markdown.`
       totalSize += chunk.length;
       
       console.log(`[audio-briefing] Part ${i + 1} size: ${chunk.length} bytes (total: ${totalSize})`);
-      
-      // Free up memory by not holding references longer than needed
-      // This helps prevent memory accumulation
     }
 
     // =====================================================
     // STEP 4: Combine and upload to Storage
-    // Single-pass combination to minimize memory copies
     // =====================================================
     console.log(`[audio-briefing] Combining ${audioChunks.length} chunks (${totalSize} bytes)...`);
     
@@ -281,24 +364,26 @@ Only return valid JSON array, no markdown.`
       throw new Error('Failed to generate signed URL');
     }
 
-    console.log('[audio-briefing] Complete! Audio uploaded successfully.');
+    console.log(`[audio-briefing] Complete! Audio uploaded in ${languageName}`);
 
     // =====================================================
-    // STEP 6: Return response with URL (not Base64!)
+    // STEP 6: Return response with URL
     // =====================================================
     return new Response(JSON.stringify({
       id: briefingId,
       title: title || outline.title || 'Audio Briefing',
       format,
       duration,
-      audioUrl: signedUrlData.signedUrl,  // URL instead of Base64!
+      language,
+      audioUrl: signedUrlData.signedUrl,
       audioSize: totalSize,
       storagePath: filePath,
       transcript: limitedDialogue,
       outline,
+      customContext: customContext || null,
       status: 'ready',
       createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 86400000).toISOString(), // URL expires in 24h
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

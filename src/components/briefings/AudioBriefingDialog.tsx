@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Mic, Loader2, Radio, Clock, Sparkles } from 'lucide-react';
+import { Mic, Loader2, Radio, Clock, Sparkles, Globe, MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { saveAudioBriefing } from '@/lib/memory/memory-store';
@@ -38,6 +47,21 @@ const DURATION_OPTIONS: Array<{ value: BriefingDuration; label: string; time: st
   { value: 'long', label: 'Long', time: '15-20 min' },
 ];
 
+const LANGUAGE_OPTIONS = [
+  { value: 'en', label: 'English', flag: '🇬🇧' },
+  { value: 'es', label: 'Español', flag: '🇪🇸' },
+  { value: 'fr', label: 'Français', flag: '🇫🇷' },
+  { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { value: 'it', label: 'Italiano', flag: '🇮🇹' },
+  { value: 'pt', label: 'Português', flag: '🇵🇹' },
+  { value: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { value: 'ja', label: '日本語', flag: '🇯🇵' },
+  { value: 'zh', label: '中文', flag: '🇨🇳' },
+  { value: 'ko', label: '한국어', flag: '🇰🇷' },
+  { value: 'ar', label: 'العربية', flag: '🇸🇦' },
+  { value: 'ru', label: 'Русский', flag: '🇷🇺' },
+];
+
 export function AudioBriefingDialog({
   open,
   onOpenChange,
@@ -45,9 +69,12 @@ export function AudioBriefingDialog({
   projectId,
   onComplete,
 }: AudioBriefingDialogProps) {
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [format, setFormat] = useState<BriefingFormat>('deep_dive');
   const [duration, setDuration] = useState<BriefingDuration>('medium');
+  const [language, setLanguage] = useState<string>(i18n.language?.substring(0, 2) || 'en');
+  const [customContext, setCustomContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
@@ -60,14 +87,20 @@ export function AudioBriefingDialog({
 
     setIsGenerating(true);
     setProgress(0);
-    setStage('Analyzing documents...');
+    setStage(t('briefings.stages.analyzing', 'Analyzing documents...'));
 
     try {
       // Progress simulation
       const progressInterval = setInterval(() => {
         setProgress((p) => {
           if (p >= 90) return p;
-          const stages = ['Analyzing documents...', 'Creating outline...', 'Writing script...', 'Generating audio...', 'Uploading audio...'];
+          const stages = [
+            t('briefings.stages.analyzing', 'Analyzing documents...'),
+            t('briefings.stages.outline', 'Creating outline...'),
+            t('briefings.stages.script', 'Writing script...'),
+            t('briefings.stages.audio', 'Generating audio...'),
+            t('briefings.stages.uploading', 'Uploading audio...'),
+          ];
           const stageIndex = Math.floor(p / 20);
           setStage(stages[Math.min(stageIndex, stages.length - 1)]);
           return p + 2;
@@ -79,6 +112,8 @@ export function AudioBriefingDialog({
           documents: documents.map(d => ({ title: d.title, content: d.content })),
           format,
           duration,
+          language,
+          customContext: customContext.trim() || undefined,
           title: `Briefing: ${documents[0]?.title || 'Documents'}`,
         },
       });
@@ -89,7 +124,7 @@ export function AudioBriefingDialog({
       if (data?.error) throw new Error(data.error);
 
       setProgress(100);
-      setStage('Complete!');
+      setStage(t('briefings.stages.complete', 'Complete!'));
 
       const briefing: AudioBriefing = {
         id: data.id || crypto.randomUUID(),
@@ -114,15 +149,18 @@ export function AudioBriefingDialog({
       // Save to IndexedDB
       await saveAudioBriefing(briefing);
 
-      toast({ title: 'Audio briefing ready!', description: 'Your briefing has been generated and saved.' });
+      toast({ 
+        title: t('briefings.success.title', 'Audio briefing ready!'), 
+        description: t('briefings.success.description', 'Your briefing has been generated and saved.'),
+      });
       
       onComplete?.(briefing);
       onOpenChange(false);
     } catch (error: any) {
       console.error('[AudioBriefingDialog] Error:', error);
       toast({
-        title: 'Generation failed',
-        description: error.message || 'Could not generate briefing',
+        title: t('briefings.error.title', 'Generation failed'),
+        description: error.message || t('briefings.error.description', 'Could not generate briefing'),
         variant: 'destructive',
       });
     } finally {
@@ -134,14 +172,14 @@ export function AudioBriefingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mic className="h-5 w-5 text-primary" />
-            Generate Audio Briefing
+            {t('briefings.dialog.title', 'Generate Audio Briefing')}
           </DialogTitle>
           <DialogDescription>
-            Create a podcast-style briefing from {documents.length} document{documents.length !== 1 ? 's' : ''}
+            {t('briefings.dialog.description', 'Create a podcast-style briefing from {{count}} document', { count: documents.length })}{documents.length !== 1 ? 's' : ''}
           </DialogDescription>
         </DialogHeader>
 
@@ -158,9 +196,32 @@ export function AudioBriefingDialog({
           </div>
         ) : (
           <div className="space-y-6 py-4">
+            {/* Language Selection */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <Globe className="h-4 w-4" />
+                {t('briefings.language.label', 'Language')}
+              </Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border z-50">
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      <span className="flex items-center gap-2">
+                        <span>{lang.flag}</span>
+                        <span>{lang.label}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Format Selection */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Format</Label>
+              <Label className="text-sm font-medium">{t('briefings.format.label', 'Format')}</Label>
               <RadioGroup value={format} onValueChange={(v) => setFormat(v as BriefingFormat)} className="grid grid-cols-2 gap-2">
                 {FORMAT_OPTIONS.map((opt) => (
                   <Label
@@ -182,7 +243,7 @@ export function AudioBriefingDialog({
             <div className="space-y-3">
               <Label className="flex items-center gap-2 text-sm font-medium">
                 <Clock className="h-4 w-4" />
-                Duration
+                {t('briefings.duration.label', 'Duration')}
               </Label>
               <RadioGroup value={duration} onValueChange={(v) => setDuration(v as BriefingDuration)} className="flex gap-2">
                 {DURATION_OPTIONS.map((opt) => (
@@ -200,23 +261,41 @@ export function AudioBriefingDialog({
                 ))}
               </RadioGroup>
             </div>
+
+            {/* Custom Context / Perspectives */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <MessageSquare className="h-4 w-4" />
+                {t('briefings.context.label', 'Custom Perspectives (Optional)')}
+              </Label>
+              <Textarea
+                placeholder={t('briefings.context.placeholder', 'Add specific perspectives, questions, or key information you want the briefing to focus on...')}
+                value={customContext}
+                onChange={(e) => setCustomContext(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('briefings.context.hint', 'e.g., "Focus on financial implications", "Consider sustainability aspects", "Compare with industry standards"')}
+              </p>
+            </div>
           </div>
         )}
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isGenerating}>
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </Button>
           <Button onClick={handleGenerate} disabled={isGenerating || documents.length === 0}>
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
+                {t('briefings.generating', 'Generating...')}
               </>
             ) : (
               <>
                 <Mic className="h-4 w-4 mr-2" />
-                Generate
+                {t('briefings.generate', 'Generate')}
               </>
             )}
           </Button>
