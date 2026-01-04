@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Copy, ThumbsUp, ThumbsDown, Check, Loader2, AlertCircle, Clock, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,14 +13,33 @@ interface CompareResultsProps {
   onUseResponse: (response: CompareResponse) => void;
 }
 
+function LiveTimer({ startTime }: { startTime: number }) {
+  const [elapsed, setElapsed] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsed(Date.now() - startTime);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [startTime]);
+  
+  return (
+    <span className="font-mono text-xs text-muted-foreground">
+      {(elapsed / 1000).toFixed(1)}s
+    </span>
+  );
+}
+
 function ResponseCard({ 
   response, 
   onRate, 
-  onUseResponse 
+  onUseResponse,
+  startTime,
 }: { 
   response: CompareResponse;
   onRate: (rating: number) => void;
   onUseResponse: () => void;
+  startTime: number;
 }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -56,6 +75,12 @@ function ResponseCard({
               <Coins className="h-3 w-3" />
               {response.tokens}
             </span>
+          </div>
+        )}
+        {isLoading && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3 animate-pulse" />
+            <LiveTimer startTime={startTime} />
           </div>
         )}
       </div>
@@ -119,6 +144,7 @@ function ResponseCard({
 
 export function CompareResults({ result, onRate, onUseResponse }: CompareResultsProps) {
   const [activeTab, setActiveTab] = useState(result.responses[0]?.model);
+  const startTime = new Date(result.timestamp).getTime();
 
   const gridCols = result.responses.length === 2 
     ? 'lg:grid-cols-2' 
@@ -142,6 +168,7 @@ export function CompareResults({ result, onRate, onUseResponse }: CompareResults
               response={response}
               onRate={(rating) => onRate(response.model, rating)}
               onUseResponse={() => onUseResponse(response)}
+              startTime={startTime}
             />
           </div>
         ))}
@@ -169,6 +196,7 @@ export function CompareResults({ result, onRate, onUseResponse }: CompareResults
                 response={response}
                 onRate={(rating) => onRate(response.model, rating)}
                 onUseResponse={() => onUseResponse(response)}
+                startTime={startTime}
               />
             </TabsContent>
           ))}
