@@ -548,10 +548,21 @@ Use this context to inform your response when relevant. Cite sources by number w
       };
       setMessages(prev => [...prev, userMsg, assistantMsg]);
       
-      // Save to conversation if one is selected
-      if (selectedConversation) {
-        saveMessage(selectedConversation, 'user', compareResult.prompt);
-        saveMessage(selectedConversation, 'assistant', response.response);
+      // Create conversation if none is selected, then save messages
+      let convId = selectedConversation;
+      if (!convId) {
+        // Create a new conversation with title from prompt
+        const title = compareResult.prompt.slice(0, 50) + (compareResult.prompt.length > 50 ? '...' : '');
+        convId = createConversation(title);
+        if (convId) {
+          setSelectedConversation(convId);
+        }
+      }
+      
+      // Save messages to the conversation
+      if (convId) {
+        saveMessage(convId, 'user', compareResult.prompt);
+        saveMessage(convId, 'assistant', response.response);
       }
       
       clearCompareResult();
@@ -560,7 +571,7 @@ Use this context to inform your response when relevant. Cite sources by number w
         description: `Using ${response.displayName} response`,
       });
     }
-  }, [compareResult, selectedConversation, saveMessage, clearCompareResult, toast]);
+  }, [compareResult, selectedConversation, saveMessage, clearCompareResult, toast, createConversation]);
 
   const lastAssistantMessage = useMemo(() => {
     if (!messages || messages.length === 0) return undefined;
