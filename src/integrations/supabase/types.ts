@@ -1499,6 +1499,80 @@ export type Database = {
         }
         Relationships: []
       }
+      ghost_comparison_responses: {
+        Row: {
+          comparison_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          latency_ms: number | null
+          model_id: string
+          rating: number | null
+          response: string | null
+          status: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          comparison_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_id: string
+          rating?: number | null
+          response?: string | null
+          status?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          comparison_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_id?: string
+          rating?: number | null
+          response?: string | null
+          status?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ghost_comparison_responses_comparison_id_fkey"
+            columns: ["comparison_id"]
+            isOneToOne: false
+            referencedRelation: "ghost_comparisons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ghost_comparisons: {
+        Row: {
+          created_at: string | null
+          id: string
+          models: string[]
+          prompt: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          models: string[]
+          prompt: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          models?: string[]
+          prompt?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ghost_credits: {
         Row: {
           balance: number | null
