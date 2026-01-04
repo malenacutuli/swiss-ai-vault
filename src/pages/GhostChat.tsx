@@ -1011,7 +1011,9 @@ Use this context to inform your response when relevant. Cite sources by number w
 
       // Create conversation if none selected
       let convId = selectedConversation;
+      let createdNewConversation = false;
       if (!convId) {
+        createdNewConversation = true;
         convId = createConversation('New Chat');
         if (convId) {
           // Set skip flag BEFORE selecting - prevents hydration from wiping streaming state
@@ -1122,6 +1124,13 @@ Use this context to inform your response when relevant. Cite sources by number w
 
       // Save user message and update UI
       saveMessage(convId, 'user', displayContent);
+
+      // Ensure sidebar shows a meaningful name immediately (instead of "New Chat")
+      if (createdNewConversation) {
+        const title = displayContent.slice(0, 50) + (displayContent.length > 50 ? '...' : '');
+        updateConversationTitle(convId, title);
+      }
+
       setMessages((prev) => [...prev, userMessage]);
       setInputValue('');
       setAttachedFiles([]); // Clear attachments after sending
