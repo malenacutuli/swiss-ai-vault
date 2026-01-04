@@ -3858,6 +3858,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_mail_token_expired: { Args: { account_id: string }; Returns: boolean }
       is_org_admin: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
