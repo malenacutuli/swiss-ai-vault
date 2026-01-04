@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { getAudioBriefings, deleteAudioBriefing } from '@/lib/memory/memory-store';
 import type { AudioBriefing } from '@/types/audio-briefing';
 import {
@@ -41,7 +42,26 @@ export function AudioBriefingsList() {
     }
   };
 
-  const togglePlay = (briefing: AudioBriefing) => {
+  const getAudioUrl = async (briefing: AudioBriefing): Promise<string | null> => {
+    // If we have a direct audioUrl (signed URL), use it
+    if (briefing.audioUrl) return briefing.audioUrl;
+    
+    // Legacy: use base64 data URL
+    if (briefing.audioDataUrl) return briefing.audioDataUrl;
+    
+    // If we have a storage path, get a fresh signed URL
+    if (briefing.storagePath) {
+      const { data, error } = await supabase.storage
+        .from('audio-briefings')
+        .createSignedUrl(briefing.storagePath, 3600);
+      
+      if (!error && data?.signedUrl) return data.signedUrl;
+    }
+    
+    return null;
+  };
+
+  const togglePlay = async (briefing: AudioBriefing) => {
     if (playingId === briefing.id) {
       audioElement?.pause();
       setPlayingId(null);
@@ -49,26 +69,50 @@ export function AudioBriefingsList() {
     } else {
       audioElement?.pause();
       
-      if (briefing.audioDataUrl) {
-        const audio = new Audio(briefing.audioDataUrl);
+      const url = await getAudioUrl(briefing);
+      if (url) {
+        const audio = new Audio(url);
         audio.onended = () => {
+          setPlayingId(null);
+          setAudioElement(null);
+        };
+        audio.onerror = () => {
+          toast({ title: 'Playback error', description: 'Could not play audio', variant: 'destructive' });
           setPlayingId(null);
           setAudioElement(null);
         };
         audio.play();
         setPlayingId(briefing.id);
         setAudioElement(audio);
+      } else {
+        toast({ title: 'No audio', description: 'Audio not available', variant: 'destructive' });
       }
     }
   };
 
-  const handleDownload = (briefing: AudioBriefing) => {
-    if (!briefing.audioDataUrl) return;
+  const handleDownload = async (briefing: AudioBriefing) => {
+    const url = await getAudioUrl(briefing);
+    if (!url) {
+      toast({ title: 'Download failed', description: 'Audio not available', variant: 'destructive' });
+      return;
+    }
     
-    const link = document.createElement('a');
-    link.href = briefing.audioDataUrl;
-    link.download = `${briefing.title.replace(/\s+/g, '_')}.mp3`;
-    link.click();
+    try {
+      // Fetch the audio and create a blob for download
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${briefing.title.replace(/\s+/g, '_')}.mp3`;
+      link.click();
+      
+      // Cleanup
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (error) {
+      toast({ title: 'Download failed', description: 'Could not download audio', variant: 'destructive' });
+    }
   };
 
   const handleDelete = async (id: string) => {

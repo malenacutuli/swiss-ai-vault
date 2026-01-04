@@ -27,8 +27,9 @@ export interface AudioBriefing {
   title: string;
   format: BriefingFormat;
   duration: BriefingDuration;
-  audioUrl?: string;         // Local blob URL or IndexedDB reference
-  audioDataUrl?: string;     // Base64 for storage
+  audioUrl?: string;         // Signed URL from storage
+  audioDataUrl?: string;     // Legacy Base64 for old briefings
+  storagePath?: string;      // Storage bucket path for refresh
   transcript: DialoguePart[];
   outline: BriefingOutline;
   sourceDocuments: string[]; // Document IDs used

@@ -92,12 +92,14 @@ export function AudioBriefingDialog({
       setStage('Complete!');
 
       const briefing: AudioBriefing = {
-        id: crypto.randomUUID(),
+        id: data.id || crypto.randomUUID(),
         projectId,
         title: data.title,
         format: data.format,
         duration: data.duration,
-        audioDataUrl: data.audioDataUrl,
+        audioUrl: data.audioUrl,
+        storagePath: data.storagePath,
+        audioDataUrl: data.audioDataUrl, // Legacy support
         transcript: data.transcript || [],
         outline: data.outline || { title: data.title, keyThemes: [], keyFacts: [], questions: [] },
         sourceDocuments: documents.map(d => d.id),
