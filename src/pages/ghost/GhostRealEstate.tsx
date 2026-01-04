@@ -81,8 +81,8 @@ const REALESTATE_CATEGORIES = [
 ];
 
 const FEATURED_MARKETS = [
-  { name: 'Swiss Alps', tagline: 'Luxury chalets & ski properties', image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=300&fit=crop' },
-  { name: 'Monaco', tagline: 'Ultra-prime Mediterranean', image: 'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=400&h=300&fit=crop' },
+  { name: 'Swiss Alps', tagline: 'Luxury chalets & ski properties', image: 'https://images.unsplash.com/photo-1531210483974-4f8205f7f8bd?w=400&h=300&fit=crop' },
+  { name: 'Monaco', tagline: 'Ultra-prime Mediterranean', image: 'https://images.unsplash.com/photo-1534551767192-78b8dd45b51b?w=400&h=300&fit=crop' },
   { name: 'Dubai', tagline: 'Emerging luxury hub', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop' },
 ];
 
