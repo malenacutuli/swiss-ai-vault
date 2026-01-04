@@ -15,9 +15,11 @@ import { useGhostSettings } from '@/hooks/useGhostSettings';
 import { useGhostFolders } from '@/hooks/useGhostFolders';
 import { useGhostUsage } from '@/hooks/useGhostUsage';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEncryptionContext } from '@/contexts/EncryptionContext';
 import { useMemory } from '@/hooks/useMemory';
 import { useCompareMode, type CompareResponse } from '@/hooks/useCompareMode';
 import * as vault from '@/lib/crypto/key-vault';
+import { VaultUnlockDialog } from '@/components/vault-chat/VaultUnlockDialog';
 
 // Components
 import { GhostSidebar, type GhostConversation } from '@/components/ghost/GhostSidebar';
@@ -415,7 +417,8 @@ function GhostChat() {
   });
   const [memorySearching, setMemorySearching] = useState(false);
   const [lastMemorySources, setLastMemorySources] = useState<MemorySource[]>([]);
-  const isVaultUnlocked = vault.isVaultUnlocked();
+  const { isUnlocked: isVaultUnlocked, isInitialized: isVaultInitialized } = useEncryptionContext();
+  const [showVaultUnlock, setShowVaultUnlock] = useState(false);
   
   // Grounded mode state - AI responses backed by document citations
   const [groundedMode, setGroundedMode] = useState(() => {
@@ -2561,7 +2564,13 @@ Use this context to inform your response when relevant. Cite sources by number w
                 initPhase={initPhase}
                 hasPendingMessage={!!pendingMessage}
                 memoryEnabled={memoryEnabled}
-                onToggleMemory={() => setMemoryEnabled(!memoryEnabled)}
+                onToggleMemory={() => {
+                  if (!isVaultUnlocked) {
+                    setShowVaultUnlock(true);
+                  } else {
+                    setMemoryEnabled(!memoryEnabled);
+                  }
+                }}
                 memoryCount={lastMemorySources.length}
                 isMemorySearching={memorySearching}
                 memoryDisabled={!isVaultUnlocked}
@@ -2950,7 +2959,13 @@ Use this context to inform your response when relevant. Cite sources by number w
                   hasPendingMessage={!!pendingMessage}
                   // Personal Memory props
                   memoryEnabled={memoryEnabled}
-                  onToggleMemory={() => setMemoryEnabled(!memoryEnabled)}
+                  onToggleMemory={() => {
+                    if (!isVaultUnlocked) {
+                      setShowVaultUnlock(true);
+                    } else {
+                      setMemoryEnabled(!memoryEnabled);
+                    }
+                  }}
                   memoryCount={lastMemorySources.length}
                   isMemorySearching={memorySearching}
                   memoryDisabled={!isVaultUnlocked}
@@ -3014,6 +3029,15 @@ Use this context to inform your response when relevant. Cite sources by number w
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Vault Unlock Dialog for Memory */}
+      <VaultUnlockDialog
+        open={showVaultUnlock}
+        onOpenChange={setShowVaultUnlock}
+        onUnlocked={() => {
+          setMemoryEnabled(true);
+        }}
+      />
     </GhostDropZone>
   );
 }
