@@ -500,7 +500,7 @@ function MemoryDashboardContent() {
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t('common.back')} {t('ghost.chat.title', 'Chat')}
+          {t('common.back', 'Back')} {t('ghost.chat.title', 'Chat')}
         </button>
         
         <div className="flex items-center justify-between mb-8">
@@ -523,14 +523,14 @@ function MemoryDashboardContent() {
             {/* Import AI History Button */}
             <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
               <Download className="h-4 w-4 mr-2" />
-              {t('common.import')}
+              {t('common.import', 'Import')}
             </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  {t('common.add')}
+                  {t('common.add', 'Add')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
@@ -625,7 +625,7 @@ function MemoryDashboardContent() {
             </TabsTrigger>
             <TabsTrigger value="sync" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              {t('common.settings')}
+              {t('common.settings', 'Settings')}
             </TabsTrigger>
           </TabsList>
           
@@ -769,7 +769,7 @@ function MemoryDashboardContent() {
                     {isSearching ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      t('common.search')
+                      t('common.search', 'Search')
                     )}
                   </Button>
                 </div>
