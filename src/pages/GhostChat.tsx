@@ -16,6 +16,7 @@ import { useGhostFolders } from '@/hooks/useGhostFolders';
 import { useGhostUsage } from '@/hooks/useGhostUsage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemory } from '@/hooks/useMemory';
+import { useCompareMode, type CompareResponse } from '@/hooks/useCompareMode';
 import * as vault from '@/lib/crypto/key-vault';
 
 // Components
@@ -36,6 +37,7 @@ import { GhostUsageDisplay } from '@/components/ghost/GhostUsageDisplay';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { VerifiedSourcesDisplay } from '@/components/trust/VerifiedSourcesDisplay';
 import { MemorySourcesCard, type MemorySource, GroundedResponse, GroundedModeToggle } from '@/components/chat';
+import { ModelSelector, CompareResults } from '@/components/ghost/compare';
 import type { GroundedChatMessage, SourceDocument } from '@/types/grounded';
 
 import { UnifiedHeader } from '@/components/layout/UnifiedHeader';
@@ -49,7 +51,7 @@ import {
   type VerifiedSearchResult,
 } from '@/lib/trust/verified-search';
 import { classifyQuery } from '@/lib/trust/grounded-response';
-import { EyeOff, Shield, AlertTriangle, FileText, Ghost, X } from '@/icons';
+import { EyeOff, Shield, AlertTriangle, FileText, Ghost, X, ToggleLeft, ToggleRight, GitCompareArrows } from '@/icons';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -367,6 +369,20 @@ function GhostChat() {
   // Ghost settings hook
   const { settings } = useGhostSettings();
 
+  // Compare mode hook
+  const {
+    isCompareMode,
+    toggleCompareMode,
+    selectedModels: compareSelectedModels,
+    toggleModel: toggleCompareModel,
+    applyPreset: applyComparePreset,
+    compare,
+    isComparing,
+    result: compareResult,
+    rateResponse: rateCompareResponse,
+    clearResult: clearCompareResult,
+  } = useCompareMode();
+
   // Apply accent color when settings change
   useEffect(() => {
     if (settings?.accent_color) {
@@ -515,7 +531,37 @@ Use this context to inform your response when relevant. Cite sources by number w
     }
   }, [memoryEnabled, isVaultUnlocked, memory]);
 
-  // Compute last assistant message for TTS
+  // Handle using a compare response as the answer
+  const handleUseCompareResponse = useCallback((response: CompareResponse) => {
+    if (response.response && compareResult) {
+      const userMsg: GhostMessageData = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: compareResult.prompt,
+        timestamp: Date.now(),
+      };
+      const assistantMsg: GhostMessageData = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: response.response,
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, userMsg, assistantMsg]);
+      
+      // Save to conversation if one is selected
+      if (selectedConversation) {
+        saveMessage(selectedConversation, 'user', compareResult.prompt);
+        saveMessage(selectedConversation, 'assistant', response.response);
+      }
+      
+      clearCompareResult();
+      toast({
+        title: 'Response selected',
+        description: `Using ${response.displayName} response`,
+      });
+    }
+  }, [compareResult, selectedConversation, saveMessage, clearCompareResult, toast]);
+
   const lastAssistantMessage = useMemo(() => {
     if (!messages || messages.length === 0) return undefined;
     
@@ -1619,6 +1665,14 @@ Use this context to inform your response when relevant. Cite sources by number w
       return;
     }
 
+    // Check if compare mode is active
+    if (isCompareMode && mode === 'text') {
+      console.log('[GhostChat] Using compare mode');
+      setInputValue('');
+      await compare(messageContent, settings?.system_prompt || undefined);
+      return;
+    }
+
     // Execute the core send logic
     await executeMessageSend(messageContent, attachedFiles);
   };
@@ -2363,8 +2417,8 @@ Use this context to inform your response when relevant. Cite sources by number w
           {/* Text Mode - Empty state with centered input (Perplexity-style) */}
           {mode === 'text' && messages.length === 0 && (
             <GhostTextViewEmpty>
-              {/* Grounded Mode Toggle */}
-              <div className="mb-3 flex items-center justify-center gap-2">
+              {/* Mode Toggles: Grounded Mode and Compare Mode */}
+              <div className="mb-3 flex items-center justify-center gap-4 flex-wrap">
                 <GroundedModeToggle
                   isGrounded={groundedMode}
                   onToggle={setGroundedMode}
@@ -2376,7 +2430,43 @@ Use this context to inform your response when relevant. Cite sources by number w
                     Citations from {documentsCount} document{documentsCount !== 1 ? 's' : ''}
                   </span>
                 )}
+                
+                {/* Compare Mode Toggle */}
+                <Button
+                  variant={isCompareMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleCompareMode}
+                  disabled={isStreaming || isComparing}
+                  className="gap-2 h-8"
+                >
+                  <GitCompareArrows className="h-4 w-4" />
+                  <span className="hidden sm:inline">Compare</span>
+                  {isCompareMode && (
+                    <span className="text-xs opacity-70">{compareSelectedModels.length}</span>
+                  )}
+                </Button>
+                
+                {/* Model Selector when Compare Mode is active */}
+                {isCompareMode && (
+                  <ModelSelector
+                    selectedModels={compareSelectedModels}
+                    onToggleModel={toggleCompareModel}
+                    onApplyPreset={applyComparePreset}
+                    disabled={isComparing}
+                  />
+                )}
               </div>
+              
+              {/* Compare Results Display */}
+              {isCompareMode && compareResult && (
+                <div className="mb-4 w-full max-w-5xl mx-auto">
+                  <CompareResults
+                    result={compareResult}
+                    onRate={rateCompareResponse}
+                    onUseResponse={handleUseCompareResponse}
+                  />
+                </div>
+              )}
               {/* Attachment preview above input */}
               {attachedFiles.length > 0 && (
                 <div className="mb-3 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
@@ -2427,15 +2517,15 @@ Use this context to inform your response when relevant. Cite sources by number w
                 onChange={setInputValue}
                 onSubmit={() => handleSendMessage(inputValue, attachedFiles.map(f => f.file))}
                 onCancel={cancelStream}
-                isStreaming={isStreaming}
-                streamStatus={streamStatus}
+                isStreaming={isStreaming || isComparing}
+                streamStatus={isComparing ? 'generating' : streamStatus}
                 elapsedTime={elapsedTime}
                 credits={balance}
                 enhancePrompt={enhancePrompt}
                 onToggleEnhance={() => setEnhancePrompt(!enhancePrompt)}
                 onOpenSettings={() => setShowSettings(true)}
                 onAttach={handleFileAttach}
-                disabled={!isInitialized}
+                disabled={!isInitialized || isComparing}
                 voiceLanguage={settings?.voice_language}
                 matureFilterEnabled={settings?.mature_filter_enabled ?? true}
                 initPhase={initPhase}
