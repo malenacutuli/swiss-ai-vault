@@ -29,40 +29,40 @@ export interface CompareResult {
 
 export const AVAILABLE_MODELS: ModelOption[] = [
   // OpenAI
-  { id: 'gpt-5.2', name: 'GPT-5.2', provider: 'OpenAI', tier: 'pro' },
-  { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI', tier: 'pro' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', tier: 'free' },
-  { id: 'o3', name: 'o3', provider: 'OpenAI', tier: 'pro' },
-  { id: 'o4-mini', name: 'o4-mini', provider: 'OpenAI', tier: 'pro' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', tier: 'pro' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', tier: 'free' },
+  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'OpenAI', tier: 'pro' },
+  { id: 'o1', name: 'o1', provider: 'OpenAI', tier: 'pro' },
+  { id: 'o1-mini', name: 'o1-mini', provider: 'OpenAI', tier: 'pro' },
   // Anthropic
-  { id: 'claude-4.5-opus', name: 'Claude 4.5 Opus', provider: 'Anthropic', tier: 'pro' },
-  { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', provider: 'Anthropic', tier: 'pro' },
+  { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', tier: 'pro' },
   { id: 'claude-3.5-haiku', name: 'Claude 3.5 Haiku', provider: 'Anthropic', tier: 'free' },
+  { id: 'claude-3-opus', name: 'Claude 3 Opus', provider: 'Anthropic', tier: 'pro' },
   // Google
-  { id: 'gemini-3.0-pro', name: 'Gemini 3.0 Pro', provider: 'Google', tier: 'pro' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', tier: 'pro' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', tier: 'free' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'Google', tier: 'free' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', tier: 'pro' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google', tier: 'free' },
   // DeepSeek
   { id: 'deepseek-r1', name: 'DeepSeek R1', provider: 'DeepSeek', tier: 'free' },
   { id: 'deepseek-v3', name: 'DeepSeek V3', provider: 'DeepSeek', tier: 'free' },
   // xAI
-  { id: 'grok-3', name: 'Grok 3', provider: 'xAI', tier: 'pro' },
+  { id: 'grok-2', name: 'Grok 2', provider: 'xAI', tier: 'pro' },
   // Mistral
-  { id: 'mistral-large', name: 'Mistral Large 2', provider: 'Mistral', tier: 'pro' },
+  { id: 'mistral-large', name: 'Mistral Large', provider: 'Mistral', tier: 'pro' },
   // Meta
-  { id: 'llama-4', name: 'Llama 4', provider: 'Meta', tier: 'free' },
+  { id: 'llama-3.3-70b', name: 'Llama 3.3 70B', provider: 'Meta', tier: 'free' },
 ];
 
 export const MODEL_PRESETS = {
-  'frontier': ['gpt-5.2', 'claude-4.5-opus', 'gemini-3.0-pro', 'o3'],
-  'fast': ['gpt-4o', 'claude-3.5-haiku', 'gemini-2.5-flash', 'deepseek-v3'],
-  'code': ['claude-4-sonnet', 'deepseek-r1', 'gpt-5', 'o4-mini'],
-  'free': ['gpt-4o', 'gemini-2.5-flash', 'deepseek-r1', 'llama-4'],
+  'frontier': ['gpt-4o', 'claude-3.5-sonnet', 'gemini-1.5-pro', 'o1'],
+  'fast': ['gpt-4o-mini', 'claude-3.5-haiku', 'gemini-2.0-flash', 'deepseek-v3'],
+  'code': ['claude-3.5-sonnet', 'deepseek-r1', 'gpt-4o', 'o1-mini'],
+  'free': ['gpt-4o-mini', 'gemini-2.0-flash', 'deepseek-r1', 'llama-3.3-70b'],
 };
 
 export function useCompareMode() {
   const [isCompareMode, setIsCompareMode] = useState(false);
-  const [selectedModels, setSelectedModels] = useState<string[]>(['gpt-5.2', 'claude-4-sonnet']);
+  const [selectedModels, setSelectedModels] = useState<string[]>(['gpt-4o', 'claude-3.5-sonnet']);
   const [isComparing, setIsComparing] = useState(false);
   const [result, setResult] = useState<CompareResult | null>(null);
   const { toast } = useToast();
