@@ -116,7 +116,27 @@ export function useCompareMode() {
     }
 
     setIsComparing(true);
-    setResult(null);
+
+    // Show immediate UI state (pending cards + chronometer) while backend runs.
+    const nowIso = new Date().toISOString();
+    const placeholderResponses: CompareResponse[] = selectedModels.map((modelId) => {
+      const meta = AVAILABLE_MODELS.find((m) => m.id === modelId);
+      return {
+        model: modelId,
+        displayName: meta?.name ?? modelId,
+        provider: meta?.provider ?? 'Model',
+        response: null,
+        tokens: 0,
+        latency: 0,
+        status: 'pending',
+      };
+    });
+
+    setResult({
+      prompt,
+      responses: placeholderResponses,
+      timestamp: nowIso,
+    });
 
     try {
       const { data, error } = await supabase.functions.invoke('ghost-compare', {
@@ -137,7 +157,6 @@ export function useCompareMode() {
       });
 
       return data;
-
     } catch (error: any) {
       toast({
         title: 'Comparison failed',
