@@ -2322,7 +2322,34 @@
       "yourTopTopics": "Tus Temas Principales",
       "someFailed": "{{count}} conversación(es) no se pudieron importar",
       "importMore": "Importar Más",
-      "viewMemory": "Ver Memoria"
+      "viewMemory": "Ver Memoria",
+      "claudeTitle": "Importar Historial de Claude",
+      "claudeUploadDesc": "Sube tu archivo conversations.json de la exportación de Claude",
+      "claudeDragDrop": "Arrastra y suelta conversations.json, o haz clic para buscar",
+      "claudeExportHint": "Exportar desde Claude: Configuración → Cuenta → Exportar Datos"
+    },
+    "upload": {
+      "title": "Subir a Memoria",
+      "dragDrop": "Arrastra y suelta archivos aquí",
+      "or": "o",
+      "browse": "Seleccionar archivos",
+      "supportedFormats": "Formatos soportados",
+      "uploading": "Subiendo...",
+      "processing": "Procesando...",
+      "success": "Éxito",
+      "failed": "Error al subir",
+      "error": "error",
+      "pending": "pendiente",
+      "bulkUpload": "Subir Documentos",
+      "bulkUploadDesc": "Sube múltiples archivos a la vez",
+      "dropHere": "Suelta los archivos aquí...",
+      "dragDropFiles": "Arrastra y suelta archivos aquí, o haz clic para seleccionar",
+      "extracting": "extrayendo",
+      "uploadingProgress": "Subiendo {{current}} de {{total}}...",
+      "uploadComplete": "Subida Completa",
+      "documentsAdded": "{{count}} de {{total}} documentos añadidos a la memoria",
+      "failedCount": "{{count}} fallaron",
+      "uploadCount": "Subir {{count}} Archivo(s)"
     }
   },
   "projects": {
@@ -2418,6 +2445,17 @@
       "failed": "Error al crear el proyecto",
       "nameRequired": "Nombre requerido",
       "enterName": "Por favor, introduce un nombre para el proyecto"
+    },
+    "addDocs": {
+      "title": "Añadir Documentos al Proyecto",
+      "description": "Selecciona documentos de tu memoria para añadir a este proyecto.",
+      "searchPlaceholder": "Buscar documentos...",
+      "noDocuments": "No hay documentos disponibles",
+      "selectedCount": "{{count}} documento(s) seleccionado(s)",
+      "adding": "Añadiendo...",
+      "addButton": "Añadir {{count}} Documento(s)",
+      "addedCount": "{{count}} documento(s) añadido(s)",
+      "addFailed": "Error al añadir documentos"
     }
   },
   "researchLibrary": {
