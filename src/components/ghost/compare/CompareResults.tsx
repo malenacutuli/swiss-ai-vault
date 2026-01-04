@@ -56,7 +56,7 @@ function ResponseCard({
   const isLoading = response.status === 'pending' || response.status === 'streaming';
 
   return (
-    <div className="flex flex-col h-full border rounded-lg bg-card overflow-hidden">
+    <div className="flex flex-col border rounded-lg bg-card overflow-hidden min-h-[300px] max-h-[70vh]">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b bg-muted/30">
         <div className="flex items-center gap-2">
@@ -153,15 +153,15 @@ export function CompareResults({ result, onRate, onUseResponse }: CompareResults
     : 'lg:grid-cols-4';
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4 min-h-0 flex-1 overflow-hidden">
       {/* Prompt shown above results */}
       <div className="p-3 rounded-lg bg-muted/50 border">
         <span className="text-xs font-medium text-muted-foreground">Your prompt:</span>
         <p className="text-sm mt-1">{result.prompt}</p>
       </div>
 
-      {/* Desktop View - Side by Side */}
-      <div className={cn("hidden lg:grid gap-4", gridCols)}>
+      {/* Desktop View - Side by Side - Scrollable */}
+      <div className={cn("hidden lg:grid gap-4 flex-1 overflow-y-auto min-h-0", gridCols)}>
         {result.responses.map((response) => (
           <div key={response.model}>
             <ResponseCard
