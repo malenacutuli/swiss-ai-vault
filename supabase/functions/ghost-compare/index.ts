@@ -11,35 +11,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Model configurations - Updated January 2026
+// Model configurations - Real API model IDs
 const MODEL_CONFIGS: Record<string, {
   provider: 'openai' | 'anthropic' | 'google' | 'deepseek' | 'xai' | 'mistral' | 'meta';
   modelId: string;
   displayName: string;
 }> = {
-  // OpenAI
-  'gpt-5.2': { provider: 'openai', modelId: 'gpt-5.2', displayName: 'GPT-5.2' },
-  'gpt-5': { provider: 'openai', modelId: 'gpt-5', displayName: 'GPT-5' },
+  // OpenAI - Real models
   'gpt-4o': { provider: 'openai', modelId: 'gpt-4o', displayName: 'GPT-4o' },
-  'o3': { provider: 'openai', modelId: 'o3', displayName: 'o3' },
-  'o4-mini': { provider: 'openai', modelId: 'o4-mini', displayName: 'o4-mini' },
-  // Anthropic
-  'claude-4.5-opus': { provider: 'anthropic', modelId: 'claude-opus-4-5-20251101', displayName: 'Claude 4.5 Opus' },
-  'claude-4-sonnet': { provider: 'anthropic', modelId: 'claude-sonnet-4-5', displayName: 'Claude 4 Sonnet' },
+  'gpt-4o-mini': { provider: 'openai', modelId: 'gpt-4o-mini', displayName: 'GPT-4o Mini' },
+  'gpt-4-turbo': { provider: 'openai', modelId: 'gpt-4-turbo', displayName: 'GPT-4 Turbo' },
+  'o1': { provider: 'openai', modelId: 'o1', displayName: 'o1' },
+  'o1-mini': { provider: 'openai', modelId: 'o1-mini', displayName: 'o1-mini' },
+  // Anthropic - Real models
+  'claude-3.5-sonnet': { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', displayName: 'Claude 3.5 Sonnet' },
   'claude-3.5-haiku': { provider: 'anthropic', modelId: 'claude-3-5-haiku-20241022', displayName: 'Claude 3.5 Haiku' },
-  // Google
-  'gemini-3.0-pro': { provider: 'google', modelId: 'gemini-3.0-pro', displayName: 'Gemini 3.0 Pro' },
-  'gemini-2.5-pro': { provider: 'google', modelId: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro' },
-  'gemini-2.5-flash': { provider: 'google', modelId: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' },
-  // DeepSeek
+  'claude-3-opus': { provider: 'anthropic', modelId: 'claude-3-opus-20240229', displayName: 'Claude 3 Opus' },
+  // Google - Real models
+  'gemini-2.0-flash': { provider: 'google', modelId: 'gemini-2.0-flash-exp', displayName: 'Gemini 2.0 Flash' },
+  'gemini-1.5-pro': { provider: 'google', modelId: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
+  'gemini-1.5-flash': { provider: 'google', modelId: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' },
+  // DeepSeek - Real models
   'deepseek-r1': { provider: 'deepseek', modelId: 'deepseek-reasoner', displayName: 'DeepSeek R1' },
   'deepseek-v3': { provider: 'deepseek', modelId: 'deepseek-chat', displayName: 'DeepSeek V3' },
-  // xAI
-  'grok-3': { provider: 'xai', modelId: 'grok-3', displayName: 'Grok 3' },
-  // Mistral
-  'mistral-large': { provider: 'mistral', modelId: 'mistral-large-latest', displayName: 'Mistral Large 2' },
-  // Meta (via Together API)
-  'llama-4': { provider: 'meta', modelId: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', displayName: 'Llama 4' },
+  // xAI - Real models
+  'grok-2': { provider: 'xai', modelId: 'grok-2-latest', displayName: 'Grok 2' },
+  // Mistral - Real models
+  'mistral-large': { provider: 'mistral', modelId: 'mistral-large-latest', displayName: 'Mistral Large' },
+  // Meta via Together
+  'llama-3.3-70b': { provider: 'meta', modelId: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', displayName: 'Llama 3.3 70B' },
 };
 
 // Provider API calls
