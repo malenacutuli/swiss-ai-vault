@@ -258,12 +258,13 @@ function MemoryDashboardContent() {
     }
   }, [getMasterKey, toast, loadFolders, loadDocumentGroups]);
   
-  // Check if vault needs unlock
+  // Check if vault needs unlock or setup
+  // Show dialog if vault is locked OR not initialized (VaultUnlockDialog handles both modes)
   useEffect(() => {
-    if (vaultInitialized && !isUnlocked) {
+    if (!isUnlocked) {
       setShowUnlock(true);
     }
-  }, [vaultInitialized, isUnlocked]);
+  }, [isUnlocked]);
   
   // Search handler
   const handleSearch = useCallback(async () => {
@@ -496,6 +497,22 @@ function MemoryDashboardContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  
+  // Block dashboard access until vault is unlocked (or set up for new users)
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <VaultUnlockDialog 
+          open={showUnlock} 
+          onOpenChange={setShowUnlock}
+          onUnlocked={() => {
+            setShowUnlock(false);
+            memory.initialize();
+          }}
+        />
       </div>
     );
   }

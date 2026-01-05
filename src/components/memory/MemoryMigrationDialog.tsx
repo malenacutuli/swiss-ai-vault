@@ -153,7 +153,8 @@ export function MemoryMigrationDialog({ open, onOpenChange, onComplete }: Memory
     
     const key = getMasterKey();
     if (!key) {
-      toast({ title: 'Vault locked', description: 'Please unlock your vault first', variant: 'destructive' });
+      toast({ title: 'Vault not ready', description: 'Please set up or unlock your vault first', variant: 'destructive' });
+      onOpenChange(false); // Close migration dialog so user can set up vault
       return;
     }
     
