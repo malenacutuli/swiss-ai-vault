@@ -53,7 +53,7 @@ export function MemoryMigrationDialog({ open, onOpenChange, onComplete }: Memory
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importPreview, setImportPreview] = useState<{ count: number; exportedAt: number } | null>(null);
-  const [importResult, setImportResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   
   // Password strength check
   const getPasswordStrength = (password: string) => {
@@ -159,6 +159,15 @@ export function MemoryMigrationDialog({ open, onOpenChange, onComplete }: Memory
     
     setIsImporting(true);
     setImportProgress(0);
+    setImportResult(null);
+    
+    console.log('[MigrationDialog] Starting import...');
+    
+    // Show processing toast
+    toast({ 
+      title: t('memory.migration.importing', 'Importing...'),
+      description: t('memory.migration.importingDesc', 'Processing {{count}} memories...', { count: importPreview?.count || 0 })
+    });
     
     try {
       const result = await importMemoriesWithPassword(
@@ -168,20 +177,33 @@ export function MemoryMigrationDialog({ open, onOpenChange, onComplete }: Memory
         (current, total) => setImportProgress(Math.round((current / total) * 100))
       );
       
+      console.log('[MigrationDialog] Import result:', result);
+      
       setImportResult(result);
       
-      toast({ 
-        title: t('memory.migration.importSuccess', 'Memory imported'),
-        description: t('memory.migration.importSuccessDesc', '{{count}} memories restored', { count: result.imported })
-      });
+      if (result.imported > 0) {
+        toast({ 
+          title: t('memory.migration.importSuccess', 'Memory imported'),
+          description: t('memory.migration.importSuccessDesc', '{{count}} memories restored', { count: result.imported })
+        });
+      } else if (result.skipped > 0) {
+        toast({ 
+          title: t('memory.migration.allSkipped', 'All memories already exist'),
+          description: t('memory.migration.allSkippedDesc', '{{count}} memories were already in your vault', { count: result.skipped })
+        });
+      } else if (result.errors.length > 0) {
+        toast({ 
+          title: t('memory.migration.importErrors', 'Import had errors'),
+          description: result.errors[0],
+          variant: 'destructive'
+        });
+      }
       
       onComplete?.();
       
-      // Reset
-      setImportFile(null);
-      setImportPassword('');
-      setImportPreview(null);
+      // Don't reset - keep showing results
     } catch (error) {
+      console.error('[MigrationDialog] Import failed:', error);
       toast({ 
         title: t('memory.migration.importError', 'Import failed'),
         description: String(error),
@@ -191,7 +213,7 @@ export function MemoryMigrationDialog({ open, onOpenChange, onComplete }: Memory
       setIsImporting(false);
       setImportProgress(0);
     }
-  }, [importFile, importPassword, getMasterKey, toast, onComplete, t]);
+  }, [importFile, importPassword, importPreview, getMasterKey, toast, onComplete, t]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -312,17 +334,41 @@ export function MemoryMigrationDialog({ open, onOpenChange, onComplete }: Memory
           <TabsContent value="import" className="space-y-4 mt-4">
             {importResult ? (
               <div className="space-y-4">
-                <Alert className="border-green-500/50 bg-green-500/10">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <Alert className={importResult.errors.length > 0 ? "border-yellow-500/50 bg-yellow-500/10" : "border-green-500/50 bg-green-500/10"}>
+                  {importResult.errors.length > 0 ? (
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  )}
                   <AlertTitle>{t('memory.migration.importComplete', 'Import Complete!')}</AlertTitle>
-                  <AlertDescription>
-                    {t('memory.migration.importResult', '{{imported}} memories imported, {{skipped}} skipped (already exist)', { 
-                      imported: importResult.imported, 
-                      skipped: importResult.skipped 
-                    })}
+                  <AlertDescription className="space-y-2">
+                    <p>
+                      {t('memory.migration.importResult', '{{imported}} memories imported, {{skipped}} skipped (already exist)', { 
+                        imported: importResult.imported, 
+                        skipped: importResult.skipped 
+                      })}
+                    </p>
+                    {importResult.errors.length > 0 && (
+                      <div className="mt-2 text-sm">
+                        <p className="font-medium text-yellow-600 dark:text-yellow-400">
+                          {t('memory.migration.errorsOccurred', '{{count}} errors occurred:', { count: importResult.errors.length })}
+                        </p>
+                        <ul className="list-disc list-inside mt-1 max-h-24 overflow-y-auto text-muted-foreground">
+                          {importResult.errors.slice(0, 5).map((err, i) => (
+                            <li key={i} className="truncate">{err}</li>
+                          ))}
+                          {importResult.errors.length > 5 && (
+                            <li>...and {importResult.errors.length - 5} more</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
                   </AlertDescription>
                 </Alert>
                 <DialogFooter>
+                  <Button variant="outline" onClick={() => { setImportResult(null); setImportFile(null); setImportPassword(''); setImportPreview(null); }}>
+                    {t('memory.migration.importAnother', 'Import Another')}
+                  </Button>
                   <Button onClick={() => { setImportResult(null); onOpenChange(false); }}>
                     {t('common.done', 'Done')}
                   </Button>
