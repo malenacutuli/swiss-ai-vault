@@ -285,6 +285,7 @@ export type Database = {
           error_message: string | null
           id: string
           is_shared: boolean | null
+          knowledge_sources: Json | null
           mode: string | null
           model_id: string | null
           model_used: string | null
@@ -313,6 +314,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           is_shared?: boolean | null
+          knowledge_sources?: Json | null
           mode?: string | null
           model_id?: string | null
           model_used?: string | null
@@ -341,6 +343,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           is_shared?: boolean | null
+          knowledge_sources?: Json | null
           mode?: string | null
           model_id?: string | null
           model_used?: string | null
