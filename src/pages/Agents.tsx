@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,7 @@ export default function Agents() {
   // Template browser state
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ActionTemplate | null>(null);
+  const [templateCount, setTemplateCount] = useState<number>(0);
   
   // Task detail modal state
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -60,9 +62,16 @@ export default function Agents() {
   const { getMemoryContext, isReady: memoryReady, isInitialized: memoryInitialized, initialize: initializeMemory } = useMemoryContext();
   const memory = useMemory();
   
-  // Initialize memory and get stats
+  // Initialize memory and get stats + template count
   useEffect(() => {
     const init = async () => {
+      // Fetch template count
+      const { count } = await supabase
+        .from('action_templates')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_public', true);
+      setTemplateCount(count || 0);
+      
       if (!memoryInitialized && memoryReady) {
         await initializeMemory();
       }
@@ -216,7 +225,7 @@ export default function Agents() {
                   className="gap-2"
                 >
                   <LayoutGrid className="h-4 w-4" />
-                  Browse 50+ Templates
+                  Browse {templateCount > 0 ? templateCount : '50+'} Templates
                 </Button>
               </div>
 
