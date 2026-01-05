@@ -4,3 +4,4 @@ export { PrivacyTierSelector, type PrivacyTier } from './PrivacyTierSelector';
 export { ConnectedServicesRow } from './ConnectedServicesRow';
 export { EmptyTaskState } from './EmptyTaskState';
 export { AgentExecutionPanel } from './AgentExecutionPanel';
+export { TemplateBrowser, type ActionTemplate } from './TemplateBrowser';
