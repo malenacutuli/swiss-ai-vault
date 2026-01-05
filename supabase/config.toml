@@ -116,3 +116,6 @@ verify_jwt = true
 
 [functions.ghost-compare]
 verify_jwt = true
+
+[functions.agent-execute]
+verify_jwt = true
