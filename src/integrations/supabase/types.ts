@@ -14,6 +14,417 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_templates: {
+        Row: {
+          avg_rating: number | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          default_values: Json | null
+          description: string | null
+          estimated_duration_seconds: number | null
+          example_inputs: Json | null
+          icon: string | null
+          id: string
+          is_featured: boolean | null
+          is_public: boolean | null
+          name: string
+          output_types: Json | null
+          prompt_template: string
+          required_inputs: Json | null
+          required_tools: Json | null
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          avg_rating?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_values?: Json | null
+          description?: string | null
+          estimated_duration_seconds?: number | null
+          example_inputs?: Json | null
+          icon?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_public?: boolean | null
+          name: string
+          output_types?: Json | null
+          prompt_template: string
+          required_inputs?: Json | null
+          required_tools?: Json | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          avg_rating?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_values?: Json | null
+          description?: string | null
+          estimated_duration_seconds?: number | null
+          example_inputs?: Json | null
+          icon?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_public?: boolean | null
+          name?: string
+          output_types?: Json | null
+          prompt_template?: string
+          required_inputs?: Json | null
+          required_tools?: Json | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
+      agent_outputs: {
+        Row: {
+          created_at: string | null
+          download_url: string | null
+          encryption_key_id: string | null
+          expires_at: string | null
+          file_name: string
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          is_encrypted: boolean | null
+          mime_type: string | null
+          output_type: string
+          preview_url: string | null
+          storage_bucket: string | null
+          storage_region: string | null
+          task_id: string
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          download_url?: string | null
+          encryption_key_id?: string | null
+          expires_at?: string | null
+          file_name: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_encrypted?: boolean | null
+          mime_type?: string | null
+          output_type: string
+          preview_url?: string | null
+          storage_bucket?: string | null
+          storage_region?: string | null
+          task_id: string
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          download_url?: string | null
+          encryption_key_id?: string | null
+          expires_at?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_encrypted?: boolean | null
+          mime_type?: string | null
+          output_type?: string
+          preview_url?: string | null
+          storage_bucket?: string | null
+          storage_region?: string | null
+          task_id?: string
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_outputs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_sessions: {
+        Row: {
+          browser_url: string | null
+          cpu_seconds: number | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          last_activity_at: string | null
+          memory_mb: number | null
+          screenshot_url: string | null
+          session_type: string
+          started_at: string | null
+          status: string | null
+          task_id: string | null
+          user_id: string
+          workspace_path: string | null
+        }
+        Insert: {
+          browser_url?: string | null
+          cpu_seconds?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          memory_mb?: number | null
+          screenshot_url?: string | null
+          session_type: string
+          started_at?: string | null
+          status?: string | null
+          task_id?: string | null
+          user_id: string
+          workspace_path?: string | null
+        }
+        Update: {
+          browser_url?: string | null
+          cpu_seconds?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          memory_mb?: number | null
+          screenshot_url?: string | null
+          session_type?: string
+          started_at?: string | null
+          status?: string | null
+          task_id?: string | null
+          user_id?: string
+          workspace_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_task_steps: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          retry_count: number | null
+          started_at: string | null
+          status: string | null
+          step_number: number
+          step_type: string
+          task_id: string
+          tool_input: Json | null
+          tool_name: string | null
+          tool_output: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          step_number: number
+          step_type: string
+          task_id: string
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_output?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          step_number?: number
+          step_type?: string
+          task_id?: string
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_output?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_task_steps_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          credits_used: number | null
+          current_step: number | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          is_shared: boolean | null
+          mode: string | null
+          model_id: string | null
+          plan_json: Json | null
+          plan_summary: string | null
+          privacy_tier: string | null
+          progress_percentage: number | null
+          prompt: string
+          result_summary: string | null
+          share_token: string | null
+          started_at: string | null
+          status: string | null
+          task_type: string | null
+          tokens_used: number | null
+          total_steps: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          current_step?: number | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          is_shared?: boolean | null
+          mode?: string | null
+          model_id?: string | null
+          plan_json?: Json | null
+          plan_summary?: string | null
+          privacy_tier?: string | null
+          progress_percentage?: number | null
+          prompt: string
+          result_summary?: string | null
+          share_token?: string | null
+          started_at?: string | null
+          status?: string | null
+          task_type?: string | null
+          tokens_used?: number | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          current_step?: number | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          is_shared?: boolean | null
+          mode?: string | null
+          model_id?: string | null
+          plan_json?: Json | null
+          plan_summary?: string | null
+          privacy_tier?: string | null
+          progress_percentage?: number | null
+          prompt?: string
+          result_summary?: string | null
+          share_token?: string | null
+          started_at?: string | null
+          status?: string | null
+          task_type?: string | null
+          tokens_used?: number | null
+          total_steps?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_tool_calls: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          credits_charged: number | null
+          duration_ms: number | null
+          error_code: string | null
+          id: string
+          input_hash: string | null
+          input_size_bytes: number | null
+          output_size_bytes: number | null
+          started_at: string
+          status: string
+          step_id: string | null
+          task_id: string
+          tokens_used: number | null
+          tool_name: string
+          tool_version: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_charged?: number | null
+          duration_ms?: number | null
+          error_code?: string | null
+          id?: string
+          input_hash?: string | null
+          input_size_bytes?: number | null
+          output_size_bytes?: number | null
+          started_at: string
+          status: string
+          step_id?: string | null
+          task_id: string
+          tokens_used?: number | null
+          tool_name: string
+          tool_version?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          credits_charged?: number | null
+          duration_ms?: number | null
+          error_code?: string | null
+          id?: string
+          input_hash?: string | null
+          input_size_bytes?: number | null
+          output_size_bytes?: number | null
+          started_at?: string
+          status?: string
+          step_id?: string | null
+          task_id?: string
+          tokens_used?: number | null
+          tool_name?: string
+          tool_version?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tool_calls_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "agent_task_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tool_calls_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anonymous_usage: {
         Row: {
           block_reason: string | null
@@ -2642,6 +3053,81 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_tasks: {
+        Row: {
+          created_at: string | null
+          cron_expression: string | null
+          description: string | null
+          failure_count: number | null
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          max_retries: number | null
+          name: string
+          next_run_at: string | null
+          notify_channels: Json | null
+          notify_on_complete: boolean | null
+          notify_on_failure: boolean | null
+          prompt: string
+          run_count: number | null
+          schedule_type: string
+          success_count: number | null
+          task_type: string | null
+          timeout_minutes: number | null
+          timezone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cron_expression?: string | null
+          description?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          max_retries?: number | null
+          name: string
+          next_run_at?: string | null
+          notify_channels?: Json | null
+          notify_on_complete?: boolean | null
+          notify_on_failure?: boolean | null
+          prompt: string
+          run_count?: number | null
+          schedule_type: string
+          success_count?: number | null
+          task_type?: string | null
+          timeout_minutes?: number | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cron_expression?: string | null
+          description?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          max_retries?: number | null
+          name?: string
+          next_run_at?: string | null
+          notify_channels?: Json | null
+          notify_on_complete?: boolean | null
+          notify_on_failure?: boolean | null
+          prompt?: string
+          run_count?: number | null
+          schedule_type?: string
+          success_count?: number | null
+          task_type?: string | null
+          timeout_minutes?: number | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       semantic_cache: {
         Row: {
           created_at: string | null
@@ -3711,6 +4197,80 @@ export type Database = {
           },
         ]
       }
+      wide_research_jobs: {
+        Row: {
+          avg_item_duration_ms: number | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          items_completed: number | null
+          items_data: Json
+          items_failed: number | null
+          max_workers: number | null
+          parallel_workers: number | null
+          research_type: string | null
+          result_file_path: string | null
+          result_format: string | null
+          results: Json | null
+          started_at: string | null
+          task_id: string | null
+          template_id: string | null
+          total_items: number
+          user_id: string
+          worker_status: Json | null
+        }
+        Insert: {
+          avg_item_duration_ms?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          items_completed?: number | null
+          items_data: Json
+          items_failed?: number | null
+          max_workers?: number | null
+          parallel_workers?: number | null
+          research_type?: string | null
+          result_file_path?: string | null
+          result_format?: string | null
+          results?: Json | null
+          started_at?: string | null
+          task_id?: string | null
+          template_id?: string | null
+          total_items: number
+          user_id: string
+          worker_status?: Json | null
+        }
+        Update: {
+          avg_item_duration_ms?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          items_completed?: number | null
+          items_data?: Json
+          items_failed?: number | null
+          max_workers?: number | null
+          parallel_workers?: number | null
+          research_type?: string | null
+          result_file_path?: string | null
+          result_format?: string | null
+          results?: Json | null
+          started_at?: string | null
+          task_id?: string | null
+          template_id?: string | null
+          total_items?: number
+          user_id?: string
+          worker_status?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wide_research_jobs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       template_summary: {
@@ -3779,6 +4339,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      calculate_next_run: {
+        Args: {
+          p_cron_expression: string
+          p_schedule_type: string
+          p_timezone: string
+        }
+        Returns: string
       }
       check_anonymous_usage: {
         Args: {
