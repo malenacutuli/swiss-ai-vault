@@ -301,6 +301,7 @@ export type Database = {
           total_steps: number | null
           updated_at: string | null
           user_id: string
+          user_rating: number | null
         }
         Insert: {
           completed_at?: string | null
@@ -327,6 +328,7 @@ export type Database = {
           total_steps?: number | null
           updated_at?: string | null
           user_id: string
+          user_rating?: number | null
         }
         Update: {
           completed_at?: string | null
@@ -353,6 +355,7 @@ export type Database = {
           total_steps?: number | null
           updated_at?: string | null
           user_id?: string
+          user_rating?: number | null
         }
         Relationships: []
       }
