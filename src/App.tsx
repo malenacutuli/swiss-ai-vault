@@ -69,7 +69,7 @@ import OAuthCallback from "./pages/OAuthCallback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
-
+import Agents from "./pages/Agents";
 import GhostFinance from "./pages/ghost/GhostFinance";
 import GhostPatents from "./pages/ghost/GhostPatents";
 import GhostLegal from "./pages/ghost/GhostLegal";
@@ -172,6 +172,7 @@ const App = () => {
                   <Route path="models/:id" element={<ModelDetail />} />
                   <Route path="catalog" element={<ModelsCatalog />} />
                   <Route path="playground" element={<Playground />} />
+                  <Route path="agents" element={<Agents />} />
                   <Route path="integrations" element={<VaultChatIntegrations />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="notifications" element={<Notifications />} />
