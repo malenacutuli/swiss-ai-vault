@@ -122,3 +122,6 @@ verify_jwt = true
 
 [functions.agent-status]
 verify_jwt = true
+
+[functions.agent-worker]
+verify_jwt = true
