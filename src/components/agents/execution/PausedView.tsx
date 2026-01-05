@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { StepIndicator } from './StepIndicator';
+import { TaskStepCard } from './TaskStepCard';
 import type { ExecutionTask, ExecutionStep } from '@/hooks/useAgentExecution';
 
 interface PausedViewProps {
@@ -26,7 +26,7 @@ export function PausedView({
 
   return (
     <div className={cn('space-y-8 animate-fade-in', className)}>
-      {/* Paused Header - Swiss minimalist */}
+      {/* Paused Header - Swiss minimalist, no icons */}
       <div className="text-center space-y-4">
         <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center animate-scale-in">
           <div className="flex gap-1.5">
@@ -44,28 +44,37 @@ export function PausedView({
       </div>
 
       {/* Progress visualization */}
-      <div className="bg-muted/30 rounded-xl p-5">
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-4">
+      <div className="bg-muted/20 rounded-xl border border-border p-5">
+        <div className="h-1 bg-muted rounded-full overflow-hidden mb-4">
           <div 
             className="h-full bg-primary rounded-full"
             style={{ width: `${progress}%` }}
           />
         </div>
         
-        <div className="max-h-[200px] overflow-y-auto">
-          <StepIndicator steps={steps} currentStep={task.current_step ?? 1} />
+        <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1 -mr-1">
+          {steps.map((step, index) => (
+            <TaskStepCard
+              key={step.id}
+              step={step}
+              stepNumber={index + 1}
+              isExpanded={false}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-center gap-3">
+      {/* Actions - Text only, minimal */}
+      <div className="flex items-center justify-center gap-4">
         <Button 
-          variant="outline" 
+          variant="ghost" 
           onClick={onStop}
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           Stop
         </Button>
+        
+        <span className="text-muted-foreground">·</span>
         
         <Button
           onClick={onResume}
@@ -74,7 +83,7 @@ export function PausedView({
         >
           {isResuming ? (
             <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              <span className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               Resuming
             </span>
           ) : (

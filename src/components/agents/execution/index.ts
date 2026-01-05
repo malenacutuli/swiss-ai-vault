@@ -6,3 +6,12 @@ export { PausedView } from './PausedView';
 export { CompletionView } from './CompletionView';
 export { ErrorView } from './ErrorView';
 export { OutputPreview } from './OutputPreview';
+
+// New Manus-style execution components
+export { MasterExecutionView } from './MasterExecutionView';
+export { TaskProgressPanel } from './TaskProgressPanel';
+export { TaskStepCard } from './TaskStepCard';
+export { LivePreviewPanel } from './LivePreviewPanel';
+export { FileActionChip, parseToolToFileActions } from './FileActionChip';
+export { SuggestedFollowups } from './SuggestedFollowups';
+export { TaskRating } from './TaskRating';
