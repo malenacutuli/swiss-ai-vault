@@ -7,6 +7,7 @@ const footerLinks = {
     { labelKey: "footer.ghostChat", href: "/ghost" },
     { labelKey: "footer.vaultChat", href: "/features/vault-chat" },
     { labelKey: "footer.vaultLabs", href: "/features/vault-labs" },
+    { labelKey: "footer.swissAgents", href: "/ghost/agents" },
     { labelKey: "footer.pricing", href: "/#pricing" },
     { labelKey: "footer.apiReference", href: "/docs/api" },
   ],
