@@ -17,6 +17,7 @@ import {
   EmptyTaskState,
   AgentExecutionPanel,
   TemplateBrowser,
+  TaskDetailModal,
   type PrivacyTier,
   type ActionTemplate,
 } from '@/components/agents';
@@ -50,6 +51,10 @@ export default function Agents() {
   // Template browser state
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ActionTemplate | null>(null);
+  
+  // Task detail modal state
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
   
   // Memory hooks
   const { getMemoryContext, isReady: memoryReady, isInitialized: memoryInitialized, initialize: initializeMemory } = useMemoryContext();
@@ -134,8 +139,14 @@ export default function Agents() {
   };
 
   const handleViewTask = (task: AgentTask) => {
-    // TODO: Open task detail modal/page
-    toast.info(`Viewing task: ${task.id}`);
+    setSelectedTaskId(task.id);
+    setShowTaskDetail(true);
+  };
+  
+  const handleRetryTask = (task: { prompt: string }) => {
+    setPrompt(task.prompt);
+    setShowTaskDetail(false);
+    toast.info('Prompt loaded. Click "Start Task" to retry.');
   };
 
   const handleDownloadTask = (task: AgentTask) => {
@@ -343,6 +354,14 @@ export default function Agents() {
         open={showTemplateBrowser}
         onOpenChange={setShowTemplateBrowser}
         onSelectTemplate={handleSelectTemplate}
+      />
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        taskId={selectedTaskId}
+        open={showTaskDetail}
+        onOpenChange={setShowTaskDetail}
+        onRetry={handleRetryTask}
       />
     </>
   );
