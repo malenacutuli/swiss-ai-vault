@@ -216,6 +216,12 @@ Important:
     // Call Lovable AI to generate plan
     console.log('Calling AI for planning...');
     
+    // Use the latest Gemini 3 Pro for superior planning performance (January 2026)
+    // Available models via Lovable AI gateway:
+    // - google/gemini-3-pro-preview (Latest, best reasoning)
+    // - google/gemini-2.5-flash (Fast, balanced)
+    // - openai/gpt-5 (OpenAI flagship)
+    // - openai/gpt-5-mini (Fast GPT-5)
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -223,13 +229,12 @@ Important:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-pro-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.3,
-        max_tokens: 2000,
+        max_tokens: 4000,
       }),
     });
 
