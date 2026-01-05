@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sparkles, Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2 } from 'lucide-react';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
 import {
-  AgentTaskCard,
+  AgentTaskCardLegacy,
   QuickActionButton,
   PrivacyTierSelector,
   ConnectedServicesRow,
@@ -171,7 +171,7 @@ export default function Agents() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {activeTasks.map((task) => (
-                  <AgentTaskCard
+                  <AgentTaskCardLegacy
                     key={task.id}
                     task={task}
                     variant="active"
@@ -195,7 +195,7 @@ export default function Agents() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {recentTasks.map((task) => (
-                  <AgentTaskCard
+                  <AgentTaskCardLegacy
                     key={task.id}
                     task={task}
                     variant="recent"
