@@ -49,7 +49,6 @@ import {
   Library,
   IconUpload,
   FolderKanban,
-  IconBot,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -62,6 +61,7 @@ import { GhostModeToggle } from './GhostModeToggle';
 import { GhostCustomizeSidebar } from './GhostCustomizeSidebar';
 import { ImportChatGPTModal } from '@/components/memory/ImportChatGPTModal';
 import { ImportClaudeModal } from '@/components/memory/ImportClaudeModal';
+import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 
 // ============================================
 // CHAT ACTIONS MENU
@@ -988,7 +988,7 @@ export function GhostSidebar({
         {/* Bottom navigation */}
         <div className={cn("flex flex-col p-2 border-t border-border/60", isExpanded ? "gap-1" : "gap-2 items-center")}>
           <IconButton 
-            icon={IconBot} 
+            icon={SwissAgentsIcon} 
             label="Agents" 
             onClick={() => navigate('/ghost/agents')} 
             active={location.pathname === '/ghost/agents'}
