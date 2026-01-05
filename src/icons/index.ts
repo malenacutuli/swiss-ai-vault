@@ -67,4 +67,5 @@ export {
   Info as IconInfo,
   ArrowLeft as IconArrowLeft,
   Rocket as IconRocket,
+  Bot as IconBot,
 } from "lucide-react";

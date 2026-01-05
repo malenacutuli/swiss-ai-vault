@@ -136,6 +136,7 @@ const App = () => {
                 <Route path="/ghost/projects" element={<ProtectedRoute><MemoryProjectsPage /></ProtectedRoute>} />
                 <Route path="/ghost/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
                 <Route path="/ghost/research-library" element={<ProtectedRoute><ResearchDashboard /></ProtectedRoute>} />
+                <Route path="/ghost/agents" element={<ProtectedRoute><Agents /></ProtectedRoute>} />
                 <Route path="/ghost/finance" element={<GhostFinance />} />
                 <Route path="/ghost/patents" element={<GhostPatents />} />
                 <Route path="/ghost/legal" element={<GhostLegal />} />
