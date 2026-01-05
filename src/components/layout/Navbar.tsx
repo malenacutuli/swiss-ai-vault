@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { SwissFlag } from "@/components/icons/SwissFlag";
+import { SwissAgentsIcon } from "@/components/icons/SwissAgentsIcon";
 import { Menu, X, ArrowRight, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -37,7 +39,7 @@ export const Navbar = () => {
                   {t('nav.products')}
                   <ChevronDown className="h-3.5 w-3.5" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-44">
+                <DropdownMenuContent align="start" className="w-48">
                   <DropdownMenuItem asChild>
                     <Link to="/ghost">Ghost Chat</Link>
                   </DropdownMenuItem>
@@ -49,6 +51,13 @@ export const Navbar = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/features/vault-labs">
                       Vault Labs
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/ghost/agents" className="flex items-center gap-2">
+                      <SwissAgentsIcon className="h-4 w-4" />
+                      Swiss Agents
+                      <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">New</Badge>
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -97,6 +106,11 @@ export const Navbar = () => {
                 </Link>
                 <Link to="/features/vault-labs" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   Vault Labs
+                </Link>
+                <Link to="/ghost/agents" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2" onClick={() => setIsOpen(false)}>
+                  <SwissAgentsIcon className="h-4 w-4" />
+                  Swiss Agents
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">New</Badge>
                 </Link>
                 <a href="/#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   {t('nav.models')}
