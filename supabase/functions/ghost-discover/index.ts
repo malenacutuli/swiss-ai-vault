@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Edge function using Deno.serve
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,7 +139,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ca: 'Catalan',
 };
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
