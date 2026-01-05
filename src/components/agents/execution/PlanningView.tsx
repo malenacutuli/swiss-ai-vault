@@ -1,6 +1,4 @@
 import { cn } from '@/lib/utils';
-import { Loader2, Sparkles } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { useEffect, useState } from 'react';
 
 interface PlanningViewProps {
@@ -8,10 +6,10 @@ interface PlanningViewProps {
 }
 
 const planningSteps = [
-  'Analyzing your request...',
-  'Understanding context...',
-  'Identifying required tools...',
-  'Creating execution plan...',
+  'Analyzing your request',
+  'Understanding context',
+  'Identifying tools',
+  'Creating plan',
 ];
 
 export function PlanningView({ className }: PlanningViewProps) {
@@ -22,15 +20,15 @@ export function PlanningView({ className }: PlanningViewProps) {
     // Animate through planning steps
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => (prev + 1) % planningSteps.length);
-    }, 2000);
+    }, 1800);
 
-    // Animate progress
+    // Animate progress smoothly
     const progressInterval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 10;
+        if (prev >= 85) return prev;
+        return prev + Math.random() * 8;
       });
-    }, 500);
+    }, 400);
 
     return () => {
       clearInterval(stepInterval);
@@ -39,33 +37,41 @@ export function PlanningView({ className }: PlanningViewProps) {
   }, []);
 
   return (
-    <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-      {/* Animated Icon */}
-      <div className="relative mb-8">
-        <div className="absolute inset-0 animate-ping opacity-20">
-          <Sparkles className="h-12 w-12 text-primary" />
+    <div className={cn('flex flex-col items-center justify-center py-16', className)}>
+      {/* Minimal pulsing indicator */}
+      <div className="relative mb-10">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-primary animate-pulse" />
         </div>
-        <Sparkles className="h-12 w-12 text-primary animate-pulse" />
+        <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" />
       </div>
 
-      {/* Status Text */}
-      <h3 className="text-xl font-light text-foreground mb-2">
-        Planning Your Task
+      {/* Status Text - Swiss typography */}
+      <h3 className="text-2xl font-light text-foreground tracking-tight mb-3">
+        Planning
       </h3>
       
-      <p className="text-sm text-muted-foreground mb-8 flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        {planningSteps[currentStep]}
-      </p>
-
-      {/* Progress Bar */}
-      <div className="w-full max-w-xs">
-        <Progress value={progress} className="h-1.5" />
+      {/* Step indicator */}
+      <div className="flex items-center gap-2 mb-10">
+        <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <p className="text-sm text-muted-foreground">
+          {planningSteps[currentStep]}...
+        </p>
       </div>
 
-      {/* Reassurance */}
-      <p className="text-xs text-muted-foreground mt-6">
-        This usually takes a few seconds...
+      {/* Progress Bar - Minimal */}
+      <div className="w-full max-w-xs">
+        <div className="h-1 bg-muted rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Subtle hint */}
+      <p className="text-xs text-muted-foreground mt-8">
+        Usually takes a few seconds
       </p>
     </div>
   );

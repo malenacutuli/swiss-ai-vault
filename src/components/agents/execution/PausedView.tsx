@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Play, X } from 'lucide-react';
+import { StepIndicator } from './StepIndicator';
 import type { ExecutionTask, ExecutionStep } from '@/hooks/useAgentExecution';
 
 interface PausedViewProps {
@@ -20,55 +20,66 @@ export function PausedView({
   isResuming,
   className,
 }: PausedViewProps) {
-  const completedSteps = steps.filter(s => s.status === 'completed').length;
-  const remainingSteps = steps.filter(s => s.status === 'pending' || !s.status).length;
+  const completedCount = steps.filter(s => s.status === 'completed').length;
+  const remainingCount = steps.filter(s => s.status === 'pending' || !s.status).length;
+  const progress = task.progress_percentage ?? 0;
 
   return (
-    <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-      {/* Paused Icon */}
-      <div className="w-16 h-16 rounded-full bg-warning/20 flex items-center justify-center mb-6">
-        <div className="flex gap-1">
-          <div className="w-2 h-6 bg-warning rounded-sm" />
-          <div className="w-2 h-6 bg-warning rounded-sm" />
+    <div className={cn('space-y-8 animate-fade-in', className)}>
+      {/* Paused Header - Swiss minimalist */}
+      <div className="text-center space-y-4">
+        <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center animate-scale-in">
+          <div className="flex gap-1.5">
+            <div className="w-2 h-6 bg-muted-foreground rounded-sm" />
+            <div className="w-2 h-6 bg-muted-foreground rounded-sm" />
+          </div>
+        </div>
+        
+        <div className="space-y-1">
+          <h3 className="text-xl font-medium text-foreground">Paused</h3>
+          <p className="text-sm text-muted-foreground">
+            {completedCount} of {steps.length} steps completed · {remainingCount} remaining
+          </p>
         </div>
       </div>
 
-      {/* Status */}
-      <h3 className="text-xl font-light text-foreground mb-2">
-        Task Paused
-      </h3>
-      
-      <p className="text-sm text-muted-foreground mb-6">
-        {completedSteps} of {steps.length} steps completed • {remainingSteps} remaining
-      </p>
-
-      {/* Current Progress */}
-      {task.plan_summary && (
-        <div className="bg-muted/30 rounded-lg px-4 py-3 mb-8 max-w-md text-center">
-          <p className="text-sm text-muted-foreground">
-            Last activity: {task.plan_summary}
-          </p>
+      {/* Progress visualization */}
+      <div className="bg-muted/30 rounded-xl p-5">
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-4">
+          <div 
+            className="h-full bg-primary rounded-full"
+            style={{ width: `${progress}%` }}
+          />
         </div>
-      )}
+        
+        <div className="max-h-[200px] overflow-y-auto">
+          <StepIndicator steps={steps} currentStep={task.current_step ?? 1} />
+        </div>
+      </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
+      {/* Actions */}
+      <div className="flex items-center justify-center gap-3">
+        <Button 
+          variant="outline" 
           onClick={onStop}
-          className="gap-2 text-destructive hover:text-destructive"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
         >
-          <X className="h-4 w-4" />
-          Stop Task
+          Stop
         </Button>
         
         <Button
           onClick={onResume}
           disabled={isResuming}
-          className="gap-2 bg-primary hover:bg-primary/90"
+          className="min-w-[100px]"
         >
-          <Play className="h-4 w-4" />
-          {isResuming ? 'Resuming...' : 'Resume'}
+          {isResuming ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              Resuming
+            </span>
+          ) : (
+            'Resume'
+          )}
         </Button>
       </div>
     </div>
