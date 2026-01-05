@@ -3,7 +3,8 @@ import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2 } from 'lucide-react';
+import { Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2 } from 'lucide-react';
+import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
 import {
   AgentTaskCardLegacy,
@@ -80,8 +81,8 @@ export default function Agents() {
           <header className="flex items-center justify-between mb-12">
             <div>
               <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+                <SwissAgentsIcon className="h-6 w-6" />
                 Swiss Agents
-                <Sparkles className="h-5 w-5 text-primary/60" />
               </h1>
               <p className="text-muted-foreground mt-1">Autonomous AI that works for you</p>
             </div>
