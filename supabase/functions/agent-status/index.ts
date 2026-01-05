@@ -36,9 +36,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get task_id from query params
+    // Get task_id from query params OR body
     const url = new URL(req.url);
-    const taskId = url.searchParams.get('task_id');
+    let taskId = url.searchParams.get('task_id');
+    
+    // Also check request body for task_id
+    if (!taskId && req.method === 'POST') {
+      try {
+        const body = await req.json();
+        taskId = body.task_id || body.taskId;
+      } catch {
+        // Ignore parse errors
+      }
+    }
 
     if (!taskId) {
       return new Response(
