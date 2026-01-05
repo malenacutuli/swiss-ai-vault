@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { TaskStepCard } from './TaskStepCard';
 import type { ExecutionTask, ExecutionStep } from '@/hooks/useAgentExecution';
 
 interface ErrorViewProps {
@@ -26,10 +27,10 @@ export function ErrorView({
 
   return (
     <div className={cn('space-y-8 animate-fade-in', className)}>
-      {/* Error Header - Swiss minimalist */}
+      {/* Error Header - Swiss minimalist, no icons */}
       <div className="text-center space-y-4">
         <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center animate-scale-in">
-          <span className="text-2xl text-destructive">✕</span>
+          <span className="text-2xl text-destructive font-medium">✕</span>
         </div>
         
         <div className="space-y-1">
@@ -45,7 +46,7 @@ export function ErrorView({
 
       {/* Error Details */}
       <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-5">
-        <p className="text-sm font-medium text-destructive mb-2">Error Details</p>
+        <p className="text-xs font-medium text-destructive uppercase tracking-wide mb-2">Error Details</p>
         <p className="text-sm text-foreground">
           {error || task.error_message || 'An unexpected error occurred'}
         </p>
@@ -60,43 +61,32 @@ export function ErrorView({
         )}
       </div>
 
-      {/* Steps Summary - Minimal */}
+      {/* Steps Summary - Using TaskStepCard */}
       {steps.length > 0 && (
-        <div className="bg-muted/30 rounded-xl p-4">
+        <div className="bg-muted/20 rounded-xl border border-border p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
             Execution Progress
           </p>
-          <div className="space-y-2">
-            {steps.slice(0, 5).map((step) => (
-              <div
+          <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1 -mr-1">
+            {steps.map((step, index) => (
+              <TaskStepCard
                 key={step.id}
-                className={cn(
-                  'flex items-center gap-3 text-sm',
-                  step.status === 'completed' && 'text-primary',
-                  step.status === 'failed' && 'text-destructive',
-                  step.status === 'pending' && 'text-muted-foreground'
-                )}
-              >
-                <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs bg-muted">
-                  {step.status === 'completed' ? '✓' : step.status === 'failed' ? '✕' : step.step_number}
-                </span>
-                <span>{step.description || step.tool_name || step.step_type}</span>
-              </div>
+                step={step}
+                stepNumber={index + 1}
+                isExpanded={step.status === 'failed'}
+              />
             ))}
-            {steps.length > 5 && (
-              <p className="text-xs text-muted-foreground ml-8">
-                +{steps.length - 5} more steps
-              </p>
-            )}
           </div>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-center gap-3">
-        <Button variant="outline" onClick={onBack}>
+      {/* Actions - Text only, minimal */}
+      <div className="flex items-center justify-center gap-4">
+        <Button variant="ghost" onClick={onBack} className="text-muted-foreground hover:text-foreground">
           Back
         </Button>
+        
+        <span className="text-muted-foreground">·</span>
         
         <Button
           onClick={onRetry}
@@ -105,7 +95,7 @@ export function ErrorView({
         >
           {isRetrying ? (
             <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              <span className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               Retrying
             </span>
           ) : (

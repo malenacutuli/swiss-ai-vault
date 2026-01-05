@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Check, X, FileText, Image, Table, Search, Edit } from 'lucide-react';
 import type { ExecutionTask, ExecutionStep } from '@/hooks/useAgentExecution';
 
 interface PlanApprovalProps {
@@ -13,11 +12,14 @@ interface PlanApprovalProps {
   className?: string;
 }
 
-const toolIcons: Record<string, typeof FileText> = {
-  web_search: Search,
-  document_generator: FileText,
-  image_generator: Image,
-  spreadsheet_generator: Table,
+// Tool emoji mapping - no Lucide icons
+const toolEmojis: Record<string, string> = {
+  web_search: '🔍',
+  document_generator: '📄',
+  image_generator: '🖼️',
+  spreadsheet_generator: '📊',
+  code_executor: '💻',
+  analysis: '📈',
 };
 
 export function PlanApproval({
@@ -38,87 +40,101 @@ export function PlanApproval({
   }));
 
   return (
-    <div className={cn('space-y-6', className)}>
-      {/* Plan Summary */}
-      {task.plan_summary && (
-        <div className="text-center">
-          <p className="text-lg text-foreground">{task.plan_summary}</p>
-        </div>
-      )}
+    <div className={cn('space-y-6 animate-fade-in', className)}>
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h3 className="text-lg font-medium text-foreground">Review Execution Plan</h3>
+        {task.plan_summary && (
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            {task.plan_summary}
+          </p>
+        )}
+      </div>
 
       {/* Steps Preview */}
-      <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-        <h4 className="text-sm font-medium text-muted-foreground mb-3">
-          Planned Steps ({planSteps.length})
-        </h4>
+      <div className="bg-muted/20 rounded-xl border border-border p-5 space-y-3">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-medium text-foreground">
+            Planned Steps
+          </h4>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+            {planSteps.length} steps
+          </span>
+        </div>
         
-        {planSteps.map((step: any, index: number) => {
-          const Icon = toolIcons[step.tool] || FileText;
-          return (
-            <div
-              key={index}
-              className="flex items-start gap-3 py-2"
-            >
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {step.number || index + 1}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">
-                    {step.tool || 'Action'}
+        <div className="space-y-2">
+          {planSteps.map((step: any, index: number) => {
+            const emoji = toolEmojis[step.tool] || '⚡';
+            return (
+              <div
+                key={index}
+                className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border/50 hover:border-border transition-colors"
+              >
+                {/* Step number - Swiss minimalist */}
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {step.number || index + 1}
                   </span>
                 </div>
-                {step.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {step.description}
-                  </p>
-                )}
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{emoji}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {step.tool ? step.tool.replace(/_/g, ' ') : 'Action'}
+                    </span>
+                  </div>
+                  {step.description && (
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      {step.description}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Estimated Info */}
-      <div className="flex justify-center gap-6 text-sm text-muted-foreground">
-        <span>~{planSteps.length * 15}s estimated</span>
-        <span>•</span>
-        <span>{planSteps.length} steps</span>
+      <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+        <span>Estimated time: ~{planSteps.length * 15}s</span>
+        <span>·</span>
+        <span>{planSteps.length} steps total</span>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-center gap-3">
+      {/* Action Buttons - Text only, minimal */}
+      <div className="flex items-center justify-center gap-4 pt-2">
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={onReject}
           disabled={isLoading}
-          className="gap-2"
+          className="text-muted-foreground hover:text-foreground"
         >
-          <X className="h-4 w-4" />
           Cancel
         </Button>
         
         {onEdit && (
-          <Button
-            variant="outline"
-            onClick={onEdit}
-            disabled={isLoading}
-            className="gap-2"
-          >
-            <Edit className="h-4 w-4" />
-            Edit Plan
-          </Button>
+          <>
+            <span className="text-muted-foreground">·</span>
+            <Button
+              variant="ghost"
+              onClick={onEdit}
+              disabled={isLoading}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Edit Plan
+            </Button>
+          </>
         )}
+        
+        <span className="text-muted-foreground">·</span>
         
         <Button
           onClick={onApprove}
           disabled={isLoading}
-          className="gap-2 bg-primary hover:bg-primary/90"
+          size="default"
         >
-          <Check className="h-4 w-4" />
           Approve & Start
         </Button>
       </div>
