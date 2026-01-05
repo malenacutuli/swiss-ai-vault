@@ -31,6 +31,7 @@ import {
   LayoutTemplate,
   ArrowLeft,
   Sparkles,
+  Bot,
 } from "@/icons";
 import { SwissFlag } from "@/components/icons/SwissFlag";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
@@ -184,6 +185,17 @@ export function LabsSidebar({ collapsed, onToggle }: LabsSidebarProps) {
             />
           </div>
         )}
+
+        {/* Swiss Agents - between Vault Chat and Data sections */}
+        <div className="mb-2">
+          <SidebarLink 
+            to="/labs/agents" 
+            icon={Bot} 
+            label="Agents" 
+            collapsed={collapsed}
+            isActive={isActive("/labs/agents")}
+          />
+        </div>
 
         {/* Data & Training - only show section if user has access to any feature */}
         {(canAccess('projects') || canAccess('datasets') || canAccess('fine_tuning') || canAccess('templates')) && (
