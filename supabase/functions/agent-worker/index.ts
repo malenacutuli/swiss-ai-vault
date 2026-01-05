@@ -143,11 +143,27 @@ Deno.serve(async (req) => {
 
     // Mark step as executing
     const stepStartTime = Date.now();
+    const fileActions: Array<{ type: string; target: string }> = [];
+    
+    // Helper to track file actions and update step
+    const trackAction = async (type: string, target: string) => {
+      fileActions.push({ type, target });
+      await supabase
+        .from('agent_task_steps')
+        .update({
+          current_action: `${type} ${target}`,
+          file_actions: fileActions,
+        })
+        .eq('id', pendingStep.id);
+    };
+    
     await supabase
       .from('agent_task_steps')
       .update({ 
         status: 'executing', 
-        started_at: new Date().toISOString() 
+        started_at: new Date().toISOString(),
+        current_action: 'Initializing...',
+        file_actions: [],
       })
       .eq('id', pendingStep.id);
 
@@ -161,19 +177,32 @@ Deno.serve(async (req) => {
     try {
       switch (toolName) {
         case 'web_search':
+          await trackAction('searching', toolInput.query || 'web');
           stepResult = await executeWebSearch(supabaseUrl, authHeader, toolInput);
           break;
         case 'image_generator':
+          await trackAction('generating', toolInput.filename || 'image.png');
           stepResult = await executeImageGen(supabaseUrl, authHeader, toolInput);
           break;
         case 'document_generator':
+          const docName = toolInput.filename || toolInput.title || 'document';
+          await trackAction('creating', docName);
           stepResult = await executeDocumentGen(toolInput);
           break;
         case 'memory_search':
+          await trackAction('reading', 'memory');
           stepResult = await executeMemorySearch(supabaseUrl, authHeader, toolInput);
           break;
+        case 'code_executor':
+          await trackAction('executing', toolInput.command || 'code');
+          stepResult = { success: true, output: { message: 'Code execution placeholder' } };
+          break;
+        case 'file_reader':
+          await trackAction('reading', toolInput.filename || 'file');
+          stepResult = { success: true, output: { message: 'File read placeholder' } };
+          break;
         default:
-          // For unimplemented tools, mark as completed with placeholder
+          await trackAction('processing', toolName || 'task');
           stepResult = {
             success: true,
             output: { message: `Tool ${toolName} executed (placeholder)` },
@@ -186,7 +215,7 @@ Deno.serve(async (req) => {
 
     const stepDuration = Date.now() - stepStartTime;
 
-    // Update step with result
+    // Update step with final result and all file actions
     await supabase
       .from('agent_task_steps')
       .update({
@@ -195,6 +224,8 @@ Deno.serve(async (req) => {
         duration_ms: stepDuration,
         tool_output: stepResult.output || null,
         error_message: stepResult.error || null,
+        file_actions: fileActions,
+        current_action: null,
       })
       .eq('id', pendingStep.id);
 
