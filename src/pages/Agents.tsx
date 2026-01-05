@@ -11,6 +11,7 @@ import {
   PrivacyTierSelector,
   ConnectedServicesRow,
   EmptyTaskState,
+  AgentExecutionPanel,
   type PrivacyTier,
 } from '@/components/agents';
 import type { AgentTask } from '@/hooks/useAgentTasks';
@@ -31,7 +32,8 @@ export default function Agents() {
   const [prompt, setPrompt] = useState('');
   const [privacyTier, setPrivacyTier] = useState<PrivacyTier>('vault');
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionPrompt, setExecutionPrompt] = useState('');
 
   const handleQuickAction = (actionId: string) => {
     setSelectedAction(selectedAction === actionId ? null : actionId);
@@ -43,16 +45,16 @@ export default function Agents() {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      // TODO: Call agent-execute edge function
-      toast.info('Agent execution coming soon');
-    } catch (error) {
-      console.error('Failed to start task:', error);
-      toast.error('Failed to start task');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Store the prompt and show execution panel
+    setExecutionPrompt(prompt.trim());
+    setIsExecuting(true);
+  };
+
+  const handleCloseExecution = () => {
+    setIsExecuting(false);
+    setExecutionPrompt('');
+    setPrompt('');
+    setSelectedAction(null);
   };
 
   const handleViewTask = (task: AgentTask) => {
@@ -130,21 +132,24 @@ export default function Agents() {
                 <Button
                   size="lg"
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !prompt.trim()}
+                  disabled={!prompt.trim()}
                   className="bg-primary hover:bg-primary/90 px-8"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    'Start Task'
-                  )}
+                  Start Task
                 </Button>
               </div>
             </div>
           </section>
+
+          {/* Execution Panel */}
+          {isExecuting && (
+            <AgentExecutionPanel
+              prompt={executionPrompt}
+              taskType={selectedAction || undefined}
+              privacyTier={privacyTier}
+              onClose={handleCloseExecution}
+            />
+          )}
 
           {/* Active Tasks */}
           <section className="mb-12">
