@@ -211,9 +211,11 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          current_action: string | null
           description: string | null
           duration_ms: number | null
           error_message: string | null
+          file_actions: Json | null
           id: string
           retry_count: number | null
           started_at: string | null
@@ -228,9 +230,11 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          current_action?: string | null
           description?: string | null
           duration_ms?: number | null
           error_message?: string | null
+          file_actions?: Json | null
           id?: string
           retry_count?: number | null
           started_at?: string | null
@@ -245,9 +249,11 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          current_action?: string | null
           description?: string | null
           duration_ms?: number | null
           error_message?: string | null
+          file_actions?: Json | null
           id?: string
           retry_count?: number | null
           started_at?: string | null
