@@ -7,19 +7,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const PRIMARY_ACTIONS = [
-  { id: 'slides', label: 'Create slides', icon: '📊' },
-  { id: 'document', label: 'Write document', icon: '📄' },
-  { id: 'research', label: 'Research', icon: '🔍' },
-  { id: 'analyze', label: 'Analyze data', icon: '📈' },
+  { id: 'slides', label: 'Create slides' },
+  { id: 'document', label: 'Write document' },
+  { id: 'research', label: 'Research' },
+  { id: 'analyze', label: 'Analyze data' },
 ];
 
 const MORE_ACTIONS = [
-  { id: 'spreadsheet', label: 'Spreadsheet', icon: '📋' },
-  { id: 'schedule', label: 'Schedule task', icon: '📅' },
-  { id: 'email', label: 'Draft email', icon: '✉️' },
-  { id: 'code', label: 'Write code', icon: '💻' },
-  { id: 'image', label: 'Generate image', icon: '🖼️' },
-  { id: 'summary', label: 'Summarize', icon: '📝' },
+  { id: 'spreadsheet', label: 'Spreadsheet' },
+  { id: 'schedule', label: 'Schedule task' },
+  { id: 'email', label: 'Draft email' },
+  { id: 'code', label: 'Write code' },
+  { id: 'image', label: 'Generate image' },
+  { id: 'summary', label: 'Summarize' },
 ];
 
 interface QuickActionBarProps {
@@ -29,7 +29,6 @@ interface QuickActionBarProps {
 }
 
 export function QuickActionBar({ onSelect, selectedAction, className }: QuickActionBarProps) {
-  // Check if selected action is in MORE_ACTIONS
   const selectedMoreAction = MORE_ACTIONS.find(a => a.id === selectedAction);
   
   return (
@@ -39,18 +38,16 @@ export function QuickActionBar({ onSelect, selectedAction, className }: QuickAct
           key={action.id}
           onClick={() => onSelect(selectedAction === action.id ? '' : action.id)}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200',
+            'px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200',
             selectedAction === action.id
               ? 'bg-primary text-primary-foreground border-primary shadow-sm'
               : 'bg-card text-foreground border-border hover:border-primary/30 hover:bg-muted/50'
           )}
         >
-          <span className="text-base">{action.icon}</span>
-          <span>{action.label}</span>
+          {action.label}
         </button>
       ))}
       
-      {/* More Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -62,10 +59,7 @@ export function QuickActionBar({ onSelect, selectedAction, className }: QuickAct
             )}
           >
             {selectedMoreAction ? (
-              <>
-                <span className="text-base">{selectedMoreAction.icon}</span>
-                <span>{selectedMoreAction.label}</span>
-              </>
+              <span>{selectedMoreAction.label}</span>
             ) : (
               <>
                 <span>More</span>
@@ -83,12 +77,11 @@ export function QuickActionBar({ onSelect, selectedAction, className }: QuickAct
               key={action.id}
               onClick={() => onSelect(selectedAction === action.id ? '' : action.id)}
               className={cn(
-                'flex items-center gap-2 cursor-pointer',
+                'cursor-pointer',
                 selectedAction === action.id && 'bg-primary/10 text-primary'
               )}
             >
-              <span className="text-base">{action.icon}</span>
-              <span>{action.label}</span>
+              {action.label}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

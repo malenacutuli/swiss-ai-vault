@@ -27,26 +27,26 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// File type icons (no Lucide)
-const fileTypeIcons: Record<string, string> = {
-  pdf: '📄',
-  docx: '📝',
-  doc: '📝',
-  xlsx: '📊',
-  xls: '📊',
-  csv: '📋',
-  txt: '📃',
-  md: '📑',
-  png: '🖼️',
-  jpg: '🖼️',
-  jpeg: '🖼️',
-  json: '📦',
-  default: '📎',
+// File type labels (enterprise style)
+const fileTypeLabels: Record<string, string> = {
+  pdf: 'PDF',
+  docx: 'DOC',
+  doc: 'DOC',
+  xlsx: 'XLS',
+  xls: 'XLS',
+  csv: 'CSV',
+  txt: 'TXT',
+  md: 'MD',
+  png: 'IMG',
+  jpg: 'IMG',
+  jpeg: 'IMG',
+  json: 'JSON',
+  default: 'FILE',
 };
 
-function getFileIcon(filename: string): string {
+function getFileLabel(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
-  return fileTypeIcons[ext] || fileTypeIcons.default;
+  return fileTypeLabels[ext] || fileTypeLabels.default;
 }
 
 function formatFileSize(bytes: number): string {
@@ -328,7 +328,7 @@ export default function Agents() {
                           exit={{ opacity: 0, scale: 0.9 }}
                           className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm group"
                         >
-                          <span className="flex-shrink-0">{getFileIcon(file.name)}</span>
+                          <span className="flex-shrink-0 text-xs font-medium text-muted-foreground">{getFileLabel(file.name)}</span>
                           <span className="max-w-[120px] truncate text-foreground">{file.name}</span>
                           <span className="text-muted-foreground text-xs">{formatFileSize(file.size)}</span>
                           <button
