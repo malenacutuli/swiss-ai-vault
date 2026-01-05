@@ -24,7 +24,8 @@ import {
   Network,
   Link2,
   Mic,
-  Headphones
+  Headphones,
+  ArrowRightLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +47,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -79,10 +82,12 @@ import { ImportAIHistoryModal } from '@/components/memory/ImportChatGPTModal';
 import { MemoryDocumentList } from '@/components/memory/MemoryDocumentList';
 import { VoiceNotesPanel } from '@/components/memory/VoiceNotesPanel';
 import { AudioBriefingsList } from '@/components/briefings/AudioBriefingsList';
+import { MemoryMigrationDialog } from '@/components/memory/MemoryMigrationDialog';
 import { useNewDeviceDetection } from '@/hooks/useNewDeviceDetection';
 import { useMemoryOnboarding } from '@/hooks/useMemoryOnboarding';
 import { supabase } from '@/integrations/supabase/client';
 import { useDistillationRunner } from '@/hooks/useDistillationRunner';
+import { isPreviewEnvironment, getEnvironmentLabel } from '@/lib/memory/migration';
 import type { MemoryFolder } from '@/lib/memory/memory-manager';
 
 interface MemoryStats {
@@ -128,6 +133,11 @@ function MemoryDashboardContent() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showMigration, setShowMigration] = useState(false);
+  
+  // Check if we're on a preview environment
+  const isPreview = isPreviewEnvironment();
+  const environmentLabel = getEnvironmentLabel();
   
   const [folders, setFolders] = useState<MemoryFolder[]>([]);
   const [folderCounts, setFolderCounts] = useState<Map<string | null, number>>(new Map());
@@ -568,6 +578,11 @@ function MemoryDashboardContent() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                <DropdownMenuItem onClick={() => setShowMigration(true)}>
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  {t('memory.migration.menuItem', 'Migrate Memory')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleExport}>
                   <Download className="h-4 w-4 mr-2" />
                   {t('memory.actions.exportMemory', 'Exportar memoria')}
@@ -584,6 +599,7 @@ function MemoryDashboardContent() {
                     />
                   </label>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setShowClearConfirm(true)}
                   className="text-destructive focus:text-destructive"
@@ -595,6 +611,30 @@ function MemoryDashboardContent() {
             </DropdownMenu>
           </div>
         </div>
+        
+        {/* Preview Environment Warning */}
+        {isPreview && stats && stats.count > 0 && (
+          <Alert className="border-yellow-500/50 bg-yellow-500/10 mb-6">
+            <AlertCircle className="h-4 w-4 text-yellow-500" />
+            <AlertTitle className="text-yellow-600 dark:text-yellow-400">
+              {t('memory.migration.previewWarning', 'Preview Environment')} ({environmentLabel})
+            </AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <span className="text-muted-foreground">
+                {t('memory.migration.previewWarningDesc', "Memories created here won't be available on swissvault.ai. Use 'Migrate Memory' to export before switching.")}
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="shrink-0 border-yellow-500/50 hover:bg-yellow-500/10"
+                onClick={() => setShowMigration(true)}
+              >
+                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                {t('memory.migration.migrateNow', 'Migrate Now')}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
         
         {/* Tabs */}
         <Tabs defaultValue="memory" className="space-y-6">
@@ -1018,6 +1058,16 @@ function MemoryDashboardContent() {
             memory.getStats().then(setStats);
             loadDocumentGroups();
             toast({ title: 'Import complete!', description: 'Your AI history has been imported.' });
+          }}
+        />
+        
+        {/* Memory Migration Dialog */}
+        <MemoryMigrationDialog
+          open={showMigration}
+          onOpenChange={setShowMigration}
+          onComplete={() => {
+            memory.getStats().then(setStats);
+            loadDocumentGroups();
           }}
         />
       </div>
