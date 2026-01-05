@@ -11,7 +11,7 @@ import {
   ErrorView,
   OutputPreview,
 } from './execution';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface AgentExecutionPanelProps {
   prompt: string;
@@ -29,6 +29,7 @@ export function AgentExecutionPanel({
   className,
 }: AgentExecutionPanelProps) {
   const [isRetrying, setIsRetrying] = useState(false);
+  const hasStarted = useRef(false);
   
   const execution = useAgentExecution({
     onComplete: () => {
@@ -40,12 +41,15 @@ export function AgentExecutionPanel({
   });
 
   // Start execution on mount
-  useState(() => {
-    execution.createTask(prompt, {
-      taskType,
-      privacyTier,
-    });
-  });
+  useEffect(() => {
+    if (!hasStarted.current) {
+      hasStarted.current = true;
+      execution.createTask(prompt, {
+        taskType,
+        privacyTier,
+      });
+    }
+  }, []);
 
   const handleRetry = async () => {
     setIsRetrying(true);
