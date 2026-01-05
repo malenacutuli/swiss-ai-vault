@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Check, Download, ExternalLink, Share2, Plus, Copy, Clock, Zap, Coins } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import type { ExecutionTask, TaskOutput } from '@/hooks/useAgentExecution';
 
 interface CompletionViewProps {
@@ -29,6 +29,19 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getFileTypeIcon(type: string): string {
+  switch (type?.toLowerCase()) {
+    case 'pptx': return '📊';
+    case 'docx': return '📄';
+    case 'xlsx': return '📈';
+    case 'pdf': return '📕';
+    case 'png':
+    case 'jpg':
+    case 'jpeg': return '🖼️';
+    default: return '📁';
+  }
+}
+
 export function CompletionView({
   task,
   outputs,
@@ -39,132 +52,124 @@ export function CompletionView({
   className,
 }: CompletionViewProps) {
   return (
-    <div className={cn('space-y-6', className)}>
-      {/* Success Header */}
-      <div className="text-center space-y-3">
-        <div className="mx-auto w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
-          <Check className="h-6 w-6 text-success" />
+    <div className={cn('space-y-8 animate-fade-in', className)}>
+      {/* Success Header - Swiss minimalist */}
+      <div className="text-center space-y-4">
+        <div 
+          className="mx-auto w-16 h-16 rounded-full bg-primary flex items-center justify-center animate-scale-in"
+        >
+          <span className="text-2xl text-primary-foreground">✓</span>
         </div>
-        <div>
-          <h3 className="text-lg font-medium text-foreground">Task Completed</h3>
+        
+        <div className="space-y-1">
+          <h3 className="text-xl font-medium text-foreground">Task Complete</h3>
           <p className="text-sm text-muted-foreground">
-            Completed in {formatDuration(task.duration_ms)}
+            Finished in {formatDuration(task.duration_ms)}
           </p>
         </div>
       </div>
 
       {/* Result Summary */}
       {task.result_summary && (
-        <div className="bg-muted/30 rounded-lg p-4">
-          <p className="text-sm text-foreground">{task.result_summary}</p>
+        <div className="bg-muted/30 rounded-xl p-5 animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <p className="text-sm text-foreground leading-relaxed">
+            {task.result_summary}
+          </p>
         </div>
       )}
 
-      {/* Output Cards */}
+      {/* Output Files - Card style */}
       {outputs.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Generated Files</h4>
+        <div className="space-y-3 animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Generated Files
+          </h4>
           
-          {outputs.map((output) => (
-            <div
-              key={output.id}
-              className="flex items-center gap-4 p-4 rounded-lg border border-border bg-card"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">
-                  {output.file_name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {output.output_type} • {formatFileSize(output.file_size_bytes)}
-                </p>
+          <div className="space-y-2">
+            {outputs.map((output, index) => (
+              <div
+                key={output.id}
+                className="group flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors cursor-pointer animate-fade-in"
+                style={{ animationDelay: `${200 + index * 50}ms` }}
+                onClick={() => onDownload(output)}
+              >
+                {/* File Icon */}
+                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-xl">
+                  {getFileTypeIcon(output.output_type)}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">
+                    {output.file_name}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Badge variant="secondary" className="text-xs uppercase">
+                      {output.output_type}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatFileSize(output.file_size_bytes)}
+                    </span>
+                  </div>
+                </div>
+                
+                <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                  Download →
+                </span>
               </div>
-              
-              <div className="flex items-center gap-2">
-                {output.preview_url && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => window.open(output.preview_url!, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5"
-                  onClick={() => onDownload(output)}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download
-                </Button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="flex justify-center gap-6 py-4 border-t border-b border-border">
+      {/* Stats Row - Minimal */}
+      <div 
+        className="flex justify-center gap-8 py-4 border-t border-b border-border animate-fade-in"
+        style={{ animationDelay: '300ms' }}
+      >
         <div className="text-center">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span className="text-sm">Time</span>
-          </div>
-          <p className="text-lg font-medium text-foreground mt-1">
+          <p className="text-2xl font-light text-foreground">
             {formatDuration(task.duration_ms)}
           </p>
-        </div>
-        
-        <div className="text-center">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Zap className="h-4 w-4" />
-            <span className="text-sm">Steps</span>
-          </div>
-          <p className="text-lg font-medium text-foreground mt-1">
-            {task.total_steps || '-'}
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+            Duration
           </p>
         </div>
         
         <div className="text-center">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Coins className="h-4 w-4" />
-            <span className="text-sm">Credits</span>
-          </div>
-          <p className="text-lg font-medium text-foreground mt-1">
+          <p className="text-2xl font-light text-foreground">
+            {task.total_steps || '-'}
+          </p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+            Steps
+          </p>
+        </div>
+        
+        <div className="text-center">
+          <p className="text-2xl font-light text-foreground">
             {task.credits_used || 0}
+          </p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+            Credits
           </p>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <div 
+        className="flex flex-wrap items-center justify-center gap-3 animate-fade-in"
+        style={{ animationDelay: '400ms' }}
+      >
         {outputs.length > 1 && (
-          <Button
-            onClick={onDownloadAll}
-            className="gap-2 bg-primary hover:bg-primary/90"
-          >
-            <Download className="h-4 w-4" />
+          <Button onClick={onDownloadAll} className="gap-2">
             Download All
           </Button>
         )}
         
-        <Button
-          variant="outline"
-          onClick={onCreateSimilar}
-          className="gap-2"
-        >
-          <Copy className="h-4 w-4" />
+        <Button variant="outline" onClick={onCreateSimilar}>
           Create Similar
         </Button>
         
-        <Button
-          variant="outline"
-          onClick={onNewTask}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
+        <Button variant="ghost" onClick={onNewTask}>
           New Task
         </Button>
       </div>
