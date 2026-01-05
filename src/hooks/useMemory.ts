@@ -87,6 +87,10 @@ export interface UseMemoryReturn {
   clearAll: () => Promise<void>;
   exportBackup: () => Promise<Blob>;
   importBackup: (file: File) => Promise<number>;
+  
+  // Migration (cross-origin transfer)
+  migrateExport: (password: string, onProgress?: (current: number, total: number) => void) => Promise<Blob>;
+  migrateImport: (file: File, password: string, onProgress?: (current: number, total: number) => void) => Promise<{ imported: number; skipped: number }>;
 }
 
 // ==========================================
@@ -359,6 +363,42 @@ export function useMemory(): UseMemoryReturn {
     }
   }, [toast]);
   
+  // Migrate export (password-protected for cross-origin)
+  const migrateExport = useCallback(async (
+    password: string,
+    onProgress?: (current: number, total: number) => void
+  ): Promise<Blob> => {
+    const key = getEncryptionKey();
+    if (!key) {
+      throw new Error('Vault locked');
+    }
+    
+    const { exportMemoriesWithPassword } = await import('@/lib/memory/migration');
+    return exportMemoriesWithPassword(password, key, onProgress);
+  }, [getEncryptionKey]);
+  
+  // Migrate import (password-protected for cross-origin)
+  const migrateImport = useCallback(async (
+    file: File,
+    password: string,
+    onProgress?: (current: number, total: number) => void
+  ): Promise<{ imported: number; skipped: number }> => {
+    const key = getEncryptionKey();
+    if (!key) {
+      throw new Error('Vault locked');
+    }
+    
+    const { importMemoriesWithPassword } = await import('@/lib/memory/migration');
+    const result = await importMemoriesWithPassword(file, password, key, onProgress);
+    
+    toast({
+      title: 'Migration complete',
+      description: `${result.imported} memories imported, ${result.skipped} skipped`
+    });
+    
+    return result;
+  }, [getEncryptionKey, toast]);
+  
   return {
     // State
     isInitialized,
@@ -385,6 +425,10 @@ export function useMemory(): UseMemoryReturn {
     getStats,
     clearAll,
     exportBackup,
-    importBackup
+    importBackup,
+    
+    // Migration
+    migrateExport,
+    migrateImport
   };
 }
