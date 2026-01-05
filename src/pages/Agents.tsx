@@ -1,33 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Loader2, Brain, LayoutGrid } from 'lucide-react';
-import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
-import { useAgentTasks } from '@/hooks/useAgentTasks';
-import { useMemoryContext } from '@/hooks/useMemoryContext';
-import { useMemory } from '@/hooks/useMemory';
-import {
-  AgentTaskCardLegacy,
-  QuickActionBar,
-  PrivacyTierSelector,
-  ConnectedServicesRow,
-  EmptyTaskState,
-  AgentExecutionPanel,
-  TemplateBrowser,
-  TaskDetailModal,
-  type PrivacyTier,
-  type ActionTemplate,
-} from '@/components/agents';
-import type { AgentTask } from '@/hooks/useAgentTasks';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutGrid } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAgentExecution } from '@/hooks/useAgentExecution';
+import { useAgentTasks } from '@/hooks/useAgentTasks';
+import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
+import { QuickActionBar } from '@/components/agents/QuickActionBar';
+import { ConnectedToolsBar } from '@/components/agents/ConnectedToolsBar';
+import { TemplateBrowser, type ActionTemplate } from '@/components/agents/TemplateBrowser';
+import { MasterExecutionView } from '@/components/agents/execution/MasterExecutionView';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
-// File type labels (enterprise style)
+// File type labels (enterprise style - no emojis)
 const fileTypeLabels: Record<string, string> = {
   pdf: 'PDF',
   docx: 'DOC',
@@ -55,68 +42,31 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+type PrivacyTier = 'ghost' | 'vault' | 'full';
+
 export default function Agents() {
-  const { activeTasks, recentTasks, activeCount, isLoading } = useAgentTasks();
-  const [prompt, setPrompt] = useState('');
-  const [privacyTier, setPrivacyTier] = useState<PrivacyTier>('vault');
+  // Core state
+  const [taskPrompt, setTaskPrompt] = useState('');
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [executionPrompt, setExecutionPrompt] = useState('');
-  
-  // File attachment state
+  const [privacyTier, setPrivacyTier] = useState<PrivacyTier>('vault');
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Memory integration state
-  const [memoryEnabled, setMemoryEnabled] = useState(true);
-  const [memoryContext, setMemoryContext] = useState<string | null>(null);
-  const [isSearchingMemory, setIsSearchingMemory] = useState(false);
-  const [memoryCount, setMemoryCount] = useState(0);
+  // Task hooks
+  const { recentTasks } = useAgentTasks();
+  const execution = useAgentExecution({
+    onComplete: () => toast.success('Task completed'),
+    onError: (err) => toast.error(err),
+  });
   
-  // Template browser state
-  const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<ActionTemplate | null>(null);
-  const [templateCount, setTemplateCount] = useState<number>(0);
-  
-  // Task detail modal state
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [showTaskDetail, setShowTaskDetail] = useState(false);
-  
-  // Memory hooks
-  const { getMemoryContext, isReady: memoryReady, isInitialized: memoryInitialized, initialize: initializeMemory } = useMemoryContext();
-  const memory = useMemory();
-  
-  // Initialize memory and get stats + template count
-  useEffect(() => {
-    const init = async () => {
-      // Fetch template count
-      const { count } = await supabase
-        .from('action_templates')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_public', true);
-      setTemplateCount(count || 0);
-      
-      if (!memoryInitialized && memoryReady) {
-        await initializeMemory();
-      }
-      if (memoryReady) {
-        try {
-          const stats = await memory.getStats();
-          setMemoryCount(stats.count);
-        } catch (e) {
-          console.warn('[Agents] Failed to get memory stats:', e);
-        }
-      }
-    };
-    init();
-  }, [memoryReady, memoryInitialized, initializeMemory, memory]);
-
   // File handlers
   const handleFileDrop = useCallback((files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const validFiles = fileArray.filter(file => {
-      // Max 20MB per file
       if (file.size > 20 * 1024 * 1024) {
         toast.error(`${file.name} is too large (max 20MB)`);
         return false;
@@ -125,7 +75,7 @@ export default function Agents() {
     });
     
     setAttachedFiles(prev => {
-      const newFiles = [...prev, ...validFiles].slice(0, 10); // Max 10 files
+      const newFiles = [...prev, ...validFiles].slice(0, 10);
       if (newFiles.length >= 10 && validFiles.length > 0) {
         toast.info('Maximum 10 files allowed');
       }
@@ -148,7 +98,6 @@ export default function Agents() {
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Only set dragging to false if leaving the drop zone entirely
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
@@ -162,85 +111,47 @@ export default function Agents() {
     e.stopPropagation();
     handleFileDrop(e.dataTransfer.files);
   };
-
-
+  
+  // Submit handler
   const handleSubmit = async () => {
-    if (!prompt.trim()) {
+    if (!taskPrompt.trim()) {
       toast.error('Please describe your task');
       return;
     }
 
-    // Fetch memory context if enabled
-    let fetchedMemoryContext: string | null = null;
-    if (memoryEnabled && memoryReady && memoryCount > 0) {
-      setIsSearchingMemory(true);
-      try {
-        const result = await getMemoryContext(prompt.trim(), {
-          limit: 8,
-          minScore: 0.5,
-          domain: selectedAction || undefined,
-        });
-        fetchedMemoryContext = result.context;
-        if (result.sources.length > 0) {
-          toast.success(`Found ${result.sources.length} relevant memories`);
-        }
-      } catch (e) {
-        console.warn('[Agents] Memory search failed:', e);
-      }
-      setIsSearchingMemory(false);
-    }
-
-    // TODO: Upload attached files to storage and include URLs in context
+    // TODO: Process attached files
     if (attachedFiles.length > 0) {
       toast.info(`${attachedFiles.length} file(s) will be processed`);
     }
 
-    setMemoryContext(fetchedMemoryContext);
-    setExecutionPrompt(prompt.trim());
-    setIsExecuting(true);
+    await execution.createTask(taskPrompt.trim(), {
+      taskType: selectedAction || 'general',
+      privacyTier,
+      // memoryContext: memoryEnabled ? await getMemoryContext(taskPrompt) : undefined,
+    });
+
+    setTaskPrompt('');
+    setAttachedFiles([]);
+    setSelectedAction(null);
   };
 
-  const handleCloseExecution = () => {
-    setIsExecuting(false);
-    setExecutionPrompt('');
-    setPrompt('');
-    setSelectedAction(null);
-    setSelectedTemplate(null);
-    setAttachedFiles([]);
+  const handleNewTask = () => {
+    execution.reset();
   };
 
   const handleSelectTemplate = (template: ActionTemplate) => {
-    setSelectedTemplate(template);
-    // Replace placeholders with readable format
-    let templatePrompt = template.prompt_template;
-    
-    // If template has required inputs, show them as placeholders
-    if (template.required_inputs && template.required_inputs.length > 0) {
-      const inputNames = (template.required_inputs as any[])
-        .map((input: any) => input.name || input)
-        .join(', ');
-      templatePrompt = `${template.name}\n\n${template.description || ''}\n\nRequired inputs: ${inputNames}`;
-    }
-    
-    setPrompt(templatePrompt);
+    setTaskPrompt(template.prompt_template);
+    setSelectedAction(template.category || null);
+    setShowTemplates(false);
     toast.success(`Template "${template.name}" loaded`);
   };
 
-  const handleViewTask = (task: AgentTask) => {
-    setSelectedTaskId(task.id);
-    setShowTaskDetail(true);
-  };
-  
-  const handleRetryTask = (task: { prompt: string }) => {
-    setPrompt(task.prompt);
-    setShowTaskDetail(false);
-    toast.info('Prompt loaded. Click "Start Task" to retry.');
+  const handleViewRecentTask = (task: any) => {
+    // Load task into execution view
+    toast.info('Loading task...');
   };
 
-  const handleDownloadTask = (task: AgentTask) => {
-    // TODO: Download task outputs
-    toast.info('Download coming soon');
-  };
+  const isExecuting = !execution.isIdle;
 
   return (
     <>
@@ -250,285 +161,271 @@ export default function Agents() {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <div className="container max-w-5xl mx-auto px-4 py-8">
-          {/* Header */}
-          <header className="flex items-center justify-between mb-12">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+        {/* Header */}
+        <header className="border-b border-border bg-card/50">
+          <div className="container max-w-5xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <SwissAgentsIcon className="h-6 w-6" />
-                Swiss Agents
-              </h1>
-              <p className="text-muted-foreground mt-1">Autonomous AI that works for you</p>
-            </div>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="h-4 w-4 mr-1.5" />
-              New Task
-            </Button>
-          </header>
-
-          {/* Hero Input Section with Drop Zone */}
-          <section className="mb-16">
-            <h2 className="text-3xl font-light text-center text-foreground mb-6">
-              What can I do for you?
-            </h2>
-            
-            {/* Main Container with Drop Zone */}
-            <div
-              className={cn(
-                "relative max-w-2xl mx-auto transition-all duration-200",
-                isDragging && "ring-2 ring-primary ring-offset-4 rounded-xl"
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">Swiss Agents</h1>
+                  <p className="text-sm text-muted-foreground">Autonomous AI that works for you</p>
+                </div>
+              </div>
+              
+              {isExecuting && (
+                <button
+                  onClick={handleNewTask}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                >
+                  + New Task
+                </button>
               )}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {/* Drop Overlay */}
-              <AnimatePresence>
-                {isDragging && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-primary/5 border-2 border-dashed border-primary rounded-xl flex items-center justify-center z-50 backdrop-blur-sm"
-                  >
-                    <div className="text-center">
-                      <p className="text-lg font-medium text-primary">Drop files here</p>
-                      <p className="text-sm text-primary/70">PDF, DOCX, XLSX, CSV, Images (max 20MB)</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            </div>
+          </div>
+        </header>
 
-              {/* Task Input Card */}
-              <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-                <Textarea
-                  placeholder="Describe your task in detail..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+        <main className="container max-w-5xl mx-auto px-4 py-8">
+          <AnimatePresence mode="wait">
+            {!isExecuting ? (
+              // TASK INPUT VIEW
+              <motion.div
+                key="input"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6"
+              >
+                {/* Main Input Card */}
+                <div
                   className={cn(
-                    'min-h-[120px] resize-none text-base',
-                    'bg-transparent border-0 focus-visible:ring-0 p-0'
+                    "relative max-w-2xl mx-auto transition-all duration-200",
+                    isDragging && "ring-2 ring-primary ring-offset-4 rounded-xl"
                   )}
-                />
-
-                {/* Attached Files Display */}
-                <AnimatePresence>
-                  {attachedFiles.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="flex flex-wrap gap-2 pt-4 border-t border-border"
-                    >
-                      {attachedFiles.map((file, index) => (
-                        <motion.div
-                          key={`${file.name}-${index}`}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm group"
-                        >
-                          <span className="flex-shrink-0 text-xs font-medium text-muted-foreground">{getFileLabel(file.name)}</span>
-                          <span className="max-w-[120px] truncate text-foreground">{file.name}</span>
-                          <span className="text-muted-foreground text-xs">{formatFileSize(file.size)}</span>
-                          <button
-                            onClick={() => handleFileRemove(index)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive ml-1"
-                            aria-label={`Remove ${file.name}`}
-                          >
-                            ✕
-                          </button>
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Actions Row - Manus Style */}
-                <div className="flex items-center gap-2 pt-4 border-t border-border">
-                  {/* Add Files Button */}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                  >
-                    <span className="text-base">+</span>
-                    <span>Add files</span>
-                  </button>
-                  
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.png,.jpg,.jpeg,.json"
-                    className="hidden"
-                    onChange={(e) => e.target.files && handleFileDrop(e.target.files)}
-                  />
-                  
-                  {/* Browse Templates */}
-                  <button
-                    onClick={() => setShowTemplateBrowser(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    <span>Templates</span>
-                  </button>
-                  
-                  <div className="flex-1" />
-                  
-                  {/* Template count badge */}
-                  {selectedTemplate && (
-                    <Badge variant="secondary" className="text-xs">
-                      {selectedTemplate.name}
-                    </Badge>
-                  )}
-                  
-                  {/* Submit Button - Minimal arrow */}
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!prompt.trim() || isSearchingMemory}
-                    size="icon"
-                    className="h-9 w-9 rounded-lg"
-                  >
-                    {isSearchingMemory ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <span className="text-lg">↑</span>
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  {/* Drop Overlay */}
+                  <AnimatePresence>
+                    {isDragging && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-primary/5 border-2 border-dashed border-primary rounded-xl flex items-center justify-center z-50 backdrop-blur-sm"
+                      >
+                        <div className="text-center">
+                          <p className="text-lg font-medium text-primary">Drop files here</p>
+                          <p className="text-sm text-primary/70">PDF, DOCX, XLSX, CSV, Images (max 20MB)</p>
+                        </div>
+                      </motion.div>
                     )}
-                  </Button>
-                </div>
-              </div>
-            </div>
+                  </AnimatePresence>
 
-            {/* Quick Actions - Manus-style action bar */}
-            <div className="max-w-2xl mx-auto mt-4">
-              <QuickActionBar
-                selectedAction={selectedAction}
-                onSelect={(actionId) => setSelectedAction(actionId || null)}
-              />
-
-              {/* Memory Integration Section */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-card/50 border border-border/50 mt-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "p-2 rounded-lg transition-colors",
-                    memoryEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                  )}>
-                    <Brain className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">Use Your Memory</span>
-                      {memoryCount > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {memoryCount} items
-                        </Badge>
-                      )}
+                  {/* Task Input Card */}
+                  <div className="bg-card border border-border rounded-xl overflow-hidden">
+                    <div className="p-6">
+                      <h2 className="text-2xl font-light text-center text-foreground mb-6">
+                        What can I do for you?
+                      </h2>
+                      
+                      <textarea
+                        value={taskPrompt}
+                        onChange={(e) => setTaskPrompt(e.target.value)}
+                        placeholder="Describe your task in detail..."
+                        className="w-full min-h-[120px] text-base bg-transparent border-0 focus:ring-0 focus:outline-none resize-none placeholder:text-muted-foreground"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && e.metaKey) {
+                            handleSubmit();
+                          }
+                        }}
+                      />
+                      
+                      {/* Attached Files */}
+                      <AnimatePresence>
+                        {attachedFiles.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border"
+                          >
+                            {attachedFiles.map((file, index) => (
+                              <motion.div
+                                key={`${file.name}-${index}`}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-sm group"
+                              >
+                                <span className="text-xs font-medium text-muted-foreground">{getFileLabel(file.name)}</span>
+                                <span className="max-w-[120px] truncate text-foreground">{file.name}</span>
+                                <span className="text-muted-foreground text-xs">{formatFileSize(file.size)}</span>
+                                <button
+                                  onClick={() => handleFileRemove(index)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive ml-1"
+                                  aria-label={`Remove ${file.name}`}
+                                >
+                                  x
+                                </button>
+                              </motion.div>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {memoryCount > 0 
-                        ? 'Agent will reference your documents & notes'
-                        : 'No documents in memory yet'
-                      }
-                    </p>
+
+                    {/* Action Row */}
+                    <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center gap-3">
+                      {/* Add Files */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                      >
+                        <span className="text-base">+</span>
+                        <span>Add files</span>
+                      </button>
+                      
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.png,.jpg,.jpeg,.json"
+                        className="hidden"
+                        onChange={(e) => e.target.files && handleFileDrop(e.target.files)}
+                      />
+                      
+                      {/* Templates */}
+                      <button
+                        onClick={() => setShowTemplates(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                        <span>Templates</span>
+                      </button>
+                      
+                      <div className="flex-1" />
+                      
+                      {/* Submit */}
+                      <button
+                        onClick={handleSubmit}
+                        disabled={!taskPrompt.trim() || execution.isPlanning}
+                        className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                      >
+                        {execution.isPlanning ? (
+                          <span>Creating...</span>
+                        ) : (
+                          <>
+                            <span>Start Task</span>
+                            <span>↑</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <Switch
-                  checked={memoryEnabled}
-                  onCheckedChange={setMemoryEnabled}
-                  disabled={!memoryReady || memoryCount === 0}
-                />
-              </div>
 
-              {/* Connected Services & Privacy Tier */}
-              <div className="flex items-center justify-between pt-4">
-                <ConnectedServicesRow />
-                <PrivacyTierSelector value={privacyTier} onChange={setPrivacyTier} />
-              </div>
-            </div>
-          </section>
-
-          {/* Execution Panel */}
-          {isExecuting && (
-            <AgentExecutionPanel
-              prompt={executionPrompt}
-              taskType={selectedAction || undefined}
-              privacyTier={privacyTier}
-              memoryContext={memoryContext}
-              onClose={handleCloseExecution}
-            />
-          )}
-
-          {/* Active Tasks */}
-          <section className="mb-12">
-            <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-lg font-medium text-foreground">Active Tasks</h3>
-              {activeCount > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {activeCount}
-                </Badge>
-              )}
-            </div>
-
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : activeTasks.length === 0 ? (
-              <EmptyTaskState variant="active" />
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {activeTasks.map((task) => (
-                  <AgentTaskCardLegacy
-                    key={task.id}
-                    task={task}
-                    variant="active"
-                    onView={handleViewTask}
+                {/* Quick Actions */}
+                <div className="max-w-2xl mx-auto">
+                  <QuickActionBar
+                    selectedAction={selectedAction}
+                    onSelect={(action) => {
+                      setSelectedAction(action || null);
+                      const prompts: Record<string, string> = {
+                        slides: 'Create a presentation about ',
+                        document: 'Write a document about ',
+                        research: 'Research and summarize ',
+                        analyze: 'Analyze this data: ',
+                      };
+                      if (action && prompts[action] && !taskPrompt) {
+                        setTaskPrompt(prompts[action]);
+                      }
+                    }}
                   />
-                ))}
-              </div>
-            )}
-          </section>
+                </div>
 
-          {/* Recent Tasks */}
-          <section>
-            <h3 className="text-lg font-medium text-foreground mb-4">Recent Tasks</h3>
-            
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : recentTasks.length === 0 ? (
-              <EmptyTaskState variant="recent" />
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {recentTasks.map((task) => (
-                  <AgentTaskCardLegacy
-                    key={task.id}
-                    task={task}
-                    variant="recent"
-                    onView={handleViewTask}
-                    onDownload={handleDownloadTask}
+                {/* Connected Tools & Privacy */}
+                <div className="max-w-2xl mx-auto">
+                  <ConnectedToolsBar
+                    privacyTier={privacyTier}
+                    setPrivacyTier={setPrivacyTier}
                   />
-                ))}
-              </div>
+                </div>
+
+                {/* Memory Toggle */}
+                <div className="flex items-center justify-center">
+                  <div className="flex items-center gap-3 px-4 py-2 bg-card border border-border rounded-full">
+                    <span className="text-sm text-muted-foreground">Use Your Memory</span>
+                    <Switch
+                      checked={memoryEnabled}
+                      onCheckedChange={setMemoryEnabled}
+                    />
+                  </div>
+                </div>
+
+                {/* Recent Tasks */}
+                {recentTasks.length > 0 && (
+                  <div className="max-w-2xl mx-auto mt-12">
+                    <h3 className="text-lg font-medium text-foreground mb-4">Recent Tasks</h3>
+                    <div className="grid gap-3">
+                      {recentTasks.slice(0, 5).map((task) => (
+                        <button
+                          key={task.id}
+                          onClick={() => handleViewRecentTask(task)}
+                          className="p-4 bg-card border border-border rounded-xl text-left hover:border-primary/30 transition-colors"
+                        >
+                          <p className="font-medium truncate text-foreground">{task.prompt}</p>
+                          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "text-xs",
+                                task.status === 'completed' && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                                task.status === 'failed' && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                              )}
+                            >
+                              {task.status}
+                            </Badge>
+                            <span>{task.created_at ? new Date(task.created_at).toLocaleDateString() : ''}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              // TASK EXECUTION VIEW
+              <motion.div
+                key="execution"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="h-[calc(100vh-200px)]"
+              >
+                {execution.task && (
+                  <MasterExecutionView
+                    task={execution.task}
+                    steps={execution.steps}
+                    outputs={execution.outputs}
+                    isComplete={execution.isCompleted || execution.isFailed}
+                    onPause={execution.pauseTask}
+                    onStop={execution.stopTask}
+                    onNewTask={handleNewTask}
+                  />
+                )}
+              </motion.div>
             )}
-          </section>
-        </div>
+          </AnimatePresence>
+        </main>
       </div>
 
-      {/* Template Browser */}
+      {/* Template Browser Modal */}
       <TemplateBrowser
-        open={showTemplateBrowser}
-        onOpenChange={setShowTemplateBrowser}
+        open={showTemplates}
+        onOpenChange={setShowTemplates}
         onSelectTemplate={handleSelectTemplate}
-      />
-
-      {/* Task Detail Modal */}
-      <TaskDetailModal
-        taskId={selectedTaskId}
-        open={showTaskDetail}
-        onOpenChange={setShowTaskDetail}
-        onRetry={handleRetryTask}
       />
     </>
   );
