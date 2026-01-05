@@ -287,6 +287,7 @@ export type Database = {
           is_shared: boolean | null
           mode: string | null
           model_id: string | null
+          model_used: string | null
           plan_json: Json | null
           plan_summary: string | null
           privacy_tier: string | null
@@ -314,6 +315,7 @@ export type Database = {
           is_shared?: boolean | null
           mode?: string | null
           model_id?: string | null
+          model_used?: string | null
           plan_json?: Json | null
           plan_summary?: string | null
           privacy_tier?: string | null
@@ -341,6 +343,7 @@ export type Database = {
           is_shared?: boolean | null
           mode?: string | null
           model_id?: string | null
+          model_used?: string | null
           plan_json?: Json | null
           plan_summary?: string | null
           privacy_tier?: string | null
