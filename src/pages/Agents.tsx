@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2, Brain, Settings2 } from 'lucide-react';
+import { Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2, Brain, LayoutGrid } from 'lucide-react';
 import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
 import { useMemoryContext } from '@/hooks/useMemoryContext';
@@ -16,7 +16,9 @@ import {
   ConnectedServicesRow,
   EmptyTaskState,
   AgentExecutionPanel,
+  TemplateBrowser,
   type PrivacyTier,
+  type ActionTemplate,
 } from '@/components/agents';
 import type { AgentTask } from '@/hooks/useAgentTasks';
 import { cn } from '@/lib/utils';
@@ -44,6 +46,10 @@ export default function Agents() {
   const [memoryContext, setMemoryContext] = useState<string | null>(null);
   const [isSearchingMemory, setIsSearchingMemory] = useState(false);
   const [memoryCount, setMemoryCount] = useState(0);
+  
+  // Template browser state
+  const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<ActionTemplate | null>(null);
   
   // Memory hooks
   const { getMemoryContext, isReady: memoryReady, isInitialized: memoryInitialized, initialize: initializeMemory } = useMemoryContext();
@@ -107,6 +113,24 @@ export default function Agents() {
     setExecutionPrompt('');
     setPrompt('');
     setSelectedAction(null);
+    setSelectedTemplate(null);
+  };
+
+  const handleSelectTemplate = (template: ActionTemplate) => {
+    setSelectedTemplate(template);
+    // Replace placeholders with readable format
+    let templatePrompt = template.prompt_template;
+    
+    // If template has required inputs, show them as placeholders
+    if (template.required_inputs && template.required_inputs.length > 0) {
+      const inputNames = (template.required_inputs as any[])
+        .map((input: any) => input.name || input)
+        .join(', ');
+      templatePrompt = `${template.name}\n\n${template.description || ''}\n\nRequired inputs: ${inputNames}`;
+    }
+    
+    setPrompt(templatePrompt);
+    toast.success(`Template "${template.name}" loaded`);
   };
 
   const handleViewTask = (task: AgentTask) => {
@@ -171,6 +195,18 @@ export default function Agents() {
                     onClick={() => handleQuickAction(action.id)}
                   />
                 ))}
+              </div>
+
+              {/* Browse Templates Button */}
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowTemplateBrowser(true)}
+                  className="gap-2"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Browse 50+ Templates
+                </Button>
               </div>
 
               {/* Memory Integration Section */}
@@ -301,6 +337,13 @@ export default function Agents() {
           </section>
         </div>
       </div>
+
+      {/* Template Browser */}
+      <TemplateBrowser
+        open={showTemplateBrowser}
+        onOpenChange={setShowTemplateBrowser}
+        onSelectTemplate={handleSelectTemplate}
+      />
     </>
   );
 }
