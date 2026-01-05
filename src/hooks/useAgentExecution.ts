@@ -177,6 +177,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       mode?: string;
       privacyTier?: string;
       tools?: string[];
+      memoryContext?: string;
     } = {}
   ) => {
     if (!user) {
@@ -198,6 +199,9 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
           mode: taskOptions.mode || 'auto',
           privacy_tier: taskOptions.privacyTier || 'vault',
           tools: taskOptions.tools || ['web_search', 'document_generator', 'image_generator'],
+          context: taskOptions.memoryContext ? {
+            memory: taskOptions.memoryContext,
+          } : undefined,
         },
       });
 

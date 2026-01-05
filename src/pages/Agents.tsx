@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2, Brain, Settings2 } from 'lucide-react';
 import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
+import { useMemoryContext } from '@/hooks/useMemoryContext';
+import { useMemory } from '@/hooks/useMemory';
 import {
   AgentTaskCardLegacy,
   QuickActionButton,
@@ -35,6 +38,34 @@ export default function Agents() {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionPrompt, setExecutionPrompt] = useState('');
+  
+  // Memory integration state
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [memoryContext, setMemoryContext] = useState<string | null>(null);
+  const [isSearchingMemory, setIsSearchingMemory] = useState(false);
+  const [memoryCount, setMemoryCount] = useState(0);
+  
+  // Memory hooks
+  const { getMemoryContext, isReady: memoryReady, isInitialized: memoryInitialized, initialize: initializeMemory } = useMemoryContext();
+  const memory = useMemory();
+  
+  // Initialize memory and get stats
+  useEffect(() => {
+    const init = async () => {
+      if (!memoryInitialized && memoryReady) {
+        await initializeMemory();
+      }
+      if (memoryReady) {
+        try {
+          const stats = await memory.getStats();
+          setMemoryCount(stats.count);
+        } catch (e) {
+          console.warn('[Agents] Failed to get memory stats:', e);
+        }
+      }
+    };
+    init();
+  }, [memoryReady, memoryInitialized, initializeMemory, memory]);
 
   const handleQuickAction = (actionId: string) => {
     setSelectedAction(selectedAction === actionId ? null : actionId);
@@ -46,7 +77,27 @@ export default function Agents() {
       return;
     }
 
-    // Store the prompt and show execution panel
+    // Fetch memory context if enabled
+    let fetchedMemoryContext: string | null = null;
+    if (memoryEnabled && memoryReady && memoryCount > 0) {
+      setIsSearchingMemory(true);
+      try {
+        const result = await getMemoryContext(prompt.trim(), {
+          limit: 8,
+          minScore: 0.5,
+          domain: selectedAction || undefined,
+        });
+        fetchedMemoryContext = result.context;
+        if (result.sources.length > 0) {
+          toast.success(`Found ${result.sources.length} relevant memories`);
+        }
+      } catch (e) {
+        console.warn('[Agents] Memory search failed:', e);
+      }
+      setIsSearchingMemory(false);
+    }
+
+    setMemoryContext(fetchedMemoryContext);
     setExecutionPrompt(prompt.trim());
     setIsExecuting(true);
   };
@@ -122,6 +173,39 @@ export default function Agents() {
                 ))}
               </div>
 
+              {/* Memory Integration Section */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-card/50 border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    memoryEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  )}>
+                    <Brain className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">Use Your Memory</span>
+                      {memoryCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {memoryCount} items
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {memoryCount > 0 
+                        ? 'Agent will reference your documents & notes'
+                        : 'No documents in memory yet'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={memoryEnabled}
+                  onCheckedChange={setMemoryEnabled}
+                  disabled={!memoryReady || memoryCount === 0}
+                />
+              </div>
+
               {/* Connected Services & Privacy Tier */}
               <div className="flex items-center justify-between pt-2">
                 <ConnectedServicesRow />
@@ -133,10 +217,17 @@ export default function Agents() {
                 <Button
                   size="lg"
                   onClick={handleSubmit}
-                  disabled={!prompt.trim()}
+                  disabled={!prompt.trim() || isSearchingMemory}
                   className="bg-primary hover:bg-primary/90 px-8"
                 >
-                  Start Task
+                  {isSearchingMemory ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Searching Memory...
+                    </>
+                  ) : (
+                    'Start Task'
+                  )}
                 </Button>
               </div>
             </div>
@@ -148,6 +239,7 @@ export default function Agents() {
               prompt={executionPrompt}
               taskType={selectedAction || undefined}
               privacyTier={privacyTier}
+              memoryContext={memoryContext}
               onClose={handleCloseExecution}
             />
           )}
