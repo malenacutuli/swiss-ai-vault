@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Search, FileText, Presentation, Table, BarChart, Calendar, Plus, Loader2, Brain, LayoutGrid } from 'lucide-react';
+import { Plus, Loader2, Brain, LayoutGrid } from 'lucide-react';
 import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
 import { useMemoryContext } from '@/hooks/useMemoryContext';
 import { useMemory } from '@/hooks/useMemory';
 import {
   AgentTaskCardLegacy,
-  QuickActionButton,
+  QuickActionBar,
   PrivacyTierSelector,
   ConnectedServicesRow,
   EmptyTaskState,
@@ -26,15 +26,6 @@ import type { AgentTask } from '@/hooks/useAgentTasks';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const quickActions = [
-  { id: 'research', label: 'Research', icon: Search },
-  { id: 'document', label: 'Document', icon: FileText },
-  { id: 'presentation', label: 'Presentation', icon: Presentation },
-  { id: 'spreadsheet', label: 'Spreadsheet', icon: Table },
-  { id: 'analysis', label: 'Analysis', icon: BarChart },
-  { id: 'schedule', label: 'Schedule', icon: Calendar },
-];
 
 // File type icons (no Lucide)
 const fileTypeIcons: Record<string, string> = {
@@ -172,9 +163,6 @@ export default function Agents() {
     handleFileDrop(e.dataTransfer.files);
   };
 
-  const handleQuickAction = (actionId: string) => {
-    setSelectedAction(selectedAction === actionId ? null : actionId);
-  };
 
   const handleSubmit = async () => {
     if (!prompt.trim()) {
@@ -411,19 +399,12 @@ export default function Agents() {
               </div>
             </div>
 
-            {/* Quick Actions - Below input */}
+            {/* Quick Actions - Manus-style action bar */}
             <div className="max-w-2xl mx-auto mt-4">
-              <div className="flex flex-wrap justify-center gap-2">
-                {quickActions.map((action) => (
-                  <QuickActionButton
-                    key={action.id}
-                    icon={action.icon}
-                    label={action.label}
-                    isActive={selectedAction === action.id}
-                    onClick={() => handleQuickAction(action.id)}
-                  />
-                ))}
-              </div>
+              <QuickActionBar
+                selectedAction={selectedAction}
+                onSelect={(actionId) => setSelectedAction(actionId || null)}
+              />
 
               {/* Memory Integration Section */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-card/50 border border-border/50 mt-4">
