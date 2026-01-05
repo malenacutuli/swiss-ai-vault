@@ -17,6 +17,7 @@ interface AgentExecutionPanelProps {
   prompt: string;
   taskType?: string;
   privacyTier?: string;
+  memoryContext?: string | null;
   onClose: () => void;
   className?: string;
 }
@@ -25,6 +26,7 @@ export function AgentExecutionPanel({
   prompt,
   taskType,
   privacyTier,
+  memoryContext,
   onClose,
   className,
 }: AgentExecutionPanelProps) {
@@ -47,6 +49,7 @@ export function AgentExecutionPanel({
       execution.createTask(prompt, {
         taskType,
         privacyTier,
+        memoryContext: memoryContext || undefined,
       });
     }
   }, []);
