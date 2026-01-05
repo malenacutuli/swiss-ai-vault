@@ -1,0 +1,112 @@
+/* Swiss Enterprise Typography */
+.swiss-agents-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.swiss-agents-page h1,
+.swiss-agents-page h2,
+.swiss-agents-page h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+/* Execution Step Cards */
+.step-card {
+  @apply transition-all duration-200;
+}
+
+.step-card:hover {
+  @apply bg-muted/50;
+}
+
+.step-card.active {
+  @apply bg-primary/5 border-primary/20;
+}
+
+/* Pulsing Indicator */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* File Action Chips */
+.file-action-chip {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-full text-xs;
+  @apply border border-transparent hover:border-border transition-colors;
+}
+
+.file-action-chip code {
+  @apply font-mono text-muted-foreground;
+}
+
+/* Progress Bar */
+.progress-bar {
+  @apply h-1 bg-muted rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full bg-foreground rounded-full transition-all duration-500 ease-out;
+}
+
+/* Two-Panel Layout */
+.execution-layout {
+  @apply flex h-[calc(100vh-180px)] bg-card rounded-xl border overflow-hidden shadow-sm;
+}
+
+.execution-left-panel {
+  @apply w-[380px] border-r flex flex-col;
+}
+
+.execution-right-panel {
+  @apply flex-1 flex flex-col bg-muted/30;
+}
+
+/* Monaco Editor Container */
+.monaco-container {
+  @apply flex-1 overflow-hidden;
+}
+
+/* File Tree */
+.file-tree {
+  @apply w-52 border-r bg-card overflow-y-auto;
+}
+
+.file-tree-item {
+  @apply w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2;
+  @apply transition-colors cursor-pointer;
+}
+
+.file-tree-item.active {
+  @apply bg-muted font-medium;
+}
+
+/* Status Indicators */
+.status-indicator {
+  @apply w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium;
+}
+
+.status-indicator.completed {
+  @apply bg-foreground text-background;
+}
+
+.status-indicator.running {
+  @apply bg-primary text-primary-foreground relative;
+}
+
+.status-indicator.pending {
+  @apply bg-muted text-muted-foreground;
+}
+
+.status-indicator.failed {
+  @apply bg-destructive text-destructive-foreground;
+}
