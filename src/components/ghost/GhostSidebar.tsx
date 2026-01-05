@@ -49,6 +49,7 @@ import {
   Library,
   IconUpload,
   FolderKanban,
+  IconBot,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -986,6 +987,12 @@ export function GhostSidebar({
 
         {/* Bottom navigation */}
         <div className={cn("flex flex-col p-2 border-t border-border/60", isExpanded ? "gap-1" : "gap-2 items-center")}>
+          <IconButton 
+            icon={IconBot} 
+            label="Agents" 
+            onClick={() => navigate('/ghost/agents')} 
+            active={location.pathname === '/ghost/agents'}
+          />
           <IconButton 
             icon={IconBrain} 
             label={t('ghost.sidebar.memory')} 
