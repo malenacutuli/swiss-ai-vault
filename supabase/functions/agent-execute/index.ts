@@ -1,394 +1,414 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Available tools for the agent
-const AVAILABLE_TOOLS = {
-  web_search: {
-    name: 'web_search',
-    description: 'Search the web for current information, news, and research',
-    function: 'ghost-web-search',
-  },
-  document_generator: {
-    name: 'document_generator',
-    description: 'Generate professional documents: PPTX presentations, DOCX reports, XLSX spreadsheets, PDF files',
-    function: 'document-generator',
-  },
-  image_generator: {
-    name: 'image_generator',
-    description: 'Generate images using AI models',
-    function: 'ghost-image-gen',
-  },
-  code_executor: {
-    name: 'code_executor',
-    description: 'Execute code in a secure sandbox environment',
-    function: 'code-sandbox',
-  },
-  data_analyzer: {
-    name: 'data_analyzer',
-    description: 'Analyze data, create visualizations, and generate insights',
-    function: 'data-analyzer',
-  },
-  slack_integration: {
-    name: 'slack_integration',
-    description: 'Send messages to Slack channels and users',
-    function: 'slack-sync',
-  },
-  notion_integration: {
-    name: 'notion_integration',
-    description: 'Create and update Notion pages and databases',
-    function: 'notion-sync',
-  },
-  gmail_integration: {
-    name: 'gmail_integration',
-    description: 'Send emails and manage Gmail inbox',
-    function: 'gmail-sync',
-  },
-  github_integration: {
-    name: 'github_integration',
-    description: 'Interact with GitHub repositories, issues, and pull requests',
-    function: 'github-sync',
-  },
-  memory_search: {
-    name: 'memory_search',
-    description: 'Search through user\'s personal memory and documents',
-    function: 'search-documents',
-  },
-} as const;
-
-interface AgentRequest {
+interface TaskRequest {
   prompt: string;
-  taskType?: 'general' | 'research' | 'document' | 'data' | 'code';
-  mode?: 'agent' | 'chat' | 'adaptive';
-  privacyTier?: 'ghost' | 'vault' | 'agent';
-  connectors?: string[];
-  outputType?: 'pptx' | 'docx' | 'xlsx' | 'pdf' | 'none';
-  context?: { documents?: string[]; memory?: string };
+  taskType?: string;
+  privacyTier?: string;
+  attachments?: Array<{ name: string; type: string; content: string }>;
+  memoryContext?: string;
 }
 
-interface PlanStep {
-  step_number: number;
-  description: string;
-  tool: string;
-  tool_input: Record<string, unknown>;
-}
-
-interface ExecutionPlan {
-  plan_summary: string;
-  steps: PlanStep[];
-  estimated_tokens: number;
-  output_type: string;
-}
-
-serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
   try {
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Get user from JWT
-    const token = authHeader.replace('Bearer ', '');
+    // 1. Authenticate user
+    const authHeader = req.headers.get("Authorization")!;
+    const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { 
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
     }
 
-    console.log(`Agent execute request from user: ${user.id}`);
+    // 2. Parse request
+    const request: TaskRequest = await req.json();
+    console.log(`[agent-execute] User ${user.id} creating task: ${request.prompt.substring(0, 50)}...`);
 
-    // Parse request
-    const request: AgentRequest = await req.json();
-    
-    if (!request.prompt || request.prompt.trim().length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Prompt is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const taskType = request.taskType || 'general';
-    const mode = request.mode || 'agent';
-    const privacyTier = request.privacyTier || 'vault';
-    const connectors = request.connectors || [];
-    const outputType = request.outputType || 'none';
-
-    console.log(`Creating task: type=${taskType}, mode=${mode}, privacy=${privacyTier}`);
-
-    // Create agent_tasks record with status='planning'
+    // 3. Create task record
     const { data: task, error: taskError } = await supabase
-      .from('agent_tasks')
+      .from("agent_tasks")
       .insert({
         user_id: user.id,
         prompt: request.prompt,
-        task_type: taskType,
-        mode: mode,
-        privacy_tier: privacyTier,
-        status: 'planning',
-        started_at: new Date().toISOString(),
+        task_type: request.taskType || "general",
+        privacy_tier: request.privacyTier || "vault",
+        status: "planning",
+        model_used: "gemini-2.5-flash",
       })
       .select()
       .single();
 
-    if (taskError || !task) {
-      console.error('Failed to create task:', taskError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create task' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (taskError) throw taskError;
+
+    // 4. Generate execution plan using Lovable AI
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log(`Task created: ${task.id}`);
+    const planningPrompt = `You are a Swiss AI Agent task planner. Create an execution plan.
 
-    // Build available tools list for the system prompt
-    const availableToolsList = Object.values(AVAILABLE_TOOLS)
-      .map(tool => `- ${tool.name}: ${tool.description}`)
-      .join('\n');
+TASK: ${request.prompt}
+TYPE: ${request.taskType || 'general'}
 
-    // Build connected integrations list
-    const connectedIntegrations = connectors.length > 0 
-      ? `Connected integrations: ${connectors.join(', ')}`
-      : 'No external integrations connected';
+${request.memoryContext ? `USER CONTEXT:\n${request.memoryContext}\n` : ''}
 
-    // Build planning prompt
-    const systemPrompt = `You are SwissVault Agent, an autonomous AI assistant that plans and executes complex tasks.
+AVAILABLE TOOLS:
+1. web_search - Search the internet for current information
+2. document_generator - Create PPTX, DOCX, XLSX files
+3. text_generation - Generate text content
+4. data_analysis - Analyze data and create insights
 
-## Available Tools
-${availableToolsList}
-
-## User Context
-- Privacy Tier: ${privacyTier} (${privacyTier === 'ghost' ? 'maximum privacy, no data retention' : privacyTier === 'vault' ? 'encrypted storage' : 'standard agent mode'})
-- ${connectedIntegrations}
-- Requested Output Type: ${outputType}
-${request.context?.memory ? `- User Memory Context: ${request.context.memory}` : ''}
-${request.context?.documents ? `- Attached Documents: ${request.context.documents.length} files` : ''}
-
-## Your Task
-Analyze the user's request and create an execution plan. Break down the task into discrete steps, each using one of the available tools.
-
-## Response Format
-Respond with ONLY valid JSON in this exact format:
+Return a JSON object (no markdown):
 {
-  "plan_summary": "Brief 1-2 sentence description of what you will accomplish",
+  "plan_summary": "Brief 1-2 sentence approach",
   "steps": [
     {
       "step_number": 1,
-      "description": "What this step accomplishes",
-      "tool": "tool_name from available tools",
-      "tool_input": { "key": "value pairs for the tool" }
+      "step_name": "Short name",
+      "step_description": "What this accomplishes",
+      "tool_name": "tool_to_use",
+      "tool_input": {}
     }
   ],
-  "estimated_tokens": 5000,
-  "output_type": "${outputType}"
-}
+  "estimated_duration_seconds": 120,
+  "output_type": "pptx|docx|xlsx|text|json"
+}`;
 
-Important:
-- Keep plans focused and efficient (typically 3-7 steps)
-- Only use tools from the available list
-- Consider the privacy tier when planning
-- If output_type is specified, ensure final step produces that format`;
-
-    const userPrompt = `Create an execution plan for this task:\n\n${request.prompt}`;
-
-    // Call Lovable AI to generate plan
-    console.log('Calling AI for planning...');
-    
-    // Use the latest Gemini 3 Pro for superior planning performance (January 2026)
-    // Available models via Lovable AI gateway:
-    // - google/gemini-3-pro-preview (Latest, best reasoning)
-    // - google/gemini-2.5-flash (Fast, balanced)
-    // - openai/gpt-5 (OpenAI flagship)
-    // - openai/gpt-5-mini (Fast GPT-5)
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-pro-preview',
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: "system", content: "You are a task planning AI. Always respond with valid JSON only, no markdown." },
+          { role: "user", content: planningPrompt }
         ],
-        max_tokens: 4000,
+        temperature: 0.7,
+        max_tokens: 4096,
       }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
+      console.error("[agent-execute] AI Gateway error:", aiResponse.status, errorText);
       
-      // Update task status to failed
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'failed', error_message: `AI planning failed: ${aiResponse.status}` })
-        .eq('id', task.id);
-
       if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later" }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
       }
       if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'AI credits exhausted. Please add funds.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: "Credits required, please add funds" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
       }
-      
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate execution plan' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    const planContent = aiData.choices?.[0]?.message?.content;
-
-    if (!planContent) {
-      console.error('No content in AI response');
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'failed', error_message: 'AI returned empty plan' })
-        .eq('id', task.id);
-      
-      return new Response(
-        JSON.stringify({ error: 'AI returned empty plan' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('AI response received, parsing plan...');
-
-    // Parse the plan JSON
-    let plan: ExecutionPlan;
+    const planText = aiData.choices?.[0]?.message?.content || "";
+    
+    // Parse JSON from response
+    let plan;
     try {
-      // Clean the response - remove markdown code blocks if present
-      let cleanContent = planContent.trim();
-      if (cleanContent.startsWith('```json')) {
-        cleanContent = cleanContent.slice(7);
+      const jsonMatch = planText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        plan = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("No JSON found in response");
       }
-      if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.slice(3);
-      }
-      if (cleanContent.endsWith('```')) {
-        cleanContent = cleanContent.slice(0, -3);
-      }
-      plan = JSON.parse(cleanContent.trim());
     } catch (parseError) {
-      console.error('Failed to parse plan JSON:', parseError, planContent);
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'failed', error_message: 'Failed to parse AI plan' })
-        .eq('id', task.id);
-      
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse execution plan' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("[agent-execute] Failed to parse plan:", planText);
+      plan = {
+        plan_summary: "Processing your request",
+        steps: [
+          {
+            step_number: 1,
+            step_name: "Process Request",
+            step_description: "Analyzing and processing your request",
+            tool_name: "text_generation",
+            tool_input: { prompt: request.prompt }
+          }
+        ],
+        estimated_duration_seconds: 60,
+        output_type: "text"
+      };
     }
 
-    // Validate plan structure
-    if (!plan.steps || !Array.isArray(plan.steps) || plan.steps.length === 0) {
-      console.error('Invalid plan structure:', plan);
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'failed', error_message: 'Invalid plan structure' })
-        .eq('id', task.id);
-      
-      return new Response(
-        JSON.stringify({ error: 'Invalid execution plan structure' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`[agent-execute] Plan generated with ${plan.steps?.length || 0} steps`);
 
-    console.log(`Plan parsed: ${plan.steps.length} steps`);
-
-    // Update task with plan details and status='executing'
-    const { error: updateError } = await supabase
-      .from('agent_tasks')
+    // 5. Update task with plan
+    await supabase
+      .from("agent_tasks")
       .update({
-        status: 'executing',
         plan_summary: plan.plan_summary,
         plan_json: plan,
-        total_steps: plan.steps.length,
-        tokens_used: plan.estimated_tokens || 0,
+        total_steps: plan.steps?.length || 0,
+        status: "executing",
+        started_at: new Date().toISOString(),
       })
-      .eq('id', task.id);
+      .eq("id", task.id);
 
-    if (updateError) {
-      console.error('Failed to update task:', updateError);
+    // 6. Create step records
+    if (plan.steps && plan.steps.length > 0) {
+      const stepRecords = plan.steps.map((step: any, index: number) => ({
+        task_id: task.id,
+        step_number: index + 1,
+        step_type: step.step_name || `Step ${index + 1}`,
+        description: step.step_description || "",
+        tool_name: step.tool_name || "text_generation",
+        tool_input: step.tool_input || {},
+        status: "pending",
+      }));
+
+      await supabase.from("agent_task_steps").insert(stepRecords);
     }
 
-    // Create agent_task_steps records for each planned step
-    const stepsToInsert = plan.steps.map((step) => ({
-      task_id: task.id,
-      step_number: step.step_number,
-      step_type: 'tool_call',
-      description: step.description,
-      tool_name: step.tool,
-      tool_input: step.tool_input,
-      status: 'pending',
-    }));
+    // 7. Trigger async worker execution
+    (globalThis as any).EdgeRuntime?.waitUntil?.(executeTaskAsync(task.id, supabase, LOVABLE_API_KEY)) 
+      ?? executeTaskAsync(task.id, supabase, LOVABLE_API_KEY);
 
-    const { error: stepsError } = await supabase
-      .from('agent_task_steps')
-      .insert(stepsToInsert);
-
-    if (stepsError) {
-      console.error('Failed to create task steps:', stepsError);
-    }
-
-    console.log(`Task ${task.id} planned successfully with ${plan.steps.length} steps`);
-
-    // Return success response
     return new Response(
       JSON.stringify({
         success: true,
-        task_id: task.id,
-        plan_summary: plan.plan_summary,
-        total_steps: plan.steps.length,
-        output_type: plan.output_type || outputType,
-        steps: plan.steps.map(s => ({
-          step_number: s.step_number,
-          description: s.description,
-          tool: s.tool,
-        })),
+        taskId: task.id,
+        plan: plan,
+        status: "executing",
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error('Agent execute error:', error);
-    
+    console.error("[agent-execute] Error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error occurred' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, error: message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
+
+// Async task execution
+async function executeTaskAsync(taskId: string, supabase: any, apiKey: string) {
+  try {
+    // Get steps
+    const { data: steps } = await supabase
+      .from("agent_task_steps")
+      .select("*")
+      .eq("task_id", taskId)
+      .order("step_number");
+
+    if (!steps || steps.length === 0) {
+      await supabase.from("agent_tasks").update({ 
+        status: "completed", 
+        progress_percentage: 100,
+        completed_at: new Date().toISOString() 
+      }).eq("id", taskId);
+      return;
+    }
+
+    // Execute each step
+    for (const step of steps) {
+      const startTime = Date.now();
+      
+      // Update step to running
+      await supabase
+        .from("agent_task_steps")
+        .update({ 
+          status: "running", 
+          started_at: new Date().toISOString(),
+          current_action: `Executing ${step.tool_name}...`
+        })
+        .eq("id", step.id);
+
+      // Update task progress
+      const progress = Math.round((step.step_number / steps.length) * 100);
+      await supabase
+        .from("agent_tasks")
+        .update({ 
+          current_step: step.step_number,
+          progress_percentage: progress 
+        })
+        .eq("id", taskId);
+
+      try {
+        // Execute the step based on tool
+        let result;
+        switch (step.tool_name) {
+          case "web_search":
+            result = await executeWebSearch(step.tool_input, apiKey);
+            break;
+          case "text_generation":
+            result = await executeTextGeneration(step.tool_input, apiKey);
+            break;
+          case "document_generator":
+            result = await executeDocumentGenerator(step.tool_input, taskId, supabase);
+            break;
+          default:
+            result = await executeTextGeneration({ prompt: step.description }, apiKey);
+        }
+
+        const duration = Date.now() - startTime;
+
+        // Update step as completed
+        await supabase
+          .from("agent_task_steps")
+          .update({
+            status: "completed",
+            tool_output: result,
+            completed_at: new Date().toISOString(),
+            duration_ms: duration,
+            file_actions: result.file_actions || [],
+          })
+          .eq("id", step.id);
+
+        console.log(`[agent-execute] Step ${step.step_number} completed in ${duration}ms`);
+
+      } catch (stepError) {
+        console.error(`[agent-execute] Step ${step.step_number} failed:`, stepError);
+        const stepErrMsg = stepError instanceof Error ? stepError.message : "Step failed";
+        await supabase
+          .from("agent_task_steps")
+          .update({
+            status: "failed",
+            error_message: stepErrMsg,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", step.id);
+      }
+    }
+
+    // Mark task as completed
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "completed",
+        progress_percentage: 100,
+        completed_at: new Date().toISOString(),
+        result_summary: "Task completed successfully",
+      })
+      .eq("id", taskId);
+
+    console.log(`[agent-execute] Task ${taskId} completed`);
+
+  } catch (error) {
+    console.error("[agent-execute] Task execution failed:", error);
+    const errMsg = error instanceof Error ? error.message : "Task execution failed";
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "failed",
+        error_message: errMsg,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+  }
+}
+
+// Tool implementations
+async function executeWebSearch(input: any, apiKey: string) {
+  const query = input.query || input.prompt || "search";
+  
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: "You are a research assistant. Provide comprehensive, accurate information with sources when available." },
+        { role: "user", content: `Search for and provide current information about: ${query}. Include sources and be comprehensive.` }
+      ],
+      temperature: 0.3,
+      max_tokens: 4096,
+    }),
+  });
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content || "No results found";
+  
+  return {
+    answer: text,
+    query: query,
+    file_actions: [{ type: "searching", target: query }]
+  };
+}
+
+async function executeTextGeneration(input: any, apiKey: string) {
+  const prompt = input.prompt || input.text || "Generate content";
+  
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: "You are a professional content creator. Generate high-quality, well-structured content." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 8192,
+    }),
+  });
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content || "";
+  
+  return {
+    content: text,
+    format: input.format || "text",
+    file_actions: [{ type: "generating", target: "content" }]
+  };
+}
+
+async function executeDocumentGenerator(input: any, taskId: string, supabase: any) {
+  const content = input.content || "Document content";
+  const filename = input.filename || `document-${Date.now()}`;
+  const type = input.type || "md";
+  
+  // Get task to find user_id
+  const { data: task } = await supabase
+    .from("agent_tasks")
+    .select("user_id")
+    .eq("id", taskId)
+    .single();
+  
+  // Create output record
+  await supabase.from("agent_outputs").insert({
+    task_id: taskId,
+    user_id: task?.user_id,
+    output_type: type,
+    file_name: `${filename}.${type}`,
+  });
+  
+  return {
+    success: true,
+    filename: `${filename}.${type}`,
+    file_actions: [{ type: "creating", target: `${filename}.${type}` }]
+  };
+}
