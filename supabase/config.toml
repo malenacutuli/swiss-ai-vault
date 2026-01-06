@@ -137,3 +137,6 @@ verify_jwt = true
 
 [functions.code-execute]
 verify_jwt = true
+
+[functions.browser-action]
+verify_jwt = true
