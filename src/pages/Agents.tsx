@@ -3,8 +3,10 @@ import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAgentExecution } from '@/hooks/useAgentExecution';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
+import { supabase } from '@/integrations/supabase/client';
 import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { QuickActionBar } from '@/components/agents/QuickActionBar';
 import { ConnectedToolsBar } from '@/components/agents/ConnectedToolsBar';
@@ -45,6 +47,7 @@ function formatFileSize(bytes: number): string {
 type PrivacyTier = 'ghost' | 'vault' | 'full';
 
 export default function Agents() {
+  const { user } = useAuth();
   // Core state
   const [taskPrompt, setTaskPrompt] = useState('');
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
@@ -53,6 +56,8 @@ export default function Agents() {
   const [isDragging, setIsDragging] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [connectedTools, setConnectedTools] = useState<string[]>(['github']);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -62,6 +67,45 @@ export default function Agents() {
     onComplete: () => toast.success('Task completed'),
     onError: (err) => toast.error(err),
   });
+
+  // File upload to storage
+  const uploadFilesToStorage = async (files: File[]): Promise<Array<{ name: string; url: string; type: string }>> => {
+    if (!user || files.length === 0) return [];
+    
+    const uploaded: Array<{ name: string; url: string; type: string }> = [];
+    
+    for (const file of files) {
+      try {
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const path = `agent-uploads/${user.id}/${timestamp}-${safeName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('agent-outputs')
+          .upload(path, file, { upsert: true });
+        
+        if (uploadError) {
+          console.error('[Agents] Upload error:', uploadError);
+          toast.error(`Failed to upload ${file.name}`);
+          continue;
+        }
+        
+        const { data: urlData } = supabase.storage
+          .from('agent-outputs')
+          .getPublicUrl(path);
+        
+        uploaded.push({
+          name: file.name,
+          url: urlData.publicUrl,
+          type: file.type,
+        });
+      } catch (err) {
+        console.error('[Agents] File upload error:', err);
+      }
+    }
+    
+    return uploaded;
+  };
   
   // File handlers
   const handleFileDrop = useCallback((files: FileList | File[]) => {
@@ -119,20 +163,54 @@ export default function Agents() {
       return;
     }
 
-    // TODO: Process attached files
-    if (attachedFiles.length > 0) {
-      toast.info(`${attachedFiles.length} file(s) will be processed`);
+    if (!user) {
+      toast.error('Please sign in to create tasks');
+      return;
     }
 
-    await execution.createTask(taskPrompt.trim(), {
-      taskType: selectedAction || 'general',
-      privacyTier,
-      // memoryContext: memoryEnabled ? await getMemoryContext(taskPrompt) : undefined,
-    });
+    try {
+      // Upload attached files first
+      let uploadedFiles: Array<{ name: string; url: string; type: string }> = [];
+      if (attachedFiles.length > 0) {
+        setIsUploading(true);
+        toast.info(`Uploading ${attachedFiles.length} file(s)...`);
+        uploadedFiles = await uploadFilesToStorage(attachedFiles);
+        setIsUploading(false);
+        
+        if (uploadedFiles.length !== attachedFiles.length) {
+          toast.warning('Some files failed to upload');
+        }
+      }
 
-    setTaskPrompt('');
-    setAttachedFiles([]);
-    setSelectedAction(null);
+      // TODO: Get memory context from IndexedDB if enabled
+      const memoryContext = memoryEnabled ? undefined : undefined;
+
+      console.log('[Agents] Creating task with:', {
+        prompt: taskPrompt.trim(),
+        taskType: selectedAction || 'general',
+        privacyTier,
+        attachments: uploadedFiles,
+        connectedTools,
+      });
+
+      const result = await execution.createTask(taskPrompt.trim(), {
+        taskType: selectedAction || 'general',
+        privacyTier,
+        memoryContext,
+        attachments: uploadedFiles,
+        connectedTools,
+      });
+
+      if (result) {
+        setTaskPrompt('');
+        setAttachedFiles([]);
+        setSelectedAction(null);
+      }
+    } catch (err: any) {
+      console.error('[Agents] Submit error:', err);
+      toast.error(err.message || 'Failed to create task');
+      setIsUploading(false);
+    }
   };
 
   const handleNewTask = () => {
@@ -152,6 +230,7 @@ export default function Agents() {
   };
 
   const isExecuting = !execution.isIdle;
+  const isSubmitting = execution.isPlanning || isUploading;
 
   return (
     <>
@@ -310,15 +389,15 @@ export default function Agents() {
                       {/* Submit */}
                       <button
                         onClick={handleSubmit}
-                        disabled={!taskPrompt.trim() || execution.isPlanning}
+                        disabled={!taskPrompt.trim() || isSubmitting}
                         className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                       >
-                        {execution.isPlanning ? (
-                          <span>Creating...</span>
+                        {isSubmitting ? (
+                          <span>{isUploading ? 'Uploading...' : 'Creating...'}</span>
                         ) : (
                           <>
                             <span>Start Task</span>
-                            <span>↑</span>
+                            <kbd className="text-xs opacity-70">⌘↵</kbd>
                           </>
                         )}
                       </button>
