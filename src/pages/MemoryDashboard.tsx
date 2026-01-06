@@ -281,14 +281,22 @@ function MemoryDashboardContent() {
     }
   }, [searchQuery, memory, toast]);
   
-  // File upload handler
+  // File upload handler - uses universal document processor for all formats
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !memory.isReady) return;
     
     try {
-      const text = await file.text();
-      const result = await memory.addDocument(text, file.name);
+      // Use document processor for all file types (handles PDF, DOCX, PPTX, XLSX, etc.)
+      const { processDocument } = await import('@/lib/memory/document-processor');
+      const processed = await processDocument(file);
+      
+      if (!processed.success) {
+        toast({ title: 'Failed to process file', description: processed.error, variant: 'destructive' });
+        return;
+      }
+      
+      const result = await memory.addDocument(processed.content, file.name);
       
       if (result.success) {
         toast({ title: 'Document added', description: `${result.chunksAdded} chunks stored` });
@@ -571,7 +579,7 @@ function MemoryDashboardContent() {
                     {t('memory.documents.title')}
                     <input
                       type="file"
-                      accept=".txt,.md,.pdf"
+                      accept=".txt,.md,.pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.csv,.json,.mp3,.wav,.m4a"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
