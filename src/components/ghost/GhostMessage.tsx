@@ -324,7 +324,7 @@ export function GhostMessage({
         
         {/* Editing UI - Full width to match response area */}
         {isEditing ? (
-          <div className="flex flex-col gap-3 w-full">
+          <div className="flex flex-col gap-3 w-[min(100vw-3rem,48rem)]">
             <Textarea
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
