@@ -457,12 +457,19 @@ AVAILABLE TOOLS:
 3. text_generation - Generate text content
 4. data_analysis - Analyze data and create insights
 5. image_generation - Create images, logos, designs, graphics
+6. slides - Generate PowerPoint presentations (via Modal)
+7. audio_generation - Create voiceovers, narration
+8. podcast - Generate two-voice podcast discussions
+9. deep_research - Comprehensive research with citations
 
 CRITICAL RULES:
 1. Every plan MUST end with an output generation step
 2. For image/logo/design/graphic tasks, the final step MUST be image_generation
 3. For document/report/analysis tasks, the final step MUST be document_generator
-4. Always include at least one research step before generating output
+4. For presentation/slides/deck tasks, use "slides" as the tool_name
+5. For podcast/audio tasks, use "podcast" or "audio_generation"
+6. For research tasks, use "deep_research"
+7. Always include at least one research step before generating output
 
 Return a JSON object (no markdown):
 {
@@ -477,7 +484,7 @@ Return a JSON object (no markdown):
     }
   ],
   "estimated_duration_seconds": 120,
-  "output_type": "pptx|docx|xlsx|md|image"
+  "output_type": "pptx|docx|xlsx|md|image|audio|podcast"
 }`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -720,6 +727,9 @@ async function executeTaskAsync(taskId: string, userId: string, supabase: any, a
             result = await executeTextGeneration(step.tool_input, apiKey, taskId, step.id, supabase);
             break;
           case "document_generator":
+          case "slides":
+          case "pptx":
+          case "presentation":
             result = await executeDocumentGenerator(step.tool_input, taskId, step.id, supabase, userId);
             break;
           case "image_generation":
@@ -729,6 +739,15 @@ async function executeTaskAsync(taskId: string, userId: string, supabase: any, a
             break;
           case "data_analysis":
             result = await executeDataAnalysis(step.tool_input, apiKey, taskId, step.id, supabase);
+            break;
+          case "audio_generation":
+          case "podcast":
+          case "voiceover":
+            result = await executeAudioGeneration(step.tool_input, taskId, step.id, supabase, userId);
+            break;
+          case "deep_research":
+          case "research":
+            result = await executeDeepResearch(step.tool_input, taskId, step.id, supabase, userId, apiKey);
             break;
           default:
             result = await executeTextGeneration({ prompt: step.description }, apiKey, taskId, step.id, supabase);
@@ -948,10 +967,135 @@ async function executeDataAnalysis(input: any, apiKey: string, taskId: string, s
   };
 }
 
+// ============================================
+// MODAL INTEGRATION FOR HEAVY TASKS
+// ============================================
+
+function getModalEndpoint(taskType: string): string | null {
+  // Check type-specific endpoints first
+  const typeEndpoints: Record<string, string> = {
+    slides: Deno.env.get("MODAL_PPTX_ENDPOINT") || "",
+    pptx: Deno.env.get("MODAL_PPTX_ENDPOINT") || "",
+    document: Deno.env.get("MODAL_DOCX_ENDPOINT") || "",
+    docx: Deno.env.get("MODAL_DOCX_ENDPOINT") || "",
+    spreadsheet: Deno.env.get("MODAL_XLSX_ENDPOINT") || "",
+    xlsx: Deno.env.get("MODAL_XLSX_ENDPOINT") || "",
+  };
+
+  if (typeEndpoints[taskType]) {
+    return typeEndpoints[taskType];
+  }
+
+  // Fall back to general endpoints
+  return Deno.env.get("MODAL_DOCUMENT_GEN_ENDPOINT") 
+    || Deno.env.get("MODAL_DOCUMENT_GEN_URL")
+    || Deno.env.get("MODAL_ENDPOINT")
+    || null;
+}
+
+async function executeModalTask(
+  taskType: string,
+  params: any,
+  taskId: string,
+  stepId: string,
+  supabase: any,
+  userId: string,
+  memoryContext: any[] = []
+): Promise<any> {
+  const modalEndpoint = getModalEndpoint(taskType);
+  
+  if (!modalEndpoint) {
+    console.log(`[agent-execute] Modal endpoint not configured for ${taskType}, using fallback`);
+    return null;
+  }
+
+  console.log(`[agent-execute] Calling Modal for ${taskType}: ${modalEndpoint}`);
+  
+  await storeReasoning(
+    supabase, taskId, stepId, 'executor',
+    `Delegating ${taskType} generation to Modal backend for high-quality output`,
+    0.9, [], ['Using Modal.com infrastructure']
+  );
+
+  try {
+    const response = await fetch(modalEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        task_type: taskType,
+        params,
+        memory_context: memoryContext,
+        task_id: taskId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[agent-execute] Modal error (${response.status}):`, errorText);
+      return null;
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Store output if Modal returned a file
+      if (result.file_url || result.filename) {
+        await supabase.from("agent_outputs").insert({
+          task_id: taskId,
+          user_id: userId,
+          output_type: taskType,
+          file_name: result.filename || `${taskType}-output`,
+          download_url: result.file_url,
+          actual_format: result.format || taskType,
+        });
+      }
+      
+      await storeReasoning(
+        supabase, taskId, stepId, 'executor',
+        `Modal ${taskType} generation completed successfully`,
+        0.95, [], ['High-quality output generated']
+      );
+
+      return {
+        success: true,
+        ...result,
+        file_actions: [{ type: "creating", target: result.filename || `${taskType}-output` }]
+      };
+    }
+    
+    return null;
+  } catch (err) {
+    console.error(`[agent-execute] Modal call failed:`, err);
+    return null;
+  }
+}
+
 async function executeDocumentGenerator(input: any, taskId: string, stepId: string, supabase: any, userId: string) {
   const content = input.content || "Document content";
   const filename = input.filename || `document-${Date.now()}`;
   const type = input.type || "md";
+  
+  // For complex formats, try Modal first
+  if (['pptx', 'slides', 'docx', 'xlsx', 'pdf'].includes(type)) {
+    const modalResult = await executeModalTask(
+      type === 'slides' ? 'pptx' : type,
+      {
+        prompt: input.prompt || content,
+        title: input.title,
+        template: input.template || 'swiss-classic',
+        ...input,
+      },
+      taskId,
+      stepId,
+      supabase,
+      userId
+    );
+    
+    if (modalResult) {
+      return modalResult;
+    }
+    console.log(`[agent-execute] Modal unavailable for ${type}, using inline generation`);
+  }
   
   // Store reasoning
   await storeReasoning(
@@ -1037,4 +1181,137 @@ async function executeDocumentGenerator(input: any, taskId: string, stepId: stri
       file_actions: [{ type: "creating", target: `${filename}.${type}` }]
     };
   }
+}
+
+// ============================================
+// MODAL AUDIO/PODCAST GENERATION
+// ============================================
+
+async function executeAudioGeneration(input: any, taskId: string, stepId: string, supabase: any, userId: string) {
+  const modalResult = await executeModalTask(
+    input.audio_type === 'podcast' ? 'podcast' : 'audio',
+    {
+      prompt: input.prompt,
+      audio_type: input.audio_type || 'voiceover',
+      voice: input.voice || 'Kore',
+      duration_target: input.duration || 300,
+    },
+    taskId,
+    stepId,
+    supabase,
+    userId
+  );
+  
+  if (modalResult) {
+    return modalResult;
+  }
+
+  // Fallback: return script for client-side TTS
+  await storeReasoning(
+    supabase, taskId, stepId, 'executor',
+    `Audio generation requires Modal backend. Returning script for client processing.`,
+    0.7, [], ['Fallback to client TTS']
+  );
+
+  return {
+    success: true,
+    requires_client_generation: true,
+    script: input.prompt,
+    audio_type: input.audio_type || 'voiceover',
+    file_actions: [{ type: "preparing", target: "audio-script" }]
+  };
+}
+
+// ============================================
+// MODAL DEEP RESEARCH
+// ============================================
+
+async function executeDeepResearch(input: any, taskId: string, stepId: string, supabase: any, userId: string, apiKey: string) {
+  // Try Modal for deep research first
+  const modalResult = await executeModalTask(
+    'research',
+    {
+      prompt: input.query || input.prompt,
+      depth: input.depth || 'standard',
+    },
+    taskId,
+    stepId,
+    supabase,
+    userId
+  );
+  
+  if (modalResult) {
+    return modalResult;
+  }
+
+  // Fallback: use Lovable AI for research
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-pro",
+      messages: [
+        { 
+          role: "system", 
+          content: `You are a Swiss research agent conducting comprehensive research. 
+Structure your response with:
+## Executive Summary
+## Key Findings
+## Data & Statistics
+## Expert Perspectives
+## Implications
+## Sources
+Always cite sources with [1], [2], etc.` 
+        },
+        { role: "user", content: input.query || input.prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 16384,
+    }),
+  });
+
+  const data = await response.json();
+  const report = data.choices?.[0]?.message?.content || "";
+
+  await storeReasoning(
+    supabase, taskId, stepId, 'researcher',
+    `Completed deep research analysis. Generated comprehensive report.`,
+    0.85, [], ['Multiple sources analyzed', 'Report synthesized']
+  );
+
+  // Save report as document
+  const filename = `research-${Date.now()}.md`;
+  const filePath = `${userId}/documents/${filename}`;
+  const encoder = new TextEncoder();
+  
+  await supabase.storage
+    .from('agent-outputs')
+    .upload(filePath, encoder.encode(report), {
+      contentType: 'text/markdown',
+      upsert: true,
+    });
+
+  const { data: urlData } = supabase.storage
+    .from('agent-outputs')
+    .getPublicUrl(filePath);
+
+  await supabase.from("agent_outputs").insert({
+    task_id: taskId,
+    user_id: userId,
+    output_type: 'md',
+    file_name: filename,
+    file_path: filePath,
+    download_url: urlData?.publicUrl,
+  });
+
+  return {
+    success: true,
+    report,
+    filename,
+    url: urlData?.publicUrl,
+    file_actions: [{ type: "creating", target: filename }]
+  };
 }
