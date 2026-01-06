@@ -189,6 +189,9 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       privacyTier?: string;
       tools?: string[];
       memoryContext?: string;
+      attachments?: Array<{ name: string; url: string; type: string }>;
+      connectedTools?: string[];
+      templateId?: string;
     } = {}
   ) => {
     if (!user) {
@@ -201,18 +204,23 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     setSteps([]);
     setOutputs([]);
     setCurrentOutput(null);
+    setSuggestions([]);
 
     try {
+      console.log('[useAgentExecution] Creating task:', {
+        prompt: prompt.substring(0, 50),
+        options: taskOptions,
+      });
+
       const response = await supabase.functions.invoke('agent-execute', {
         body: {
           prompt,
-          task_type: taskOptions.taskType || 'general',
-          mode: taskOptions.mode || 'auto',
-          privacy_tier: taskOptions.privacyTier || 'vault',
-          tools: taskOptions.tools || ['web_search', 'document_generator', 'image_generator'],
-          context: taskOptions.memoryContext ? {
-            memory: taskOptions.memoryContext,
-          } : undefined,
+          taskType: taskOptions.taskType || 'general',
+          privacyTier: taskOptions.privacyTier || 'vault',
+          memoryContext: taskOptions.memoryContext,
+          attachments: taskOptions.attachments,
+          connectedTools: taskOptions.connectedTools || taskOptions.tools || [],
+          templateId: taskOptions.templateId,
         },
       });
 
