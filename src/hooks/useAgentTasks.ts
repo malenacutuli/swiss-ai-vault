@@ -1,6 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+
+export interface AgentTaskRequest {
+  prompt: string;
+  taskType?: string;
+  mode?: 'agent' | 'chat' | 'adaptive';
+  privacyTier?: 'ghost' | 'vault' | 'agent';
+  connectors?: string[];
+  templateId?: string;
+  memoryContext?: string;
+  thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high';
+}
 
 export interface AgentTask {
   id: string;
@@ -41,6 +53,10 @@ export function useAgentTasks() {
   const [recentTasks, setRecentTasks] = useState<AgentTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const [task, setTask] = useState<AgentTask | null>(null);
+  const [showExecutionView, setShowExecutionView] = useState(false);
+  const taskIdRef = useRef<string | null>(null);
 
   const fetchTasks = async () => {
     if (!user) {
@@ -116,6 +132,73 @@ export function useAgentTasks() {
 
   const activeCount = activeTasks.length;
 
+  // Execute task mutation
+  const executeTask = async (request: AgentTaskRequest): Promise<void> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-execute`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            prompt: request.prompt,
+            taskType: request.taskType,
+            mode: request.mode || 'agent',
+            privacyTier: request.privacyTier || 'vault',
+            connectors: request.connectors || [],
+            templateId: request.templateId,
+            memoryContext: request.memoryContext,
+            thinkingLevel: request.thinkingLevel || 'high',
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Handle the correct response format
+      // Edge function returns: { success, task: {...}, plan: {...}, output: {...} }
+      if (!data.success) {
+        throw new Error(data.error || 'Task execution failed');
+      }
+
+      if (!data.task || !data.task.id) {
+        throw new Error('Invalid response: missing task data');
+      }
+
+      console.log('[useAgentTasks] Task completed:', data.task.id);
+      
+      // Set the current task for display
+      setTask(data.task);
+      taskIdRef.current = data.task.id;
+      
+      // Show execution view
+      setShowExecutionView(true);
+      
+      // Refresh task lists
+      await fetchTasks();
+      
+      toast.success('Task completed successfully');
+    } catch (err) {
+      console.error('[useAgentTasks] Task execution error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to execute task');
+      setShowExecutionView(false);
+    }
+  };
+
   const deleteTask = async (taskId: string): Promise<boolean> => {
     if (!user) return false;
     
@@ -157,9 +240,11 @@ export function useAgentTasks() {
       
       // Refetch to update lists
       await fetchTasks();
+      toast.success('Task deleted successfully');
       return true;
     } catch (err) {
       console.error('Error deleting task:', err);
+      toast.error('Failed to delete task');
       return false;
     }
   };
@@ -170,7 +255,12 @@ export function useAgentTasks() {
     activeCount,
     isLoading,
     error,
-    refetch: fetchTasks,
+    task,
+    setTask,
+    showExecutionView,
+    setShowExecutionView,
+    executeTask,
     deleteTask,
+    refetch: fetchTasks,
   };
 }
