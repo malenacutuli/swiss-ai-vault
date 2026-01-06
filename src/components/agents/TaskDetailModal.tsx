@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,11 +24,15 @@ import {
   Copy,
   Loader2,
   FileText,
-  Play,
   Pause,
   Trash2,
+  Brain,
+  Link2,
+  MessageSquare,
+  ExternalLink,
+  Zap,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 
 interface TaskStep {
   id: string;
@@ -50,6 +55,39 @@ interface TaskOutput {
   mime_type: string | null;
   download_url: string | null;
   preview_url: string | null;
+  file_path: string | null;
+}
+
+interface ReasoningEntry {
+  id: string;
+  agent_type: string;
+  reasoning_text: string;
+  confidence_score: number | null;
+  sources_used: any;
+  decisions_made: any;
+  model_used: string | null;
+  thought_summary?: string | null;
+  thinking_tokens?: number | null;
+  created_at: string | null;
+}
+
+interface SourceEntry {
+  id: string;
+  source_type: string;
+  source_title: string | null;
+  source_url: string | null;
+  source_snippet: string | null;
+  citation_key: string | null;
+  relevance_score: number | null;
+}
+
+interface CommunicationEntry {
+  id: string;
+  from_agent: string;
+  to_agent: string;
+  message_type: string;
+  message_content: string;
+  created_at: string | null;
 }
 
 interface Task {
@@ -70,6 +108,10 @@ interface Task {
   created_at: string | null;
   started_at: string | null;
   completed_at: string | null;
+  gemini_model?: string | null;
+  thinking_level?: string | null;
+  total_tokens?: number | null;
+  total_cost_usd?: number | null;
 }
 
 interface TaskDetailModalProps {
@@ -89,9 +131,13 @@ export function TaskDetailModal({
 }: TaskDetailModalProps) {
   const [task, setTask] = useState<Task | null>(null);
   const [steps, setSteps] = useState<TaskStep[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
+  const [reasoning, setReasoning] = useState<ReasoningEntry[]>([]);
+  const [sources, setSources] = useState<SourceEntry[]>([]);
+  const [communications, setCommunications] = useState<CommunicationEntry[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('thinking');
 
   useEffect(() => {
     if (taskId && open) {
@@ -105,31 +151,24 @@ export function TaskDetailModal({
     setLoading(true);
 
     try {
-      // Fetch task
-      const { data: taskData, error: taskError } = await supabase
-        .from('agent_tasks')
-        .select('*')
-        .eq('id', taskId)
-        .single();
+      // Fetch all data in parallel
+      const [taskRes, stepsRes, outputsRes, reasoningRes, sourcesRes, commsRes] = await Promise.all([
+        supabase.from('agent_tasks').select('*').eq('id', taskId).single(),
+        supabase.from('agent_task_steps').select('*').eq('task_id', taskId).order('step_number'),
+        supabase.from('agent_outputs').select('*').eq('task_id', taskId),
+        supabase.from('agent_reasoning').select('*').eq('task_id', taskId).order('created_at'),
+        supabase.from('agent_sources').select('*').eq('task_id', taskId).order('citation_key'),
+        supabase.from('agent_communications').select('*').eq('task_id', taskId).order('created_at'),
+      ]);
 
-      if (taskError) throw taskError;
+      if (taskRes.error) throw taskRes.error;
 
-      // Fetch steps
-      const { data: stepsData } = await supabase
-        .from('agent_task_steps')
-        .select('*')
-        .eq('task_id', taskId)
-        .order('step_number');
-
-      // Fetch outputs
-      const { data: outputsData } = await supabase
-        .from('agent_outputs')
-        .select('*')
-        .eq('task_id', taskId);
-
-      setTask(taskData as Task);
-      setSteps((stepsData || []) as TaskStep[]);
-      setOutputs((outputsData || []) as TaskOutput[]);
+      setTask(taskRes.data as Task);
+      setSteps((stepsRes.data || []) as TaskStep[]);
+      setOutputs((outputsRes.data || []) as TaskOutput[]);
+      setReasoning((reasoningRes.data || []) as ReasoningEntry[]);
+      setSources((sourcesRes.data || []) as SourceEntry[]);
+      setCommunications((commsRes.data || []) as CommunicationEntry[]);
     } catch (error) {
       console.error('[TaskDetailModal] Error fetching task:', error);
       toast.error('Failed to load task details');
@@ -173,9 +212,27 @@ export function TaskDetailModal({
     }
   };
 
-  const handleDownloadOutput = (output: TaskOutput) => {
+  const getConfidenceColor = (confidence: number | null) => {
+    if (!confidence) return 'text-muted-foreground';
+    if (confidence >= 0.8) return 'text-green-500';
+    if (confidence >= 0.6) return 'text-yellow-500';
+    return 'text-red-500';
+  };
+
+  const handleDownloadOutput = async (output: TaskOutput) => {
     if (output.download_url) {
       window.open(output.download_url, '_blank');
+    } else if (output.file_path) {
+      // Generate signed URL
+      const { data, error } = await supabase.storage
+        .from('agent-outputs')
+        .createSignedUrl(output.file_path, 60);
+      
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      } else {
+        toast.error('Download URL not available');
+      }
     } else {
       toast.error('Download URL not available');
     }
@@ -213,7 +270,7 @@ export function TaskDetailModal({
   if (loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -225,7 +282,7 @@ export function TaskDetailModal({
   if (!task) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <AlertCircle className="h-12 w-12 mb-3" />
             <p>Task not found</p>
@@ -237,7 +294,7 @@ export function TaskDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b border-border">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">Task Details</DialogTitle>
@@ -247,171 +304,322 @@ export function TaskDetailModal({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 py-4">
-          <div className="space-y-6">
-            {/* Task Overview */}
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Task</h4>
-              <div className="p-3 rounded-lg bg-muted/50 border border-border">
-                <p className="text-sm text-foreground whitespace-pre-wrap">{task.prompt}</p>
-              </div>
-              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                <span>Type: {task.task_type || 'general'}</span>
-                <span>•</span>
-                <span>Privacy: {task.privacy_tier || 'vault'}</span>
-                {task.created_at && (
-                  <>
-                    <span>•</span>
-                    <span>Created {formatDistanceToNow(new Date(task.created_at))} ago</span>
-                  </>
-                )}
-              </div>
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Task Summary */}
+          <div className="px-6 py-4 border-b border-border">
+            <p className="text-sm text-foreground whitespace-pre-wrap line-clamp-3">{task.prompt}</p>
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {task.created_at && format(new Date(task.created_at), 'MMM d, yyyy HH:mm')}
+              </span>
+              {task.gemini_model && (
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  {task.gemini_model}
+                </span>
+              )}
+              {(task.total_tokens || task.tokens_used) && (
+                <Badge variant="secondary" className="text-xs">
+                  {((task.total_tokens || task.tokens_used) ?? 0).toLocaleString()} tokens
+                </Badge>
+              )}
+              {task.total_cost_usd && task.total_cost_usd > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  ${task.total_cost_usd.toFixed(4)}
+                </Badge>
+              )}
             </div>
+          </div>
 
-            {/* Plan Summary */}
-            {task.plan_summary && (
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Plan</h4>
-                <p className="text-sm text-foreground">{task.plan_summary}</p>
-              </div>
-            )}
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="mx-6 mt-4 grid grid-cols-4 w-auto">
+              <TabsTrigger value="thinking" className="text-xs">
+                <Brain className="h-3.5 w-3.5 mr-1.5" />
+                Thinking ({reasoning.length})
+              </TabsTrigger>
+              <TabsTrigger value="sources" className="text-xs">
+                <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                Sources ({sources.length})
+              </TabsTrigger>
+              <TabsTrigger value="comms" className="text-xs">
+                <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                Chat ({communications.length})
+              </TabsTrigger>
+              <TabsTrigger value="results" className="text-xs">
+                <FileText className="h-3.5 w-3.5 mr-1.5" />
+                Results ({outputs.length})
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Progress */}
-            {task.status !== 'completed' && task.status !== 'failed' && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Progress</h4>
-                  <span className="text-sm text-foreground">{task.progress_percentage || 0}%</span>
-                </div>
-                <Progress value={task.progress_percentage || 0} className="h-2" />
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Execution Steps */}
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                Execution Steps ({steps.length})
-              </h4>
-              <div className="space-y-3">
-                {steps.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">No steps recorded</p>
+            {/* Thinking Tab */}
+            <TabsContent value="thinking" className="flex-1 overflow-hidden m-0 p-0">
+              <ScrollArea className="h-[320px] px-6 py-4">
+                {reasoning.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <Brain className="h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm">No reasoning data recorded</p>
+                  </div>
                 ) : (
-                  steps.map((step) => (
-                    <div
-                      key={step.id}
-                      className="flex gap-3 p-3 rounded-lg bg-card border border-border"
-                    >
-                      <div className="shrink-0 mt-0.5">{getStepStatusIcon(step.status)}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Step {step.step_number}
-                          </span>
-                          {step.tool_name && (
-                            <Badge variant="secondary" className="text-xs">
-                              {step.tool_name}
-                            </Badge>
+                  <div className="space-y-4">
+                    {reasoning.map((entry, idx) => (
+                      <div
+                        key={entry.id}
+                        className="p-4 rounded-lg bg-card border border-border"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {entry.agent_type}
+                          </Badge>
+                          {entry.confidence_score && (
+                            <span className={cn('text-xs font-medium', getConfidenceColor(entry.confidence_score))}>
+                              {(entry.confidence_score * 100).toFixed(0)}% confidence
+                            </span>
                           )}
                         </div>
-                        {step.description && (
-                          <p className="text-sm text-foreground">{step.description}</p>
+                        {entry.thought_summary && (
+                          <p className="text-xs text-primary/80 mb-2 italic">
+                            {entry.thought_summary}
+                          </p>
                         )}
-                        {step.error_message && (
-                          <p className="text-xs text-red-500 mt-1">Error: {step.error_message}</p>
-                        )}
-                        {step.duration_ms && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Completed in {formatDuration(step.duration_ms)}
+                        <p className="text-sm text-foreground whitespace-pre-wrap">
+                          {entry.reasoning_text}
+                        </p>
+                        {entry.model_used && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Model: {entry.model_used}
+                            {entry.thinking_tokens && ` | ${entry.thinking_tokens} thinking tokens`}
                           </p>
                         )}
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
-              </div>
-            </div>
+              </ScrollArea>
+            </TabsContent>
 
-            {/* Outputs */}
-            {outputs.length > 0 && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                    Generated Files ({outputs.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {outputs.map((output) => (
+            {/* Sources Tab */}
+            <TabsContent value="sources" className="flex-1 overflow-hidden m-0 p-0">
+              <ScrollArea className="h-[320px] px-6 py-4">
+                {sources.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <Link2 className="h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm">No sources cited</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sources.map((source) => (
                       <div
-                        key={output.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
+                        key={source.id}
+                        className="p-3 rounded-lg bg-card border border-border"
                       >
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium text-foreground">
-                              {output.file_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {output.output_type?.toUpperCase()} •{' '}
-                              {formatBytes(output.file_size_bytes)}
-                            </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2 min-w-0">
+                            {source.citation_key && (
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                {source.citation_key}
+                              </Badge>
+                            )}
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {source.source_title || 'Untitled Source'}
+                            </span>
                           </div>
+                          {source.source_url && (
+                            <a
+                              href={source.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          )}
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDownloadOutput(output)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        {source.source_snippet && (
+                          <p className="text-xs text-muted-foreground mt-2 line-clamp-3">
+                            {source.source_snippet}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <span className="capitalize">{source.source_type}</span>
+                          {source.relevance_score && (
+                            <>
+                              <span>|</span>
+                              <span>Relevance: {(source.relevance_score * 100).toFixed(0)}%</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              </>
-            )}
+                )}
+              </ScrollArea>
+            </TabsContent>
 
-            {/* Result Summary */}
-            {task.result_summary && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Result Summary</h4>
-                  <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
-                    <p className="text-sm text-foreground">{task.result_summary}</p>
+            {/* Communications Tab */}
+            <TabsContent value="comms" className="flex-1 overflow-hidden m-0 p-0">
+              <ScrollArea className="h-[320px] px-6 py-4">
+                {communications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm">No agent communications recorded</p>
                   </div>
-                </div>
-              </>
-            )}
-
-            {/* Error */}
-            {task.error_message && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="text-sm font-medium text-red-500 mb-2">Error</h4>
-                  <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-                    <p className="text-sm text-red-500">{task.error_message}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {communications.map((comm) => (
+                      <div
+                        key={comm.id}
+                        className="p-3 rounded-lg bg-card border border-border"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-xs">
+                            {comm.from_agent}
+                          </Badge>
+                          <span className="text-muted-foreground text-xs">{'→'}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {comm.to_agent}
+                          </Badge>
+                          {comm.created_at && (
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {format(new Date(comm.created_at), 'HH:mm:ss')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">
+                          {comm.message_content}
+                        </p>
+                        <Badge variant="secondary" className="text-xs mt-2 capitalize">
+                          {comm.message_type}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </>
-            )}
+                )}
+              </ScrollArea>
+            </TabsContent>
 
-            {/* Stats */}
-            {(task.duration_ms || task.tokens_used || task.credits_used) && (
-              <>
-                <Separator />
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {task.duration_ms && <span>Duration: {formatDuration(task.duration_ms)}</span>}
-                  {task.tokens_used && <span>Tokens: {task.tokens_used.toLocaleString()}</span>}
-                  {task.credits_used && <span>Credits: {task.credits_used}</span>}
+            {/* Results Tab */}
+            <TabsContent value="results" className="flex-1 overflow-hidden m-0 p-0">
+              <ScrollArea className="h-[320px] px-6 py-4">
+                <div className="space-y-4">
+                  {/* Result Summary */}
+                  {task.result_summary && (
+                    <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                      <h4 className="text-xs font-medium text-green-500 mb-1">Result Summary</h4>
+                      <p className="text-sm text-foreground">{task.result_summary}</p>
+                    </div>
+                  )}
+
+                  {/* Error */}
+                  {task.error_message && (
+                    <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                      <h4 className="text-xs font-medium text-red-500 mb-1">Error</h4>
+                      <p className="text-sm text-red-500">{task.error_message}</p>
+                    </div>
+                  )}
+
+                  {/* Outputs */}
+                  {outputs.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                        Generated Files ({outputs.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {outputs.map((output) => (
+                          <div
+                            key={output.id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {output.file_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {output.output_type?.toUpperCase()} • {formatBytes(output.file_size_bytes)}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDownloadOutput(output)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Execution Steps */}
+                  {steps.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                        Execution Steps ({steps.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {steps.map((step) => (
+                          <div
+                            key={step.id}
+                            className="flex gap-3 p-3 rounded-lg bg-card border border-border"
+                          >
+                            <div className="shrink-0 mt-0.5">{getStepStatusIcon(step.status)}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  Step {step.step_number}
+                                </span>
+                                {step.tool_name && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {step.tool_name}
+                                  </Badge>
+                                )}
+                              </div>
+                              {step.description && (
+                                <p className="text-sm text-foreground">{step.description}</p>
+                              )}
+                              {step.error_message && (
+                                <p className="text-xs text-red-500 mt-1">Error: {step.error_message}</p>
+                              )}
+                              {step.duration_ms && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Completed in {formatDuration(step.duration_ms)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  {(task.duration_ms || task.tokens_used || task.credits_used) && (
+                    <Separator />
+                  )}
+                  {(task.duration_ms || task.tokens_used || task.credits_used) && (
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {task.duration_ms && <span>Duration: {formatDuration(task.duration_ms)}</span>}
+                      {task.tokens_used && <span>Tokens: {task.tokens_used.toLocaleString()}</span>}
+                      {task.credits_used && <span>Credits: {task.credits_used}</span>}
+                    </div>
+                  )}
+
+                  {outputs.length === 0 && !task.result_summary && !task.error_message && steps.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                      <FileText className="h-8 w-8 mb-2 opacity-50" />
+                      <p className="text-sm">No results yet</p>
+                    </div>
+                  )}
                 </div>
-              </>
-            )}
-          </div>
-        </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-border">
