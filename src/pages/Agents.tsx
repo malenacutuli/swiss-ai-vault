@@ -12,6 +12,7 @@ import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { QuickActionBar } from '@/components/agents/QuickActionBar';
 import { ConnectedToolsBar } from '@/components/agents/ConnectedToolsBar';
 import { TemplateBrowser, type ActionTemplate } from '@/components/agents/TemplateBrowser';
+import { TaskDetailModal } from '@/components/agents/TaskDetailModal';
 import { MasterExecutionView } from '@/components/agents/execution/MasterExecutionView';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -59,11 +60,13 @@ export default function Agents() {
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [connectedTools, setConnectedTools] = useState<string[]>(['github']);
-  
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Task hooks
-  const { recentTasks } = useAgentTasks();
+  const { recentTasks, deleteTask } = useAgentTasks();
   const execution = useAgentExecution({
     onComplete: () => toast.success('Task completed'),
     onError: (err) => toast.error(err),
@@ -280,8 +283,8 @@ export default function Agents() {
   };
 
   const handleViewRecentTask = (task: any) => {
-    // Load task into execution view
-    toast.info('Loading task...');
+    setSelectedTaskId(task.id);
+    setIsDetailModalOpen(true);
   };
 
   const isExecuting = !execution.isIdle;
@@ -571,6 +574,22 @@ export default function Agents() {
         open={showTemplates}
         onOpenChange={setShowTemplates}
         onSelectTemplate={handleSelectTemplate}
+      />
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        taskId={selectedTaskId}
+        open={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+        onRetry={(task) => {
+          setIsDetailModalOpen(false);
+          setTaskPrompt(task.prompt);
+          toast.info('Prompt loaded - click Start Task to retry');
+        }}
+        onDelete={async (taskId) => {
+          const success = await deleteTask(taskId);
+          if (!success) throw new Error('Delete failed');
+        }}
       />
     </>
   );
