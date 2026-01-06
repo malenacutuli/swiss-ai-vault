@@ -29,6 +29,7 @@ export interface GhostMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  metadata?: Record<string, any>; // For comparisonData, citations, etc.
 }
 
 export interface GhostConversation {
@@ -327,7 +328,7 @@ export class GhostStorageManager {
    * Save a message to a conversation
    * Adds to hot store immediately, debounces persist to IndexedDB (unless temporary)
    */
-  saveMessage(convId: string, role: 'user' | 'assistant', content: string): GhostMessage {
+  saveMessage(convId: string, role: 'user' | 'assistant', content: string, metadata?: Record<string, any>): GhostMessage {
     const conversation = this.hotStore.get(convId);
     if (!conversation) {
       throw new Error(`Conversation ${convId} not found`);
@@ -337,7 +338,8 @@ export class GhostStorageManager {
       id: crypto.randomUUID(),
       role,
       content,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(metadata && Object.keys(metadata).length > 0 ? { metadata } : {}),
     };
 
     conversation.messages.push(message);

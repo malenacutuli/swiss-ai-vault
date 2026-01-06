@@ -193,10 +193,10 @@ export function useGhostStorage() {
     return storage.getConversation(convId);
   }, [isInitialized]);
 
-  const saveMessage = useCallback((convId: string, role: 'user' | 'assistant', content: string) => {
+  const saveMessage = useCallback((convId: string, role: 'user' | 'assistant', content: string, metadata?: Record<string, any>) => {
     if (!isInitialized) return;
     const storage = getGhostStorage();
-    storage.saveMessage(convId, role, content);
+    storage.saveMessage(convId, role, content, metadata);
     refreshConversations();
   }, [isInitialized, refreshConversations]);
 

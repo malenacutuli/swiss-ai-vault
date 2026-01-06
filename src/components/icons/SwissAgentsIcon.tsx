@@ -12,8 +12,16 @@ export const SwissAgentsIcon = ({ className, size }: SwissAgentsIconProps) => {
     <img
       src={swissAgentsIcon}
       alt=""
+      loading="eager"
+      decoding="async"
+      draggable={false}
       className={cn("object-contain", className)}
-      style={size ? { width: size, height: size } : undefined}
+      style={{
+        ...(size ? { width: size, height: size } : {}),
+        // Remove white background by making it transparent
+        mixBlendMode: 'multiply',
+        backgroundColor: 'transparent',
+      }}
     />
   );
 };
