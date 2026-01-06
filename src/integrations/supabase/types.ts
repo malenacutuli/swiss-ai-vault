@@ -80,6 +80,47 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_file_actions: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          file_content: string | null
+          file_path: string
+          id: string
+          metadata: Json | null
+          step_id: string | null
+          storage_url: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          file_content?: string | null
+          file_path: string
+          id?: string
+          metadata?: Json | null
+          step_id?: string | null
+          storage_url?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          file_content?: string | null
+          file_path?: string
+          id?: string
+          metadata?: Json | null
+          step_id?: string | null
+          storage_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_file_actions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "agent_task_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_outputs: {
         Row: {
           created_at: string | null
@@ -200,6 +241,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agent_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_suggestions: {
+        Row: {
+          created_at: string | null
+          id: string
+          priority: number | null
+          suggestion_text: string
+          suggestion_type: string | null
+          task_id: string | null
+          was_used: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          priority?: number | null
+          suggestion_text: string
+          suggestion_type?: string | null
+          task_id?: string | null
+          was_used?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          priority?: number | null
+          suggestion_text?: string
+          suggestion_type?: string | null
+          task_id?: string | null
+          was_used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_suggestions_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "agent_tasks"
@@ -751,6 +830,94 @@ export type Database = {
           },
         ]
       }
+      browser_actions: {
+        Row: {
+          action_data: Json
+          action_type: string
+          created_at: string | null
+          id: string
+          result: Json | null
+          screenshot_url: string | null
+          session_id: string | null
+        }
+        Insert: {
+          action_data: Json
+          action_type: string
+          created_at?: string | null
+          id?: string
+          result?: Json | null
+          screenshot_url?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          action_data?: Json
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          result?: Json | null
+          screenshot_url?: string | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "browser_actions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "browser_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      browser_sessions: {
+        Row: {
+          closed_at: string | null
+          created_at: string | null
+          current_url: string | null
+          id: string
+          last_action_at: string | null
+          session_token: string | null
+          status: string | null
+          task_id: string | null
+          user_id: string | null
+          viewport_height: number | null
+          viewport_width: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string | null
+          current_url?: string | null
+          id?: string
+          last_action_at?: string | null
+          session_token?: string | null
+          status?: string | null
+          task_id?: string | null
+          user_id?: string | null
+          viewport_height?: number | null
+          viewport_width?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string | null
+          current_url?: string | null
+          id?: string
+          last_action_at?: string | null
+          session_token?: string | null
+          status?: string | null
+          task_id?: string | null
+          user_id?: string | null
+          viewport_height?: number | null
+          viewport_width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "browser_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_attachments: {
         Row: {
           conversation_id: string
@@ -1048,6 +1215,179 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      code_executions: {
+        Row: {
+          code: string
+          created_at: string | null
+          execution_time_ms: number | null
+          exit_code: number | null
+          id: string
+          language: string
+          memory_used_mb: number | null
+          sandbox_id: string | null
+          stderr: string | null
+          stdin: string | null
+          stdout: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          execution_time_ms?: number | null
+          exit_code?: number | null
+          id?: string
+          language: string
+          memory_used_mb?: number | null
+          sandbox_id?: string | null
+          stderr?: string | null
+          stdin?: string | null
+          stdout?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          execution_time_ms?: number | null
+          exit_code?: number | null
+          id?: string
+          language?: string
+          memory_used_mb?: number | null
+          sandbox_id?: string | null
+          stderr?: string | null
+          stdin?: string | null
+          stdout?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_executions_sandbox_id_fkey"
+            columns: ["sandbox_id"]
+            isOneToOne: false
+            referencedRelation: "code_sandboxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      code_sandboxes: {
+        Row: {
+          container_id: string | null
+          created_at: string | null
+          destroyed_at: string | null
+          environment: string
+          expires_at: string | null
+          files: Json | null
+          id: string
+          installed_packages: Json | null
+          status: string | null
+          task_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          container_id?: string | null
+          created_at?: string | null
+          destroyed_at?: string | null
+          environment: string
+          expires_at?: string | null
+          files?: Json | null
+          id?: string
+          installed_packages?: Json | null
+          status?: string | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          container_id?: string | null
+          created_at?: string | null
+          destroyed_at?: string | null
+          environment?: string
+          expires_at?: string | null
+          files?: Json | null
+          id?: string
+          installed_packages?: Json | null
+          status?: string | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_sandboxes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collab_participants: {
+        Row: {
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          role: string | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          role?: string | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          role?: string | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collab_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collab_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collab_sessions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          ended_at: string | null
+          id: string
+          settings: Json | null
+          status: string | null
+          task_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          settings?: Json | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          settings?: Json | null
+          status?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collab_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -2705,6 +3045,45 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          digest_frequency: string | null
+          email_enabled: boolean | null
+          id: string
+          push_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          slack_enabled: boolean | null
+          updated_at: string | null
+          user_id: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          digest_frequency?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          slack_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          digest_frequency?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          slack_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -2712,6 +3091,7 @@ export type Database = {
           is_read: boolean
           message: string | null
           metadata: Json | null
+          read_at: string | null
           title: string
           type: string
           user_id: string
@@ -2722,6 +3102,7 @@ export type Database = {
           is_read?: boolean
           message?: string | null
           metadata?: Json | null
+          read_at?: string | null
           title: string
           type: string
           user_id: string
@@ -2732,6 +3113,7 @@ export type Database = {
           is_read?: boolean
           message?: string | null
           metadata?: Json | null
+          read_at?: string | null
           title?: string
           type?: string
           user_id?: string
@@ -2764,6 +3146,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      org_roles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          organization_id: string | null
+          permissions: Json
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          organization_id?: string | null
+          permissions?: Json
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          organization_id?: string | null
+          permissions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_invitations: {
         Row: {
@@ -2938,6 +3358,56 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_items: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          item_index: number
+          item_input: string
+          job_id: string | null
+          result: Json | null
+          sources: Json | null
+          started_at: string | null
+          status: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          item_index: number
+          item_input: string
+          job_id?: string | null
+          result?: Json | null
+          sources?: Json | null
+          started_at?: string | null
+          status?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          item_index?: number
+          item_input?: string
+          job_id?: string | null
+          result?: Json | null
+          sources?: Json | null
+          started_at?: string | null
+          status?: string | null
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "wide_research_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -3181,6 +3651,56 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      sso_configurations: {
+        Row: {
+          certificate: string | null
+          client_id: string | null
+          client_secret: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          metadata_url: string | null
+          organization_id: string | null
+          provider_name: string
+          provider_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          certificate?: string | null
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata_url?: string | null
+          organization_id?: string | null
+          provider_name: string
+          provider_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          certificate?: string | null
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata_url?: string | null
+          organization_id?: string | null
+          provider_name?: string
+          provider_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_configurations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_tiers: {
         Row: {
