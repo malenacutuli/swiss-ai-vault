@@ -850,136 +850,133 @@ export function GhostSidebar({
           )}
         </ScrollArea>
 
-        {/* Discover Section */}
+        {/* Discover Section - Hover Expandable */}
         <div className="border-t border-border/40 p-2">
-          {isExpanded && (
-            <div className="flex items-center justify-between px-2 py-1 mb-1">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                <IconCompass className="w-3 h-3" strokeWidth={1.5} />
-                {t('ghost.sidebar.discover')}
-              </span>
-            </div>
-          )}
-          
-          <div className={cn("space-y-0.5", !isExpanded && "flex flex-col items-center gap-1")}>
-            {visibleModules.map((module) => {
-              const isActive = activeModule === module.id || location.pathname === module.route;
-              const Icon = module.icon;
-              
-              return (
-                <Tooltip key={module.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => navigate(module.route)}
-                      className={cn(
-                        "transition-all",
-                        isExpanded
-                          ? cn(
-                              "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm",
-                              isActive
-                                ? "bg-primary/15 text-primary font-medium"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                            )
-                          : cn(
-                              "flex flex-col items-center justify-center gap-1 py-2 w-full rounded-lg",
-                              isActive
-                                ? "bg-primary/15 text-primary"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                            )
-                      )}
-                    >
-                      <Icon className="w-5 h-5 shrink-0" />
-                      {isExpanded ? (
-                        <>
-                          <span className="truncate flex-1 text-left text-[13px]">{t(module.nameKey)}</span>
-                          {module.isPro && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                              PRO
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-[10px] font-medium truncate w-full text-center px-1">{t(module.nameKey)}</span>
-                      )}
-                    </button>
-                  </TooltipTrigger>
-                  {!isExpanded && (
-                    <TooltipContent side="right" sideOffset={8}>
-                      <div>
-                        <div className="font-medium">{t(module.nameKey)}</div>
-                        <div className="text-xs text-muted-foreground">{t(module.descriptionKey)}</div>
-                      </div>
-                    </TooltipContent>
+          <div 
+            className="relative group"
+            onMouseEnter={() => setShowMoreMenu(true)}
+            onMouseLeave={() => setShowMoreMenu(false)}
+          >
+            {/* Discovery Parent Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={cn(
+                    "transition-all w-full",
+                    isExpanded
+                      ? cn(
+                          "flex items-center gap-3 px-2 py-2 rounded-lg text-sm",
+                          visibleModules.some(m => activeModule === m.id || location.pathname === m.route)
+                            ? "bg-primary/15 text-primary font-medium"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )
+                      : cn(
+                          "flex flex-col items-center justify-center gap-1 py-2 rounded-lg",
+                          visibleModules.some(m => activeModule === m.id || location.pathname === m.route)
+                            ? "bg-primary/15 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )
                   )}
-                </Tooltip>
-              );
-            })}
-            
-            {/* More Menu */}
-            {hiddenModules.length > 0 && (
-              <div className="relative">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setShowMoreMenu(!showMoreMenu)}
-                      className={cn(
-                        "transition-all",
-                        isExpanded 
-                          ? "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          : "flex flex-col items-center justify-center gap-1 py-2 w-full rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      )}
-                    >
-                      <IconDotsVertical className="w-5 h-5 shrink-0" strokeWidth={1.5} />
-                      {isExpanded ? (
-                        <span className="text-[13px]">{t('ghost.sidebar.more')}</span>
-                      ) : (
-                        <span className="text-[10px] font-medium">{t('ghost.sidebar.more')}</span>
-                      )}
-                    </button>
-                  </TooltipTrigger>
-                  {!isExpanded && (
-                    <TooltipContent side="right" sideOffset={8}>{t('ghost.sidebar.more')}</TooltipContent>
+                >
+                  <IconCompass className="w-5 h-5 shrink-0" strokeWidth={1.5} />
+                  {isExpanded ? (
+                    <>
+                      <span className="truncate flex-1 text-left text-[13px]">{t('ghost.sidebar.discover')}</span>
+                      <IconChevronDown className={cn(
+                        "w-3 h-3 opacity-50 transition-transform",
+                        showMoreMenu && "rotate-180"
+                      )} />
+                    </>
+                  ) : (
+                    <span className="text-[10px] font-medium truncate w-full text-center px-1">{t('ghost.sidebar.discover')}</span>
                   )}
-                </Tooltip>
-                
-                {showMoreMenu && isExpanded && (
-                  <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-lg shadow-lg p-1 z-50">
-                    {hiddenModules.map((module) => {
-                      const Icon = module.icon;
-                      return (
-                        <button
-                          key={module.id}
-                          onClick={() => {
-                            navigate(module.route);
-                            setShowMoreMenu(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                        >
-                          <Icon className="w-4 h-4 shrink-0" />
-                          <span>{t(module.nameKey)}</span>
-                          {module.isPro && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium ml-auto">
-                              PRO
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                </button>
+              </TooltipTrigger>
+              {!isExpanded && (
+                <TooltipContent side="right" sideOffset={8}>{t('ghost.sidebar.discover')}</TooltipContent>
+              )}
+            </Tooltip>
+
+            {/* Hover Dropdown - Discovery Modules */}
+            {showMoreMenu && (
+              <div 
+                className={cn(
+                  "absolute z-50 bg-popover border border-border rounded-lg shadow-lg p-1",
+                  isExpanded 
+                    ? "left-0 right-0 bottom-full mb-1" 
+                    : "left-full top-0 ml-2 w-56"
+                )}
+              >
+                <div className="max-h-80 overflow-y-auto">
+                  {visibleModules.map((module) => {
+                    const isActive = activeModule === module.id || location.pathname === module.route;
+                    const Icon = module.icon;
                     
-                    <div className="border-t border-border/60 mt-1 pt-1">
+                    return (
                       <button
+                        key={module.id}
                         onClick={() => {
-                          setShowCustomizeModal(true);
+                          navigate(module.route);
                           setShowMoreMenu(false);
                         }}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded"
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded transition-colors",
+                          isActive
+                            ? "bg-primary/15 text-primary font-medium"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
                       >
-                        <IconSettings className="w-4 h-4 shrink-0" strokeWidth={1.5} />
-                        <span>{t('ghost.sidebar.customizeSidebar')}</span>
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{t(module.nameKey)}</span>
+                        {module.isPro && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium ml-auto">
+                            PRO
+                          </span>
+                        )}
                       </button>
-                    </div>
+                    );
+                  })}
+                  
+                  {hiddenModules.length > 0 && (
+                    <>
+                      <div className="border-t border-border/60 my-1" />
+                      {hiddenModules.map((module) => {
+                        const Icon = module.icon;
+                        return (
+                          <button
+                            key={module.id}
+                            onClick={() => {
+                              navigate(module.route);
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors"
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{t(module.nameKey)}</span>
+                            {module.isPro && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium ml-auto">
+                                PRO
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                  
+                  <div className="border-t border-border/60 mt-1 pt-1">
+                    <button
+                      onClick={() => {
+                        setShowCustomizeModal(true);
+                        setShowMoreMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded transition-colors"
+                    >
+                      <IconSettings className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                      <span>{t('ghost.sidebar.customizeSidebar')}</span>
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>
