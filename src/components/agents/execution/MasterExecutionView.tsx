@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { ExecutionTask, ExecutionStep, TaskOutput } from '@/hooks/useAgentExecution';
+import { ReasoningPanel } from './ReasoningPanel';
+import { DocumentGeneratorService } from '@/lib/document-generators/document-service';
+import { downloadPPTX } from '@/lib/document-generators/pptx-generator';
+import { downloadDOCX } from '@/lib/document-generators/docx-generator';
+import { downloadXLSX } from '@/lib/document-generators/xlsx-generator';
 
 interface Props {
   task: ExecutionTask;
@@ -13,6 +20,7 @@ interface Props {
   onStop?: () => void;
   onDownloadAll?: () => void;
   onNewTask?: () => void;
+  refetchOutputs?: () => void;
 }
 
 export const MasterExecutionView: React.FC<Props> = ({
@@ -26,9 +34,20 @@ export const MasterExecutionView: React.FC<Props> = ({
   onStop,
   onDownloadAll,
   onNewTask,
+  refetchOutputs,
 }) => {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [elapsed, setElapsed] = useState(0);
+  const [showReasoning, setShowReasoning] = useState(true);
+  const [generatingDoc, setGeneratingDoc] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id || null);
+    });
+  }, []);
 
   // Track elapsed time
   useEffect(() => {
@@ -91,6 +110,58 @@ export const MasterExecutionView: React.FC<Props> = ({
       return step.tool_name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     }
     return step.step_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  // Handle client-side document generation
+  const handleGenerateDocument = async (output: TaskOutput) => {
+    if (!userId) {
+      toast({ title: 'Error', description: 'Please sign in to generate documents', variant: 'destructive' });
+      return;
+    }
+    
+    setGeneratingDoc(output.id);
+    toast({ title: 'Generating document...', description: 'This may take a moment' });
+
+    try {
+      const service = new DocumentGeneratorService(userId);
+      const result = await service.generateFromAgentOutput(output);
+
+      if (result) {
+        // Upload to storage
+        const url = await service.uploadGeneratedDocument(result.blob, result.filename, output.id);
+        
+        if (url) {
+          toast({ title: 'Success', description: 'Document generated successfully!' });
+          // Refresh outputs
+          refetchOutputs?.();
+        } else {
+          // Just download if upload fails
+          const ext = result.filename.split('.').pop()?.toLowerCase();
+          if (ext === 'pptx') downloadPPTX(result.blob, result.filename);
+          else if (ext === 'docx') downloadDOCX(result.blob, result.filename);
+          else if (ext === 'xlsx') downloadXLSX(result.blob, result.filename);
+          toast({ title: 'Downloaded', description: 'Document downloaded to your device' });
+        }
+      } else {
+        toast({ title: 'Error', description: 'Failed to generate document', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      console.error('Document generation failed:', err);
+      toast({ title: 'Error', description: err.message || 'Failed to generate document', variant: 'destructive' });
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
+  // Type guard for output metadata
+  const getOutputMetadata = (output: TaskOutput) => {
+    const metadata = output.metadata as Record<string, any> | null;
+    return {
+      requiresClientGeneration: metadata?.requires_client_generation === true,
+      targetType: metadata?.target_type as string | undefined,
+      slideCount: metadata?.slide_count as number | undefined,
+      sectionCount: metadata?.section_count as number | undefined,
+    };
   };
 
   return (
@@ -233,51 +304,114 @@ export const MasterExecutionView: React.FC<Props> = ({
         </div>
 
         {/* Right Panel - Output/Preview */}
-        <div className="flex-1 flex flex-col bg-background">
+        <div className="flex-1 flex flex-col bg-background overflow-hidden">
           <h2 className="px-4 py-3 text-sm font-medium text-foreground border-b border-border">Results</h2>
           
-          {outputs.length > 0 ? (
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {outputs.map((output, i) => (
-                <div key={output.id || i} className="p-4 border border-border rounded-lg bg-card">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-mono rounded">
-                        {output.output_type?.toUpperCase() || 'FILE'}
-                      </span>
-                      <span className="text-sm font-medium text-foreground">
-                        {output.file_name || `Output ${i + 1}`}
-                      </span>
+          <div className="flex-1 overflow-y-auto">
+            {outputs.length > 0 ? (
+              <div className="p-4 space-y-3">
+                {outputs.map((output, i) => {
+                  const { requiresClientGeneration, targetType, slideCount, sectionCount } = getOutputMetadata(output);
+                  const isGenerating = generatingDoc === output.id;
+                  const conversionComplete = output.conversion_status?.includes('complete');
+
+                  return (
+                    <div key={output.id || i} className="p-4 border border-border rounded-lg bg-card">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-mono rounded">
+                            {requiresClientGeneration && targetType 
+                              ? targetType.toUpperCase() 
+                              : output.output_type?.toUpperCase() || 'FILE'}
+                          </span>
+                          <span className="text-sm font-medium text-foreground">
+                            {output.file_name || `Output ${i + 1}`}
+                          </span>
+                          {slideCount && (
+                            <span className="text-xs text-muted-foreground">
+                              {slideCount} slides
+                            </span>
+                          )}
+                          {sectionCount && (
+                            <span className="text-xs text-muted-foreground">
+                              {sectionCount} sections
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {requiresClientGeneration && !conversionComplete ? (
+                            <button
+                              onClick={() => handleGenerateDocument(output)}
+                              disabled={isGenerating}
+                              className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 text-sm font-medium transition-colors"
+                            >
+                              {isGenerating ? 'Generating...' : `Generate ${targetType?.toUpperCase() || 'Document'}`}
+                            </button>
+                          ) : output.download_url ? (
+                            <a
+                              href={output.download_url}
+                              className="text-xs text-primary hover:underline"
+                              download
+                            >
+                              Download
+                            </a>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {/* Conversion status hint */}
+                      {requiresClientGeneration && !conversionComplete && (
+                        <p className="text-xs text-muted-foreground mt-2 bg-muted/50 rounded px-2 py-1">
+                          Click "Generate {targetType?.toUpperCase() || 'Document'}" to create the final document
+                        </p>
+                      )}
+
+                      {output.preview_url && (
+                        <div className="mt-2 p-2 bg-muted rounded">
+                          <img 
+                            src={output.preview_url} 
+                            alt={output.file_name}
+                            className="max-h-40 rounded"
+                          />
+                        </div>
+                      )}
                     </div>
-                    {output.download_url && (
-                      <a
-                        href={output.download_url}
-                        className="text-xs text-primary hover:underline"
-                        download
-                      >
-                        Download
-                      </a>
-                    )}
-                  </div>
-                  {output.preview_url && (
-                    <div className="mt-2 p-2 bg-muted rounded">
-                      <img 
-                        src={output.preview_url} 
-                        alt={output.file_name}
-                        className="max-h-40 rounded"
-                      />
-                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm py-12">
+                {isComplete 
+                  ? 'No output files generated' 
+                  : 'Output will appear here...'}
+              </div>
+            )}
+
+            {/* Reasoning Section */}
+            <div className="p-4 border-t border-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-foreground">Agent Reasoning</h3>
+                <button
+                  onClick={() => setShowReasoning(!showReasoning)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs rounded border transition-colors",
+                    showReasoning
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-muted border-border text-muted-foreground hover:bg-muted/80"
                   )}
-                </div>
-              ))}
+                >
+                  {showReasoning ? 'Hide Reasoning' : 'Show Reasoning'}
+                </button>
+              </div>
+
+              <ReasoningPanel
+                taskId={task.id}
+                isExpanded={showReasoning}
+                onToggle={() => setShowReasoning(!showReasoning)}
+              />
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-              {isComplete 
-                ? 'No output files generated' 
-                : 'Output will appear here...'}
-            </div>
-          )}
+          </div>
 
           {/* Download All & New Task */}
           {isComplete && outputs.length > 0 && (
