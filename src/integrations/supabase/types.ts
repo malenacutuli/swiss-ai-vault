@@ -4084,45 +4084,135 @@ export type Database = {
         }
         Relationships: []
       }
+      sso_audit_logs: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          organization_id: string | null
+          sso_config_id: string | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          sso_config_id?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          sso_config_id?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sso_audit_logs_sso_config_id_fkey"
+            columns: ["sso_config_id"]
+            isOneToOne: false
+            referencedRelation: "sso_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sso_configurations: {
         Row: {
+          attribute_mapping: Json | null
+          authorization_url: string | null
+          auto_provision_users: boolean | null
           certificate: string | null
           client_id: string | null
           client_secret: string | null
           created_at: string | null
+          display_name: string | null
+          domain_whitelist: string[] | null
+          enforce_sso: boolean | null
           id: string
           is_active: boolean | null
+          issuer_url: string | null
           metadata_url: string | null
           organization_id: string | null
           provider_name: string
           provider_type: string
+          scopes: string[] | null
+          token_url: string | null
           updated_at: string | null
+          userinfo_url: string | null
         }
         Insert: {
+          attribute_mapping?: Json | null
+          authorization_url?: string | null
+          auto_provision_users?: boolean | null
           certificate?: string | null
           client_id?: string | null
           client_secret?: string | null
           created_at?: string | null
+          display_name?: string | null
+          domain_whitelist?: string[] | null
+          enforce_sso?: boolean | null
           id?: string
           is_active?: boolean | null
+          issuer_url?: string | null
           metadata_url?: string | null
           organization_id?: string | null
           provider_name: string
           provider_type: string
+          scopes?: string[] | null
+          token_url?: string | null
           updated_at?: string | null
+          userinfo_url?: string | null
         }
         Update: {
+          attribute_mapping?: Json | null
+          authorization_url?: string | null
+          auto_provision_users?: boolean | null
           certificate?: string | null
           client_id?: string | null
           client_secret?: string | null
           created_at?: string | null
+          display_name?: string | null
+          domain_whitelist?: string[] | null
+          enforce_sso?: boolean | null
           id?: string
           is_active?: boolean | null
+          issuer_url?: string | null
           metadata_url?: string | null
           organization_id?: string | null
           provider_name?: string
           provider_type?: string
+          scopes?: string[] | null
+          token_url?: string | null
           updated_at?: string | null
+          userinfo_url?: string | null
         }
         Relationships: [
           {
@@ -4130,6 +4220,65 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_sessions: {
+        Row: {
+          code_verifier: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          nonce: string | null
+          original_url: string | null
+          redirect_uri: string | null
+          sso_config_id: string
+          state: string
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          code_verifier?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          nonce?: string | null
+          original_url?: string | null
+          redirect_uri?: string | null
+          sso_config_id: string
+          state: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          code_verifier?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          nonce?: string | null
+          original_url?: string | null
+          redirect_uri?: string | null
+          sso_config_id?: string
+          state?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_sessions_sso_config_id_fkey"
+            columns: ["sso_config_id"]
+            isOneToOne: false
+            referencedRelation: "sso_configurations"
             referencedColumns: ["id"]
           },
         ]
@@ -5488,6 +5637,19 @@ export type Database = {
       is_org_member_with_role: {
         Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
+      }
+      log_sso_event: {
+        Args: {
+          p_config_id: string
+          p_email?: string
+          p_error?: string
+          p_event_type: string
+          p_metadata?: Json
+          p_org_id: string
+          p_success?: boolean
+          p_user_id?: string
+        }
+        Returns: string
       }
       match_semantic_cache: {
         Args: {
