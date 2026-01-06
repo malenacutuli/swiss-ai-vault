@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.gemini-tts]
 verify_jwt = true
+
+[functions.gemini-video]
+verify_jwt = true
