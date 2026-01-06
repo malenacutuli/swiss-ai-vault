@@ -613,8 +613,7 @@ Use this context to inform your response when relevant. Cite sources by number w
       };
       
       // Save messages to storage with comparison metadata
-      // Note: Storage saves the content; comparisonData is preserved in UI state
-      saveMessage(convId, 'user', compareResult.prompt);
+      saveMessage(convId, 'user', compareResult.prompt, { comparisonData });
       saveMessage(convId, 'assistant', response.response);
       
       // Update local UI state with full comparison history
@@ -802,7 +801,12 @@ Use this context to inform your response when relevant. Cite sources by number w
       const conv = getConversation(selectedConversation);
       if (conv) {
         console.log(`[GhostChat] Hydrating ${conv.messages.length} messages from storage`);
-        setMessages(conv.messages);
+        // Map storage messages to UI messages, preserving metadata like comparisonData
+        const hydratedMessages: GhostMessageData[] = conv.messages.map(m => ({
+          ...m,
+          comparisonData: m.metadata?.comparisonData,
+        }));
+        setMessages(hydratedMessages);
       }
     } else if (!selectedConversation) {
       // Only clear if explicitly no conversation selected (not during transition)
