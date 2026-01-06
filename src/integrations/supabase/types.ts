@@ -227,6 +227,56 @@ export type Database = {
           },
         ]
       }
+      agent_notebook_sources: {
+        Row: {
+          content_summary: string | null
+          created_at: string | null
+          embeddings: string | null
+          full_text: string | null
+          id: string
+          metadata: Json | null
+          source_name: string | null
+          source_type: string | null
+          source_url: string | null
+          task_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content_summary?: string | null
+          created_at?: string | null
+          embeddings?: string | null
+          full_text?: string | null
+          id?: string
+          metadata?: Json | null
+          source_name?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content_summary?: string | null
+          created_at?: string | null
+          embeddings?: string | null
+          full_text?: string | null
+          id?: string
+          metadata?: Json | null
+          source_name?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_notebook_sources_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_outputs: {
         Row: {
           actual_format: string | null
@@ -486,6 +536,38 @@ export type Database = {
           },
         ]
       }
+      agent_study_materials: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          material_type: string | null
+          task_id: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          id?: string
+          material_type?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          material_type?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_study_materials_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_suggestions: {
         Row: {
           created_at: string | null
@@ -517,6 +599,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agent_suggestions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_task_logs: {
+        Row: {
+          content: string
+          id: string
+          log_type: string | null
+          sequence_number: number | null
+          task_id: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          content: string
+          id?: string
+          log_type?: string | null
+          sequence_number?: number | null
+          task_id?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          content?: string
+          id?: string
+          log_type?: string | null
+          sequence_number?: number | null
+          task_id?: string | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_task_logs_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "agent_tasks"
@@ -3729,6 +3846,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      presentation_templates: {
+        Row: {
+          colors: Json | null
+          created_at: string | null
+          fonts: Json | null
+          id: string
+          is_premium: boolean | null
+          name: string
+          preview_url: string | null
+          theme_name: string | null
+        }
+        Insert: {
+          colors?: Json | null
+          created_at?: string | null
+          fonts?: Json | null
+          id?: string
+          is_premium?: boolean | null
+          name: string
+          preview_url?: string | null
+          theme_name?: string | null
+        }
+        Update: {
+          colors?: Json | null
+          created_at?: string | null
+          fonts?: Json | null
+          id?: string
+          is_premium?: boolean | null
+          name?: string
+          preview_url?: string | null
+          theme_name?: string | null
+        }
+        Relationships: []
       }
       projects: {
         Row: {
