@@ -15,3 +15,4 @@ export { LivePreviewPanel } from './LivePreviewPanel';
 export { FileActionChip, parseToolToFileActions } from './FileActionChip';
 export { SuggestedFollowups } from './SuggestedFollowups';
 export { TaskRating } from './TaskRating';
+export { ReasoningPanel } from './ReasoningPanel';
