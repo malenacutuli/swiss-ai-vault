@@ -12,27 +12,44 @@ interface LivePreviewPanelProps {
   className?: string;
 }
 
-// File type icon mapping (no Lucide, using text/emoji)
-const fileIcons: Record<string, string> = {
-  document: '📄',
-  image: '🖼️',
-  spreadsheet: '📊',
-  presentation: '📽️',
-  code: '💻',
-  data: '📋',
-  default: '📎',
+// File type configuration - NO EMOJIS, enterprise design
+const fileTypes: Record<string, { label: string; bgColor: string }> = {
+  document: { label: 'DOC', bgColor: 'bg-blue-100 text-blue-700' },
+  image: { label: 'IMG', bgColor: 'bg-purple-100 text-purple-700' },
+  spreadsheet: { label: 'XLS', bgColor: 'bg-green-100 text-green-700' },
+  presentation: { label: 'PPT', bgColor: 'bg-orange-100 text-orange-700' },
+  code: { label: 'CODE', bgColor: 'bg-gray-100 text-gray-700' },
+  data: { label: 'JSON', bgColor: 'bg-yellow-100 text-yellow-700' },
+  pdf: { label: 'PDF', bgColor: 'bg-red-100 text-red-700' },
+  markdown: { label: 'MD', bgColor: 'bg-indigo-100 text-indigo-700' },
+  default: { label: 'FILE', bgColor: 'bg-gray-100 text-gray-600' },
 };
 
-function getFileIcon(fileName: string, type: string): string {
+function getFileTypeKey(fileName: string, type: string): string {
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
   
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return fileIcons.image;
-  if (['xlsx', 'xls', 'csv'].includes(ext)) return fileIcons.spreadsheet;
-  if (['pptx', 'ppt'].includes(ext)) return fileIcons.presentation;
-  if (['docx', 'doc', 'pdf', 'txt', 'md'].includes(ext)) return fileIcons.document;
-  if (['js', 'ts', 'py', 'html', 'css', 'json'].includes(ext)) return fileIcons.code;
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
+  if (['xlsx', 'xls', 'csv'].includes(ext)) return 'spreadsheet';
+  if (['pptx', 'ppt'].includes(ext)) return 'presentation';
+  if (['pdf'].includes(ext)) return 'pdf';
+  if (['md'].includes(ext)) return 'markdown';
+  if (['docx', 'doc', 'txt'].includes(ext)) return 'document';
+  if (['js', 'ts', 'py', 'html', 'css', 'json'].includes(ext)) return 'code';
   
-  return fileIcons[type] || fileIcons.default;
+  return type in fileTypes ? type : 'default';
+}
+
+function FileTypeBadge({ fileName, type }: { fileName: string; type: string }) {
+  const key = getFileTypeKey(fileName, type);
+  const config = fileTypes[key] || fileTypes.default;
+  return (
+    <span className={cn(
+      "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-mono font-medium rounded",
+      config.bgColor
+    )}>
+      {config.label}
+    </span>
+  );
 }
 
 function getMonacoLanguage(fileName: string): string {
@@ -145,7 +162,7 @@ export function LivePreviewPanel({
                         : 'text-foreground hover:bg-muted'
                     )}
                   >
-                    <span className="flex-shrink-0">{getFileIcon(file.name, file.type)}</span>
+                    <FileTypeBadge fileName={file.name} type={file.type} />
                     <span className="truncate">{file.name}</span>
                   </button>
                 ))}
