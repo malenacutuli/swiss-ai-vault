@@ -234,7 +234,7 @@ export default function Agents() {
                         value={taskPrompt}
                         onChange={(e) => setTaskPrompt(e.target.value)}
                         placeholder="Describe your task in detail..."
-                        className="w-full min-h-[200px] text-base bg-transparent border-0 focus:ring-0 focus:outline-none resize-y placeholder:text-muted-foreground"
+                        className="w-full min-h-[280px] text-base bg-transparent border-0 focus:ring-0 focus:outline-none resize-y placeholder:text-muted-foreground"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && e.metaKey) {
                             handleSubmit();
