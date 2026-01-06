@@ -34,6 +34,10 @@ export interface TaskOutput {
   download_url: string | null;
   preview_url: string | null;
   created_at: string | null;
+  requested_format?: string | null;
+  actual_format?: string | null;
+  conversion_status?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface ExecutionTask {
