@@ -157,8 +157,8 @@ Return a JSON object (no markdown):
 
     console.log(`[agent-execute] Plan generated with ${plan.steps?.length || 0} steps`);
 
-    // 5. Update task with plan
-    await supabase
+    // 5. Update task with plan and get updated task
+    const { data: updatedTask } = await supabase
       .from("agent_tasks")
       .update({
         plan_summary: plan.plan_summary,
@@ -166,15 +166,19 @@ Return a JSON object (no markdown):
         total_steps: plan.steps?.length || 0,
         status: "executing",
         started_at: new Date().toISOString(),
+        progress_percentage: 0,
+        current_step: 0,
       })
-      .eq("id", task.id);
+      .eq("id", task.id)
+      .select("*")
+      .single();
 
-    // 6. Create step records
+    // 6. Create step records with step_type properly set
     if (plan.steps && plan.steps.length > 0) {
       const stepRecords = plan.steps.map((step: any, index: number) => ({
         task_id: task.id,
         step_number: index + 1,
-        step_type: step.step_name || `Step ${index + 1}`,
+        step_type: step.tool_name || "text_generation", // CRITICAL: Use tool_name as step_type
         description: step.step_description || "",
         tool_name: step.tool_name || "text_generation",
         tool_input: step.tool_input || {},
@@ -188,10 +192,14 @@ Return a JSON object (no markdown):
     (globalThis as any).EdgeRuntime?.waitUntil?.(executeTaskAsync(task.id, supabase, LOVABLE_API_KEY)) 
       ?? executeTaskAsync(task.id, supabase, LOVABLE_API_KEY);
 
+    // CRITICAL: Return full task object, not just taskId
+    const responseTask = updatedTask || task;
+    
     return new Response(
       JSON.stringify({
         success: true,
-        taskId: task.id,
+        task: responseTask, // Full task object for polling to work
+        taskId: task.id, // Keep for backward compatibility
         plan: plan,
         status: "executing",
       }),
