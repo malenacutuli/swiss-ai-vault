@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           avg_rating: number | null
           category: string | null
+          complexity: string | null
           created_at: string | null
           created_by: string | null
           default_values: Json | null
@@ -29,16 +30,23 @@ export type Database = {
           is_featured: boolean | null
           is_public: boolean | null
           name: string
+          output_schema: Json | null
           output_types: Json | null
           prompt_template: string
           required_inputs: Json | null
           required_tools: Json | null
+          requires_code_sandbox: boolean | null
+          requires_notebooklm: boolean | null
+          system_prompt: string | null
+          tool_permissions: Json | null
           updated_at: string | null
           usage_count: number | null
+          vertical: string | null
         }
         Insert: {
           avg_rating?: number | null
           category?: string | null
+          complexity?: string | null
           created_at?: string | null
           created_by?: string | null
           default_values?: Json | null
@@ -50,16 +58,23 @@ export type Database = {
           is_featured?: boolean | null
           is_public?: boolean | null
           name: string
+          output_schema?: Json | null
           output_types?: Json | null
           prompt_template: string
           required_inputs?: Json | null
           required_tools?: Json | null
+          requires_code_sandbox?: boolean | null
+          requires_notebooklm?: boolean | null
+          system_prompt?: string | null
+          tool_permissions?: Json | null
           updated_at?: string | null
           usage_count?: number | null
+          vertical?: string | null
         }
         Update: {
           avg_rating?: number | null
           category?: string | null
+          complexity?: string | null
           created_at?: string | null
           created_by?: string | null
           default_values?: Json | null
@@ -71,14 +86,64 @@ export type Database = {
           is_featured?: boolean | null
           is_public?: boolean | null
           name?: string
+          output_schema?: Json | null
           output_types?: Json | null
           prompt_template?: string
           required_inputs?: Json | null
           required_tools?: Json | null
+          requires_code_sandbox?: boolean | null
+          requires_notebooklm?: boolean | null
+          system_prompt?: string | null
+          tool_permissions?: Json | null
           updated_at?: string | null
           usage_count?: number | null
+          vertical?: string | null
         }
         Relationships: []
+      }
+      agent_communications: {
+        Row: {
+          attachments: Json | null
+          created_at: string | null
+          from_agent: string
+          id: string
+          message_content: string
+          message_type: string
+          task_id: string | null
+          to_agent: string
+          tokens_used: number | null
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string | null
+          from_agent: string
+          id?: string
+          message_content: string
+          message_type: string
+          task_id?: string | null
+          to_agent: string
+          tokens_used?: number | null
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string | null
+          from_agent?: string
+          id?: string
+          message_content?: string
+          message_type?: string
+          task_id?: string | null
+          to_agent?: string
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_communications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_file_actions: {
         Row: {
@@ -121,8 +186,51 @@ export type Database = {
           },
         ]
       }
+      agent_memory_context: {
+        Row: {
+          context_content: string
+          context_type: string
+          created_at: string | null
+          id: string
+          relevance_score: number | null
+          source_reference: string | null
+          task_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context_content: string
+          context_type: string
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          source_reference?: string | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context_content?: string
+          context_type?: string
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          source_reference?: string | null
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_memory_context_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_outputs: {
         Row: {
+          actual_format: string | null
+          conversion_status: string | null
           created_at: string | null
           download_url: string | null
           encryption_key_id: string | null
@@ -133,8 +241,10 @@ export type Database = {
           id: string
           is_encrypted: boolean | null
           mime_type: string | null
+          notebooklm_source_id: string | null
           output_type: string
           preview_url: string | null
+          requested_format: string | null
           storage_bucket: string | null
           storage_region: string | null
           task_id: string
@@ -142,6 +252,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actual_format?: string | null
+          conversion_status?: string | null
           created_at?: string | null
           download_url?: string | null
           encryption_key_id?: string | null
@@ -152,8 +264,10 @@ export type Database = {
           id?: string
           is_encrypted?: boolean | null
           mime_type?: string | null
+          notebooklm_source_id?: string | null
           output_type: string
           preview_url?: string | null
+          requested_format?: string | null
           storage_bucket?: string | null
           storage_region?: string | null
           task_id: string
@@ -161,6 +275,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actual_format?: string | null
+          conversion_status?: string | null
           created_at?: string | null
           download_url?: string | null
           encryption_key_id?: string | null
@@ -171,8 +287,10 @@ export type Database = {
           id?: string
           is_encrypted?: boolean | null
           mime_type?: string | null
+          notebooklm_source_id?: string | null
           output_type?: string
           preview_url?: string | null
+          requested_format?: string | null
           storage_bucket?: string | null
           storage_region?: string | null
           task_id?: string
@@ -182,6 +300,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agent_outputs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_reasoning: {
+        Row: {
+          agent_type: string
+          alternatives_considered: Json | null
+          confidence_score: number | null
+          created_at: string | null
+          decisions_made: Json | null
+          id: string
+          model_used: string | null
+          reasoning_text: string
+          sources_used: Json | null
+          step_id: string | null
+          task_id: string | null
+          thinking_duration_ms: number | null
+        }
+        Insert: {
+          agent_type: string
+          alternatives_considered?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          decisions_made?: Json | null
+          id?: string
+          model_used?: string | null
+          reasoning_text: string
+          sources_used?: Json | null
+          step_id?: string | null
+          task_id?: string | null
+          thinking_duration_ms?: number | null
+        }
+        Update: {
+          agent_type?: string
+          alternatives_considered?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          decisions_made?: Json | null
+          id?: string
+          model_used?: string | null
+          reasoning_text?: string
+          sources_used?: Json | null
+          step_id?: string | null
+          task_id?: string | null
+          thinking_duration_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reasoning_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "agent_task_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reasoning_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "agent_tasks"
@@ -244,6 +422,66 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_sources: {
+        Row: {
+          citation_key: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          page_number: number | null
+          relevance_score: number | null
+          source_snippet: string | null
+          source_title: string | null
+          source_type: string
+          source_url: string | null
+          task_id: string | null
+          used_in_step: string | null
+        }
+        Insert: {
+          citation_key?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          page_number?: number | null
+          relevance_score?: number | null
+          source_snippet?: string | null
+          source_title?: string | null
+          source_type: string
+          source_url?: string | null
+          task_id?: string | null
+          used_in_step?: string | null
+        }
+        Update: {
+          citation_key?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          page_number?: number | null
+          relevance_score?: number | null
+          source_snippet?: string | null
+          source_title?: string | null
+          source_type?: string
+          source_url?: string | null
+          task_id?: string | null
+          used_in_step?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_sources_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_sources_used_in_step_fkey"
+            columns: ["used_in_step"]
+            isOneToOne: false
+            referencedRelation: "agent_task_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -368,11 +606,15 @@ export type Database = {
           mode: string | null
           model_id: string | null
           model_used: string | null
+          notebooklm_notebook_id: string | null
+          output_format: string | null
           plan_json: Json | null
           plan_summary: string | null
           privacy_tier: string | null
           progress_percentage: number | null
           prompt: string
+          reasoning_visible: boolean | null
+          requested_format: string | null
           result_summary: string | null
           share_token: string | null
           started_at: string | null
@@ -397,11 +639,15 @@ export type Database = {
           mode?: string | null
           model_id?: string | null
           model_used?: string | null
+          notebooklm_notebook_id?: string | null
+          output_format?: string | null
           plan_json?: Json | null
           plan_summary?: string | null
           privacy_tier?: string | null
           progress_percentage?: number | null
           prompt: string
+          reasoning_visible?: boolean | null
+          requested_format?: string | null
           result_summary?: string | null
           share_token?: string | null
           started_at?: string | null
@@ -426,11 +672,15 @@ export type Database = {
           mode?: string | null
           model_id?: string | null
           model_used?: string | null
+          notebooklm_notebook_id?: string | null
+          output_format?: string | null
           plan_json?: Json | null
           plan_summary?: string | null
           privacy_tier?: string | null
           progress_percentage?: number | null
           prompt?: string
+          reasoning_visible?: boolean | null
+          requested_format?: string | null
           result_summary?: string | null
           share_token?: string | null
           started_at?: string | null
@@ -3041,6 +3291,128 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebooklm_notebooks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          notebook_id: string
+          sources: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notebook_id: string
+          sources?: Json | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          notebook_id?: string
+          sources?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notebooklm_outputs: {
+        Row: {
+          audio_url: string | null
+          content: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          notebook_id: string | null
+          output_type: string
+          task_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notebook_id?: string | null
+          output_type: string
+          task_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notebook_id?: string | null
+          output_type?: string
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebooklm_outputs_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooklm_notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebooklm_outputs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebooklm_sources: {
+        Row: {
+          content_preview: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          notebook_id: string | null
+          source_type: string
+          source_uri: string | null
+          title: string | null
+        }
+        Insert: {
+          content_preview?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notebook_id?: string | null
+          source_type: string
+          source_uri?: string | null
+          title?: string | null
+        }
+        Update: {
+          content_preview?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notebook_id?: string | null
+          source_type?: string
+          source_uri?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebooklm_sources_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooklm_notebooks"
             referencedColumns: ["id"]
           },
         ]
