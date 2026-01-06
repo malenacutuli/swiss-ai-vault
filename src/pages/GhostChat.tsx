@@ -2189,6 +2189,27 @@ Use this context to inform your response when relevant. Cite sources by number w
       }
     }
 
+    // DOCX files - extract text using mammoth
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.name.endsWith('.docx')) {
+      try {
+        const mammoth = await import('mammoth');
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        const text = result.value;
+        console.log(`[GhostChat] DOCX extracted: ${text.length} chars`);
+        
+        if (!text || text.trim().length === 0) {
+          return null;
+        }
+        
+        return { id, file, text, name: file.name, type: 'document', size: file.size };
+      } catch (error) {
+        console.error('[GhostChat] DOCX extraction failed:', error);
+        return null;
+      }
+    }
+
     return null;
   };
 
