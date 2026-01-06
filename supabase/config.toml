@@ -134,3 +134,6 @@ verify_jwt = false
 
 [functions.agent-wide-research]
 verify_jwt = true
+
+[functions.code-execute]
+verify_jwt = true
