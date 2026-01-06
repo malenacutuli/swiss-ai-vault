@@ -713,13 +713,14 @@ async function callGoogle(
   messages: any[],
   options: { maxTokens?: number; temperature?: number }
 ): Promise<{ content: string; usage?: any }> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const apiKey = getApiKey('google');
 
-  // If Google key isn't configured, fall back to Lovable AI for Gemini models.
+  // If Google key isn't configured, fall back to OpenAI (gpt-4o-mini) to avoid Lovable Gateway 10/day limit.
   if (!apiKey) {
-    if (!LOVABLE_API_KEY) throw new Error('GOOGLE_API_KEY not configured');
-    return await callLovableGeminiFallback(model, messages, options);
+    console.log('[Google] GOOGLE_API_KEY not configured; falling back to OpenAI (gpt-4o-mini)');
+    const result = await callOpenAI('gpt-4o-mini', messages, { ...options, stream: false });
+    // callOpenAI can return a stream, but with stream: false it returns the object
+    return result as { content: string; usage?: any };
   }
 
   // Map display names to Google Gemini API model IDs.
@@ -832,14 +833,16 @@ async function callGoogle(
     const errorText = await response.text();
     console.error('[Google] Error:', response.status, errorText);
 
-    // Many users' Google keys don't have access to Gemini (or specific variants) → fall back to Lovable AI.
+    // Many users' Google keys don't have access to Gemini (or specific variants) → fall back to OpenAI.
     const looksLikeModelNotFound =
       response.status === 404 &&
       (errorText.includes('models/') || errorText.includes('not found') || errorText.includes('NOT_FOUND'));
 
-    if (looksLikeModelNotFound && LOVABLE_API_KEY) {
-      console.log('[Google] Model not available for this key; falling back to Lovable AI gateway');
-      return await callLovableGeminiFallback(model, messages, options);
+    if (looksLikeModelNotFound) {
+      console.log('[Google] Model not available for this key; falling back to OpenAI (gpt-4o-mini)');
+      // Fall back to OpenAI instead of Lovable Gateway to avoid 10/day limit
+      const result = await callOpenAI('gpt-4o-mini', messages, { ...options, stream: false });
+      return result as { content: string; usage?: any };
     }
 
     throw new Error(`Google error ${response.status}: ${errorText}`);
@@ -851,59 +854,8 @@ async function callGoogle(
   };
 }
 
-async function callLovableGeminiFallback(
-  model: string,
-  messages: any[],
-  options: { maxTokens?: number; temperature?: number }
-): Promise<{ content: string; usage?: any }> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
-
-  const gatewayModel = (() => {
-    if (model.includes('pro')) return 'google/gemini-2.5-pro';
-    if (model.includes('flash-lite')) return 'google/gemini-2.5-flash-lite';
-    if (model.includes('flash')) return 'google/gemini-2.5-flash';
-    // sensible default
-    return 'google/gemini-2.5-flash';
-  })();
-
-  const resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: gatewayModel,
-      messages,
-      stream: false,
-      max_tokens: options.maxTokens || 4096,
-      temperature: options.temperature ?? 0.7,
-    }),
-  });
-
-  if (!resp.ok) {
-    const t = await resp.text();
-    console.error('[Lovable AI][Gemini fallback] Error:', resp.status, t);
-
-    if (resp.status === 429) throw new Error('Rate limits exceeded, please try again later.');
-    if (resp.status === 402) throw new Error('AI credits required. Please add credits to continue.');
-
-    throw new Error(`Lovable AI gateway error ${resp.status}: ${t}`);
-  }
-
-  const data = await resp.json();
-  const content = data?.choices?.[0]?.message?.content;
-
-  if (!content || String(content).trim().length === 0) {
-    throw new Error('Empty completion from model');
-  }
-
-  return {
-    content,
-    usage: data?.usage,
-  };
-}
+// NOTE: callLovableGeminiFallback has been REMOVED to avoid hitting the 10/day Lovable Gateway limit.
+// All fallbacks now route to OpenAI (gpt-4o-mini) which has 500+ RPM quota.
 
 // ============================================
 // XAI HANDLER
