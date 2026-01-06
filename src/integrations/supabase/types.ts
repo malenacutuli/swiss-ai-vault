@@ -889,11 +889,14 @@ export type Database = {
           details: Json | null
           id: string
           ip_address: string | null
+          metadata: Json | null
           new_values: Json | null
           old_values: Json | null
           org_id: string | null
+          request_body: Json | null
           resource_id: string | null
           resource_type: string | null
+          response_status: number | null
           user_agent: string | null
           user_id: string | null
         }
@@ -903,11 +906,14 @@ export type Database = {
           details?: Json | null
           id?: string
           ip_address?: string | null
+          metadata?: Json | null
           new_values?: Json | null
           old_values?: Json | null
           org_id?: string | null
+          request_body?: Json | null
           resource_id?: string | null
           resource_type?: string | null
+          response_status?: number | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -917,11 +923,14 @@ export type Database = {
           details?: Json | null
           id?: string
           ip_address?: string | null
+          metadata?: Json | null
           new_values?: Json | null
           old_values?: Json | null
           org_id?: string | null
+          request_body?: Json | null
           resource_id?: string | null
           resource_type?: string | null
+          response_status?: number | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -5501,6 +5510,21 @@ export type Database = {
       clear_conversation_documents: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: number
+      }
+      create_audit_log: {
+        Args: {
+          p_action: string
+          p_ip_address?: unknown
+          p_metadata?: Json
+          p_org_id?: string
+          p_request_body?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_response_status?: number
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: string
       }
       create_organization_with_owner: {
         Args: { p_avatar_url?: string; p_name: string; p_slug: string }
