@@ -537,6 +537,29 @@ Use this context to inform your response when relevant. Cite sources by number w
   // Handle using a compare response as the answer
   const handleUseCompareResponse = useCallback((response: CompareResponse) => {
     if (response.response && compareResult) {
+      // Create conversation FIRST if none is selected
+      let convId = selectedConversation;
+      const isNewConversation = !convId;
+      
+      if (!convId) {
+        // Create a new conversation with title from prompt
+        const title = compareResult.prompt.slice(0, 50) + (compareResult.prompt.length > 50 ? '...' : '');
+        convId = createConversation(title);
+        if (convId) {
+          setSelectedConversation(convId);
+        }
+      }
+      
+      if (!convId) {
+        toast({
+          title: 'Storage not ready',
+          description: 'Please try again in a moment.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Create message objects
       const userMsg: GhostMessageData = {
         id: crypto.randomUUID(),
         role: 'user',
@@ -549,32 +572,24 @@ Use this context to inform your response when relevant. Cite sources by number w
         content: response.response,
         timestamp: Date.now(),
       };
+      
+      // Save messages to storage FIRST (this triggers refreshConversations)
+      saveMessage(convId, 'user', compareResult.prompt);
+      saveMessage(convId, 'assistant', response.response);
+      
+      // Then update local UI state
       setMessages(prev => [...prev, userMsg, assistantMsg]);
       
-      // Create conversation if none is selected, then save messages
-      let convId = selectedConversation;
-      if (!convId) {
-        // Create a new conversation with title from prompt
-        const title = compareResult.prompt.slice(0, 50) + (compareResult.prompt.length > 50 ? '...' : '');
-        convId = createConversation(title);
-        if (convId) {
-          setSelectedConversation(convId);
-        }
-      }
-      
-      // Save messages to the conversation
-      if (convId) {
-        saveMessage(convId, 'user', compareResult.prompt);
-        saveMessage(convId, 'assistant', response.response);
-      }
+      // Explicit refresh to ensure sidebar updates
+      refreshConversations();
       
       clearCompareResult();
       toast({
         title: 'Response selected',
-        description: `Using ${response.displayName} response`,
+        description: `Using ${response.displayName} response. Chat saved.`,
       });
     }
-  }, [compareResult, selectedConversation, saveMessage, clearCompareResult, toast, createConversation]);
+  }, [compareResult, selectedConversation, saveMessage, clearCompareResult, toast, createConversation, refreshConversations]);
 
   const lastAssistantMessage = useMemo(() => {
     if (!messages || messages.length === 0) return undefined;
