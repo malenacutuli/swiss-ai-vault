@@ -1,10 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  initEmbeddings, 
+  embed, 
+  similarity,
+  isModelReady 
+} from '@/lib/memory/embedding-engine';
 
 // IndexedDB setup
 const DB_NAME = 'swissvault-agent-memory';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Bump version for embedding support
 const STORE_NAME = 'agent_memories';
 
 interface MemoryItem {
@@ -50,10 +56,20 @@ export function useAgentMemory() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [memoryCount, setMemoryCount] = useState(0);
+  const [embeddingsReady, setEmbeddingsReady] = useState(false);
+  const initRef = useRef(false);
 
-  // Count memories on mount
+  // Initialize embeddings on mount
   useEffect(() => {
     countMemories();
+    
+    // Lazy-load embedding model
+    if (!initRef.current) {
+      initRef.current = true;
+      initEmbeddings()
+        .then(() => setEmbeddingsReady(true))
+        .catch(err => console.warn('[useAgentMemory] Embedding init failed, using keyword fallback:', err));
+    }
   }, []);
 
   const countMemories = async () => {
@@ -113,7 +129,49 @@ export function useAgentMemory() {
         request.onerror = () => reject(request.error);
       });
 
-      // Simple keyword search (in production, use embeddings)
+      if (all.length === 0) return [];
+
+      // Try semantic search if embeddings are ready
+      if (embeddingsReady && isModelReady()) {
+        try {
+          console.log('[useAgentMemory] Using semantic search');
+          const queryEmbedding = await embed(query);
+          
+          // Score each memory by cosine similarity
+          const scored = all
+            .map(item => {
+              let score = 0;
+              
+              if (item.embedding && item.embedding.length > 0) {
+                // Use pre-computed embedding
+                score = similarity(queryEmbedding, item.embedding);
+              } else {
+                // Fallback: generate embedding on-the-fly (slower)
+                // Skip for now to avoid blocking
+                score = 0;
+              }
+              
+              // Boost recent items slightly
+              const age = Date.now() - new Date(item.metadata.createdAt).getTime();
+              const recencyBoost = Math.max(0, 1 - age / (7 * 24 * 60 * 60 * 1000)) * 0.1;
+              
+              return { item, score: score + recencyBoost };
+            })
+            .filter(x => x.score > 0.3) // Similarity threshold
+            .sort((a, b) => b.score - a.score)
+            .slice(0, maxResults)
+            .map(x => x.item);
+
+          if (scored.length > 0) {
+            return scored;
+          }
+        } catch (embErr) {
+          console.warn('[useAgentMemory] Semantic search failed, falling back to keyword:', embErr);
+        }
+      }
+
+      // Fallback: keyword-based search
+      console.log('[useAgentMemory] Using keyword search');
       const queryLower = query.toLowerCase();
       const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
       
@@ -122,16 +180,14 @@ export function useAgentMemory() {
           const contentLower = item.content.toLowerCase();
           const titleLower = (item.metadata.title || '').toLowerCase();
           
-          // Score based on word matches
           let score = 0;
           for (const word of queryWords) {
             if (contentLower.includes(word)) score += 1;
             if (titleLower.includes(word)) score += 0.5;
           }
           
-          // Boost recent items
           const age = Date.now() - new Date(item.metadata.createdAt).getTime();
-          const recencyBoost = Math.max(0, 1 - age / (7 * 24 * 60 * 60 * 1000)); // 1 week decay
+          const recencyBoost = Math.max(0, 1 - age / (7 * 24 * 60 * 60 * 1000));
           
           return { item, score: score + recencyBoost * 0.2 };
         })
@@ -145,7 +201,7 @@ export function useAgentMemory() {
       console.error('[useAgentMemory] Search error:', err);
       return [];
     }
-  }, []);
+  }, [embeddingsReady]);
 
   // Get context for a task
   const getContextForTask = useCallback(async (

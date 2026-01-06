@@ -18,6 +18,13 @@ let embedder: any = null;
 let isLoading = false;
 let loadPromise: Promise<void> | null = null;
 
+/**
+ * Check if the embedding model is loaded and ready
+ */
+export function isModelReady(): boolean {
+  return embedder !== null && !isLoading;
+}
+
 export type EmbeddingProgress = {
   status: 'downloading' | 'loading' | 'ready' | 'error';
   progress?: number;
