@@ -3919,6 +3919,36 @@ export type Database = {
         }
         Relationships: []
       }
+      roles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_system_role: boolean | null
+          name: string
+          permissions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_system_role?: boolean | null
+          name: string
+          permissions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_system_role?: boolean | null
+          name?: string
+          permissions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       scheduled_task_runs: {
         Row: {
           agent_task_id: string | null
@@ -4744,23 +4774,43 @@ export type Database = {
       user_roles: {
         Row: {
           created_at: string | null
+          expires_at: string | null
+          granted_at: string | null
+          granted_by: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          role_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
@@ -5465,6 +5515,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      assign_role: {
+        Args: { _expires_at?: string; _role_name: string; _user_id: string }
+        Returns: string
+      }
       calculate_next_cron_run: {
         Args: {
           p_cron_expression: string
@@ -5615,6 +5669,14 @@ export type Database = {
       }
       get_research_quota: { Args: never; Returns: Json }
       get_subscription_status: { Args: { p_user_id: string }; Returns: Json }
+      get_user_roles: {
+        Args: { _user_id: string }
+        Returns: {
+          permissions: Json
+          role_id: string
+          role_name: string
+        }[]
+      }
       get_user_tier: {
         Args: { p_user_id: string }
         Returns: {
@@ -5625,13 +5687,19 @@ export type Database = {
           tier_display_name: string
         }[]
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
         Returns: boolean
       }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _role_name: string; _user_id: string }; Returns: boolean }
       increment_ghost_usage: {
         Args: { p_type: string; p_user_id: string }
         Returns: Json
