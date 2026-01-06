@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
         case 'document_generator':
           const docName = toolInput.filename || toolInput.title || 'document';
           await trackAction('creating', docName);
-          stepResult = await executeDocumentGen(toolInput);
+          stepResult = await handleDocumentGeneration(pendingStep, task_id, supabase, user.id);
           break;
         case 'memory_search':
           await trackAction('reading', 'memory');
@@ -361,39 +361,213 @@ async function executeImageGen(
   }
 }
 
-async function executeDocumentGen(input: any): Promise<StepResult> {
-  const documentType = input.document_type || 'pptx';
-  const modalUrl = getModalEndpoint(documentType);
+// Document generation handler with Modal fallback
+async function handleDocumentGeneration(
+  step: any,
+  taskId: string,
+  supabase: any,
+  userId: string
+): Promise<StepResult> {
+  const { type, content, title, slides, document_type } = step.tool_input || {};
+  const docType = type || document_type || 'md';
   
-  if (!modalUrl) {
-    console.log('[agent-worker] Modal not available, using fallback generation');
-    return { 
-      success: true, 
-      output: { message: 'Document generation placeholder - Modal not configured' } 
+  console.log(`[agent-worker] Generating document: ${docType}`);
+
+  // Try Modal first for PPTX/DOCX/XLSX
+  if (['pptx', 'docx', 'xlsx'].includes(docType)) {
+    const modalUrl = getModalEndpoint(docType);
+    
+    if (modalUrl) {
+      try {
+        const modalResponse = await fetch(modalUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: docType,
+            title: title || 'Document',
+            content,
+            slides,
+          }),
+        });
+
+        if (modalResponse.ok) {
+          const fileBuffer = await modalResponse.arrayBuffer();
+          const filename = `${docType}-${Date.now()}.${docType}`;
+          
+          // Upload to storage
+          const filePath = `${userId}/documents/${filename}`;
+          await supabase.storage
+            .from('agent-outputs')
+            .upload(filePath, new Uint8Array(fileBuffer), {
+              contentType: getMimeType(docType),
+              upsert: true,
+            });
+
+          const { data: urlData } = supabase.storage
+            .from('agent-outputs')
+            .getPublicUrl(filePath);
+
+          // Save output record
+          await supabase.from('agent_outputs').insert({
+            task_id: taskId,
+            user_id: userId,
+            output_type: docType,
+            file_name: filename,
+            file_path: filePath,
+            download_url: urlData.publicUrl,
+            storage_bucket: 'agent-outputs',
+            mime_type: getMimeType(docType),
+          });
+
+          return {
+            success: true,
+            output: {
+              filename,
+              url: urlData.publicUrl,
+              generated_by: 'modal',
+            },
+          };
+        }
+      } catch (modalError) {
+        console.warn(`[agent-worker] Modal ${docType} generation failed:`, modalError);
+      }
+    }
+
+    // Fallback: Return structured data for client-side generation
+    console.log(`[agent-worker] Using client-side fallback for ${docType}`);
+    
+    const fallbackData = {
+      type: docType,
+      title: title || 'Generated Document',
+      slides: slides || [],
+      content: content || '',
+      generated_by: 'fallback',
+      requires_client_generation: true,
+    };
+
+    // Save as JSON for client to process
+    const filename = `${docType}-data-${Date.now()}.json`;
+    const filePath = `${userId}/documents/${filename}`;
+    
+    const jsonContent = JSON.stringify(fallbackData, null, 2);
+    const encoder = new TextEncoder();
+    const buffer = encoder.encode(jsonContent);
+
+    await supabase.storage
+      .from('agent-outputs')
+      .upload(filePath, buffer, {
+        contentType: 'application/json',
+        upsert: true,
+      });
+
+    const { data: urlData } = supabase.storage
+      .from('agent-outputs')
+      .getPublicUrl(filePath);
+
+    // Save output record with flag for client processing
+    await supabase.from('agent_outputs').insert({
+      task_id: taskId,
+      user_id: userId,
+      output_type: 'json',
+      file_name: filename,
+      file_path: filePath,
+      download_url: urlData.publicUrl,
+      storage_bucket: 'agent-outputs',
+      mime_type: 'application/json',
+    });
+
+    return {
+      success: true,
+      output: {
+        filename,
+        url: urlData.publicUrl,
+        generated_by: 'fallback',
+        requires_client_generation: true,
+        data: fallbackData,
+      },
     };
   }
 
-  try {
-    const response = await fetch(modalUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: input.document_type || 'pptx',
-        content: input.content,
-        title: input.title,
-      }),
+  // For markdown and other simple types, generate directly
+  const markdownContent = typeof content === 'string' 
+    ? content 
+    : formatAsMarkdown(title, content);
+    
+  const filename = `document-${Date.now()}.md`;
+  const filePath = `${userId}/documents/${filename}`;
+  
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(markdownContent);
+
+  await supabase.storage
+    .from('agent-outputs')
+    .upload(filePath, buffer, {
+      contentType: 'text/markdown',
+      upsert: true,
     });
 
-    if (!response.ok) {
-      throw new Error(`Document gen failed: ${response.status}`);
-    }
+  const { data: urlData } = supabase.storage
+    .from('agent-outputs')
+    .getPublicUrl(filePath);
 
-    const data = await response.json();
-    return { success: true, output: data };
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Document gen error';
-    return { success: false, error: errorMessage };
+  await supabase.from('agent_outputs').insert({
+    task_id: taskId,
+    user_id: userId,
+    output_type: 'md',
+    file_name: filename,
+    file_path: filePath,
+    download_url: urlData.publicUrl,
+    storage_bucket: 'agent-outputs',
+    mime_type: 'text/markdown',
+  });
+
+  return {
+    success: true,
+    output: {
+      filename,
+      url: urlData.publicUrl,
+      generated_by: 'direct',
+      content_preview: markdownContent.substring(0, 500),
+    },
+  };
+}
+
+function getMimeType(type: string): string {
+  const mimeTypes: Record<string, string> = {
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    pdf: 'application/pdf',
+    md: 'text/markdown',
+    json: 'application/json',
+  };
+  return mimeTypes[type] || 'application/octet-stream';
+}
+
+function formatAsMarkdown(title: string, content: any): string {
+  let md = `# ${title || 'Document'}\n\n`;
+  
+  if (Array.isArray(content)) {
+    content.forEach(item => {
+      if (typeof item === 'string') {
+        md += `${item}\n\n`;
+      } else if (item.title && item.content) {
+        md += `## ${item.title}\n\n`;
+        if (Array.isArray(item.content)) {
+          item.content.forEach((point: string) => {
+            md += `- ${point}\n`;
+          });
+        } else {
+          md += `${item.content}\n`;
+        }
+        md += '\n';
+      }
+    });
+  } else if (typeof content === 'string') {
+    md += content;
   }
+  
+  return md;
 }
 
 async function executeMemorySearch(
