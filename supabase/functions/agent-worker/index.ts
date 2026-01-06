@@ -340,10 +340,13 @@ async function executeImageGen(
 }
 
 async function executeDocumentGen(input: any): Promise<StepResult> {
-  // Document generation via Modal endpoint
-  const modalUrl = Deno.env.get('MODAL_DOCUMENT_GEN_URL');
+  // Document generation via Modal endpoint - check multiple possible env var names
+  const modalUrl = Deno.env.get('MODAL_DOCUMENT_GEN_ENDPOINT') || 
+                   Deno.env.get('MODAL_DOCUMENT_GEN_URL') ||
+                   Deno.env.get('MODAL_ENDPOINT');
   
   if (!modalUrl) {
+    console.warn('[agent-worker] No Modal endpoint configured (checked MODAL_DOCUMENT_GEN_ENDPOINT, MODAL_DOCUMENT_GEN_URL, MODAL_ENDPOINT)');
     return { 
       success: true, 
       output: { message: 'Document generation placeholder - Modal not configured' } 
