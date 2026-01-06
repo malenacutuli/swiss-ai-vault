@@ -1,5 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Declare EdgeRuntime for TypeScript (Supabase Deno runtime)
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<any>) => void;
+} | undefined;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -11,6 +16,8 @@ interface TaskRequest {
   privacyTier?: string;
   attachments?: Array<{ name: string; type: string; content: string }>;
   memoryContext?: string;
+  connectedTools?: string[];
+  templateId?: string;
 }
 
 Deno.serve(async (req) => {
@@ -188,12 +195,28 @@ Return a JSON object (no markdown):
       await supabase.from("agent_task_steps").insert(stepRecords);
     }
 
-    // 7. Trigger async worker execution
-    (globalThis as any).EdgeRuntime?.waitUntil?.(executeTaskAsync(task.id, supabase, LOVABLE_API_KEY)) 
-      ?? executeTaskAsync(task.id, supabase, LOVABLE_API_KEY);
+    // 7. Trigger async worker execution with proper EdgeRuntime handling
+    const asyncExecutionPromise = executeTaskAsync(task.id, supabase, LOVABLE_API_KEY);
+    
+    try {
+      if (typeof EdgeRuntime !== 'undefined' && typeof EdgeRuntime.waitUntil === 'function') {
+        EdgeRuntime.waitUntil(asyncExecutionPromise);
+        console.log(`[agent-execute] Task ${task.id} async execution registered with EdgeRuntime.waitUntil`);
+      } else {
+        console.warn(`[agent-execute] EdgeRuntime.waitUntil not available, using fallback`);
+        // Fallback: the promise will run but may be terminated when response is sent
+        asyncExecutionPromise.catch((err: any) => {
+          console.error(`[agent-execute] Background execution error for task ${task.id}:`, err);
+        });
+      }
+    } catch (waitUntilError) {
+      console.error(`[agent-execute] waitUntil registration failed:`, waitUntilError);
+    }
 
     // CRITICAL: Return full task object, not just taskId
     const responseTask = updatedTask || task;
+    
+    console.log(`[agent-execute] Returning response for task ${task.id}`);
     
     return new Response(
       JSON.stringify({
@@ -202,6 +225,8 @@ Return a JSON object (no markdown):
         taskId: task.id, // Keep for backward compatibility
         plan: plan,
         status: "executing",
+        estimatedDuration: plan.estimated_duration_seconds,
+        message: 'Task execution started. Poll agent-status for updates.',
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
