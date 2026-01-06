@@ -40,6 +40,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { VerifiedSourcesDisplay } from '@/components/trust/VerifiedSourcesDisplay';
 import { MemorySourcesCard, type MemorySource, GroundedResponse, GroundedModeToggle } from '@/components/chat';
 import { ModelSelector, CompareResults } from '@/components/ghost/compare';
+import { ComparisonHistoryCard } from '@/components/ghost/compare/ComparisonHistoryCard';
 import type { GroundedChatMessage, SourceDocument } from '@/types/grounded';
 
 import { UnifiedHeader } from '@/components/layout/UnifiedHeader';
@@ -121,6 +122,23 @@ interface GhostMessageData {
   isGrounded?: boolean;
   groundedSources?: SourceDocument[];
   citations?: Array<{ sourceIndex: number; sourceId: string; text: string }>;
+  // Comparison history data
+  comparisonData?: {
+    prompt: string;
+    responses: Array<{
+      model: string;
+      displayName: string;
+      provider: string;
+      response: string | null;
+      error?: string;
+      tokens: number;
+      latency: number;
+      status: 'pending' | 'streaming' | 'complete' | 'error';
+      rating?: number;
+    }>;
+    selectedModelId: string;
+    timestamp: string;
+  };
 }
 
 // Attached file for context - supports multiple files
@@ -559,25 +577,47 @@ Use this context to inform your response when relevant. Cite sources by number w
         return;
       }
       
-      // Create message objects
+      // Create comparison history data to preserve all compared responses
+      const comparisonData = {
+        prompt: compareResult.prompt,
+        responses: compareResult.responses.map(r => ({
+          model: r.model,
+          displayName: r.displayName,
+          provider: r.provider,
+          response: r.response,
+          error: r.error,
+          tokens: r.tokens,
+          latency: r.latency,
+          status: r.status,
+          rating: r.rating,
+        })),
+        selectedModelId: response.model,
+        timestamp: compareResult.timestamp,
+      };
+      
+      // Create message objects with comparison data on user message
       const userMsg: GhostMessageData = {
         id: crypto.randomUUID(),
         role: 'user',
         content: compareResult.prompt,
         timestamp: Date.now(),
+        comparisonData, // Attach the full comparison history
       };
       const assistantMsg: GhostMessageData = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: response.response,
         timestamp: Date.now(),
+        responseTimeMs: response.latency,
+        tokenCount: response.tokens,
       };
       
-      // Save messages to storage FIRST (this triggers refreshConversations)
+      // Save messages to storage with comparison metadata
+      // Note: Storage saves the content; comparisonData is preserved in UI state
       saveMessage(convId, 'user', compareResult.prompt);
       saveMessage(convId, 'assistant', response.response);
       
-      // Then update local UI state
+      // Update local UI state with full comparison history
       setMessages(prev => [...prev, userMsg, assistantMsg]);
       
       // Explicit refresh to ensure sidebar updates
@@ -2628,6 +2668,13 @@ Use this context to inform your response when relevant. Cite sources by number w
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-muted/60 rounded-2xl px-4 py-3' : ''}`}>
+                          {/* Show comparison history for user messages with comparison data */}
+                          {msg.role === 'user' && msg.comparisonData && (
+                            <ComparisonHistoryCard 
+                              data={msg.comparisonData}
+                              className="mb-2"
+                            />
+                          )}
                           {/* Render GroundedResponse for grounded assistant messages */}
                           {msg.role === 'assistant' && msg.isGrounded ? (
                             <GroundedResponse
