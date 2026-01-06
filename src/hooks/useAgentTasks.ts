@@ -125,6 +125,9 @@ export function useAgentTasks() {
       await supabase.from('agent_sources').delete().eq('task_id', taskId);
       await supabase.from('agent_communications').delete().eq('task_id', taskId);
       await supabase.from('agent_task_steps').delete().eq('task_id', taskId);
+      await supabase.from('agent_memory_context').delete().eq('task_id', taskId);
+      
+      // Note: gemini_interactions table deletion will be added after migration
       
       // Get outputs to delete files from storage
       const { data: outputs } = await supabase

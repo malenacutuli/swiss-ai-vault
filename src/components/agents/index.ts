@@ -8,4 +8,5 @@ export { EmptyTaskState } from './EmptyTaskState';
 export { AgentExecutionPanel } from './AgentExecutionPanel';
 export { TemplateBrowser, type ActionTemplate } from './TemplateBrowser';
 export { TaskDetailModal } from './TaskDetailModal';
+export { DeleteTaskDialog } from './DeleteTaskDialog';
 export { NotebookLMPanel } from './NotebookLMPanel';
