@@ -206,22 +206,56 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       });
 
       if (response.error) {
-        throw new Error(response.error.message || 'Failed to create task');
+        // Handle specific error types
+        const errorMsg = response.error.message || 'Failed to create task';
+        if (errorMsg.includes('Rate limit') || errorMsg.includes('429')) {
+          throw new Error('Too many requests. Please wait a moment and try again.');
+        }
+        if (errorMsg.includes('402') || errorMsg.includes('Credits required')) {
+          throw new Error('Please add credits to continue using this feature.');
+        }
+        throw new Error(errorMsg);
       }
 
       const data = response.data;
       
+      // Handle both response formats: task object or taskId
       if (data.task) {
         setTask(data.task);
         taskIdRef.current = data.task.id;
-        
-        // Start polling for updates
         startPolling(data.task.id);
-        
         return data.task;
+      } else if (data.taskId) {
+        // Backward compatibility: if only taskId is returned, fetch task
+        taskIdRef.current = data.taskId;
+        startPolling(data.taskId);
+        // Create minimal task object from available data
+        const minimalTask: ExecutionTask = {
+          id: data.taskId,
+          prompt: prompt,
+          status: data.status || 'executing',
+          task_type: taskOptions.taskType || 'general',
+          mode: taskOptions.mode || null,
+          privacy_tier: taskOptions.privacyTier || 'vault',
+          current_step: 0,
+          total_steps: data.plan?.steps?.length || 0,
+          progress_percentage: 0,
+          plan_summary: data.plan?.plan_summary || null,
+          plan_json: data.plan || null,
+          result_summary: null,
+          error_message: null,
+          credits_used: null,
+          tokens_used: null,
+          duration_ms: null,
+          created_at: new Date().toISOString(),
+          started_at: new Date().toISOString(),
+          completed_at: null,
+        };
+        setTask(minimalTask);
+        return minimalTask;
       }
 
-      return null;
+      throw new Error('Invalid response from server');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create task';
       setStatus('failed');
