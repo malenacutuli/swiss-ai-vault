@@ -835,6 +835,41 @@ export type Database = {
         }
         Relationships: []
       }
+      api_key_usage: {
+        Row: {
+          api_key_id: string
+          created_at: string | null
+          endpoint: string | null
+          id: string
+          request_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string | null
+          endpoint?: string | null
+          id?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string | null
+          endpoint?: string | null
+          id?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_usage_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           created_at: string | null
@@ -845,6 +880,7 @@ export type Database = {
           last_used_at: string | null
           name: string
           permissions: Json | null
+          rate_limit: number | null
           rate_limit_tier: string | null
           user_id: string
         }
@@ -857,6 +893,7 @@ export type Database = {
           last_used_at?: string | null
           name: string
           permissions?: Json | null
+          rate_limit?: number | null
           rate_limit_tier?: string | null
           user_id: string
         }
@@ -869,6 +906,7 @@ export type Database = {
           last_used_at?: string | null
           name?: string
           permissions?: Json | null
+          rate_limit?: number | null
           rate_limit_tier?: string | null
           user_id?: string
         }
@@ -5560,10 +5598,20 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_api_key_usage: { Args: never; Returns: number }
       cleanup_expired_messages: { Args: never; Returns: number }
       clear_conversation_documents: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: number
+      }
+      create_api_key: {
+        Args: {
+          p_expires_at?: string
+          p_name: string
+          p_permissions?: Json
+          p_rate_limit?: number
+        }
+        Returns: Json
       }
       create_audit_log: {
         Args: {
@@ -5730,6 +5778,19 @@ export type Database = {
         Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
       }
+      list_api_keys: {
+        Args: never
+        Returns: {
+          created_at: string
+          expires_at: string
+          id: string
+          key_prefix: string
+          last_used_at: string
+          name: string
+          permissions: Json
+          rate_limit: number
+        }[]
+      }
       log_sso_event: {
         Args: {
           p_config_id: string
@@ -5769,6 +5830,7 @@ export type Database = {
         Returns: Json
       }
       reset_ghost_daily_limits: { Args: never; Returns: undefined }
+      revoke_api_key: { Args: { p_key_id: string }; Returns: boolean }
       search_document_chunks: {
         Args: {
           p_conversation_id?: string
@@ -5806,6 +5868,10 @@ export type Database = {
       user_owns_vault_conversation: {
         Args: { p_conversation_id: string }
         Returns: boolean
+      }
+      validate_api_key: {
+        Args: { p_key_hash: string; p_key_prefix: string }
+        Returns: Json
       }
     }
     Enums: {
