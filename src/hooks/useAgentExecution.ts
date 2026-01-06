@@ -69,6 +69,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
   const [currentOutput, setCurrentOutput] = useState<TaskOutput | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [status, setStatus] = useState<ExecutionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   
@@ -99,7 +100,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       }
 
       const response = await supabase.functions.invoke('agent-status', {
-        body: { task_id: taskId },
+        body: { taskId },
       });
 
       if (response.error) {
@@ -108,6 +109,11 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       }
 
       const data = response.data;
+      
+      if (!data?.success) {
+        console.error('[AgentExecution] Status check failed:', data?.error);
+        return null;
+      }
       
       // Update task
       if (data.task) {
@@ -150,10 +156,15 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         }
       }
 
+      // Update suggestions
+      if (data.suggestions) {
+        setSuggestions(data.suggestions);
+      }
+
       return data;
     } catch (err) {
       console.error('[AgentExecution] Fetch status error:', err);
-      throw err;
+      return null;
     }
   }, [options, stopPolling]);
 
@@ -395,6 +406,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     setSteps([]);
     setOutputs([]);
     setCurrentOutput(null);
+    setSuggestions([]);
     setStatus('idle');
     setError(null);
     taskIdRef.current = null;
@@ -418,6 +430,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     task,
     steps,
     outputs,
+    suggestions,
     currentOutput,
     status,
     error,
