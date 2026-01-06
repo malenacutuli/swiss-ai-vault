@@ -125,3 +125,6 @@ verify_jwt = true
 
 [functions.agent-worker]
 verify_jwt = true
+
+[functions.generate-pptx]
+verify_jwt = true
