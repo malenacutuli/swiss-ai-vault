@@ -18,6 +18,8 @@ interface TaskRequest {
   memoryContext?: string;
   connectedTools?: string[];
   templateId?: string;
+  thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high';
+  useDirectApi?: boolean; // Force direct Gemini API (for extended thinking)
 }
 
 // ============================================
@@ -104,6 +106,69 @@ async function storeAgentMessage(
     });
   } catch (err) {
     console.warn('[agent-execute] Failed to store message:', err);
+  }
+}
+
+// ============================================
+// DIRECT GEMINI API FOR EXTENDED THINKING
+// ============================================
+
+async function callGeminiDirect(
+  prompt: string,
+  systemPrompt?: string,
+  model: string = 'gemini-2.5-flash',
+  thinkingLevel: string = 'medium'
+): Promise<{ text: string; inputTokens: number; outputTokens: number; thinkingTokens: number } | null> {
+  const apiKey = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+  if (!apiKey) {
+    console.log('[agent-execute] GOOGLE_GEMINI_API_KEY not set, using gateway fallback');
+    return null;
+  }
+
+  try {
+    console.log(`[agent-execute] Calling Gemini ${model} directly`);
+    
+    const messages = [];
+    if (systemPrompt) {
+      messages.push({ role: 'user', parts: [{ text: systemPrompt }] });
+      messages.push({ role: 'model', parts: [{ text: 'Understood.' }] });
+    }
+    messages.push({ role: 'user', parts: [{ text: prompt }] });
+    
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: messages,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[agent-execute] Direct Gemini API error:', response.status, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const usage = data.usageMetadata || {};
+    
+    return {
+      text,
+      inputTokens: usage.promptTokenCount || 0,
+      outputTokens: usage.candidatesTokenCount || 0,
+      thinkingTokens: usage.thoughtsTokenCount || 0,
+    };
+  } catch (err) {
+    console.error('[agent-execute] Direct Gemini API error:', err);
+    return null;
   }
 }
 
