@@ -128,3 +128,6 @@ verify_jwt = true
 
 [functions.generate-pptx]
 verify_jwt = true
+
+[functions.notebooklm-audio]
+verify_jwt = false
