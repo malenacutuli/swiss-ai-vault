@@ -15,6 +15,28 @@ interface StepResult {
   error?: string;
 }
 
+// Modal endpoint - check multiple possible env var names
+const getModalEndpoint = (type: string = 'default'): string | null => {
+  const endpoints: Record<string, string[]> = {
+    default: ['MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_DOCUMENT_GEN_URL', 'MODAL_ENDPOINT'],
+    pptx: ['MODAL_PPTX_ENDPOINT', 'MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_ENDPOINT'],
+    docx: ['MODAL_DOCX_ENDPOINT', 'MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_ENDPOINT'],
+    xlsx: ['MODAL_XLSX_ENDPOINT', 'MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_ENDPOINT'],
+  };
+  const varsToCheck = endpoints[type] || endpoints.default;
+  
+  for (const varName of varsToCheck) {
+    const value = Deno.env.get(varName);
+    if (value) {
+      console.log(`[agent-worker] Using Modal endpoint from ${varName}`);
+      return value;
+    }
+  }
+  
+  console.warn('[agent-worker] No Modal endpoint configured');
+  return null;
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -340,13 +362,11 @@ async function executeImageGen(
 }
 
 async function executeDocumentGen(input: any): Promise<StepResult> {
-  // Document generation via Modal endpoint - check multiple possible env var names
-  const modalUrl = Deno.env.get('MODAL_DOCUMENT_GEN_ENDPOINT') || 
-                   Deno.env.get('MODAL_DOCUMENT_GEN_URL') ||
-                   Deno.env.get('MODAL_ENDPOINT');
+  const documentType = input.document_type || 'pptx';
+  const modalUrl = getModalEndpoint(documentType);
   
   if (!modalUrl) {
-    console.warn('[agent-worker] No Modal endpoint configured (checked MODAL_DOCUMENT_GEN_ENDPOINT, MODAL_DOCUMENT_GEN_URL, MODAL_ENDPOINT)');
+    console.log('[agent-worker] Modal not available, using fallback generation');
     return { 
       success: true, 
       output: { message: 'Document generation placeholder - Modal not configured' } 
