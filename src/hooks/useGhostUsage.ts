@@ -42,6 +42,24 @@ export function useGhostUsage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Check if user is admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ['is-admin', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin',
+      });
+      
+      if (error) return false;
+      return data === true;
+    },
+    enabled: !!user,
+    staleTime: 300000, // Cache for 5 minutes
+  });
+
   // Fetch tier info using database function
   const { data: tierData, isLoading: tierLoading } = useQuery({
     queryKey: ['ghost-tier', user?.id],
@@ -99,21 +117,23 @@ export function useGhostUsage() {
     models: ['swissvault-1.0'],
   };
 
-  // Calculate remaining (-1 means unlimited)
+  // Calculate remaining (-1 means unlimited, admins get unlimited)
+  const adminBypass = isAdmin === true;
   const remaining = {
-    prompts: features.prompts_per_day === -1 ? Infinity : Math.max(0, features.prompts_per_day - (usage?.prompts_used || 0)),
-    images: features.images_per_day === -1 ? Infinity : Math.max(0, features.images_per_day - (usage?.images_generated || 0)),
-    videos: features.videos_per_day === -1 ? Infinity : Math.max(0, features.videos_per_day - (usage?.videos_generated || 0)),
-    files: features.files_per_day === -1 ? Infinity : Math.max(0, features.files_per_day - (usage?.files_uploaded || 0)),
-    searches: features.searches_per_day === -1 ? Infinity : Math.max(0, features.searches_per_day - (usage?.web_searches || 0)),
+    prompts: adminBypass || features.prompts_per_day === -1 ? Infinity : Math.max(0, features.prompts_per_day - (usage?.prompts_used || 0)),
+    images: adminBypass || features.images_per_day === -1 ? Infinity : Math.max(0, features.images_per_day - (usage?.images_generated || 0)),
+    videos: adminBypass || features.videos_per_day === -1 ? Infinity : Math.max(0, features.videos_per_day - (usage?.videos_generated || 0)),
+    files: adminBypass || features.files_per_day === -1 ? Infinity : Math.max(0, features.files_per_day - (usage?.files_uploaded || 0)),
+    searches: adminBypass || features.searches_per_day === -1 ? Infinity : Math.max(0, features.searches_per_day - (usage?.web_searches || 0)),
   };
 
+  // Admin users can always use all features
   const canUse = {
-    prompt: remaining.prompts > 0,
-    image: remaining.images > 0,
-    video: remaining.videos > 0,
-    file: remaining.files > 0,
-    search: remaining.searches > 0,
+    prompt: adminBypass || remaining.prompts > 0,
+    image: adminBypass || remaining.images > 0,
+    video: adminBypass || remaining.videos > 0,
+    file: adminBypass || remaining.files > 0,
+    search: adminBypass || remaining.searches > 0,
   };
 
   // Check and increment usage using database function
@@ -147,8 +167,8 @@ export function useGhostUsage() {
     return tomorrow;
   };
 
-  const isPro = tier === 'ghost_pro' || tier === 'swissvault_pro';
-  const isSwissVaultPro = tier === 'swissvault_pro';
+  const isPro = adminBypass || tier === 'ghost_pro' || tier === 'swissvault_pro';
+  const isSwissVaultPro = adminBypass || tier === 'swissvault_pro';
   const hasCommercialModels = features.commercial_models === true;
 
   return {
