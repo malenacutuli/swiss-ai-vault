@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentExecution } from '@/hooks/useAgentExecution';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
+import { useAgentMemory } from '@/hooks/useAgentMemory';
 import { supabase } from '@/integrations/supabase/client';
 import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { QuickActionBar } from '@/components/agents/QuickActionBar';
@@ -67,6 +68,32 @@ export default function Agents() {
     onComplete: () => toast.success('Task completed'),
     onError: (err) => toast.error(err),
   });
+  
+  // Memory hook
+  const {
+    getContextForTask,
+    storeTaskResult,
+    formatContextForAgent,
+    memoryCount,
+    isLoading: isLoadingMemory,
+  } = useAgentMemory();
+  
+  // Store completed tasks as memories
+  useEffect(() => {
+    const storeCompletedTask = async () => {
+      if (execution.task?.status === 'completed' && execution.outputs.length > 0) {
+        await storeTaskResult(
+          execution.task.id,
+          execution.task.prompt,
+          execution.task.result_summary || 'Task completed',
+          execution.outputs
+        );
+        console.log('[Agents] Stored task result in memory');
+      }
+    };
+
+    storeCompletedTask();
+  }, [execution.task?.status, execution.outputs, storeTaskResult]);
 
   // File upload to storage
   const uploadFilesToStorage = async (files: File[]): Promise<Array<{ name: string; url: string; type: string }>> => {
@@ -169,7 +196,22 @@ export default function Agents() {
     }
 
     try {
-      // Upload attached files first
+      // 1. Get memory context if enabled
+      let memoryContext: string | undefined;
+      let memoryContexts: any[] = [];
+      
+      if (memoryEnabled) {
+        toast.info('Searching your memory for relevant context...');
+        memoryContexts = await getContextForTask(taskPrompt.trim(), 5);
+        
+        if (memoryContexts.length > 0) {
+          memoryContext = formatContextForAgent(memoryContexts);
+          console.log('[Agents] Memory context found:', memoryContexts.length, 'items');
+          toast.success(`Found ${memoryContexts.length} relevant memories`);
+        }
+      }
+
+      // 2. Upload attached files first
       let uploadedFiles: Array<{ name: string; url: string; type: string }> = [];
       if (attachedFiles.length > 0) {
         setIsUploading(true);
@@ -182,17 +224,16 @@ export default function Agents() {
         }
       }
 
-      // TODO: Get memory context from IndexedDB if enabled
-      const memoryContext = memoryEnabled ? undefined : undefined;
-
       console.log('[Agents] Creating task with:', {
         prompt: taskPrompt.trim(),
         taskType: selectedAction || 'general',
         privacyTier,
         attachments: uploadedFiles,
         connectedTools,
+        hasMemoryContext: !!memoryContext,
       });
 
+      // 3. Create the task
       const result = await execution.createTask(taskPrompt.trim(), {
         taskType: selectedAction || 'general',
         privacyTier,
@@ -202,6 +243,20 @@ export default function Agents() {
       });
 
       if (result) {
+        // Store context used for this task
+        if (memoryContexts.length > 0) {
+          for (const ctx of memoryContexts) {
+            await supabase.from('agent_memory_context').insert({
+              task_id: result.id,
+              user_id: user.id,
+              context_type: ctx.type,
+              context_content: ctx.content,
+              relevance_score: ctx.relevance,
+              source_reference: ctx.source,
+            });
+          }
+        }
+
         setTaskPrompt('');
         setAttachedFiles([]);
         setSelectedAction(null);
@@ -434,12 +489,23 @@ export default function Agents() {
 
                 {/* Memory Toggle */}
                 <div className="flex items-center justify-center">
-                  <div className="flex items-center gap-3 px-4 py-2 bg-card border border-border rounded-full">
-                    <span className="text-sm text-muted-foreground">Use Your Memory</span>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-full">
+                    <div className="flex items-center gap-2">
+                      <Brain className={cn(
+                        "h-4 w-4 transition-colors",
+                        memoryEnabled ? "text-primary" : "text-muted-foreground"
+                      )} />
+                      <span className="text-sm font-medium text-foreground">Use Your Memory</span>
+                    </div>
                     <Switch
                       checked={memoryEnabled}
                       onCheckedChange={setMemoryEnabled}
                     />
+                    {memoryCount > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {memoryCount} memories stored
+                      </span>
+                    )}
                   </div>
                 </div>
 
