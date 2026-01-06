@@ -3910,6 +3910,60 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_task_runs: {
+        Row: {
+          agent_task_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          result_summary: string | null
+          scheduled_task_id: string
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          agent_task_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          result_summary?: string | null
+          scheduled_task_id: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          agent_task_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          result_summary?: string | null
+          scheduled_task_id?: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_task_runs_agent_task_id_fkey"
+            columns: ["agent_task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_task_runs_scheduled_task_id_fkey"
+            columns: ["scheduled_task_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_tasks: {
         Row: {
           created_at: string | null
@@ -3918,6 +3972,7 @@ export type Database = {
           failure_count: number | null
           id: string
           is_active: boolean | null
+          last_error: string | null
           last_run_at: string | null
           max_retries: number | null
           name: string
@@ -3926,6 +3981,7 @@ export type Database = {
           notify_on_complete: boolean | null
           notify_on_failure: boolean | null
           prompt: string
+          retry_count: number | null
           run_count: number | null
           schedule_type: string
           success_count: number | null
@@ -3942,6 +3998,7 @@ export type Database = {
           failure_count?: number | null
           id?: string
           is_active?: boolean | null
+          last_error?: string | null
           last_run_at?: string | null
           max_retries?: number | null
           name: string
@@ -3950,6 +4007,7 @@ export type Database = {
           notify_on_complete?: boolean | null
           notify_on_failure?: boolean | null
           prompt: string
+          retry_count?: number | null
           run_count?: number | null
           schedule_type: string
           success_count?: number | null
@@ -3966,6 +4024,7 @@ export type Database = {
           failure_count?: number | null
           id?: string
           is_active?: boolean | null
+          last_error?: string | null
           last_run_at?: string | null
           max_retries?: number | null
           name?: string
@@ -3974,6 +4033,7 @@ export type Database = {
           notify_on_complete?: boolean | null
           notify_on_failure?: boolean | null
           prompt?: string
+          retry_count?: number | null
           run_count?: number | null
           schedule_type?: string
           success_count?: number | null
@@ -5247,6 +5307,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      calculate_next_cron_run: {
+        Args: {
+          p_cron_expression: string
+          p_from_time?: string
+          p_timezone?: string
+        }
+        Returns: string
+      }
       calculate_next_run: {
         Args: {
           p_cron_expression: string
@@ -5267,6 +5335,7 @@ export type Database = {
         Args: { p_type: string; p_user_id: string }
         Returns: Json
       }
+      check_scheduled_tasks: { Args: never; Returns: number }
       check_unified_usage: {
         Args: { p_usage_type: string; p_user_id: string }
         Returns: Json
