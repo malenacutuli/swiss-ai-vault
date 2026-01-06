@@ -116,6 +116,51 @@ export function useAgentTasks() {
 
   const activeCount = activeTasks.length;
 
+  const deleteTask = async (taskId: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      // Delete related data first (in order of dependencies)
+      await supabase.from('agent_reasoning').delete().eq('task_id', taskId);
+      await supabase.from('agent_sources').delete().eq('task_id', taskId);
+      await supabase.from('agent_communications').delete().eq('task_id', taskId);
+      await supabase.from('agent_task_steps').delete().eq('task_id', taskId);
+      
+      // Get outputs to delete files from storage
+      const { data: outputs } = await supabase
+        .from('agent_outputs')
+        .select('file_path')
+        .eq('task_id', taskId);
+      
+      // Delete files from storage bucket
+      if (outputs && outputs.length > 0) {
+        const paths = outputs.map(o => o.file_path).filter(Boolean) as string[];
+        if (paths.length > 0) {
+          await supabase.storage.from('agent-outputs').remove(paths);
+        }
+      }
+      
+      // Delete output records
+      await supabase.from('agent_outputs').delete().eq('task_id', taskId);
+      
+      // Finally delete the task
+      const { error } = await supabase
+        .from('agent_tasks')
+        .delete()
+        .eq('id', taskId)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      // Refetch to update lists
+      await fetchTasks();
+      return true;
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      return false;
+    }
+  };
+
   return {
     activeTasks,
     recentTasks,
@@ -123,5 +168,6 @@ export function useAgentTasks() {
     isLoading,
     error,
     refetch: fetchTasks,
+    deleteTask,
   };
 }

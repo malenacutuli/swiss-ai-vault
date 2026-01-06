@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -24,9 +25,9 @@ import {
   FileText,
   Play,
   Pause,
+  Trash2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { toast } from 'sonner';
 
 interface TaskStep {
   id: string;
@@ -76,6 +77,7 @@ interface TaskDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRetry?: (task: Task) => void;
+  onDelete?: (taskId: string) => Promise<void>;
 }
 
 export function TaskDetailModal({
@@ -83,9 +85,11 @@ export function TaskDetailModal({
   open,
   onOpenChange,
   onRetry,
+  onDelete,
 }: TaskDetailModalProps) {
   const [task, setTask] = useState<Task | null>(null);
   const [steps, setSteps] = useState<TaskStep[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -420,6 +424,31 @@ export function TaskDetailModal({
               <Button variant="outline" size="sm" onClick={handleRetry}>
                 <RotateCcw className="h-4 w-4 mr-1.5" />
                 Retry
+              </Button>
+            )}
+            {onDelete && (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={async () => {
+                  if (!taskId) return;
+                  const confirmed = window.confirm('Are you sure you want to delete this task? This action cannot be undone.');
+                  if (!confirmed) return;
+                  
+                  setIsDeleting(true);
+                  try {
+                    await onDelete(taskId);
+                    toast.success('Task deleted');
+                    onOpenChange(false);
+                  } catch (err) {
+                    toast.error('Failed to delete task');
+                  }
+                  setIsDeleting(false);
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1.5" />}
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </Button>
             )}
           </div>
