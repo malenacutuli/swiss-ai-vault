@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { FirstTimeOrganizationModal } from "@/components/FirstTimeOrganizationModal";
 import { LegacyRedirect } from "@/components/LegacyRedirect";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { chatEncryption } from "@/lib/encryption";
 
 // Layouts
@@ -137,7 +138,7 @@ const App = () => {
                 <Route path="/ghost/projects" element={<ProtectedRoute><MemoryProjectsPage /></ProtectedRoute>} />
                 <Route path="/ghost/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
                 <Route path="/ghost/research-library" element={<ProtectedRoute><ResearchDashboard /></ProtectedRoute>} />
-                <Route path="/ghost/agents" element={<ProtectedRoute><Agents /></ProtectedRoute>} />
+                <Route path="/ghost/agents" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
                 
                 {/* Top-level convenience routes */}
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

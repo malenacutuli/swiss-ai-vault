@@ -92,7 +92,9 @@ interface UseAgentExecutionOptions {
 }
 
 export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
-  const { user } = useAuth();
+  // ============================================
+  // ALL useState HOOKS AT THE TOP - UNCONDITIONAL
+  // ============================================
   const [task, setTask] = useState<ExecutionTask | null>(null);
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
@@ -101,16 +103,37 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [status, setStatus] = useState<ExecutionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  
+
+  // ============================================
+  // ALL useRef HOOKS - UNCONDITIONAL
+  // ============================================
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const taskIdRef = useRef<string | null>(null);
-  const channelsRef = useRef<{ task: ReturnType<typeof supabase.channel> | null; logs: ReturnType<typeof supabase.channel> | null; steps: ReturnType<typeof supabase.channel> | null; outputs: ReturnType<typeof supabase.channel> | null }>({
+  const channelsRef = useRef<{
+    task: ReturnType<typeof supabase.channel> | null;
+    logs: ReturnType<typeof supabase.channel> | null;
+    steps: ReturnType<typeof supabase.channel> | null;
+    outputs: ReturnType<typeof supabase.channel> | null;
+  }>({
     task: null,
     logs: null,
     steps: null,
     outputs: null,
   });
+  
+  // Store options in ref to avoid stale closures
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
+  // ============================================
+  // CONTEXT HOOKS - AFTER useState/useRef
+  // ============================================
+  const { user } = useAuth();
+
+  // ============================================
+  // HELPER FUNCTIONS - useCallback
+  // ============================================
+  
   // Map task status to execution status
   const mapTaskStatus = useCallback((taskStatus: string): ExecutionStatus => {
     if (taskStatus === 'queued' || taskStatus === 'planning') return 'planning';
@@ -120,6 +143,14 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     if (taskStatus === 'completed') return 'completed';
     if (taskStatus === 'failed') return 'failed';
     return 'idle';
+  }, []);
+
+  // Stop polling
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
   }, []);
 
   // Clean up realtime subscriptions
@@ -142,7 +173,98 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, []);
 
-  // Subscribe to realtime updates for task
+  // ============================================
+  // CLEANUP ON UNMOUNT - useEffect
+  // ============================================
+  useEffect(() => {
+    return () => {
+      stopPolling();
+      cleanupChannels();
+    };
+  }, [stopPolling, cleanupChannels]);
+
+  // ============================================
+  // FETCH TASK STATUS
+  // ============================================
+  const fetchTaskStatus = useCallback(async (taskId: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await supabase.functions.invoke('agent-status', {
+        body: { taskId },
+      });
+
+      if (response.error) {
+        console.error('[AgentExecution] Status error:', response.error);
+        throw new Error(response.error.message || 'Failed to fetch status');
+      }
+
+      const data = response.data;
+      
+      if (!data?.success) {
+        console.error('[AgentExecution] Status check failed:', data?.error);
+        return null;
+      }
+      
+      // Update task
+      if (data.task) {
+        setTask(data.task);
+        
+        // Map task status to execution status
+        const taskStatus = data.task.status;
+        if (taskStatus === 'queued' || taskStatus === 'planning') {
+          setStatus('planning');
+        } else if (taskStatus === 'awaiting_approval') {
+          setStatus('awaiting_approval');
+          stopPolling();
+        } else if (taskStatus === 'executing') {
+          setStatus('executing');
+        } else if (taskStatus === 'paused') {
+          setStatus('paused');
+          stopPolling();
+        } else if (taskStatus === 'completed') {
+          setStatus('completed');
+          stopPolling();
+          optionsRef.current.onComplete?.(data.task);
+        } else if (taskStatus === 'failed') {
+          setStatus('failed');
+          setError(data.task.error_message || 'Task failed');
+          stopPolling();
+          optionsRef.current.onError?.(data.task.error_message || 'Task failed');
+        }
+      }
+
+      // Update steps
+      if (data.steps) {
+        setSteps(data.steps);
+      }
+
+      // Update outputs
+      if (data.outputs) {
+        setOutputs(data.outputs);
+        if (data.outputs.length > 0) {
+          setCurrentOutput(data.outputs[data.outputs.length - 1]);
+        }
+      }
+
+      // Update suggestions
+      if (data.suggestions) {
+        setSuggestions(data.suggestions);
+      }
+
+      return data;
+    } catch (err) {
+      console.error('[AgentExecution] Fetch status error:', err);
+      return null;
+    }
+  }, [stopPolling]);
+
+  // ============================================
+  // SUBSCRIBE TO REALTIME UPDATES
+  // ============================================
   const subscribeToTask = useCallback((taskId: string) => {
     cleanupChannels();
     console.log('[AgentExecution] Setting up realtime subscriptions for task:', taskId);
@@ -167,10 +289,10 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
           setStatus(newStatus);
 
           if (newTask.status === 'completed') {
-            options.onComplete?.(newTask);
+            optionsRef.current.onComplete?.(newTask);
           } else if (newTask.status === 'failed') {
             setError(newTask.error_message || 'Task failed');
-            options.onError?.(newTask.error_message || 'Task failed');
+            optionsRef.current.onError?.(newTask.error_message || 'Task failed');
           }
         }
       )
@@ -241,104 +363,13 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         }
       )
       .subscribe();
-  }, [cleanupChannels, mapTaskStatus, options]);
+  }, [cleanupChannels, mapTaskStatus]);
 
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      cleanupChannels();
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
-  }, [cleanupChannels]);
-
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  }, []);
-
-  const fetchTaskStatus = useCallback(async (taskId: string) => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await supabase.functions.invoke('agent-status', {
-        body: { taskId },
-      });
-
-      if (response.error) {
-        console.error('[AgentExecution] Status error:', response.error);
-        throw new Error(response.error.message || 'Failed to fetch status');
-      }
-
-      const data = response.data;
-      
-      if (!data?.success) {
-        console.error('[AgentExecution] Status check failed:', data?.error);
-        return null;
-      }
-      
-      // Update task
-      if (data.task) {
-        setTask(data.task);
-        
-        // Map task status to execution status
-        const taskStatus = data.task.status;
-        if (taskStatus === 'queued' || taskStatus === 'planning') {
-          setStatus('planning');
-        } else if (taskStatus === 'awaiting_approval') {
-          setStatus('awaiting_approval');
-          stopPolling(); // Stop polling while awaiting approval
-        } else if (taskStatus === 'executing') {
-          setStatus('executing');
-        } else if (taskStatus === 'paused') {
-          setStatus('paused');
-          stopPolling();
-        } else if (taskStatus === 'completed') {
-          setStatus('completed');
-          stopPolling();
-          options.onComplete?.(data.task);
-        } else if (taskStatus === 'failed') {
-          setStatus('failed');
-          setError(data.task.error_message || 'Task failed');
-          stopPolling();
-          options.onError?.(data.task.error_message || 'Task failed');
-        }
-      }
-
-      // Update steps
-      if (data.steps) {
-        setSteps(data.steps);
-      }
-
-      // Update outputs
-      if (data.outputs) {
-        setOutputs(data.outputs);
-        if (data.outputs.length > 0) {
-          setCurrentOutput(data.outputs[data.outputs.length - 1]);
-        }
-      }
-
-      // Update suggestions
-      if (data.suggestions) {
-        setSuggestions(data.suggestions);
-      }
-
-      return data;
-    } catch (err) {
-      console.error('[AgentExecution] Fetch status error:', err);
-      return null;
-    }
-  }, [options, stopPolling]);
-
-  // Start realtime subscriptions (replaces polling for instant updates)
+  // ============================================
+  // START REALTIME SUBSCRIPTION
+  // ============================================
   const startRealtimeSubscription = useCallback((taskId: string) => {
-    stopPolling(); // Stop any legacy polling
+    stopPolling();
     taskIdRef.current = taskId;
     
     // Initial fetch to get current state
@@ -348,12 +379,14 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     subscribeToTask(taskId);
   }, [fetchTaskStatus, stopPolling, subscribeToTask]);
 
-  // Legacy polling fallback (kept for backward compatibility)
+  // Legacy polling fallback
   const startPolling = useCallback((taskId: string) => {
-    // Use realtime by default
     startRealtimeSubscription(taskId);
   }, [startRealtimeSubscription]);
 
+  // ============================================
+  // CREATE TASK
+  // ============================================
   const createTask = useCallback(async (
     prompt: string,
     taskOptions: {
@@ -385,7 +418,6 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         options: taskOptions,
       });
 
-      // Determine if this should route to Modal for specialized processing
       const taskType = taskOptions.taskType || 'general';
       const shouldRouteToModal = MODAL_ROUTED_TYPES.includes(taskType);
 
@@ -403,7 +435,6 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       });
 
       if (response.error) {
-        // Handle specific error types
         const errorMsg = response.error.message || 'Failed to create task';
         if (errorMsg.includes('Rate limit') || errorMsg.includes('429')) {
           throw new Error('Too many requests. Please wait a moment and try again.');
@@ -416,17 +447,14 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
       const data = response.data;
       
-      // Handle both response formats: task object or taskId
       if (data.task) {
         setTask(data.task);
         taskIdRef.current = data.task.id;
         startPolling(data.task.id);
         return data.task;
       } else if (data.taskId) {
-        // Backward compatibility: if only taskId is returned, fetch task
         taskIdRef.current = data.taskId;
         startPolling(data.taskId);
-        // Create minimal task object from available data
         const minimalTask: ExecutionTask = {
           id: data.taskId,
           prompt: prompt,
@@ -462,6 +490,9 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, [user, startPolling]);
 
+  // ============================================
+  // APPROVE AND START
+  // ============================================
   const approveAndStart = useCallback(async () => {
     if (!taskIdRef.current) {
       toast.error('No task to approve');
@@ -469,7 +500,6 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
 
     try {
-      // Update task status to executing
       const { error: updateError } = await supabase
         .from('agent_tasks')
         .update({ status: 'executing', started_at: new Date().toISOString() })
@@ -479,7 +509,6 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
       setStatus('executing');
       
-      // Start the worker
       const response = await supabase.functions.invoke('agent-worker', {
         body: { task_id: taskIdRef.current },
       });
@@ -488,7 +517,6 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         console.error('[AgentExecution] Worker error:', response.error);
       }
 
-      // Resume polling
       startPolling(taskIdRef.current);
       
       return true;
@@ -499,96 +527,35 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, [startPolling]);
 
-  const pauseTask = useCallback(async () => {
-    if (!taskIdRef.current) return false;
+  // ============================================
+  // CANCEL TASK
+  // ============================================
+  const cancelTask = useCallback(async () => {
+    if (!taskIdRef.current) return;
 
     try {
-      const { error: updateError } = await supabase
-        .from('agent_tasks')
-        .update({ status: 'paused' })
-        .eq('id', taskIdRef.current);
-
-      if (updateError) throw updateError;
-
-      setStatus('paused');
       stopPolling();
-      toast.info('Task paused');
-      return true;
-    } catch (err) {
-      toast.error('Failed to pause task');
-      return false;
-    }
-  }, [stopPolling]);
+      cleanupChannels();
 
-  const resumeTask = useCallback(async () => {
-    if (!taskIdRef.current) return false;
-
-    try {
-      const { error: updateError } = await supabase
+      await supabase
         .from('agent_tasks')
-        .update({ status: 'executing' })
+        .update({ status: 'cancelled' })
         .eq('id', taskIdRef.current);
-
-      if (updateError) throw updateError;
-
-      setStatus('executing');
-      
-      // Continue execution
-      await supabase.functions.invoke('agent-worker', {
-        body: { task_id: taskIdRef.current },
-      });
-
-      startPolling(taskIdRef.current);
-      toast.info('Task resumed');
-      return true;
-    } catch (err) {
-      toast.error('Failed to resume task');
-      return false;
-    }
-  }, [startPolling]);
-
-  const stopTask = useCallback(async () => {
-    if (!taskIdRef.current) return false;
-
-    try {
-      const { error: updateError } = await supabase
-        .from('agent_tasks')
-        .update({ 
-          status: 'failed', 
-          error_message: 'Stopped by user',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', taskIdRef.current);
-
-      if (updateError) throw updateError;
 
       setStatus('failed');
-      setError('Stopped by user');
-      stopPolling();
-      toast.info('Task stopped');
-      return true;
+      setError('Task cancelled');
+      toast.info('Task cancelled');
     } catch (err) {
-      toast.error('Failed to stop task');
-      return false;
+      console.error('[AgentExecution] Cancel error:', err);
     }
-  }, [stopPolling]);
+  }, [stopPolling, cleanupChannels]);
 
-  const retryTask = useCallback(async () => {
-    if (!task) return false;
-
-    // Create a new task with the same prompt
-    const newTask = await createTask(task.prompt, {
-      taskType: task.task_type || undefined,
-      mode: task.mode || undefined,
-      privacyTier: task.privacy_tier || undefined,
-    });
-
-    return !!newTask;
-  }, [task, createTask]);
-
+  // ============================================
+  // RESET STATE
+  // ============================================
   const reset = useCallback(() => {
     stopPolling();
-    cleanupChannels(); // Clean up realtime subscriptions
+    cleanupChannels();
     setTask(null);
     setSteps([]);
     setOutputs([]);
@@ -600,50 +567,111 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     taskIdRef.current = null;
   }, [stopPolling, cleanupChannels]);
 
-  const downloadOutput = useCallback(async (output: TaskOutput) => {
-    if (!output.download_url) {
-      toast.error('Download not available');
-      return;
-    }
-
+  // ============================================
+  // PAUSE TASK
+  // ============================================
+  const pauseTask = useCallback(async () => {
+    if (!taskIdRef.current) return;
     try {
-      window.open(output.download_url, '_blank');
+      await supabase
+        .from('agent_tasks')
+        .update({ status: 'paused' })
+        .eq('id', taskIdRef.current);
+      setStatus('paused');
     } catch (err) {
-      toast.error('Failed to download');
+      console.error('[AgentExecution] Pause error:', err);
     }
   }, []);
 
+  // ============================================
+  // RESUME TASK
+  // ============================================
+  const resumeTask = useCallback(async () => {
+    if (!taskIdRef.current) return;
+    try {
+      await supabase
+        .from('agent_tasks')
+        .update({ status: 'executing' })
+        .eq('id', taskIdRef.current);
+      setStatus('executing');
+      startPolling(taskIdRef.current);
+    } catch (err) {
+      console.error('[AgentExecution] Resume error:', err);
+    }
+  }, [startPolling]);
+
+  // ============================================
+  // STOP TASK (alias for cancel)
+  // ============================================
+  const stopTask = useCallback(async () => {
+    await cancelTask();
+  }, [cancelTask]);
+
+  // ============================================
+  // RETRY TASK
+  // ============================================
+  const retryTask = useCallback(async () => {
+    if (!task) return null;
+    const taskPrompt = task.prompt;
+    const taskType = task.task_type || 'general';
+    reset();
+    return createTask(taskPrompt, { taskType });
+  }, [task, reset, createTask]);
+
+  // ============================================
+  // DOWNLOAD OUTPUT
+  // ============================================
+  const downloadOutput = useCallback(async (output: TaskOutput) => {
+    if (!output.download_url) {
+      toast.error('No download URL available');
+      return;
+    }
+    window.open(output.download_url, '_blank');
+  }, []);
+
+  // ============================================
+  // LOAD EXISTING TASK
+  // ============================================
+  const loadTask = useCallback(async (taskId: string) => {
+    taskIdRef.current = taskId;
+    await fetchTaskStatus(taskId);
+    subscribeToTask(taskId);
+  }, [fetchTaskStatus, subscribeToTask]);
+
+  // ============================================
+  // RETURN STABLE OBJECT
+  // ============================================
   return {
     // State
     task,
     steps,
     outputs,
     logs,
-    suggestions,
     currentOutput,
+    suggestions,
     status,
     error,
-    
-    // Computed
-    isIdle: status === 'idle',
-    isPlanning: status === 'planning',
-    isAwaitingApproval: status === 'awaiting_approval',
-    isExecuting: status === 'executing',
-    isPaused: status === 'paused',
-    isCompleted: status === 'completed',
-    isFailed: status === 'failed',
-    isRunning: status === 'planning' || status === 'executing',
     
     // Actions
     createTask,
     approveAndStart,
+    cancelTask,
     pauseTask,
     resumeTask,
     stopTask,
     retryTask,
-    reset,
     downloadOutput,
+    reset,
+    loadTask,
+    
+    // Computed
+    isIdle: status === 'idle',
+    isPlanning: status === 'planning',
+    isExecuting: status === 'planning' || status === 'executing',
+    isComplete: status === 'completed',
+    isCompleted: status === 'completed',
+    isFailed: status === 'failed',
+    isPaused: status === 'paused',
+    isAwaitingApproval: status === 'awaiting_approval',
   };
 }
-
-
