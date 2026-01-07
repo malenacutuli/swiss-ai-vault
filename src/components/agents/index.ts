@@ -21,3 +21,4 @@ export { ModeSelector, type AgentMode, ALL_MODES, getModeConfig, getPlaceholderF
 export { SamplePrompts, getPromptsForMode } from './SamplePrompts';
 export { ProjectsList } from './ProjectsList';
 export { TasksList } from './TasksList';
+export { ExecutionView } from './ExecutionView';
