@@ -209,7 +209,13 @@ export function AgentsExecutionView({
         {/* Input Area */}
         <div className="p-4 border-t border-[#E5E5E5]">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-[#666666]">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              disabled
+              title="Upload files via Studio before starting a task"
+              className="h-9 w-9 p-0 text-[#CCCCCC] cursor-not-allowed opacity-50"
+            >
               <Paperclip className="w-4 h-4" />
             </Button>
             <input
