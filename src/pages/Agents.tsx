@@ -17,6 +17,7 @@ import type { Source } from '@/components/agents/SourceUpload';
 import { TemplateBrowser, type ActionTemplate } from '@/components/agents/TemplateBrowser';
 import { TaskDetailModal } from '@/components/agents/TaskDetailModal';
 import { MasterExecutionView } from '@/components/agents/execution/MasterExecutionView';
+import { AgentsExecutionView } from '@/components/agents/AgentsExecutionView';
 import { AgentsSidebar } from '@/components/agents/AgentsSidebar';
 import { AgentsHeader } from '@/components/agents/AgentsHeader';
 import { Switch } from '@/components/ui/switch';
@@ -598,13 +599,16 @@ export default function Agents() {
                 className="h-[calc(100vh-200px)]"
               >
                 {execution.task && (
-                  <MasterExecutionView
+                  <AgentsExecutionView
                     task={execution.task}
                     steps={execution.steps}
                     outputs={execution.outputs}
-                    isComplete={execution.isCompleted || execution.isFailed}
+                    onSendMessage={(msg) => {
+                      console.log('[Agents] Send message:', msg);
+                      toast.info('Message sent to agent');
+                    }}
+                    onCancel={execution.stopTask}
                     onPause={execution.pauseTask}
-                    onStop={execution.stopTask}
                     onNewTask={handleNewTask}
                   />
                 )}
