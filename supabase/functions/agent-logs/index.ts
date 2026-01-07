@@ -1,81 +1,67 @@
-// ============================================================
-// FILE: supabase/functions/agent-logs/index.ts
-// Real-time log polling for agent task terminal view
-// ============================================================
-
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
 };
 
-Deno.serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
-  // Parse from request body first (supabase.functions.invoke sends body)
-  let taskId: string | null = null;
-  let afterSequence = 0;
-
+  
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
   try {
-    const body = await req.json();
-    taskId = body.task_id;
-    afterSequence = parseInt(body.after) || 0;
-  } catch {
-    // Fallback to URL params for backwards compatibility
-    const url = new URL(req.url);
-    taskId = url.searchParams.get("task_id");
-    afterSequence = parseInt(url.searchParams.get("after") || "0");
-  }
-
-  if (!taskId) {
-    return new Response(JSON.stringify({ error: "task_id required" }), {
+    // Read from request body
+    const { task_id, since, after } = await req.json();
+    
+    if (!task_id) {
+      return new Response(JSON.stringify({ error: "task_id required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    // Build query
+    let query = supabase
+      .from("agent_task_logs")
+      .select("*")
+      .eq("task_id", task_id)
+      .order("sequence_number", { ascending: true });
+    
+    // Support both 'after' (sequence_number) and 'since' (timestamp)
+    if (after !== undefined && after !== null) {
+      query = query.gt("sequence_number", after);
+    } else if (since) {
+      query = query.gt("created_at", since);
+    }
+    
+    const { data: logs, error } = await query;
+    
+    if (error) {
+      throw new Error(`Failed to fetch logs: ${error.message}`);
+    }
+    
+    return new Response(JSON.stringify({
+      logs: logs || [],
+      count: logs?.length || 0,
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+    
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    return new Response(JSON.stringify({
+      error: error.message,
+      logs: [],
+    }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
-  // Verify user owns this task
-  const authHeader = req.headers.get("Authorization")?.replace("Bearer ", "");
-  const { data: { user } } = await supabase.auth.getUser(authHeader);
-
-  const { data: task } = await supabase
-    .from("agent_tasks")
-    .select("user_id")
-    .eq("id", taskId)
-    .single();
-
-  if (!task || task.user_id !== user?.id) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  // Get logs after sequence number
-  const { data: logs, error } = await supabase
-    .from("agent_task_logs")
-    .select("*")
-    .eq("task_id", taskId)
-    .gt("sequence_number", afterSequence)
-    .order("sequence_number", { ascending: true });
-
-  if (error) {
-    console.error("[agent-logs] Query error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  return new Response(JSON.stringify({ logs: logs || [] }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 });
