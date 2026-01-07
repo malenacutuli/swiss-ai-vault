@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { SourcePanel, OutputTypeGrid } from '@/components/studio';
+import { SourcePanel, OutputTypeGrid, GenerationModal } from '@/components/studio';
 import { GhostSidebar } from '@/components/ghost/GhostSidebar';
 import { useToast } from '@/hooks/use-toast';
 import { useStudioNotebooks } from '@/hooks/useStudioNotebooks';
@@ -29,6 +29,12 @@ export default function Studio() {
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Generation modal state
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [currentOutputType, setCurrentOutputType] = useState<string>('');
+  const [showGenerationModal, setShowGenerationModal] = useState(false);
 
   const handleCreateNotebook = async (title: string) => {
     try {
@@ -150,10 +156,10 @@ export default function Studio() {
       return;
     }
 
-    toast({
-      title: 'Starting generation',
-      description: `Creating your ${outputType}...`,
-    });
+    // Open modal and start generation
+    setCurrentOutputType(outputType);
+    setShowGenerationModal(true);
+    setIsGenerating(true);
 
     try {
       // Build document context
@@ -177,19 +183,22 @@ export default function Studio() {
             sources: sources.map(s => ({ name: s.name, type: s.type, charCount: s.charCount })),
             has_documents: true,
             document_count: sources.length,
+            output_type: outputType,
           },
         },
       });
 
       if (error) throw error;
 
+      // If we got a job ID, set it for polling
+      const jobId = data?.job_id || data?.taskId || data?.task?.id;
+      if (jobId) {
+        setCurrentJobId(jobId);
+      }
+
       toast({
         title: 'Generation started',
         description: `Your ${outputType} is being created.`,
-      });
-
-      navigate('/ghost/agents', {
-        state: { taskId: data.task?.id || data.taskId },
       });
     } catch (err: any) {
       toast({
@@ -197,6 +206,21 @@ export default function Studio() {
         description: err.message || 'Please try again.',
         variant: 'destructive',
       });
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowGenerationModal(false);
+    setCurrentJobId(null);
+    setCurrentOutputType('');
+    setIsGenerating(false);
+  };
+
+  const handleRetryGeneration = () => {
+    if (currentOutputType) {
+      handleCloseModal();
+      handleGenerate(currentOutputType);
     }
   };
 
@@ -268,7 +292,7 @@ export default function Studio() {
               
               <div className="flex-1 overflow-auto p-6">
                 <OutputTypeGrid 
-                  disabled={sources.length === 0 || notebookLoading} 
+                  disabled={sources.length === 0 || notebookLoading || isGenerating} 
                   onGenerate={handleGenerate} 
                 />
               </div>
@@ -276,6 +300,15 @@ export default function Studio() {
           </div>
         </div>
       </div>
+
+      {/* Generation Modal */}
+      <GenerationModal
+        open={showGenerationModal}
+        onClose={handleCloseModal}
+        jobId={currentJobId}
+        outputType={currentOutputType}
+        onRetry={handleRetryGeneration}
+      />
     </>
   );
 }
