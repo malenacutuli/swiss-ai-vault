@@ -49,6 +49,7 @@ import {
   Library,
   IconUpload,
   FolderKanban,
+  FlaskConical,
 } from '@/icons';
 import {
   DropdownMenu,
@@ -989,6 +990,12 @@ export function GhostSidebar({
             label="Agents" 
             onClick={() => navigate('/ghost/agents')} 
             active={location.pathname === '/ghost/agents'}
+          />
+          <IconButton 
+            icon={FlaskConical} 
+            label="Studio" 
+            onClick={() => navigate('/studio')} 
+            active={location.pathname === '/studio'}
           />
           <IconButton 
             icon={IconBrain} 
