@@ -115,8 +115,8 @@ export function AgentsFeatureCard({ mode }: AgentsFeatureCardProps) {
           <h3 className="font-semibold text-[#1A1A1A]">{feature.title}</h3>
           <p className="text-sm text-[#666666] mt-1">{feature.description}</p>
         </div>
-        <div className="w-16 h-16 rounded-xl bg-[#FAFAF8] border border-[#E5E5E5] flex items-center justify-center flex-shrink-0">
-          <Icon className="w-8 h-8 text-[#722F37]" />
+        <div className="w-16 h-16 rounded-xl bg-[#E8F4F8] border border-[#E5E5E5] flex items-center justify-center flex-shrink-0">
+          <Icon className="w-8 h-8 text-[#1D4E5F]" />
         </div>
       </div>
     </div>

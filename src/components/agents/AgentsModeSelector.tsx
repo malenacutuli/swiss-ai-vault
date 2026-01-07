@@ -86,8 +86,8 @@ export function AgentsModeSelector({ currentMode, onModeChange }: AgentsModeSele
             className={cn(
               "rounded-full transition-all",
               isSelected 
-                ? "bg-[#722F37] text-white border-[#722F37] hover:bg-[#5a252c]"
-                : "bg-white text-[#666666] border-[#E5E5E5] hover:border-[#722F37]/30 hover:bg-[#FAFAF8]"
+                ? "bg-[#1D4E5F] text-white border-[#1D4E5F] hover:bg-[#163d4a]"
+                : "bg-white text-[#666666] border-[#E5E5E5] hover:border-[#1D4E5F]/30 hover:bg-[#FAFAF8]"
             )}
           >
             <Icon className="w-4 h-4 mr-1.5" />
@@ -110,8 +110,8 @@ export function AgentsModeSelector({ currentMode, onModeChange }: AgentsModeSele
             className={cn(
               "rounded-full",
               selectedMoreMode 
-                ? "bg-[#722F37] text-white border-[#722F37] hover:bg-[#5a252c]"
-                : "bg-white text-[#666666] border-[#E5E5E5] hover:border-[#722F37]/30"
+                ? "bg-[#1D4E5F] text-white border-[#1D4E5F] hover:bg-[#163d4a]"
+                : "bg-white text-[#666666] border-[#E5E5E5] hover:border-[#1D4E5F]/30"
             )}
           >
             {selectedMoreMode ? (
@@ -144,7 +144,7 @@ export function AgentsModeSelector({ currentMode, onModeChange }: AgentsModeSele
                 }}
                 className={cn(
                   "cursor-pointer",
-                  isSelected && "bg-red-50 text-[#722F37]"
+                  isSelected && "bg-[#E8F4F8] text-[#1D4E5F]"
                 )}
               >
                 <Icon className="w-4 h-4 mr-2" />

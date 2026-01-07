@@ -319,17 +319,17 @@ export default function Agents() {
         <meta name="description" content="Autonomous AI agents that work for you. Create research, documents, presentations, and more." />
       </Helmet>
       {/* Light theme wrapper for Agents only */}
-      <div className="min-h-screen bg-[#FAFAF8]">
-        {/* Sidebar */}
+      <div className="min-h-screen bg-white">
+        {/* Sidebar - 280px fixed */}
         <AgentsSidebar 
           onNewTask={handleNewTask} 
           recentTasks={recentTasks}
           onSelectTask={handleViewRecentTask}
         />
         
-        {/* Main content wrapper - offset by sidebar width */}
-        <div className="ml-64">
-          <AgentsHeader sidebarWidth={0} />
+        {/* Main content area - offset by sidebar width */}
+        <div className="ml-[280px]">
+          <AgentsHeader />
           
           <main className="p-8 max-w-3xl mx-auto">
           <AnimatePresence mode="wait">
@@ -346,7 +346,7 @@ export default function Agents() {
                 <div
                   className={cn(
                     "relative max-w-2xl mx-auto transition-all duration-200",
-                    isDragging && "ring-2 ring-primary ring-offset-4 rounded-xl"
+                    isDragging && "ring-2 ring-[#1D4E5F] ring-offset-4 rounded-xl"
                   )}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -359,11 +359,11 @@ export default function Agents() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-primary/5 border-2 border-dashed border-primary rounded-xl flex items-center justify-center z-50 backdrop-blur-sm"
+                        className="absolute inset-0 bg-[#1D4E5F]/5 border-2 border-dashed border-[#1D4E5F] rounded-xl flex items-center justify-center z-50 backdrop-blur-sm"
                       >
                         <div className="text-center">
-                          <p className="text-lg font-medium text-primary">Drop files here</p>
-                          <p className="text-sm text-primary/70">PDF, DOCX, XLSX, CSV, Images (max 20MB)</p>
+                          <p className="text-lg font-medium text-[#1D4E5F]">Drop files here</p>
+                          <p className="text-sm text-[#1D4E5F]/70">PDF, DOCX, XLSX, CSV, Images (max 20MB)</p>
                         </div>
                       </motion.div>
                     )}
@@ -457,7 +457,7 @@ export default function Agents() {
                       <button
                         onClick={handleSubmit}
                         disabled={!taskPrompt.trim() || isSubmitting}
-                        className="flex items-center gap-2 px-5 py-2 bg-[#722F37] text-white rounded-lg hover:bg-[#5a252c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                        className="flex items-center gap-2 px-5 py-2 bg-[#1D4E5F] text-white rounded-lg hover:bg-[#163d4a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                       >
                         {isSubmitting ? (
                           <span>{isUploading ? 'Uploading...' : 'Creating...'}</span>
