@@ -12,6 +12,7 @@ import { AgentsModeSelector } from '@/components/agents/AgentsModeSelector';
 import { AgentsFeatureCard } from '@/components/agents/AgentsFeatureCard';
 import type { TaskMode } from '@/components/agents/AgentsTaskInput';
 import { ConnectedToolsBar } from '@/components/agents/ConnectedToolsBar';
+import { SlidesMode } from '@/components/agents/modes/SlidesMode';
 import { TemplateBrowser, type ActionTemplate } from '@/components/agents/TemplateBrowser';
 import { TaskDetailModal } from '@/components/agents/TaskDetailModal';
 import { MasterExecutionView } from '@/components/agents/execution/MasterExecutionView';
@@ -66,6 +67,10 @@ export default function Agents() {
   const [connectedTools, setConnectedTools] = useState<string[]>(['github']);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  // Slides mode specific state
+  const [selectedTemplate, setSelectedTemplate] = useState('swiss-classic');
+  const [slideCount, setSlideCount] = useState(8);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -475,8 +480,21 @@ export default function Agents() {
                   />
                 </div>
 
-                {/* Feature Card */}
-                <AgentsFeatureCard mode={currentMode} />
+                {/* Feature Card - only show when not in slides mode */}
+                {currentMode !== 'slides' && (
+                  <AgentsFeatureCard mode={currentMode} />
+                )}
+
+                {/* Mode-specific content */}
+                {currentMode === 'slides' && (
+                  <SlidesMode
+                    onPromptSelect={(text) => setTaskPrompt(text)}
+                    onTemplateSelect={setSelectedTemplate}
+                    selectedTemplate={selectedTemplate}
+                    slideCount={slideCount}
+                    onSlideCountChange={setSlideCount}
+                  />
+                )}
 
                 {/* Connected Tools & Privacy */}
                 <div className="max-w-2xl mx-auto">
