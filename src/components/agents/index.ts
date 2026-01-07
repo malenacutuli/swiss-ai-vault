@@ -19,3 +19,5 @@ export { AgentsTaskInput, type TaskMode } from './AgentsTaskInput';
 export { AgentsFeatureCard } from './AgentsFeatureCard';
 export { ModeSelector, type AgentMode, ALL_MODES, getModeConfig, getPlaceholderForMode } from './ModeSelector';
 export { SamplePrompts, getPromptsForMode } from './SamplePrompts';
+export { ProjectsList } from './ProjectsList';
+export { TasksList } from './TasksList';
