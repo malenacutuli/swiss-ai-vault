@@ -17,7 +17,9 @@ import {
   Terminal,
   Maximize2,
   Minimize2,
-  X
+  X,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -153,6 +155,38 @@ export function AgentsExecutionView({
                   />
                 ))}
               </div>
+
+              {/* Show result when task is completed */}
+              {task?.status === 'completed' && task?.result && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    Result
+                  </h4>
+                  <div className="prose prose-sm max-w-none">
+                    {typeof task.result === 'object' && task.result.content ? (
+                      <div className="whitespace-pre-wrap text-gray-700">{task.result.content}</div>
+                    ) : typeof task.result === 'string' ? (
+                      <div className="whitespace-pre-wrap text-gray-700">{task.result}</div>
+                    ) : (
+                      <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                        {JSON.stringify(task.result, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Show error when task failed */}
+              {task?.status === 'failed' && task?.error_message && (
+                <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <h4 className="font-medium text-red-900 mb-2 flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-500" />
+                    Error
+                  </h4>
+                  <p className="text-red-700">{task.error_message}</p>
+                </div>
+              )}
 
               {/* Current action indicator */}
               {currentStep && isLive && (
