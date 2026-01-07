@@ -1,85 +1,108 @@
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+// 30 Native Gemini Voices
+const GEMINI_VOICES = {
+  professional: ["Kore", "Charon", "Gacrux", "Enceladus"],
+  friendly: ["Puck", "Algieba", "Fenrir", "Leda"],
+  neutral: ["Aoede", "Orus", "Zephyr", "Nova"],
+  expressive: ["Clio", "Calypso", "Atlas", "Helios"],
+  warm: ["Lyra", "Vega", "Rigel", "Altair"],
+  authoritative: ["Castor", "Pollux", "Regulus", "Antares"],
+  youthful: ["Sirius", "Procyon", "Deneb", "Mira"],
+  broadcast: ["Bellatrix", "Betelgeuse"],
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
 };
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const GOOGLE_GEMINI_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-    if (!GOOGLE_GEMINI_API_KEY) {
-      throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
-    }
-
-    const { text, voiceName, style } = await req.json();
-
+    const { text, voice, voiceName, style } = await req.json();
+    
     if (!text) {
       return new Response(
         JSON.stringify({ error: "Text is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const genAI = new GoogleGenerativeAI(GOOGLE_GEMINI_API_KEY);
+    
+    const selectedVoice = voice || voiceName || "Kore";
+    const apiKey = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    
+    if (!apiKey) {
+      throw new Error("GOOGLE_GEMINI_API_KEY not configured");
+    }
     
     // Build the content with optional style prefix
     const contentText = style ? `${style}: "${text}"` : text;
-
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-preview-tts",
-    });
-
-    const response = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: contentText }] }],
-      generationConfig: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: voiceName || "Kore",
+    
+    console.log(`[gemini-tts] Generating audio for ${text.length} chars with voice: ${selectedVoice}`);
+    
+    // Call Gemini TTS API directly
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [{ text: contentText }],
+          }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: selectedVoice },
+              },
             },
           },
-        },
-      } as any,
-    });
-
-    const result = response.response;
-    const candidate = result.candidates?.[0];
+        }),
+      }
+    );
     
-    if (!candidate?.content?.parts?.[0]) {
-      throw new Error("No audio generated from Gemini TTS");
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[gemini-tts] API error: ${errorText}`);
+      throw new Error(`TTS error: ${errorText}`);
     }
-
-    // Extract base64 audio data
-    const part = candidate.content.parts[0] as any;
-    const audioData = part.inlineData?.data;
-    const mimeType = part.inlineData?.mimeType || "audio/mp3";
-
+    
+    const data = await response.json();
+    const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+    
     if (!audioData) {
       throw new Error("No audio data in response");
     }
-
-    console.log(`[gemini-tts] Generated audio for text: "${text.slice(0, 50)}..." voice: ${voiceName || "Kore"}`);
-
-    return new Response(
-      JSON.stringify({ 
-        audio: audioData,
-        mimeType,
-        voiceName: voiceName || "Kore",
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("[gemini-tts] Error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "TTS generation failed" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    
+    console.log(`[gemini-tts] Generated audio successfully for: "${text.slice(0, 50)}..."`);
+    
+    return new Response(JSON.stringify({
+      audio: audioData.data,
+      mimeType: audioData.mimeType || "audio/mp3",
+      voice: selectedVoice,
+      voiceName: selectedVoice,
+      voices: GEMINI_VOICES,
+      success: true,
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+    
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error(`[gemini-tts] Error: ${error.message}`);
+    return new Response(JSON.stringify({
+      error: error.message,
+      success: false,
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
