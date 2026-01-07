@@ -53,8 +53,8 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
 
   if (!content) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-        <p className="text-white/60">No content available.</p>
+      <div className="bg-card border border-border rounded-xl p-6 text-center">
+        <p className="text-muted-foreground">No content available.</p>
       </div>
     );
   }
@@ -62,17 +62,17 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
   let headingIndex = 0;
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Header */}
       {(title || toc.length > 0) && (
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          {title && <h3 className="text-lg font-medium text-white">{title}</h3>}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          {title && <h3 className="text-lg font-medium text-foreground">{title}</h3>}
           {toc.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowTOC(!showTOC)}
-              className="text-white/60 hover:text-white hover:bg-white/10"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               {showTOC ? <X className="w-4 h-4 mr-1" /> : <List className="w-4 h-4 mr-1" />}
               {showTOC ? 'Hide TOC' : 'Show TOC'}
@@ -84,8 +84,8 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
       <div className="flex">
         {/* TOC Sidebar */}
         {showTOC && toc.length > 0 && (
-          <div className="w-64 border-r border-white/10 p-4 shrink-0">
-            <h4 className="text-sm font-medium text-white/60 mb-3">Contents</h4>
+          <div className="w-64 border-r border-border p-4 shrink-0">
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">Contents</h4>
             <ScrollArea className="h-[400px]">
               <nav className="space-y-1">
                 {toc.map((item) => (
@@ -93,7 +93,7 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
                     key={item.id}
                     onClick={() => scrollToHeading(item.id)}
                     className={cn(
-                      'block text-left text-sm text-white/60 hover:text-white transition-colors w-full truncate',
+                      'block text-left text-sm text-muted-foreground hover:text-foreground transition-colors w-full truncate',
                       item.level === 1 && 'font-medium',
                       item.level === 2 && 'pl-3',
                       item.level === 3 && 'pl-6 text-xs',
@@ -110,13 +110,13 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
 
         {/* Content */}
         <ScrollArea className="flex-1 h-[500px]">
-          <div className="p-6 prose prose-invert prose-sm max-w-none">
+          <div className="p-6 prose prose-sm dark:prose-invert max-w-none">
             <ReactMarkdown
               components={{
                 h1: ({ children }) => {
                   const id = `heading-${headingIndex++}`;
                   return (
-                    <h1 id={id} className="text-2xl font-semibold text-white mt-6 mb-4 scroll-mt-4">
+                    <h1 id={id} className="text-2xl font-semibold text-foreground mt-6 mb-4 scroll-mt-4">
                       {children}
                     </h1>
                   );
@@ -124,7 +124,7 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
                 h2: ({ children }) => {
                   const id = `heading-${headingIndex++}`;
                   return (
-                    <h2 id={id} className="text-xl font-medium text-white mt-5 mb-3 scroll-mt-4">
+                    <h2 id={id} className="text-xl font-medium text-foreground mt-5 mb-3 scroll-mt-4">
                       {children}
                     </h2>
                   );
@@ -132,17 +132,17 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
                 h3: ({ children }) => {
                   const id = `heading-${headingIndex++}`;
                   return (
-                    <h3 id={id} className="text-lg font-medium text-white mt-4 mb-2 scroll-mt-4">
+                    <h3 id={id} className="text-lg font-medium text-foreground mt-4 mb-2 scroll-mt-4">
                       {children}
                     </h3>
                   );
                 },
-                p: ({ children }) => <p className="text-white/80 mb-4 leading-relaxed">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc list-inside text-white/80 mb-4 space-y-1">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal list-inside text-white/80 mb-4 space-y-1">{children}</ol>,
-                li: ({ children }) => <li className="text-white/80">{children}</li>,
+                p: ({ children }) => <p className="text-foreground/80 mb-4 leading-relaxed">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc list-inside text-foreground/80 mb-4 space-y-1">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside text-foreground/80 mb-4 space-y-1">{children}</ol>,
+                li: ({ children }) => <li className="text-foreground/80">{children}</li>,
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-[#e63946] pl-4 my-4 text-white/60 italic">
+                  <blockquote className="border-l-4 border-primary pl-4 my-4 text-muted-foreground italic">
                     {children}
                   </blockquote>
                 ),
@@ -152,7 +152,7 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
 
                   if (isInline) {
                     return (
-                      <code className="bg-white/10 px-1.5 py-0.5 rounded text-[#e63946] text-sm">
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-primary text-sm">
                         {children}
                       </code>
                     );
@@ -160,17 +160,17 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
 
                   return (
                     <div className="relative group my-4">
-                      <pre className="bg-white/5 border border-white/10 rounded-lg p-4 overflow-x-auto">
-                        <code className="text-sm text-white/80">{children}</code>
+                      <pre className="bg-muted border border-border rounded-lg p-4 overflow-x-auto">
+                        <code className="text-sm text-foreground/80">{children}</code>
                       </pre>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleCopyCode(code)}
-                        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-white/40 hover:text-white hover:bg-white/10"
+                        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground hover:bg-accent"
                       >
                         {copiedCode === code ? (
-                          <Check className="w-4 h-4 text-green-400" />
+                          <Check className="w-4 h-4 text-green-500" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -183,24 +183,24 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#e63946] hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {children}
                   </a>
                 ),
-                hr: () => <hr className="border-white/10 my-6" />,
+                hr: () => <hr className="border-border my-6" />,
                 table: ({ children }) => (
                   <div className="overflow-x-auto my-4">
-                    <table className="min-w-full border border-white/10 rounded-lg">{children}</table>
+                    <table className="min-w-full border border-border rounded-lg">{children}</table>
                   </div>
                 ),
                 th: ({ children }) => (
-                  <th className="bg-white/5 border border-white/10 px-4 py-2 text-left text-white font-medium">
+                  <th className="bg-muted border border-border px-4 py-2 text-left text-foreground font-medium">
                     {children}
                   </th>
                 ),
                 td: ({ children }) => (
-                  <td className="border border-white/10 px-4 py-2 text-white/80">{children}</td>
+                  <td className="border border-border px-4 py-2 text-foreground/80">{children}</td>
                 ),
               }}
             >

@@ -54,8 +54,8 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
 
   if (questions.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-        <p className="text-white/60">No questions available.</p>
+      <div className="bg-card border border-border rounded-xl p-6 text-center">
+        <p className="text-muted-foreground">No questions available.</p>
       </div>
     );
   }
@@ -63,22 +63,22 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
   if (isComplete) {
     const percentage = Math.round((score / questions.length) * 100);
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
+      <div className="bg-card border border-border rounded-xl p-8 text-center">
         <div className="mb-6">
-          <div className="text-6xl font-bold text-white mb-2">{percentage}%</div>
-          <p className="text-white/60">
+          <div className="text-6xl font-bold text-foreground mb-2">{percentage}%</div>
+          <p className="text-muted-foreground">
             You got {score} out of {questions.length} correct
           </p>
         </div>
 
-        <div className="w-full bg-white/10 rounded-full h-3 mb-8">
+        <div className="w-full bg-muted rounded-full h-3 mb-8">
           <div
-            className="bg-[#e63946] h-3 rounded-full transition-all"
+            className="bg-primary h-3 rounded-full transition-all"
             style={{ width: `${percentage}%` }}
           />
         </div>
 
-        <Button onClick={handleRestart} className="bg-[#e63946] hover:bg-[#e63946]/90">
+        <Button onClick={handleRestart} className="bg-primary hover:bg-primary/90">
           <RotateCcw className="w-4 h-4 mr-2" />
           Try Again
         </Button>
@@ -87,26 +87,26 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-      {title && <h3 className="text-lg font-medium text-white mb-4">{title}</h3>}
+    <div className="bg-card border border-border rounded-xl p-6">
+      {title && <h3 className="text-lg font-medium text-foreground mb-4">{title}</h3>}
 
       {/* Progress */}
       <div className="flex items-center justify-between mb-6">
-        <span className="text-sm text-white/60">
+        <span className="text-sm text-muted-foreground">
           Question {currentIndex + 1} of {questions.length}
         </span>
-        <span className="text-sm text-white/60">Score: {score}</span>
+        <span className="text-sm text-muted-foreground">Score: {score}</span>
       </div>
 
-      <div className="w-full bg-white/10 rounded-full h-1.5 mb-6">
+      <div className="w-full bg-muted rounded-full h-1.5 mb-6">
         <div
-          className="bg-[#e63946] h-1.5 rounded-full transition-all"
+          className="bg-primary h-1.5 rounded-full transition-all"
           style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
         />
       </div>
 
       {/* Question */}
-      <h4 className="text-xl font-medium text-white mb-6">{currentQuestion.question}</h4>
+      <h4 className="text-xl font-medium text-foreground mb-6">{currentQuestion.question}</h4>
 
       {/* Options */}
       <div className="space-y-3 mb-6">
@@ -121,23 +121,23 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
               disabled={isSubmitted}
               className={cn(
                 'w-full text-left p-4 rounded-xl border transition-all',
-                !isSubmitted && isSelected && 'border-[#e63946] bg-[#e63946]/10',
-                !isSubmitted && !isSelected && 'border-white/10 bg-white/5 hover:bg-white/10',
+                !isSubmitted && isSelected && 'border-primary bg-primary/10',
+                !isSubmitted && !isSelected && 'border-border bg-muted hover:bg-accent',
                 isSubmitted && isCorrectOption && 'border-green-500 bg-green-500/10',
                 isSubmitted && isSelected && !isCorrectOption && 'border-red-500 bg-red-500/10',
-                isSubmitted && !isSelected && !isCorrectOption && 'border-white/10 bg-white/5 opacity-50'
+                isSubmitted && !isSelected && !isCorrectOption && 'border-border bg-muted opacity-50'
               )}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
                     'w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0',
-                    isSelected ? 'border-[#e63946]' : 'border-white/30'
+                    isSelected ? 'border-primary' : 'border-muted-foreground/30'
                   )}
                 >
-                  {isSelected && <div className="w-3 h-3 rounded-full bg-[#e63946]" />}
+                  {isSelected && <div className="w-3 h-3 rounded-full bg-primary" />}
                 </div>
-                <span className="text-white">{option}</span>
+                <span className="text-foreground">{option}</span>
                 {isSubmitted && isCorrectOption && (
                   <CheckCircle2 className="w-5 h-5 text-green-500 ml-auto" />
                 )}
@@ -158,7 +158,7 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
             isCorrect ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'
           )}
         >
-          <p className="text-sm text-white/80">{currentQuestion.explanation}</p>
+          <p className="text-sm text-foreground/80">{currentQuestion.explanation}</p>
         </div>
       )}
 
@@ -168,12 +168,12 @@ export function QuizViewer({ questions, title }: QuizViewerProps) {
           <Button
             onClick={handleSubmit}
             disabled={selectedOption === null}
-            className="bg-[#e63946] hover:bg-[#e63946]/90"
+            className="bg-primary hover:bg-primary/90"
           >
             Submit Answer
           </Button>
         ) : (
-          <Button onClick={handleNext} className="bg-[#e63946] hover:bg-[#e63946]/90">
+          <Button onClick={handleNext} className="bg-primary hover:bg-primary/90">
             {currentIndex < questions.length - 1 ? (
               <>
                 Next <ChevronRight className="w-4 h-4 ml-1" />
