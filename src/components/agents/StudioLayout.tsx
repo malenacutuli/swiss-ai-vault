@@ -241,8 +241,10 @@ export function StudioLayout({
         <div className="p-4 border-t border-border/50">
           <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-2">
             <Button
+              type="button"
               variant="ghost"
               size="icon"
+              onClick={onAddSource}
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <Paperclip className="h-4 w-4" />
