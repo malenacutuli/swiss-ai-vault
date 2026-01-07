@@ -163,6 +163,31 @@ export default function AgentsStudio() {
     });
   };
 
+  // Map Studio output card IDs to agent-execute task types
+  const STUDIO_TO_AGENT_TYPE: Record<string, string> = {
+    'audio': 'audio_summary',
+    'audio_summary': 'audio_summary',
+    'audio summary': 'audio_summary',
+    'video': 'video_summary',
+    'video_summary': 'video_summary',
+    'video summary': 'video_summary',
+    'mindmap': 'mind_map',
+    'mind_map': 'mind_map',
+    'mind map': 'mind_map',
+    'report': 'document',
+    'reports': 'document',
+    'flashcards': 'flashcards',
+    'flashcard': 'flashcards',
+    'quiz': 'quiz',
+    'infographic': 'infographic',
+    'presentation': 'slides',
+    'slides': 'slides',
+    'table': 'spreadsheet',
+    'data_table': 'spreadsheet',
+    'data table': 'spreadsheet',
+    'spreadsheet': 'spreadsheet',
+  };
+
   const handleCreateOutput = async (outputType: string) => {
     if (sources.length === 0) {
       toast({
@@ -187,12 +212,20 @@ export default function AgentsStudio() {
 
       const fullPrompt = `${documentContext}\n\nUser Request: Based on the above documents, create a ${outputType}.`;
 
+      // Map to correct task type
+      const normalizedType = outputType.toLowerCase().replace(/ /g, '_');
+      const taskType = STUDIO_TO_AGENT_TYPE[outputType.toLowerCase()] || 
+                       STUDIO_TO_AGENT_TYPE[normalizedType] || 
+                       normalizedType;
+
+      console.log('[Studio] Output type:', outputType, '-> Task type:', taskType);
+
       // Create task via agent-execute
       const { data, error } = await supabase.functions.invoke('agent-execute', {
         body: {
           prompt: fullPrompt,
-          task_type: outputType.toLowerCase().replace(/ /g, '_'),
-          mode: outputType.toLowerCase().replace(/ /g, '_'),
+          task_type: taskType,
+          mode: taskType,
           params: {
             sources: sources.map(s => ({ name: s.name, type: s.type, charCount: s.charCount })),
             has_documents: true,
