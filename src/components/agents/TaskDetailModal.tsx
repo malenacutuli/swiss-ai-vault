@@ -220,21 +220,54 @@ export function TaskDetailModal({
   };
 
   const handleDownloadOutput = async (output: TaskOutput) => {
-    if (output.download_url) {
-      window.open(output.download_url, '_blank');
-    } else if (output.file_path) {
-      // Generate signed URL
-      const { data, error } = await supabase.storage
-        .from('agent-outputs')
-        .createSignedUrl(output.file_path, 60);
+    try {
+      // Try file_path first for signed URL (most secure)
+      if (output.file_path) {
+        const { data, error } = await supabase.storage
+          .from('agent-outputs')
+          .createSignedUrl(output.file_path, 3600); // 1 hour expiry
+        
+        if (data?.signedUrl) {
+          // Create download link
+          const a = document.createElement('a');
+          a.href = data.signedUrl;
+          a.download = output.file_name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          return;
+        }
+      }
       
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
+      // Fallback: Try to extract path from download_url and create signed URL
+      if (output.download_url?.includes('/agent-outputs/')) {
+        const pathMatch = output.download_url.match(/\/agent-outputs\/(.+)$/);
+        if (pathMatch) {
+          const { data } = await supabase.storage
+            .from('agent-outputs')
+            .createSignedUrl(pathMatch[1], 3600);
+          
+          if (data?.signedUrl) {
+            const a = document.createElement('a');
+            a.href = data.signedUrl;
+            a.download = output.file_name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            return;
+          }
+        }
+      }
+      
+      // Last resort: open download_url directly
+      if (output.download_url) {
+        window.open(output.download_url, '_blank');
       } else {
         toast.error('Download URL not available');
       }
-    } else {
-      toast.error('Download URL not available');
+    } catch (err) {
+      console.error('[TaskDetailModal] Download error:', err);
+      toast.error('Failed to download file');
     }
   };
 
