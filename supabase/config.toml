@@ -155,3 +155,6 @@ verify_jwt = false
 
 [functions.agent-templates-list]
 verify_jwt = false
+
+[functions.deep-research]
+verify_jwt = true
