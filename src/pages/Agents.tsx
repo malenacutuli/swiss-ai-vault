@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,10 +56,6 @@ type PrivacyTier = 'ghost' | 'vault' | 'full';
 
 export default function Agents() {
   const { user } = useAuth();
-  const location = useLocation();
-  
-  // Detect if we're inside LabsLayout (route /labs/agents) to avoid duplicate sidebar/header
-  const isInsideLabs = location.pathname.startsWith('/labs');
   // Core state
   const [taskPrompt, setTaskPrompt] = useState('');
   const [currentMode, setCurrentMode] = useState<TaskMode>('default');
@@ -324,22 +319,19 @@ export default function Agents() {
         <meta name="description" content="Autonomous AI agents that work for you. Create research, documents, presentations, and more." />
       </Helmet>
       {/* Light theme wrapper for Agents only */}
-      <div className={cn("min-h-screen bg-white", !isInsideLabs && "flex")}>
-        {/* Sidebar - only render if not inside LabsLayout */}
-        {!isInsideLabs && (
-          <AgentsSidebar 
-            onNewTask={handleNewTask} 
-            recentTasks={recentTasks}
-            onSelectTask={handleViewRecentTask}
-          />
-        )}
+      <div className="min-h-screen bg-white">
+        {/* Sidebar - 280px fixed */}
+        <AgentsSidebar 
+          onNewTask={handleNewTask} 
+          recentTasks={recentTasks}
+          onSelectTask={handleViewRecentTask}
+        />
         
-        {/* Main content area - offset by sidebar width only when sidebar is shown */}
-        <div className={cn(!isInsideLabs && "ml-[280px] flex-1")}>
-          {/* Header only when not inside LabsLayout */}
-          {!isInsideLabs && <AgentsHeader />}
+        {/* Main content area - offset by sidebar width */}
+        <div className="ml-[280px]">
+          <AgentsHeader />
           
-          <main className="p-6 max-w-3xl mx-auto">
+          <main className="p-8 max-w-3xl mx-auto">
           <AnimatePresence mode="wait">
             {!isExecuting ? (
               // TASK INPUT VIEW
