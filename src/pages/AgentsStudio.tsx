@@ -7,6 +7,7 @@ import { AgentsSidebar } from '@/components/agents/AgentsSidebar';
 import { AgentsHeader } from '@/components/agents/AgentsHeader';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { processDocument } from '@/lib/memory/document-processor';
 
 interface Source {
   id: string;
@@ -14,6 +15,7 @@ interface Source {
   name: string;
   content?: string;
   url?: string;
+  charCount?: number;
 }
 
 interface ChatMessage {
@@ -30,26 +32,73 @@ export default function AgentsStudio() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const handleAddSource = () => {
     setIsSourceModalOpen(true);
   };
 
-  const handleFileUpload = (files: File[]) => {
-    files.forEach(file => {
-      const newSource: Source = {
-        id: crypto.randomUUID(),
-        type: 'file',
-        name: file.name,
-        content: `File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
-      };
-      setSources(prev => [...prev, newSource]);
-    });
+  const handleFileUpload = async (files: File[]) => {
     setIsSourceModalOpen(false);
+    setIsExtracting(true);
+    
     toast({
-      title: 'Source added',
-      description: `${files.length} file(s) added to your sources.`,
+      title: 'Processing files',
+      description: `Extracting content from ${files.length} file(s)...`,
     });
+
+    try {
+      const extractedSources: Source[] = [];
+      
+      for (const file of files) {
+        const result = await processDocument(file);
+        
+        if (result.success && result.content) {
+          extractedSources.push({
+            id: crypto.randomUUID(),
+            type: 'file',
+            name: file.name,
+            content: result.content,
+            charCount: result.content.length,
+          });
+        } else {
+          // Try simple text extraction as fallback
+          try {
+            const textContent = await file.text();
+            extractedSources.push({
+              id: crypto.randomUUID(),
+              type: 'file',
+              name: file.name,
+              content: textContent,
+              charCount: textContent.length,
+            });
+          } catch {
+            toast({
+              title: 'Extraction failed',
+              description: `Could not extract content from ${file.name}`,
+              variant: 'destructive',
+            });
+          }
+        }
+      }
+      
+      if (extractedSources.length > 0) {
+        setSources(prev => [...prev, ...extractedSources]);
+        const totalChars = extractedSources.reduce((sum, s) => sum + (s.charCount || 0), 0);
+        toast({
+          title: 'Files processed',
+          description: `Extracted ${Math.round(totalChars / 1000)}k characters from ${extractedSources.length} file(s)`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Processing error',
+        description: 'Some files could not be processed',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handleUrlAdd = (url: string) => {
@@ -127,19 +176,27 @@ export default function AgentsStudio() {
     setIsGenerating(true);
 
     try {
-      // Build context from sources
-      const sourceContext = sources.map(s => 
-        s.content || s.url || s.name
-      ).join('\n\n---\n\n');
+      // Build structured context from sources with clear document markers
+      let documentContext = '\n\n--- UPLOADED DOCUMENTS ---\n\n';
+      sources.forEach((source, index) => {
+        documentContext += `=== Document ${index + 1}: ${source.name} ===\n`;
+        documentContext += source.content || source.url || '[No content]';
+        documentContext += '\n\n';
+      });
+      documentContext += '--- END OF DOCUMENTS ---\n\n';
+
+      const fullPrompt = `${documentContext}\n\nUser Request: Based on the above documents, create a ${outputType}.`;
 
       // Create task via agent-execute
       const { data, error } = await supabase.functions.invoke('agent-execute', {
         body: {
-          prompt: `Based on the following sources, create a ${outputType}:\n\n${sourceContext}`,
+          prompt: fullPrompt,
           task_type: outputType.toLowerCase().replace(/ /g, '_'),
           mode: outputType.toLowerCase().replace(/ /g, '_'),
           params: {
-            sources: sources,
+            sources: sources.map(s => ({ name: s.name, type: s.type, charCount: s.charCount })),
+            has_documents: true,
+            document_count: sources.length,
           },
         },
       });
@@ -180,10 +237,21 @@ export default function AgentsStudio() {
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Build context from sources
-      const sourceContext = sources.length > 0
-        ? `Context from sources:\n${sources.map(s => s.content || s.url || s.name).join('\n\n')}\n\n`
-        : '';
+      // Build structured context from sources with clear markers
+      let documentContext = '';
+      if (sources.length > 0) {
+        documentContext = '\n\n--- UPLOADED DOCUMENTS ---\n\n';
+        sources.forEach((source, index) => {
+          documentContext += `=== Document ${index + 1}: ${source.name} ===\n`;
+          documentContext += source.content || source.url || '[No content]';
+          documentContext += '\n\n';
+        });
+        documentContext += '--- END OF DOCUMENTS ---\n\n';
+      }
+
+      const systemPrompt = sources.length > 0
+        ? `You are a helpful assistant analyzing the user's documents. You have FULL ACCESS to all document content provided below. Do NOT say you cannot access files - the content is provided in this context.${documentContext}`
+        : 'You are a helpful AI assistant.';
 
       // Call inference
       const { data, error } = await supabase.functions.invoke('ghost-inference', {
@@ -191,12 +259,12 @@ export default function AgentsStudio() {
           messages: [
             {
               role: 'system',
-              content: `You are a helpful assistant analyzing the user's sources and documents. ${sourceContext}`,
+              content: systemPrompt,
             },
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content },
           ],
-          model: 'gemini-2.5-flash',
+          model: 'google/gemini-2.5-flash',
           task_type: 'chat',
         },
       });

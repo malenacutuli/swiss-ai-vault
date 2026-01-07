@@ -415,8 +415,17 @@ async function executeInferenceTask(
       .update({ progress_percentage: 55, current_step: 3 })
       .eq("id", taskId);
 
-    const systemMessageBase =
-      "You are a helpful AI assistant for SwissVault, a Swiss-hosted privacy-first AI platform. Provide clear, comprehensive, and well-formatted responses.";
+    // Check if prompt contains uploaded documents
+    const hasDocuments = prompt.includes('--- UPLOADED DOCUMENTS ---') || 
+                         prompt.includes('Document') || 
+                         prompt.includes('sources:');
+    
+    const systemMessageBase = hasDocuments
+      ? `You are a helpful AI assistant for SwissVault. The user has provided document content in their request. 
+IMPORTANT: You have FULL ACCESS to all document content provided below. Analyze it thoroughly.
+Do NOT say you cannot access files - the content IS provided in the prompt.
+Use the ACTUAL content from the documents to fulfill the user's request.`
+      : "You are a helpful AI assistant for SwissVault, a Swiss-hosted privacy-first AI platform. Provide clear, comprehensive, and well-formatted responses.";
 
     const messages: Array<{ role: string; content: string }> = [
       { role: "system", content: systemMessageBase },
