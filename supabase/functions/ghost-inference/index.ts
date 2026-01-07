@@ -7,6 +7,179 @@ const corsHeaders = {
 };
 
 // ============================================
+// REDIS CACHE CONFIGURATION (Upstash)
+// ============================================
+
+const CACHE_CONFIG = {
+  // Exact query cache
+  exact_match: {
+    ttl: 300, // 5 minutes
+    key_pattern: 'cache:exact:{hash}',
+  },
+  // Semantic cache (pgvector) - handled via Supabase
+  semantic: {
+    similarity_threshold: 0.85,
+    max_results: 5,
+  },
+  // Session state
+  session: {
+    ttl: 3600, // 1 hour
+    key_pattern: 'session:{user_id}:{task_id}',
+  },
+};
+
+// Redis client helper for Upstash
+class UpstashRedis {
+  private url: string;
+  private token: string;
+
+  constructor() {
+    this.url = Deno.env.get('UPSTASH_REDIS_REST_URL') || '';
+    this.token = Deno.env.get('UPSTASH_REDIS_REST_TOKEN') || '';
+  }
+
+  isConfigured(): boolean {
+    return !!(this.url && this.token);
+  }
+
+  private async command(cmd: string[]): Promise<any> {
+    if (!this.isConfigured()) {
+      console.log('[Redis] Not configured, skipping command');
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.url}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cmd),
+      });
+
+      if (!response.ok) {
+        console.warn('[Redis] Command failed:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      return data.result;
+    } catch (error) {
+      console.warn('[Redis] Command error:', error);
+      return null;
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    return await this.command(['GET', key]);
+  }
+
+  async set(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+    const cmd = ttlSeconds 
+      ? ['SET', key, value, 'EX', String(ttlSeconds)]
+      : ['SET', key, value];
+    const result = await this.command(cmd);
+    return result === 'OK';
+  }
+
+  async del(key: string): Promise<boolean> {
+    const result = await this.command(['DEL', key]);
+    return result > 0;
+  }
+
+  async incr(key: string): Promise<number | null> {
+    return await this.command(['INCR', key]);
+  }
+
+  async expire(key: string, ttlSeconds: number): Promise<boolean> {
+    const result = await this.command(['EXPIRE', key, String(ttlSeconds)]);
+    return result === 1;
+  }
+
+  async ttl(key: string): Promise<number | null> {
+    return await this.command(['TTL', key]);
+  }
+}
+
+// Singleton Redis instance
+const redis = new UpstashRedis();
+
+// Hash function for cache keys
+async function hashPrompt(messages: any[], model: string): Promise<string> {
+  const content = JSON.stringify({ messages, model });
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+}
+
+// Get cached response (exact match)
+async function getCachedResponse(messages: any[], model: string): Promise<string | null> {
+  if (!redis.isConfigured()) return null;
+  
+  try {
+    const hash = await hashPrompt(messages, model);
+    const cacheKey = CACHE_CONFIG.exact_match.key_pattern.replace('{hash}', hash);
+    const cached = await redis.get(cacheKey);
+    
+    if (cached) {
+      console.log('[Cache] HIT - exact match:', cacheKey.substring(0, 20));
+      return cached;
+    }
+    console.log('[Cache] MISS - exact:', cacheKey.substring(0, 20));
+    return null;
+  } catch (error) {
+    console.warn('[Cache] Get error:', error);
+    return null;
+  }
+}
+
+// Set cached response
+async function setCachedResponse(messages: any[], model: string, response: string): Promise<void> {
+  if (!redis.isConfigured()) return;
+  
+  try {
+    const hash = await hashPrompt(messages, model);
+    const cacheKey = CACHE_CONFIG.exact_match.key_pattern.replace('{hash}', hash);
+    await redis.set(cacheKey, response, CACHE_CONFIG.exact_match.ttl);
+    console.log('[Cache] SET:', cacheKey.substring(0, 20));
+  } catch (error) {
+    console.warn('[Cache] Set error:', error);
+  }
+}
+
+// Session state helpers
+async function getSessionState(userId: string, taskId: string): Promise<any | null> {
+  if (!redis.isConfigured()) return null;
+  
+  try {
+    const key = CACHE_CONFIG.session.key_pattern
+      .replace('{user_id}', userId)
+      .replace('{task_id}', taskId);
+    const data = await redis.get(key);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.warn('[Session] Get error:', error);
+    return null;
+  }
+}
+
+async function setSessionState(userId: string, taskId: string, state: any): Promise<void> {
+  if (!redis.isConfigured()) return;
+  
+  try {
+    const key = CACHE_CONFIG.session.key_pattern
+      .replace('{user_id}', userId)
+      .replace('{task_id}', taskId);
+    await redis.set(key, JSON.stringify(state), CACHE_CONFIG.session.ttl);
+  } catch (error) {
+    console.warn('[Session] Set error:', error);
+  }
+}
+
+// ============================================
 // MODEL REDIRECTS & FALLBACK CONFIGURATION
 // ============================================
 
@@ -1197,6 +1370,36 @@ Deno.serve(async (req: Request) => {
     const options = { maxTokens: max_tokens, temperature, topP: top_p, stream };
     
     // ==========================================
+    // REDIS CACHE CHECK (non-streaming only)
+    // ==========================================
+    if (!stream && redis.isConfigured()) {
+      const cachedResponse = await getCachedResponse(finalMessages, model);
+      if (cachedResponse) {
+        console.log('[Cache] Returning cached response');
+        const cachedData = JSON.parse(cachedResponse);
+        cachedData.cached = true;
+        cachedData.cache_tier = 'redis';
+        
+        // Include usage info for anonymous users
+        if (isAnonymous && anonymousUsageResult) {
+          cachedData.anonymous_usage = {
+            type: anonymousUsageResult.type,
+            used: anonymousUsageResult.used,
+            limit: anonymousUsageResult.limit,
+            remaining: anonymousUsageResult.remaining,
+            all_usage: anonymousUsageResult.all_usage,
+            resets_in_seconds: anonymousUsageResult.resets_in_seconds
+          };
+        }
+        
+        return new Response(
+          JSON.stringify(cachedData),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } }
+        );
+      }
+    }
+    
+    // ==========================================
     // MODAL (SWISS-HOSTED) - Always non-streaming JSON
     // ==========================================
     if (provider === 'modal') {
@@ -1268,6 +1471,11 @@ Deno.serve(async (req: Request) => {
           };
         }
         
+        // Cache the response for future requests
+        if (!stream) {
+          await setCachedResponse(finalMessages, model, JSON.stringify(responseData));
+        }
+        
         // Return as JSON (NOT SSE)
         return new Response(
           JSON.stringify(responseData),
@@ -1275,6 +1483,7 @@ Deno.serve(async (req: Request) => {
             headers: {
               ...corsHeaders,
               'Content-Type': 'application/json',
+              'X-Cache': 'MISS',
             },
           }
         );
@@ -1333,9 +1542,14 @@ Deno.serve(async (req: Request) => {
           };
         }
         
+        // Cache the response for future requests
+        if (!stream) {
+          await setCachedResponse(finalMessages, model, JSON.stringify(openaiResponseData));
+        }
+        
         return new Response(
           JSON.stringify(openaiResponseData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } }
         );
       } catch (error: unknown) {
         console.error('[OpenAI] Call failed:', error);
@@ -1387,9 +1601,14 @@ Deno.serve(async (req: Request) => {
           };
         }
         
+        // Cache the response for future requests
+        if (!stream) {
+          await setCachedResponse(finalMessages, model, JSON.stringify(anthropicResponseData));
+        }
+        
         return new Response(
           JSON.stringify(anthropicResponseData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } }
         );
       } catch (error: unknown) {
         console.error('[Anthropic] Call failed:', error);
@@ -1431,9 +1650,14 @@ Deno.serve(async (req: Request) => {
           };
         }
         
+        // Cache the response for future requests
+        if (!stream) {
+          await setCachedResponse(finalMessages, model, JSON.stringify(googleResponseData));
+        }
+        
         return new Response(
           JSON.stringify(googleResponseData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } }
         );
       } catch (error: unknown) {
         console.error('[Google] Call failed:', error);
@@ -1485,9 +1709,14 @@ Deno.serve(async (req: Request) => {
           };
         }
         
+        // Cache the response for future requests
+        if (!stream) {
+          await setCachedResponse(finalMessages, model, JSON.stringify(xaiResponseData));
+        }
+        
         return new Response(
           JSON.stringify(xaiResponseData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } }
         );
       } catch (error: unknown) {
         console.error('[xAI] Call failed:', error);
@@ -1539,9 +1768,14 @@ Deno.serve(async (req: Request) => {
           };
         }
         
+        // Cache the response for future requests
+        if (!stream) {
+          await setCachedResponse(finalMessages, model, JSON.stringify(deepseekResponseData));
+        }
+        
         return new Response(
           JSON.stringify(deepseekResponseData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } }
         );
       } catch (error: unknown) {
         console.error('[DeepSeek] Call failed:', error);
