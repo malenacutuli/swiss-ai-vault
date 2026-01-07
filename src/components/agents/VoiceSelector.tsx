@@ -78,7 +78,7 @@ export function VoiceSelector({
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors',
                   selectedVoice === voice
-                    ? 'bg-[#1D4E5F]/10 text-[#1D4E5F] border border-[#1D4E5F]/30'
+                    ? 'bg-primary/10 text-primary border border-primary/30'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 )}
               >
