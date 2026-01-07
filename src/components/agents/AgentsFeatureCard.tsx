@@ -9,42 +9,42 @@ interface FeatureConfig {
 
 const FEATURE_CONFIG: Record<TaskMode, FeatureConfig> = {
   default: {
-    title: "Use Swiss Pro to create presentations",
+    title: "Use Pro to create presentations",
     description: "Design pro-level slides with Swiss precision and privacy.",
     icon: Presentation,
   },
   slides: {
-    title: "Swiss Slides powered by AI",
+    title: "Slides powered by AI",
     description: "Generate beautiful presentations with Swiss design aesthetics.",
     icon: Presentation,
   },
   research: {
-    title: "Swiss Research - Deep Analysis",
+    title: "Research - Deep Analysis",
     description: "Run parallel research with multiple AI agents for comprehensive insights.",
     icon: Search,
   },
   audio: {
-    title: "Swiss Audio Generation",
+    title: "Audio Generation",
     description: "Create professional audio content with AI voice synthesis.",
     icon: Mic,
   },
   podcast: {
-    title: "Swiss Podcast Studio",
+    title: "Podcast Studio",
     description: "Generate NotebookLM-style audio briefings and podcasts from your content.",
     icon: Radio,
   },
   website: {
-    title: "Swiss Web Builder",
+    title: "Website Builder",
     description: "Create stunning websites with AI-powered design and development.",
     icon: Globe,
   },
   apps: {
-    title: "Swiss Apps - Beta",
+    title: "Apps - Beta",
     description: "Build mobile and web applications with AI assistance.",
     icon: Smartphone,
   },
   design: {
-    title: "Swiss Vision Design",
+    title: "Vision Design",
     description: "Create professional designs and visual content with AI.",
     icon: Palette,
   },
@@ -54,47 +54,47 @@ const FEATURE_CONFIG: Record<TaskMode, FeatureConfig> = {
     icon: FileText,
   },
   spreadsheet: {
-    title: "Swiss Sheets",
+    title: "Sheets",
     description: "Generate and analyze spreadsheets with AI assistance.",
     icon: Table,
   },
   visualization: {
-    title: "Swiss Charts",
+    title: "Charts",
     description: "Create stunning data visualizations and dashboards.",
     icon: BarChart3,
   },
   video: {
-    title: "Swiss Video Production",
+    title: "Video Production",
     description: "Generate professional video content with AI.",
     icon: Video,
   },
   chat: {
     title: "Chat Mode",
-    description: "Have a conversation with Swiss AI assistants.",
+    description: "Have a conversation with AI assistants.",
     icon: FileText,
   },
   playbook: {
-    title: "Swiss Playbook",
+    title: "Playbook",
     description: "Create comprehensive guides and documentation.",
     icon: FileText,
   },
   flashcards: {
-    title: "Swiss Cards",
+    title: "Cards",
     description: "Generate flashcards for effective learning and memorization.",
     icon: Layers,
   },
   quiz: {
-    title: "Swiss Quiz",
+    title: "Quiz",
     description: "Create interactive quizzes from any content.",
     icon: FileText,
   },
   mindmap: {
-    title: "Swiss Map",
+    title: "Map",
     description: "Generate mind maps to visualize concepts and ideas.",
     icon: FileText,
   },
   studyguide: {
-    title: "Swiss Guide",
+    title: "Guide",
     description: "Create comprehensive study guides from your materials.",
     icon: FileText,
   },

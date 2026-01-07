@@ -67,26 +67,26 @@ const MODE_CONFIG: Record<TaskMode, {
     color: 'bg-[#F5F5F5] text-[#666666] border-[#E5E5E5]'
   },
   slides: {
-    label: 'Swiss Slides',
+    label: 'Slides',
     icon: Presentation,
     placeholder: 'Describe your presentation topic',
     color: 'bg-red-50 text-red-700 border-red-200',
     modelSelector: true
   },
   research: {
-    label: 'Swiss Research',
+    label: 'Research',
     icon: Search,
     placeholder: 'Describe a complex project you want to research in parallel',
     color: 'bg-blue-50 text-blue-700 border-blue-200'
   },
   audio: {
-    label: 'Swiss Audio',
+    label: 'Audio',
     icon: Mic,
     placeholder: 'Describe the audio you want to create',
     color: 'bg-purple-50 text-purple-700 border-purple-200'
   },
   podcast: {
-    label: 'Swiss Podcast',
+    label: 'Podcast',
     icon: Radio,
     placeholder: 'Describe the podcast topic (NotebookLM-style)',
     color: 'bg-orange-50 text-orange-700 border-orange-200'

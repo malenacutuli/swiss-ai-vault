@@ -37,27 +37,27 @@ interface ModeConfig {
 }
 
 const PRIMARY_MODES: ModeConfig[] = [
-  { id: 'slides', label: 'Swiss Slides', icon: Presentation },
-  { id: 'website', label: 'Swiss Web', icon: Globe },
-  { id: 'apps', label: 'Swiss Apps', icon: Smartphone, badge: 'Beta' },
-  { id: 'design', label: 'Swiss Vision', icon: Palette },
+  { id: 'slides', label: 'Slides', icon: Presentation },
+  { id: 'website', label: 'Website', icon: Globe },
+  { id: 'apps', label: 'Apps', icon: Smartphone, badge: 'Beta' },
+  { id: 'design', label: 'Vision', icon: Palette },
 ];
 
 const MORE_MODES: ModeConfig[] = [
   { id: 'schedule', label: 'Schedule task', icon: Calendar },
-  { id: 'research', label: 'Swiss Research', icon: Search },
-  { id: 'spreadsheet', label: 'Swiss Sheets', icon: Table },
-  { id: 'visualization', label: 'Swiss Charts', icon: BarChart3 },
-  { id: 'video', label: 'Swiss Video', icon: Video },
-  { id: 'audio', label: 'Swiss Audio', icon: Volume2 },
-  { id: 'podcast', label: 'Swiss Podcast', icon: Radio },
+  { id: 'research', label: 'Research', icon: Search },
+  { id: 'spreadsheet', label: 'Sheets', icon: Table },
+  { id: 'visualization', label: 'Charts', icon: BarChart3 },
+  { id: 'video', label: 'Video', icon: Video },
+  { id: 'audio', label: 'Audio', icon: Volume2 },
+  { id: 'podcast', label: 'Podcast', icon: Radio },
   { id: 'chat', label: 'Chat mode', icon: MessageSquare },
   { id: 'playbook', label: 'Playbook', icon: BookOpen },
   // NotebookLM modes
-  { id: 'flashcards', label: 'Swiss Cards', icon: Layers },
-  { id: 'quiz', label: 'Swiss Quiz', icon: HelpCircle },
-  { id: 'mindmap', label: 'Swiss Map', icon: Network },
-  { id: 'studyguide', label: 'Swiss Guide', icon: FileText },
+  { id: 'flashcards', label: 'Cards', icon: Layers },
+  { id: 'quiz', label: 'Quiz', icon: HelpCircle },
+  { id: 'mindmap', label: 'Map', icon: Network },
+  { id: 'studyguide', label: 'Guide', icon: FileText },
 ];
 
 interface AgentsModeSelectorProps {
