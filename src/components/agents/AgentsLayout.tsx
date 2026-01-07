@@ -31,7 +31,7 @@ export function AgentsLayout({
       {/* Main content area - offset by sidebar width */}
       <div className="ml-[280px] flex-1">
         {/* Content */}
-        <main className="p-8">
+        <main className="px-6 py-6">
           {children}
         </main>
       </div>
