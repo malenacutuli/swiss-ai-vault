@@ -48,9 +48,9 @@ export function AgentsSidebar({
       collapsed ? "w-16" : "w-[280px]"
     )}>
       {/* Logo */}
-      <div className="p-4 border-b border-[#E5E5E5]">
+      <div className="h-14 px-4 border-b border-[#E5E5E5] flex items-center">
         <Link to="/agents" className="flex items-center">
-          <SwissFlag className={cn("h-8", collapsed && "h-6")} />
+          <SwissFlag className={cn("h-10", collapsed && "h-7")} />
         </Link>
       </div>
       

@@ -7,7 +7,7 @@ interface AgentsHeaderProps {
   sidebarWidth?: number;
 }
 
-export function AgentsHeader({ sidebarWidth = 256 }: AgentsHeaderProps) {
+export function AgentsHeader({ sidebarWidth = 280 }: AgentsHeaderProps) {
   const { subscription, isLoading } = useSubscription();
   
   // Mock credits for now - should come from subscription hook
@@ -20,7 +20,6 @@ export function AgentsHeader({ sidebarWidth = 256 }: AgentsHeaderProps) {
   return (
     <header 
       className="h-14 bg-white border-b border-[#E5E5E5] flex items-center justify-between px-6 sticky top-0 z-30"
-      style={{ marginLeft: sidebarWidth }}
     >
       {/* Breadcrumb */}
       <nav className="flex items-center text-sm" aria-label="Breadcrumb">
