@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { AgentOutputRenderer } from './AgentOutputRenderer';
+import { TaskResultRenderer } from './TaskResultRenderer';
 
 interface TaskStep {
   id: string;
@@ -102,6 +103,7 @@ interface Task {
   progress_percentage: number | null;
   plan_summary: string | null;
   result_summary: string | null;
+  result: Record<string, unknown> | null;
   error_message: string | null;
   credits_used: number | null;
   tokens_used: number | null;
@@ -537,10 +539,21 @@ export function TaskDetailModal({
             <TabsContent value="results" className="flex-1 overflow-hidden m-0 p-0">
               <ScrollArea className="h-[320px] px-6 py-4">
                 <div className="space-y-4">
-                  {/* Result Summary - Smart Rendering */}
-                  {task.result_summary && (
+                  {/* Full Result Object - Smart Rendering */}
+                  {task.result && (
                     <div className="space-y-3">
                       <h4 className="text-xs font-medium text-muted-foreground">Result</h4>
+                      <TaskResultRenderer 
+                        result={task.result as Record<string, unknown>} 
+                        artifactType={task.task_type || undefined}
+                      />
+                    </div>
+                  )}
+
+                  {/* Fallback: Result Summary as text/markdown */}
+                  {!task.result && task.result_summary && (
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-muted-foreground">Result Summary</h4>
                       <AgentOutputRenderer 
                         content={task.result_summary} 
                         outputType={task.task_type || undefined}
