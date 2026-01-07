@@ -5,24 +5,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // ============================================
 
 const TASK_ROUTING: Record<string, { backend: string; model?: string }> = {
-  // Modal Tasks (Swiss Hosted)
+  // Modal Tasks (Swiss Hosted) - Document generation
   slides: { backend: 'modal', model: 'swissvault-agents' },
   presentation: { backend: 'modal', model: 'swissvault-agents' },
   document: { backend: 'modal', model: 'swissvault-agents' },
+  report: { backend: 'modal', model: 'swissvault-agents' },
+  reports: { backend: 'modal', model: 'swissvault-agents' },
   spreadsheet: { backend: 'modal', model: 'swissvault-agents' },
+  table: { backend: 'modal', model: 'swissvault-agents' },
+  data_table: { backend: 'modal', model: 'swissvault-agents' },
   research: { backend: 'modal', model: 'swissvault-agents' },
   podcast: { backend: 'modal', model: 'swissvault-agents' },
   
-  // Google-Required Tasks
+  // Google-Required Tasks - Audio/Video
   audio_summary: { backend: 'gemini-tts' },
   audio_overview: { backend: 'gemini-tts' },
+  audio: { backend: 'gemini-tts' },
   video_summary: { backend: 'veo' },
   video: { backend: 'veo' },
+  
+  // Google-Required Tasks - Research & Analysis
   deep_research: { backend: 'gemini-research' },
   grounded_search: { backend: 'gemini-grounded' },
-  mind_map: { backend: 'gemini', model: 'gemini-2.5-flash' },
-  flashcards: { backend: 'gemini', model: 'gemini-2.5-flash' },
-  quiz: { backend: 'gemini', model: 'gemini-2.5-flash' },
+  
+  // Inference Tasks - Text generation
+  mind_map: { backend: 'inference', model: 'gemini-2.5-flash' },
+  mindmap: { backend: 'inference', model: 'gemini-2.5-flash' },
+  flashcards: { backend: 'inference', model: 'gemini-2.5-flash' },
+  flashcard: { backend: 'inference', model: 'gemini-2.5-flash' },
+  quiz: { backend: 'inference', model: 'gemini-2.5-flash' },
+  infographic: { backend: 'inference', model: 'gemini-2.5-flash' },
   
   // General Chat (Gemini Default)
   chat: { backend: 'inference', model: 'gemini-2.5-flash' },
