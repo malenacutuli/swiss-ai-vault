@@ -9,7 +9,9 @@ import {
   Gift, 
   Folder,
   ListTodo,
-  Settings
+  Settings,
+  LayoutGrid,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,13 +29,15 @@ interface AgentsSidebarProps {
     created_at?: string;
   }>;
   onSelectTask?: (task: any) => void;
+  activeView?: 'tasks' | 'studio';
 }
 
 export function AgentsSidebar({ 
   collapsed = false, 
   onNewTask, 
   recentTasks = [],
-  onSelectTask
+  onSelectTask,
+  activeView = 'tasks'
 }: AgentsSidebarProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -94,6 +98,25 @@ export function AgentsSidebar({
             <Library className="w-3.5 h-3.5" />
             <span>Library</span>
           </div>
+          
+          {/* Studio - NEW */}
+          <button
+            onClick={() => navigate('/ghost/agents/studio')}
+            className={cn(
+              "w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors mb-1",
+              activeView === 'studio'
+                ? "bg-[#1D4E5F]/10 text-[#1D4E5F] border border-[#1D4E5F]/20"
+                : "text-[#1A1A1A] hover:bg-[#F5F5F5]"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <LayoutGrid className="w-4 h-4" />
+              <span className="text-sm font-medium">Studio</span>
+            </div>
+            <span className="text-[10px] font-semibold bg-[#1D4E5F] text-white px-1.5 py-0.5 rounded">
+              NEW
+            </span>
+          </button>
           
           {/* Projects */}
           <div className="space-y-1">
