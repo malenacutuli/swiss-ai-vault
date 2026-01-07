@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ============================================
@@ -108,7 +107,7 @@ function generateExecutionPlan(taskType: string, _prompt: string): { steps: any[
 // MAIN HANDLER
 // ============================================
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -197,7 +196,7 @@ serve(async (req: Request) => {
       executeModalTask(supabase, task.id, taskType, prompt, memory_context, params, user.id);
     }
     
-    // Return FULL task object
+    // Return FULL task object matching frontend interface
     return new Response(JSON.stringify({
       task: {
         id: task.id,
@@ -206,7 +205,7 @@ serve(async (req: Request) => {
         task_type: task.task_type,
         mode: task.mode,
         status: task.status,
-        progress_percentage: task.progress_percentage,
+        progress: task.progress_percentage || task.progress || 10,
         current_step: task.current_step,
         total_steps: task.total_steps,
         model_used: task.model_used,
