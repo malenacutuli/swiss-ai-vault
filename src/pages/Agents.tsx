@@ -12,7 +12,8 @@ import { AgentsModeSelector } from '@/components/agents/AgentsModeSelector';
 import { AgentsFeatureCard } from '@/components/agents/AgentsFeatureCard';
 import type { TaskMode } from '@/components/agents/AgentsTaskInput';
 import { ConnectedToolsBar } from '@/components/agents/ConnectedToolsBar';
-import { SlidesMode } from '@/components/agents/modes/SlidesMode';
+import { SlidesMode, PodcastMode, FlashcardsMode, QuizMode, MindMapMode } from '@/components/agents/modes';
+import type { Source } from '@/components/agents/SourceUpload';
 import { TemplateBrowser, type ActionTemplate } from '@/components/agents/TemplateBrowser';
 import { TaskDetailModal } from '@/components/agents/TaskDetailModal';
 import { MasterExecutionView } from '@/components/agents/execution/MasterExecutionView';
@@ -71,6 +72,17 @@ export default function Agents() {
   // Slides mode specific state
   const [selectedTemplate, setSelectedTemplate] = useState('swiss-classic');
   const [slideCount, setSlideCount] = useState(8);
+  
+  // NotebookLM modes state
+  const [modeSources, setModeSources] = useState<Source[]>([]);
+  const [podcastHostA, setPodcastHostA] = useState('kore');
+  const [podcastHostB, setPodcastHostB] = useState('charon');
+  const [flashcardCount, setFlashcardCount] = useState(20);
+  const [flashcardDifficulty, setFlashcardDifficulty] = useState('medium');
+  const [quizQuestionCount, setQuizQuestionCount] = useState(10);
+  const [quizQuestionTypes, setQuizQuestionTypes] = useState(['multiple_choice', 'true_false']);
+  const [mindMapDepth, setMindMapDepth] = useState(3);
+  const [mindMapFocus, setMindMapFocus] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -480,8 +492,8 @@ export default function Agents() {
                   />
                 </div>
 
-                {/* Feature Card - only show when not in slides mode */}
-                {currentMode !== 'slides' && (
+                {/* Feature Card - only show when not in special modes */}
+                {!['slides', 'podcast', 'flashcards', 'quiz', 'mindmap'].includes(currentMode) && (
                   <AgentsFeatureCard mode={currentMode} />
                 )}
 
@@ -493,6 +505,54 @@ export default function Agents() {
                     selectedTemplate={selectedTemplate}
                     slideCount={slideCount}
                     onSlideCountChange={setSlideCount}
+                  />
+                )}
+
+                {currentMode === 'podcast' && (
+                  <PodcastMode
+                    onPromptSelect={(text) => setTaskPrompt(text)}
+                    sources={modeSources}
+                    onSourcesChange={setModeSources}
+                    hostA={podcastHostA}
+                    hostB={podcastHostB}
+                    onHostAChange={setPodcastHostA}
+                    onHostBChange={setPodcastHostB}
+                  />
+                )}
+
+                {currentMode === 'flashcards' && (
+                  <FlashcardsMode
+                    onPromptSelect={(text) => setTaskPrompt(text)}
+                    sources={modeSources}
+                    onSourcesChange={setModeSources}
+                    cardCount={flashcardCount}
+                    onCardCountChange={setFlashcardCount}
+                    difficulty={flashcardDifficulty}
+                    onDifficultyChange={setFlashcardDifficulty}
+                  />
+                )}
+
+                {currentMode === 'quiz' && (
+                  <QuizMode
+                    onPromptSelect={(text) => setTaskPrompt(text)}
+                    sources={modeSources}
+                    onSourcesChange={setModeSources}
+                    questionCount={quizQuestionCount}
+                    onQuestionCountChange={setQuizQuestionCount}
+                    questionTypes={quizQuestionTypes}
+                    onQuestionTypesChange={setQuizQuestionTypes}
+                  />
+                )}
+
+                {currentMode === 'mindmap' && (
+                  <MindMapMode
+                    onPromptSelect={(text) => setTaskPrompt(text)}
+                    sources={modeSources}
+                    onSourcesChange={setModeSources}
+                    maxDepth={mindMapDepth}
+                    onMaxDepthChange={setMindMapDepth}
+                    focusArea={mindMapFocus}
+                    onFocusAreaChange={setMindMapFocus}
                   />
                 )}
 
