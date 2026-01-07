@@ -18,6 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useDropzone } from 'react-dropzone';
@@ -140,7 +141,9 @@ export function SourceUploadModal({
             Create audio and video summaries from{' '}
             <span className="text-[#1D4E5F]">Your documents</span>
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">Powered by Swiss AI</p>
+          <DialogDescription className="text-sm text-muted-foreground mt-1">
+            Upload files, add URLs, or paste text to analyze. Powered by Swiss AI.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="px-6 pb-6 space-y-5">

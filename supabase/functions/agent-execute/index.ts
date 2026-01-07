@@ -32,6 +32,66 @@ const TASK_ROUTING: Record<string, { backend: string; model?: string }> = {
 // Modal endpoint
 const MODAL_ENDPOINT = "https://axessible-labs--swissvault-agents-execute-task-endpoint.modal.run";
 
+// ============================================
+// SMART TASK TYPE DETECTION
+// ============================================
+
+function detectTaskType(prompt: string): string {
+  const promptLower = prompt.toLowerCase();
+  
+  // Presentation/Slides detection
+  if (
+    promptLower.includes('presentation') ||
+    promptLower.includes('pitch deck') ||
+    promptLower.includes('slide') ||
+    promptLower.includes('pptx') ||
+    promptLower.includes('powerpoint')
+  ) {
+    return 'slides';
+  }
+  
+  // Document detection
+  if (
+    promptLower.includes('document') ||
+    promptLower.includes('report') ||
+    promptLower.includes('docx') ||
+    promptLower.includes('word doc')
+  ) {
+    return 'document';
+  }
+  
+  // Spreadsheet detection
+  if (
+    promptLower.includes('spreadsheet') ||
+    promptLower.includes('excel') ||
+    promptLower.includes('xlsx') ||
+    promptLower.includes('table') ||
+    promptLower.includes('data analysis')
+  ) {
+    return 'spreadsheet';
+  }
+  
+  // Research detection
+  if (
+    promptLower.includes('research') ||
+    promptLower.includes('analyze') ||
+    promptLower.includes('deep dive')
+  ) {
+    return 'research';
+  }
+  
+  // Podcast detection
+  if (
+    promptLower.includes('podcast') ||
+    promptLower.includes('audio summary')
+  ) {
+    return 'podcast';
+  }
+  
+  // Default to general
+  return 'general';
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -139,10 +199,13 @@ Deno.serve(async (req: Request) => {
       throw new Error("Missing prompt");
     }
     
-    const taskType = task_type || mode || 'general';
+    // Smart task type detection: use provided type if specific, otherwise detect from prompt
+    const providedType = task_type || mode || 'general';
+    const detectedType = detectTaskType(prompt);
+    const taskType = providedType !== 'general' ? providedType : detectedType;
     const routing = TASK_ROUTING[taskType] || TASK_ROUTING.general;
     
-    console.log(`[agent-execute] Task type: ${taskType}, Backend: ${routing.backend}`);
+    console.log(`[agent-execute] Provided: ${providedType}, Detected: ${detectedType}, Using: ${taskType}, Backend: ${routing.backend}`);
     
     // Generate execution plan
     const plan = generateExecutionPlan(taskType, prompt);

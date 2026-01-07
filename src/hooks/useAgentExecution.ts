@@ -290,6 +290,23 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
           setStatus(newStatus);
 
           if (newTask.status === 'completed') {
+            // Force fetch latest steps when task completes
+            supabase
+              .from('agent_task_steps')
+              .select('*')
+              .eq('task_id', taskId)
+              .order('step_number', { ascending: true })
+              .then(({ data: latestSteps }) => {
+                if (latestSteps && latestSteps.length > 0) {
+                  // Mark all steps as completed since task is done
+                  const completedSteps = latestSteps.map(step => ({
+                    ...step,
+                    status: 'completed',
+                    completed_at: step.completed_at || new Date().toISOString(),
+                  }));
+                  setSteps(completedSteps as ExecutionStep[]);
+                }
+              });
             optionsRef.current.onComplete?.(newTask);
           } else if (newTask.status === 'failed') {
             setError(newTask.error_message || 'Task failed');

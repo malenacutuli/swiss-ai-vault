@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, Brain } from 'lucide-react';
+import { LayoutGrid, Brain, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentExecution } from '@/hooks/useAgentExecution';
@@ -23,6 +23,7 @@ import { AgentsHeader } from '@/components/agents/AgentsHeader';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { extractFilesForPrompt } from '@/utils/fileExtractor';
 
 // File type labels (enterprise style - no emojis)
 const fileTypeLabels: Record<string, string> = {
@@ -236,30 +237,46 @@ export default function Agents() {
         }
       }
 
-      // 2. Upload attached files first
+      // 2. Extract content from attached files
+      let extractedContent = '';
       let uploadedFiles: Array<{ name: string; url: string; type: string }> = [];
+      
       if (attachedFiles.length > 0) {
         setIsUploading(true);
-        toast.info(`Uploading ${attachedFiles.length} file(s)...`);
+        toast.info(`Processing ${attachedFiles.length} file(s)...`);
+        
+        // Extract content from files for AI
+        extractedContent = await extractFilesForPrompt(attachedFiles);
+        console.log('[Agents] Extracted content length:', extractedContent.length);
+        
+        // Also upload to storage for reference
         uploadedFiles = await uploadFilesToStorage(attachedFiles);
         setIsUploading(false);
         
-        if (uploadedFiles.length !== attachedFiles.length) {
-          toast.warning('Some files failed to upload');
+        if (extractedContent.length > 100) {
+          toast.success(`Extracted content from ${attachedFiles.length} file(s)`);
+        } else {
+          toast.warning('Some files could not be processed');
         }
       }
 
+      // Build full prompt with extracted document content
+      const fullPrompt = extractedContent 
+        ? `${extractedContent}\n\n--- User Request ---\n${taskPrompt.trim()}`
+        : taskPrompt.trim();
+
       console.log('[Agents] Creating task with:', {
-        prompt: taskPrompt.trim(),
+        promptLength: fullPrompt.length,
         taskType: selectedAction || 'general',
         privacyTier,
-        attachments: uploadedFiles,
+        attachments: uploadedFiles.length,
         connectedTools,
         hasMemoryContext: !!memoryContext,
+        hasDocumentContent: !!extractedContent,
       });
 
       // 3. Create the task
-      const result = await execution.createTask(taskPrompt.trim(), {
+      const result = await execution.createTask(fullPrompt, {
         taskType: selectedAction || 'general',
         privacyTier,
         memoryContext,
@@ -460,7 +477,10 @@ export default function Agents() {
                         className="flex items-center gap-2 px-5 py-2 bg-[#1D4E5F] text-white rounded-lg hover:bg-[#163d4a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                       >
                         {isSubmitting ? (
-                          <span>{isUploading ? 'Uploading...' : 'Creating...'}</span>
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {isUploading ? 'Processing files...' : 'Creating...'}
+                          </span>
                         ) : (
                           <>
                             <span>Start Task</span>
