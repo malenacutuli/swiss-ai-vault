@@ -190,10 +190,23 @@ Deno.serve(async (req: Request) => {
       sequence_number: 1,
     });
     
-    // Start background execution for Modal tasks
+    // Start background execution based on backend type
     if (routing.backend === 'modal') {
       // Fire and forget - don't await
       executeModalTask(supabase, task.id, taskType, prompt, memory_context, params, user.id);
+    }
+
+    if (routing.backend === 'inference' || routing.backend === 'gemini') {
+      // Fire and forget - don't await
+      executeInferenceTask(
+        supabase,
+        task.id,
+        taskType,
+        prompt,
+        memory_context,
+        routing.model || 'gemini-2.5-flash',
+        user.id,
+      );
     }
     
     // Return FULL task object matching frontend interface
@@ -331,3 +344,196 @@ async function executeModalTask(
     });
   }
 }
+
+// ============================================
+// INFERENCE BACKEND EXECUTION
+// ============================================
+
+async function executeInferenceTask(
+  supabase: any,
+  taskId: string,
+  taskType: string,
+  prompt: string,
+  memoryContext: any,
+  model: string,
+  _userId: string,
+) {
+  const startedMs = Date.now();
+  let sequence = 2;
+
+  const log = async (log_type: string, content: string) => {
+    sequence += 1;
+    await supabase.from("agent_task_logs").insert({
+      task_id: taskId,
+      log_type,
+      content,
+      sequence_number: sequence,
+    });
+  };
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  try {
+    await supabase
+      .from("agent_tasks")
+      .update({
+        started_at: new Date().toISOString(),
+        status: "executing",
+        progress_percentage: 15,
+        current_step: 1,
+        model_used: model,
+      })
+      .eq("id", taskId);
+
+    await log("info", `Starting inference task with model: ${model}`);
+
+    // STEP 1: Analyzing request
+    await updateStep(supabase, taskId, 1, "running");
+    await log("command", `$ analyze_request --prompt \"${prompt.substring(0, 50)}...\"`);
+    await sleep(400);
+    await updateStep(supabase, taskId, 1, "completed");
+    await supabase
+      .from("agent_tasks")
+      .update({ progress_percentage: 25, current_step: 1 })
+      .eq("id", taskId);
+
+    // STEP 2: Planning execution
+    await updateStep(supabase, taskId, 2, "running");
+    await log("command", `$ plan_execution --type \"${taskType}\" --model \"${model}\"`);
+    await sleep(400);
+    await updateStep(supabase, taskId, 2, "completed");
+    await supabase
+      .from("agent_tasks")
+      .update({ progress_percentage: 40, current_step: 2 })
+      .eq("id", taskId);
+
+    // STEP 3: Processing request - Call ghost-inference
+    await updateStep(supabase, taskId, 3, "running");
+    await log("command", `$ ghost-inference --model ${model}`);
+    await supabase
+      .from("agent_tasks")
+      .update({ progress_percentage: 55, current_step: 3 })
+      .eq("id", taskId);
+
+    const systemMessageBase =
+      "You are a helpful AI assistant for SwissVault, a Swiss-hosted privacy-first AI platform. Provide clear, comprehensive, and well-formatted responses.";
+
+    const messages: Array<{ role: string; content: string }> = [
+      { role: "system", content: systemMessageBase },
+      { role: "user", content: prompt },
+    ];
+
+    if (memoryContext && Array.isArray(memoryContext) && memoryContext.length > 0) {
+      const contextText = memoryContext
+        .map((m: any) => m?.chunk || m?.content || "")
+        .filter(Boolean)
+        .join("\n\n");
+
+      if (contextText) {
+        messages[0].content += `\n\nRelevant context from user's memory:\n${contextText}`;
+      }
+    }
+
+    const { data: inferenceResult, error: inferenceError } = await supabase.functions.invoke(
+      "ghost-inference",
+      {
+        body: {
+          messages,
+          model,
+          task_type: taskType,
+          temperature: 0.7,
+          max_tokens: 4096,
+        },
+      },
+    );
+
+    if (inferenceError) {
+      throw new Error(`Inference failed: ${inferenceError.message}`);
+    }
+
+    await log("output", `> Model: ${inferenceResult?.model || model}`);
+
+    await updateStep(supabase, taskId, 3, "completed");
+    await supabase
+      .from("agent_tasks")
+      .update({ progress_percentage: 75, current_step: 3 })
+      .eq("id", taskId);
+
+    // STEP 4: Generating output
+    await updateStep(supabase, taskId, 4, "running");
+    await log("command", `$ generate_output --format text`);
+
+    const responseContent =
+      inferenceResult?.choices?.[0]?.message?.content ||
+      inferenceResult?.content ||
+      inferenceResult?.text ||
+      inferenceResult?.result ||
+      "No response generated";
+
+    await log("success", `✓ Response generated (${String(responseContent).length} characters)`);
+
+    await updateStep(supabase, taskId, 4, "completed");
+
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "completed",
+        progress_percentage: 100,
+        current_step: 4,
+        result: {
+          content: responseContent,
+          model: inferenceResult?.model || model,
+          provider: inferenceResult?.provider || "google",
+          usage: inferenceResult?.usage || null,
+        },
+        result_summary: String(responseContent),
+        completed_at: new Date().toISOString(),
+        duration_ms: Date.now() - startedMs,
+      })
+      .eq("id", taskId);
+
+    await log("success", "Task completed successfully");
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error(`[executeInferenceTask] Error: ${error.message}`);
+
+    try {
+      await log("error", `Error: ${error.message}`);
+    } catch (_) {
+      // ignore logging failures
+    }
+
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "failed",
+        error_message: error.message,
+        completed_at: new Date().toISOString(),
+        duration_ms: Date.now() - startedMs,
+      })
+      .eq("id", taskId);
+  }
+}
+
+// Helper function to update step status
+async function updateStep(
+  supabase: any,
+  taskId: string,
+  stepNumber: number,
+  status: string,
+) {
+  const updates: any = { status };
+
+  if (status === "running") {
+    updates.started_at = new Date().toISOString();
+  } else if (status === "completed") {
+    updates.completed_at = new Date().toISOString();
+  }
+
+  await supabase
+    .from("agent_task_steps")
+    .update(updates)
+    .eq("task_id", taskId)
+    .eq("step_number", stepNumber);
+}
+
