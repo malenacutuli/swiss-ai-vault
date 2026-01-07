@@ -3758,6 +3758,21 @@ export type Database = {
         }
         Relationships: []
       }
+      org_role_permissions: {
+        Row: {
+          permissions: Json
+          role: string
+        }
+        Insert: {
+          permissions?: Json
+          role: string
+        }
+        Update: {
+          permissions?: Json
+          role?: string
+        }
+        Relationships: []
+      }
       org_roles: {
         Row: {
           created_at: string | null
@@ -3875,11 +3890,14 @@ export type Database = {
       organizations: {
         Row: {
           avatar_url: string | null
+          billing_customer_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
           name: string
           owner_id: string | null
+          policy_json: Json | null
+          residency_region: string | null
           settings: Json | null
           slug: string
           subscription_id: string | null
@@ -3888,11 +3906,14 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          billing_customer_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           name: string
           owner_id?: string | null
+          policy_json?: Json | null
+          residency_region?: string | null
           settings?: Json | null
           slug: string
           subscription_id?: string | null
@@ -3901,11 +3922,14 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          billing_customer_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           name?: string
           owner_id?: string | null
+          policy_json?: Json | null
+          residency_region?: string | null
           settings?: Json | null
           slug?: string
           subscription_id?: string | null
@@ -5965,11 +5989,14 @@ export type Database = {
         Args: { p_avatar_url?: string; p_name: string; p_slug: string }
         Returns: {
           avatar_url: string | null
+          billing_customer_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
           name: string
           owner_id: string | null
+          policy_json: Json | null
+          residency_region: string | null
           settings: Json | null
           slug: string
           subscription_id: string | null
@@ -6050,6 +6077,7 @@ export type Database = {
       }
       get_research_quota: { Args: never; Returns: Json }
       get_subscription_status: { Args: { p_user_id: string }; Returns: Json }
+      get_user_org_ids: { Args: never; Returns: string[] }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: {
