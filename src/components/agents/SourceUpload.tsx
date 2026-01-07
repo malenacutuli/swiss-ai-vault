@@ -3,11 +3,13 @@ import { Upload, FileText, Link, X, Loader2 } from 'lucide-react';
 
 export interface Source {
   id: string;
-  type: 'file' | 'url';
+  type: 'file' | 'url' | 'text';
   name: string;
   url?: string;
   file?: File;
   mimeType?: string;
+  content?: string; // For text sources
+  title?: string; // Optional title for URLs
 }
 
 interface SourceUploadProps {

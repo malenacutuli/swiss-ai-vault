@@ -228,22 +228,55 @@ export default function Agents() {
   };
   
   // Mode to task type mapping for proper backend routing
+  // Mode to task type mapping for proper backend routing
   const MODE_TO_TASK_TYPE: Record<string, string> = {
-    flashcards: 'flashcards',
-    quiz: 'quiz',
-    mindmap: 'mind_map',
-    podcast: 'podcast',
-    slides: 'slides',
-    default: 'general',
+    // NotebookLM-style modes
+    'flashcards': 'flashcards',
+    'quiz': 'quiz',
+    'podcast': 'podcast',
+    'audio': 'audio_summary',
+    'audio_summary': 'audio_summary',
+    'mindmap': 'mind_map',
+    'mind_map': 'mind_map',
+    'video': 'video_summary',
+    'video_summary': 'video_summary',
+    // Document modes
+    'slides': 'slides',
+    'presentation': 'slides',
+    'document': 'document',
+    'report': 'document',
+    'spreadsheet': 'spreadsheet',
+    'excel': 'spreadsheet',
+    // Research modes
+    'research': 'research',
+    'deep_research': 'research',
+    // Default
+    'general': 'general',
+    'chat': 'general',
+    'default': 'general',
   };
 
-  // Modes that require sources to function
-  const SOURCE_REQUIRED_MODES = ['flashcards', 'quiz', 'mindmap', 'podcast'];
+  // Modes that REQUIRE sources
+  const SOURCE_REQUIRED_MODES = [
+    'flashcards', 'quiz', 'podcast', 'audio', 'mindmap', 
+    'mind_map', 'audio_summary', 'video_summary'
+  ];
 
-  // Submit handler
+  // Submit handler - complete implementation
   const handleSubmit = async () => {
-    if (!taskPrompt.trim()) {
-      toast.error('Please describe your task');
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: VALIDATION
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    const hasPrompt = taskPrompt.trim().length > 0;
+    const hasAttachedFiles = attachedFiles.length > 0;
+    const hasModeFiles = modeSources.some(s => s.type === 'file' && s.file);
+    const hasModeUrls = modeSources.some(s => s.type === 'url' && s.url);
+    const hasModeText = modeSources.some(s => s.type === 'text' && s.content);
+    const hasAnySources = hasAttachedFiles || hasModeFiles || hasModeUrls || hasModeText;
+
+    if (!hasPrompt && !hasAnySources) {
+      toast.error('Please enter a message or add sources.');
       return;
     }
 
@@ -252,105 +285,185 @@ export default function Agents() {
       return;
     }
 
-    // Determine effective task type from mode or selected action
-    const effectiveTaskType = selectedAction || MODE_TO_TASK_TYPE[currentMode] || 'general';
-
-    // CRITICAL: Merge modeSources (from mode UI) with attachedFiles (from chat input)
-    const modeFileSources = modeSources
-      .filter(s => s.type === 'file' && s.file)
-      .map(s => s.file!);
+    const currentModeNormalized = currentMode?.toLowerCase() || '';
+    const modeRequiresSources = SOURCE_REQUIRED_MODES.includes(currentModeNormalized);
     
-    // Deduplicate files by name+size+lastModified
-    const seenKeys = new Set<string>();
-    const allFiles: File[] = [];
-    for (const file of [...attachedFiles, ...modeFileSources]) {
-      const key = `${file.name}-${file.size}-${file.lastModified}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        allFiles.push(file);
-      }
+    if (modeRequiresSources && !hasAnySources) {
+      toast.error(`Please add at least one source to generate ${currentMode}.`);
+      return;
     }
 
-    // Get URL sources from modeSources
-    const urlSources = modeSources.filter(s => s.type === 'url' && s.url);
-
-    // Guardrail: Block submission if mode requires sources but none provided
-    if (SOURCE_REQUIRED_MODES.includes(currentMode)) {
-      if (allFiles.length === 0 && urlSources.length === 0) {
-        toast.error('Add at least one source before generating');
-        return;
-      }
-    }
+    setIsUploading(true);
 
     try {
-      // 1. Get memory context if enabled
-      let memoryContext: string | undefined;
-      let memoryContexts: any[] = [];
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 2: GATHER ALL FILES FROM BOTH PIPELINES
+      // ═══════════════════════════════════════════════════════════════════════
       
-      if (memoryEnabled) {
-        toast.info('Searching your memory for relevant context...');
-        memoryContexts = await getContextForTask(taskPrompt.trim(), 5);
-        
-        if (memoryContexts.length > 0) {
-          memoryContext = formatContextForAgent(memoryContexts);
-          console.log('[Agents] Memory context found:', memoryContexts.length, 'items');
-          toast.success(`Found ${memoryContexts.length} relevant memories`);
+      // Get files from mode sources (Flashcards/Quiz/Podcast UI)
+      const modeFiles: File[] = modeSources
+        .filter(s => s.type === 'file' && s.file)
+        .map(s => s.file as File);
+      
+      // Merge with chat-attached files, deduplicate by name+size
+      const seenFileNames = new Set<string>();
+      const allFiles: File[] = [];
+      
+      for (const file of [...attachedFiles, ...modeFiles]) {
+        const key = `${file.name}-${file.size}`;
+        if (!seenFileNames.has(key)) {
+          seenFileNames.add(key);
+          allFiles.push(file);
         }
       }
 
-      // 2. Extract content from ALL files (merged sources)
-      let extractedContent = '';
-      let uploadedFiles: Array<{ name: string; url: string; type: string }> = [];
+      console.log('[handleSubmit] Files gathered:', {
+        attachedFiles: attachedFiles.length,
+        modeFiles: modeFiles.length,
+        allFilesDeduped: allFiles.length,
+      });
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 3: EXTRACT TEXT CONTENT FROM FILES
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      let extractedDocuments = '';
       
       if (allFiles.length > 0) {
-        setIsUploading(true);
-        toast.info(`Processing ${allFiles.length} file(s)...`);
+        toast.info(`Extracting content from ${allFiles.length} file(s)...`);
         
-        // Extract content from files for AI
-        extractedContent = await extractFilesForPrompt(allFiles);
-        console.log('[Agents] Extracted content length:', extractedContent.length);
+        // Use the extractFilesForPrompt utility which handles PDF, DOCX, etc.
+        extractedDocuments = await extractFilesForPrompt(allFiles);
+        console.log('[handleSubmit] Extracted content length:', extractedDocuments.length);
         
-        // Also upload to storage for reference
-        uploadedFiles = await uploadFilesToStorage(allFiles);
-        setIsUploading(false);
-        
-        if (extractedContent.length > 100) {
+        if (extractedDocuments.length > 100) {
           toast.success(`Extracted content from ${allFiles.length} file(s)`);
         } else {
           toast.warning('Some files could not be processed');
         }
       }
 
-      // 3. Include URL sources as references
-      let urlSourceContent = '';
-      if (urlSources.length > 0) {
-        urlSourceContent = `--- URL SOURCES ---\n${urlSources.map(s => `- ${s.name}: ${s.url}`).join('\n')}\n--- END URL SOURCES ---`;
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 4: INCLUDE URL SOURCES
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      let urlSourcesContent = '';
+      const urls = modeSources.filter(s => s.type === 'url' && s.url);
+      
+      if (urls.length > 0) {
+        urlSourcesContent = '\n\n--- URL SOURCES ---\n';
+        urls.forEach((s, i) => {
+          urlSourcesContent += `${i + 1}. ${s.url}\n`;
+          if (s.title) urlSourcesContent += `   Title: ${s.title}\n`;
+        });
+        urlSourcesContent += '--- END URL SOURCES ---\n';
       }
 
-      // Build full prompt with all extracted content
-      const allContent = [extractedContent, urlSourceContent]
-        .filter(Boolean)
-        .join('\n\n');
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 5: INCLUDE TEXT SOURCES
+      // ═══════════════════════════════════════════════════════════════════════
       
-      const fullPrompt = allContent 
-        ? `${allContent}\n\n--- User Request ---\n${taskPrompt.trim()}`
-        : taskPrompt.trim();
+      let textSourcesContent = '';
+      const texts = modeSources.filter(s => s.type === 'text' && s.content);
+      
+      if (texts.length > 0) {
+        textSourcesContent = '\n\n--- PASTED TEXT SOURCES ---\n\n';
+        texts.forEach((s, i) => {
+          textSourcesContent += `=== Text ${i + 1} ===\n`;
+          textSourcesContent += s.content;
+          textSourcesContent += '\n\n';
+        });
+        textSourcesContent += '--- END TEXT SOURCES ---\n';
+      }
 
-      // Diagnostic log
-      console.log('[Agents] Creating task with:', {
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 6: BUILD FINAL PROMPT
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      let fullPrompt = '';
+      
+      // Add all sources first
+      if (extractedDocuments) fullPrompt += extractedDocuments;
+      if (urlSourcesContent) fullPrompt += urlSourcesContent;
+      if (textSourcesContent) fullPrompt += textSourcesContent;
+      
+      // Add user request
+      if (fullPrompt) {
+        fullPrompt += '\n\n--- User Request ---\n';
+      }
+      fullPrompt += taskPrompt.trim();
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 7: DETERMINE CORRECT TASK TYPE
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      // Priority: selectedAction > currentMode mapping > 'general'
+      const effectiveTaskType = selectedAction 
+        || MODE_TO_TASK_TYPE[currentModeNormalized] 
+        || 'general';
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 8: DIAGNOSTIC LOGGING
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      const diagnostics = {
         currentMode,
+        selectedAction,
         effectiveTaskType,
-        modeSourcesCount: modeSources.length,
-        attachedFilesCount: attachedFiles.length,
-        allFilesCount: allFiles.length,
-        urlSourcesCount: urlSources.length,
-        extractedContentLength: extractedContent.length,
-        hasDocumentMarkers: fullPrompt.includes('--- UPLOADED DOCUMENTS ---') || fullPrompt.includes('--- Document'),
+        fileCount: allFiles.length,
+        urlCount: urls.length,
+        textCount: texts.length,
         promptLength: fullPrompt.length,
-        privacyTier,
-      });
+        hasDocumentMarkers: fullPrompt.includes('--- UPLOADED DOCUMENTS ---') || fullPrompt.includes('--- Document'),
+        hasUrlMarkers: fullPrompt.includes('--- URL SOURCES ---'),
+        hasTextMarkers: fullPrompt.includes('--- PASTED TEXT SOURCES ---'),
+      };
+      
+      console.log('[handleSubmit] Diagnostics:', diagnostics);
+      
+      // CRITICAL: Verify sources are included
+      if (modeRequiresSources && !diagnostics.hasDocumentMarkers && !diagnostics.hasUrlMarkers && !diagnostics.hasTextMarkers) {
+        console.error('[handleSubmit] BUG: Mode requires sources but no markers in prompt!');
+        toast.error('Failed to include source content. Please try again.');
+        setIsUploading(false);
+        return;
+      }
 
-      // 5. Create the task with correct task type
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 9: UPLOAD FILES TO STORAGE (for reference/re-download)
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      let uploadedFiles: Array<{ name: string; url: string; type: string }> = [];
+      
+      if (allFiles.length > 0) {
+        try {
+          uploadedFiles = await uploadFilesToStorage(allFiles);
+        } catch (err) {
+          console.warn('[handleSubmit] File upload to storage failed:', err);
+          // Non-blocking - content is already extracted
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 10: GET MEMORY CONTEXT
+      // ═══════════════════════════════════════════════════════════════════════
+      
+      let memoryContext: string | undefined;
+      let memoryContexts: any[] = [];
+      
+      if (memoryEnabled) {
+        memoryContexts = await getContextForTask(taskPrompt.trim(), 5);
+        
+        if (memoryContexts.length > 0) {
+          memoryContext = formatContextForAgent(memoryContexts);
+          console.log('[handleSubmit] Memory context found:', memoryContexts.length, 'items');
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 11: EXECUTE TASK
+      // ═══════════════════════════════════════════════════════════════════════
+      
       const result = await execution.createTask(fullPrompt, {
         taskType: effectiveTaskType,
         privacyTier,
@@ -374,15 +487,21 @@ export default function Agents() {
           }
         }
 
-        // Reset state after successful submission
+        // ═══════════════════════════════════════════════════════════════════════
+        // STEP 12: CLEANUP & UI UPDATE
+        // ═══════════════════════════════════════════════════════════════════════
+        
         setTaskPrompt('');
         setAttachedFiles([]);
         setModeSources([]);
         setSelectedAction(null);
+        
+        toast.success('Task started');
       }
     } catch (err: any) {
-      console.error('[Agents] Submit error:', err);
-      toast.error(err.message || 'Failed to create task');
+      console.error('[handleSubmit] Error:', err);
+      toast.error(err.message || 'Failed to start task');
+    } finally {
       setIsUploading(false);
     }
   };
