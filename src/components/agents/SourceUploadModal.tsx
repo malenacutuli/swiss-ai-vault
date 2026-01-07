@@ -73,10 +73,11 @@ export function SourceUploadModal({
     [onUploadFiles, onOpenChange]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open: openFilePicker } = useDropzone({
     onDrop,
     accept: ACCEPTED_TYPES,
     maxSize: MAX_FILE_SIZE,
+    noClick: true, // Prevent default click on dropzone
   });
 
   const handleSearch = () => {
@@ -108,7 +109,7 @@ export function SourceUploadModal({
       id: 'upload',
       label: 'Upload files',
       icon: Upload,
-      onClick: () => document.getElementById('file-upload-input')?.click(),
+      onClick: () => openFilePicker(), // Use dropzone's built-in open method
     },
     {
       id: 'url',
@@ -195,7 +196,7 @@ export function SourceUploadModal({
                 : 'border-border/50 hover:border-[#1D4E5F]/50 hover:bg-muted/20'
             )}
           >
-            <input {...getInputProps()} id="file-upload-input" />
+            <input {...getInputProps()} />
             <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">
               {isDragActive ? 'Drop files here...' : 'or drop your files here'}
