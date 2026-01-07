@@ -6574,6 +6574,10 @@ export type Database = {
         }
         Returns: Json
       }
+      check_artifact_quota: {
+        Args: { p_artifact_type: string; p_notebook_id: string }
+        Returns: Json
+      }
       check_ghost_usage: {
         Args: { p_type: string; p_user_id: string }
         Returns: Json
@@ -6619,6 +6623,10 @@ export type Database = {
           p_user_agent?: string
           p_user_id: string
         }
+        Returns: string
+      }
+      create_default_organization: {
+        Args: { p_org_name?: string; p_user_id: string }
         Returns: string
       }
       create_organization_with_owner: {
@@ -6714,6 +6722,16 @@ export type Database = {
       get_research_quota: { Args: never; Returns: Json }
       get_subscription_status: { Args: { p_user_id: string }; Returns: Json }
       get_user_org_ids: { Args: never; Returns: string[] }
+      get_user_organization: {
+        Args: never
+        Returns: {
+          organization_id: string
+          organization_name: string
+          organization_slug: string
+          policy: Json
+          user_role: string
+        }[]
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: {
@@ -6748,6 +6766,10 @@ export type Database = {
       increment_ghost_usage: {
         Args: { p_type: string; p_user_id: string }
         Returns: Json
+      }
+      increment_quota: {
+        Args: { p_artifact_type: string; p_notebook_id: string }
+        Returns: undefined
       }
       increment_unified_usage: {
         Args: { p_usage_type: string; p_user_id: string }
@@ -6787,6 +6809,19 @@ export type Database = {
           permissions: Json
           rate_limit: number
         }[]
+      }
+      log_audit_event: {
+        Args: {
+          p_category: string
+          p_description?: string
+          p_metadata?: Json
+          p_org_id: string
+          p_target_id?: string
+          p_target_type?: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
       }
       log_sso_event: {
         Args: {
