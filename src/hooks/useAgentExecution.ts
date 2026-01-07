@@ -323,12 +323,41 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, [task, stopPolling]);
 
-  // Download output
-  const downloadOutput = useCallback((output: TaskOutput) => {
+  // Get signed URL for secure downloads
+  const getSignedUrl = useCallback(async (storageKey: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('agent-outputs')
+        .createSignedUrl(storageKey, 3600); // 1 hour expiry
+
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (err) {
+      console.error('[getSignedUrl] Error:', err);
+      return null;
+    }
+  }, []);
+
+  // Download output with signed URL
+  const downloadOutput = useCallback(async (output: TaskOutput) => {
+    // First try file_path for signed URL
+    if (output.download_url?.includes('/storage/v1/')) {
+      // Extract path from public URL and create signed URL
+      const pathMatch = output.download_url.match(/\/agent-outputs\/(.+)$/);
+      if (pathMatch) {
+        const signedUrl = await getSignedUrl(pathMatch[1]);
+        if (signedUrl) {
+          window.open(signedUrl, '_blank');
+          return;
+        }
+      }
+    }
+    
+    // Fallback to direct URL
     if (output.download_url) {
       window.open(output.download_url, '_blank');
     }
-  }, []);
+  }, [getSignedUrl]);
 
   // Reset
   const reset = useCallback(() => {
@@ -373,6 +402,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     resumeTask,
     stopTask,
     downloadOutput,
+    getSignedUrl,
     pollTaskStatus,
     reset,
     stopPolling,
