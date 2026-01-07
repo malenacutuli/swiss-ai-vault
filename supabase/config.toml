@@ -149,3 +149,9 @@ verify_jwt = true
 
 [functions.gemini-video]
 verify_jwt = true
+
+[functions.agent-logs]
+verify_jwt = false
+
+[functions.agent-templates-list]
+verify_jwt = false
