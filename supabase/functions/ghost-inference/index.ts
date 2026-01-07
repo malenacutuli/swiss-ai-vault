@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
@@ -11,22 +10,23 @@ const corsHeaders = {
 // MODEL REDIRECTS & FALLBACK CONFIGURATION
 // ============================================
 
-// CRITICAL: Redirect low-quota models to high-quota alternatives
+// CRITICAL: Redirect low-quota/deprecated models to high-quota Gemini 2.5
 const MODEL_REDIRECTS: Record<string, string> = {
-  'gemini-2.0-flash-exp': 'gpt-4o-mini',     // 10 RPM → 500+ RPM
-  'gemini-2.0-flash': 'gemini-2.5-flash',    // Redirect to stable version
+  'gemini-2.0-flash-exp': 'gemini-2.5-flash',  // 10 RPM → 50+ RPM
+  'gemini-2.0-flash': 'gemini-2.5-flash',      // Redirect to stable version
+  'gemini-exp': 'gemini-2.5-flash',
   'gemini-flash': 'gemini-2.5-flash',
-  'gpt-3.5-turbo': 'gpt-4o-mini',            // Deprecated → modern
+  'gpt-3.5-turbo': 'gpt-4o-mini',              // Deprecated → modern
 };
 
-// Default model for background processing
-const DEFAULT_MODEL = 'gpt-4o-mini';  // 500+ RPM - HIGHEST QUOTA
+// Default model - Gemini 2.5 Flash (50+ RPM, fast, reliable)
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
-// Fallback chain ordered by quota (highest first)
+// Fallback chain ordered by preference (Gemini first, then others on 429)
 const FALLBACK_CHAIN = [
-  'gpt-4o-mini',      // 500+ RPM - OpenAI
-  'deepseek-chat',    // 100+ RPM - DeepSeek (cheap)
-  'gemini-2.5-flash', // 50+ RPM  - Google
+  'gemini-2.5-flash', // 50+ RPM  - Google (PRIMARY)
+  'gpt-4o-mini',      // 500+ RPM - OpenAI (fallback)
+  'deepseek-chat',    // 100+ RPM - DeepSeek (cheap fallback)
 ];
 
 // ============================================
@@ -1040,7 +1040,7 @@ function getUsageType(mode: string): string {
 // MAIN HANDLER
 // ============================================
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
