@@ -186,6 +186,8 @@ function GhostChat() {
   (toast as any).info ??= (description: string) => toast({ description });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userIsNearBottomRef = useRef(true); // Track if user is near bottom for smart auto-scroll
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef(false); // Prevent double submission
   
@@ -814,10 +816,22 @@ Use this context to inform your response when relevant. Cite sources by number w
     }
   }, [selectedConversation, isInitialized, getConversation, pendingMessage, messages]);
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages - only if user is near bottom or streaming
+  const isCurrentlyStreaming = messages.some(m => m.isStreaming);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Only auto-scroll if user is near bottom OR if streaming (to follow new content)
+    if (userIsNearBottomRef.current || isCurrentlyStreaming) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isCurrentlyStreaming]);
+
+  // Track scroll position to detect if user is near bottom
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const threshold = 150; // pixels from bottom
+    const isNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < threshold;
+    userIsNearBottomRef.current = isNearBottom;
+  }, []);
 
   // Stuck message recovery - detect and fix messages stuck in streaming state
   useEffect(() => {
@@ -2664,7 +2678,7 @@ Use this context to inform your response when relevant. Cite sources by number w
           {mode === 'text' && messages.length > 0 && (
               <GhostTextView hasMessages={true}>
                 {/* Native scroll - more reliable than ScrollArea */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
                   <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
                     {messages.map((msg) => (
                       <div 
@@ -2800,7 +2814,7 @@ Use this context to inform your response when relevant. Cite sources by number w
                     </div>
                   </div>
                   
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className="flex-1" onScroll={handleScroll}>
                     <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
                       {messages.map((msg) => (
                         <div key={msg.id}>
@@ -2876,7 +2890,7 @@ Use this context to inform your response when relevant. Cite sources by number w
                     </div>
                   )}
                   
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className="flex-1" onScroll={handleScroll}>
                     <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
                       {messages.map((msg) => (
                         <GhostMessageComponent
