@@ -23,3 +23,4 @@ export { ProjectsList } from './ProjectsList';
 export { TasksList } from './TasksList';
 export { ExecutionView } from './ExecutionView';
 export { PreviewPanel } from './PreviewPanel';
+export { StudioLayout } from './StudioLayout';
