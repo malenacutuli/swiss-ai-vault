@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Library, Filter, ChevronDown, FolderKanban, Gift } from 'lucide-react';
+import { Plus, Search, Library, Filter, ChevronDown, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -90,29 +90,26 @@ export function AgentsSidebar({
       {/* Projects Section */}
       {!collapsed && (
         <div className="px-4 py-3">
-          <button 
-            onClick={() => setProjectsExpanded(!projectsExpanded)}
-            className="flex items-center justify-between w-full group"
-          >
-            <span className="text-xs font-medium text-[#999999] uppercase tracking-wider">Projects</span>
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Add project logic
-                }}
-              >
-                <Plus className="w-3 h-3 text-[#666666]" />
-              </Button>
+          <div className="flex items-center justify-between w-full group">
+            <button 
+              onClick={() => setProjectsExpanded(!projectsExpanded)}
+              className="flex items-center gap-2"
+            >
+              <span className="text-xs font-medium text-[#999999] uppercase tracking-wider">Projects</span>
               <ChevronDown className={cn(
                 "w-3 h-3 text-[#999999] transition-transform",
                 !projectsExpanded && "-rotate-90"
               )} />
-            </div>
-          </button>
+            </button>
+            <button 
+              className="h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#F5F5F5] rounded"
+              onClick={() => {
+                // Add project logic
+              }}
+            >
+              <Plus className="w-3 h-3 text-[#666666]" />
+            </button>
+          </div>
         </div>
       )}
       
@@ -128,29 +125,26 @@ export function AgentsSidebar({
       {/* All Tasks */}
       {!collapsed && (
         <div className="border-t border-[#E5E5E5]">
-          <button 
-            onClick={() => setTasksExpanded(!tasksExpanded)}
-            className="flex items-center justify-between w-full px-4 py-3 group"
-          >
-            <span className="text-xs font-medium text-[#999999] uppercase tracking-wider">All tasks</span>
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Filter logic
-                }}
-              >
-                <Filter className="w-3 h-3 text-[#666666]" />
-              </Button>
+          <div className="flex items-center justify-between w-full px-4 py-3 group">
+            <button 
+              onClick={() => setTasksExpanded(!tasksExpanded)}
+              className="flex items-center gap-2"
+            >
+              <span className="text-xs font-medium text-[#999999] uppercase tracking-wider">All tasks</span>
               <ChevronDown className={cn(
                 "w-3 h-3 text-[#999999] transition-transform",
                 !tasksExpanded && "-rotate-90"
               )} />
-            </div>
-          </button>
+            </button>
+            <button 
+              className="h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#F5F5F5] rounded"
+              onClick={() => {
+                // Filter logic
+              }}
+            >
+              <Filter className="w-3 h-3 text-[#666666]" />
+            </button>
+          </div>
           
           {tasksExpanded && (
             <div className="px-2 pb-2 max-h-48 overflow-y-auto">
