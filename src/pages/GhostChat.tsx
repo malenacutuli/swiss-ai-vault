@@ -791,13 +791,6 @@ Use this context to inform your response when relevant. Cite sources by number w
       return;
     }
     
-    // Guard E: Skip if current messages contain a streaming placeholder
-    const hasStreamingMessage = messages.some(m => m.isStreaming);
-    if (hasStreamingMessage) {
-      console.log('[GhostChat] Skipping hydration: streaming message in UI');
-      return;
-    }
-    
     // Safe to hydrate from storage
     if (selectedConversation && isInitialized) {
       const conv = getConversation(selectedConversation);
@@ -814,7 +807,7 @@ Use this context to inform your response when relevant. Cite sources by number w
       // Only clear if explicitly no conversation selected (not during transition)
       setMessages([]);
     }
-  }, [selectedConversation, isInitialized, getConversation, pendingMessage, messages]);
+  }, [selectedConversation, isInitialized, getConversation, pendingMessage]);
 
   // Scroll to bottom on new messages - only if user is near bottom or streaming
   const isCurrentlyStreaming = messages.some(m => m.isStreaming);
