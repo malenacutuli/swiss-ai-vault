@@ -1,90 +1,63 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
-// Task types that route to Modal for specialized GPU-accelerated processing
-export const MODAL_ROUTED_TYPES = [
-  'slides',
-  'presentation',
-  'document',
-  'spreadsheet',
-  'research',
-  'podcast',
-  'flashcards',
-  'quiz',
-  'mindmap',
-  'audio',
-  'video',
-];
-
-export type ExecutionStatus = 
-  | 'idle' 
-  | 'planning' 
-  | 'awaiting_approval' 
-  | 'executing' 
-  | 'paused'
-  | 'completed' 
-  | 'failed';
+export interface ExecutionTask {
+  id: string;
+  prompt?: string;
+  title?: string;
+  task_type?: string;
+  status: string;
+  progress?: number;
+  progress_percentage?: number;
+  current_step?: number;
+  total_steps?: number;
+  result?: any;
+  result_summary?: string;
+  error_message?: string;
+  created_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  plan_summary?: string;
+  plan_json?: any;
+  duration_ms?: number;
+  credits_used?: number;
+  tokens_used?: number;
+}
 
 export interface ExecutionStep {
   id: string;
   step_number: number;
-  step_type: string;
-  tool_name: string | null;
-  description: string | null;
-  status: string | null;
-  started_at: string | null;
-  completed_at: string | null;
-  duration_ms: number | null;
-  error_message: string | null;
+  name?: string;
+  step_type?: string;
+  description?: string;
+  status: string;
+  tool_name?: string;
+  started_at?: string;
+  completed_at?: string;
+  duration_ms?: number;
+  error_message?: string;
 }
 
 export interface TaskOutput {
   id: string;
-  file_name: string;
   output_type: string;
-  file_size_bytes: number | null;
-  mime_type: string | null;
-  download_url: string | null;
-  preview_url: string | null;
-  created_at: string | null;
-  requested_format?: string | null;
-  actual_format?: string | null;
-  conversion_status?: string | null;
-  metadata?: Record<string, unknown> | null;
+  file_name: string;
+  download_url: string;
+  file_size_bytes?: number;
+  content_preview?: string;
+  mime_type?: string;
+  preview_url?: string;
+  conversion_status?: string;
+  metadata?: Record<string, unknown>;
 }
 
-export interface ExecutionTask {
-  id: string;
+interface ExecuteTaskParams {
   prompt: string;
-  status: string;
-  task_type: string | null;
-  mode: string | null;
-  privacy_tier: string | null;
-  current_step: number | null;
-  total_steps: number | null;
-  progress_percentage: number | null;
-  plan_summary: string | null;
-  plan_json: any | null;
-  result_summary: string | null;
-  result: { content?: string; model?: string; provider?: string; usage?: any } | string | null;
-  error_message: string | null;
-  credits_used: number | null;
-  tokens_used: number | null;
-  duration_ms: number | null;
-  created_at: string | null;
-  started_at: string | null;
-  completed_at: string | null;
-}
-
-export interface TaskLog {
-  id: string;
-  task_id: string;
-  log_type: string | null;
-  content: string;
-  sequence_number: number | null;
-  timestamp: string | null;
+  task_type: string;
+  mode?: string;
+  params?: any;
+  memory_context?: any;
 }
 
 interface UseAgentExecutionOptions {
@@ -93,60 +66,39 @@ interface UseAgentExecutionOptions {
 }
 
 export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
-  // ============================================
-  // ALL useState HOOKS AT THE TOP - UNCONDITIONAL
-  // ============================================
+  // ALL HOOKS AT TOP - UNCONDITIONAL
   const [task, setTask] = useState<ExecutionTask | null>(null);
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
-  const [logs, setLogs] = useState<TaskLog[]>([]);
-  const [currentOutput, setCurrentOutput] = useState<TaskOutput | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [status, setStatus] = useState<ExecutionStatus>('idle');
+  const [status, setStatus] = useState<string>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [showExecutionView, setShowExecutionView] = useState(false);
 
-  // ============================================
-  // ALL useRef HOOKS - UNCONDITIONAL
-  // ============================================
+  const { toast } = useToast();
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const taskIdRef = useRef<string | null>(null);
-  const channelsRef = useRef<{
-    task: ReturnType<typeof supabase.channel> | null;
-    logs: ReturnType<typeof supabase.channel> | null;
-    steps: ReturnType<typeof supabase.channel> | null;
-    outputs: ReturnType<typeof supabase.channel> | null;
-  }>({
-    task: null,
-    logs: null,
-    steps: null,
-    outputs: null,
-  });
-  
-  // Store options in ref to avoid stale closures
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  // ============================================
-  // CONTEXT HOOKS - AFTER useState/useRef
-  // ============================================
-  const { user } = useAuth();
+  // Derived state
+  const isIdle = status === 'idle';
+  const isExecuting = status === 'executing' || status === 'planning';
+  const isPlanning = status === 'planning';
+  const isAwaitingApproval = status === 'awaiting_approval';
+  const isPaused = status === 'paused';
+  const isCompleted = status === 'completed';
+  const isFailed = status === 'failed';
 
-  // ============================================
-  // HELPER FUNCTIONS - useCallback
-  // ============================================
-  
-  // Map task status to execution status
-  const mapTaskStatus = useCallback((taskStatus: string): ExecutionStatus => {
-    if (taskStatus === 'queued' || taskStatus === 'planning') return 'planning';
-    if (taskStatus === 'awaiting_approval') return 'awaiting_approval';
-    if (taskStatus === 'executing') return 'executing';
-    if (taskStatus === 'paused') return 'paused';
-    if (taskStatus === 'completed') return 'completed';
-    if (taskStatus === 'failed') return 'failed';
-    return 'idle';
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
   }, []);
 
-  // Stop polling
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -154,563 +106,275 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, []);
 
-  // Clean up realtime subscriptions
-  const cleanupChannels = useCallback(() => {
-    if (channelsRef.current.task) {
-      supabase.removeChannel(channelsRef.current.task);
-      channelsRef.current.task = null;
-    }
-    if (channelsRef.current.logs) {
-      supabase.removeChannel(channelsRef.current.logs);
-      channelsRef.current.logs = null;
-    }
-    if (channelsRef.current.steps) {
-      supabase.removeChannel(channelsRef.current.steps);
-      channelsRef.current.steps = null;
-    }
-    if (channelsRef.current.outputs) {
-      supabase.removeChannel(channelsRef.current.outputs);
-      channelsRef.current.outputs = null;
-    }
-  }, []);
-
-  // ============================================
-  // CLEANUP ON UNMOUNT - useEffect
-  // ============================================
-  useEffect(() => {
-    return () => {
-      stopPolling();
-      cleanupChannels();
-    };
-  }, [stopPolling, cleanupChannels]);
-
-  // ============================================
-  // FETCH TASK STATUS
-  // ============================================
-  const fetchTaskStatus = useCallback(async (taskId: string) => {
-    // CRITICAL: Validate taskId before fetching
-    if (!taskId || taskId === 'undefined' || taskId === 'null') {
-      console.error('[AgentExecution] Invalid taskId:', taskId);
-      return null;
+  const pollTaskStatus = useCallback(async (taskId: string) => {
+    if (!taskId || taskId === 'undefined') {
+      console.error('[pollTaskStatus] Invalid taskId');
+      return;
     }
 
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
+    stopPolling();
 
-      const response = await supabase.functions.invoke('agent-status', {
-        body: { taskId },
-      });
+    pollingRef.current = setInterval(async () => {
+      try {
+        const { data, error: statusError } = await supabase.functions.invoke('agent-status', {
+          body: { task_id: taskId },
+        });
 
-      if (response.error) {
-        console.error('[AgentExecution] Status error:', response.error);
-        // Don't throw - just return null to keep polling
-        return null;
-      }
-
-      const data = response.data;
-      
-      // CRITICAL: Handle null task gracefully (race condition)
-      if (!data?.task) {
-        console.log('[AgentExecution] Task not ready yet, waiting...');
-        return null; // Task might still be creating, keep polling
-      }
-      
-      // Update task
-      setTask(data.task);
-      
-      // Map task status to execution status
-      const taskStatus = data.task.status;
-      if (taskStatus === 'queued' || taskStatus === 'planning') {
-        setStatus('planning');
-      } else if (taskStatus === 'awaiting_approval') {
-        setStatus('awaiting_approval');
-        stopPolling();
-      } else if (taskStatus === 'executing') {
-        setStatus('executing');
-      } else if (taskStatus === 'paused') {
-        setStatus('paused');
-        stopPolling();
-      } else if (taskStatus === 'completed') {
-        setStatus('completed');
-        stopPolling();
-        optionsRef.current.onComplete?.(data.task);
-      } else if (taskStatus === 'failed') {
-        setStatus('failed');
-        setError(data.task.error_message || 'Task failed');
-        stopPolling();
-        optionsRef.current.onError?.(data.task.error_message || 'Task failed');
-      }
-
-      // Update steps
-      if (data.steps) {
-        setSteps(data.steps);
-      }
-
-      // Update outputs
-      if (data.outputs) {
-        setOutputs(data.outputs);
-        if (data.outputs.length > 0) {
-          setCurrentOutput(data.outputs[data.outputs.length - 1]);
+        if (statusError) {
+          console.error('[pollTaskStatus] Error:', statusError);
+          return;
         }
-      }
 
-      // Update suggestions
-      if (data.suggestions) {
-        setSuggestions(data.suggestions);
-      }
+        // Handle null task (race condition)
+        if (!data?.task) {
+          console.log('[pollTaskStatus] Task not ready, waiting...');
+          return;
+        }
 
-      return data;
-    } catch (err) {
-      console.error('[AgentExecution] Fetch status error:', err);
-      // Don't crash on polling errors - just return null
-      return null;
-    }
+        // Update state
+        setTask(data.task);
+        setStatus(data.task.status || 'executing');
+        if (data.steps?.length > 0) setSteps(data.steps);
+        if (data.logs?.length > 0) setLogs(data.logs);
+        if (data.outputs?.length > 0) setOutputs(data.outputs);
+
+        // Stop on terminal states
+        if (['completed', 'failed', 'cancelled'].includes(data.task.status)) {
+          stopPolling();
+          if (data.task.status === 'completed') {
+            optionsRef.current.onComplete?.(data.task);
+          } else if (data.task.status === 'failed') {
+            optionsRef.current.onError?.(data.task.error_message || 'Task failed');
+          }
+        }
+
+      } catch (err) {
+        console.error('[pollTaskStatus] Exception:', err);
+      }
+    }, 2000);
   }, [stopPolling]);
 
-  // ============================================
-  // SUBSCRIBE TO REALTIME UPDATES
-  // ============================================
-  const subscribeToTask = useCallback((taskId: string) => {
-    cleanupChannels();
-    console.log('[AgentExecution] Setting up realtime subscriptions for task:', taskId);
+  const executeTask = useCallback(async (params: ExecuteTaskParams) => {
+    setStatus('executing');
+    setError(null);
+    setTask(null);
+    setSteps([]);
+    setLogs([]);
+    setOutputs([]);
+    setShowExecutionView(true);
 
-    // Subscribe to task updates
-    channelsRef.current.task = supabase
-      .channel(`task-${taskId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'agent_tasks',
-          filter: `id=eq.${taskId}`,
+    try {
+      const { data, error: executeError } = await supabase.functions.invoke('agent-execute', {
+        body: {
+          prompt: params.prompt,
+          task_type: params.task_type,
+          mode: params.mode || params.task_type,
+          params: params.params || {},
+          memory_context: params.memory_context || null,
         },
-        (payload) => {
-          console.log('[AgentExecution] Task update received:', payload.new);
-          const newTask = payload.new as ExecutionTask;
-          setTask(newTask);
-          
-          const newStatus = mapTaskStatus(newTask.status);
-          setStatus(newStatus);
+      });
 
-          if (newTask.status === 'completed') {
-            // Force fetch latest steps when task completes
-            supabase
-              .from('agent_task_steps')
-              .select('*')
-              .eq('task_id', taskId)
-              .order('step_number', { ascending: true })
-              .then(({ data: latestSteps }) => {
-                if (latestSteps && latestSteps.length > 0) {
-                  // Mark all steps as completed since task is done
-                  const completedSteps = latestSteps.map(step => ({
-                    ...step,
-                    status: 'completed',
-                    completed_at: step.completed_at || new Date().toISOString(),
-                  }));
-                  setSteps(completedSteps as ExecutionStep[]);
-                }
-              });
-            optionsRef.current.onComplete?.(newTask);
-          } else if (newTask.status === 'failed') {
-            setError(newTask.error_message || 'Task failed');
-            optionsRef.current.onError?.(newTask.error_message || 'Task failed');
-          }
-        }
-      )
-      .subscribe();
+      if (executeError) {
+        throw new Error(executeError.message || 'Failed to execute task');
+      }
 
-    // Subscribe to new logs
-    channelsRef.current.logs = supabase
-      .channel(`task-logs-${taskId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'agent_task_logs',
-          filter: `task_id=eq.${taskId}`,
-        },
-        (payload) => {
-          console.log('[AgentExecution] New log received:', payload.new);
-          setLogs((prev) => [...prev, payload.new as TaskLog]);
-        }
-      )
-      .subscribe();
+      // Extract task from response
+      let taskId: string | null = null;
+      
+      if (data?.task?.id) {
+        taskId = data.task.id;
+        setTask(data.task);
+        setStatus(data.task.status || 'executing');
+        taskIdRef.current = taskId;
+      } else if (data?.taskId) {
+        taskId = data.taskId;
+        taskIdRef.current = taskId;
+      }
 
-    // Subscribe to step updates
-    channelsRef.current.steps = supabase
-      .channel(`task-steps-${taskId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'agent_task_steps',
-          filter: `task_id=eq.${taskId}`,
-        },
-        (payload) => {
-          console.log('[AgentExecution] Step update received:', payload);
-          if (payload.eventType === 'INSERT') {
-            setSteps((prev) => [...prev, payload.new as ExecutionStep]);
-          } else if (payload.eventType === 'UPDATE') {
-            setSteps((prev) =>
-              prev.map((step) =>
-                step.id === (payload.new as ExecutionStep).id
-                  ? (payload.new as ExecutionStep)
-                  : step
-              )
-            );
-          }
-        }
-      )
-      .subscribe();
+      if (!taskId) {
+        throw new Error('No task ID returned');
+      }
 
-    // Subscribe to new outputs
-    channelsRef.current.outputs = supabase
-      .channel(`task-outputs-${taskId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'agent_outputs',
-          filter: `task_id=eq.${taskId}`,
-        },
-        (payload) => {
-          console.log('[AgentExecution] New output received:', payload.new);
-          const newOutput = payload.new as TaskOutput;
-          setOutputs((prev) => [...prev, newOutput]);
-          setCurrentOutput(newOutput);
-        }
-      )
-      .subscribe();
-  }, [cleanupChannels, mapTaskStatus]);
+      console.log('[executeTask] Task created:', taskId);
 
-  // ============================================
-  // START REALTIME SUBSCRIPTION
-  // ============================================
-  const startRealtimeSubscription = useCallback((taskId: string) => {
-    stopPolling();
-    taskIdRef.current = taskId;
-    
-    // Initial fetch to get current state
-    fetchTaskStatus(taskId);
-    
-    // Set up realtime subscriptions for instant updates
-    subscribeToTask(taskId);
-  }, [fetchTaskStatus, stopPolling, subscribeToTask]);
+      // Small delay before polling
+      await new Promise(r => setTimeout(r, 500));
 
-  // Legacy polling fallback
-  const startPolling = useCallback((taskId: string) => {
-    startRealtimeSubscription(taskId);
-  }, [startRealtimeSubscription]);
+      pollTaskStatus(taskId);
 
-  // ============================================
-  // CREATE TASK
-  // ============================================
+      toast({
+        title: 'Task started',
+        description: 'Your request is being processed.',
+      });
+
+      return data?.task || { id: taskId };
+
+    } catch (err: any) {
+      console.error('[executeTask] Error:', err);
+      setError(err.message || 'An error occurred');
+      setStatus('failed');
+      setShowExecutionView(false);
+
+      toast({
+        title: 'Failed to start task',
+        description: err.message,
+        variant: 'destructive',
+      });
+      
+      return null;
+    }
+  }, [pollTaskStatus, toast]);
+
+  // Create task (alias for executeTask with different signature)
   const createTask = useCallback(async (
     prompt: string,
     taskOptions: {
       taskType?: string;
-      mode?: string;
       privacyTier?: string;
-      tools?: string[];
       memoryContext?: string;
       attachments?: Array<{ name: string; url: string; type: string }>;
       connectedTools?: string[];
-      templateId?: string;
     } = {}
   ) => {
-    if (!user) {
-      toast.error('Please sign in to create tasks');
-      return null;
-    }
-
     setStatus('planning');
-    setError(null);
-    setSteps([]);
-    setOutputs([]);
-    setCurrentOutput(null);
-    setSuggestions([]);
+    
+    return executeTask({
+      prompt,
+      task_type: taskOptions.taskType || 'general',
+      mode: taskOptions.taskType,
+      memory_context: taskOptions.memoryContext,
+      params: { attachments: taskOptions.attachments },
+    });
+  }, [executeTask]);
 
-    try {
-      console.log('[useAgentExecution] Creating task:', {
-        prompt: prompt.substring(0, 50),
-        options: taskOptions,
-      });
+  // Load existing task
+  const loadTask = useCallback(async (taskId: string) => {
+    if (!taskId || taskId === 'undefined') return;
+    
+    taskIdRef.current = taskId;
+    setShowExecutionView(true);
+    setStatus('executing');
+    
+    pollTaskStatus(taskId);
+  }, [pollTaskStatus]);
 
-      const taskType = taskOptions.taskType || 'general';
-      const shouldRouteToModal = MODAL_ROUTED_TYPES.includes(taskType);
+  // Retry task
+  const retryTask = useCallback(async () => {
+    if (!task?.prompt) return;
+    
+    return createTask(task.prompt, {
+      taskType: task.task_type || 'general',
+    });
+  }, [task, createTask]);
 
-      const response = await supabase.functions.invoke('agent-execute', {
-        body: {
-          prompt,
-          taskType,
-          privacyTier: taskOptions.privacyTier || 'vault',
-          memoryContext: taskOptions.memoryContext,
-          attachments: taskOptions.attachments,
-          connectedTools: taskOptions.connectedTools || taskOptions.tools || [],
-          templateId: taskOptions.templateId,
-          route_to_modal: shouldRouteToModal,
-        },
-      });
-
-      if (response.error) {
-        const errorMsg = response.error.message || 'Failed to create task';
-        if (errorMsg.includes('Rate limit') || errorMsg.includes('429')) {
-          throw new Error('Too many requests. Please wait a moment and try again.');
-        }
-        if (errorMsg.includes('402') || errorMsg.includes('Credits required')) {
-          throw new Error('Please add credits to continue using this feature.');
-        }
-        throw new Error(errorMsg);
-      }
-
-      const data = response.data;
-      
-      if (data.task) {
-        setTask(data.task);
-        taskIdRef.current = data.task.id;
-        startPolling(data.task.id);
-        return data.task;
-      } else if (data.taskId) {
-        taskIdRef.current = data.taskId;
-        startPolling(data.taskId);
-        const minimalTask: ExecutionTask = {
-          id: data.taskId,
-          prompt: prompt,
-          status: data.status || 'executing',
-          task_type: taskOptions.taskType || 'general',
-          mode: taskOptions.mode || null,
-          privacy_tier: taskOptions.privacyTier || 'vault',
-          current_step: 0,
-          total_steps: data.plan?.steps?.length || 0,
-          progress_percentage: 0,
-          plan_summary: data.plan?.plan_summary || null,
-          plan_json: data.plan || null,
-          result_summary: null,
-          result: null,
-          error_message: null,
-          credits_used: null,
-          tokens_used: null,
-          duration_ms: null,
-          created_at: new Date().toISOString(),
-          started_at: new Date().toISOString(),
-          completed_at: null,
-        };
-        setTask(minimalTask);
-        return minimalTask;
-      }
-
-      throw new Error('Invalid response from server');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create task';
-      setStatus('failed');
-      setError(message);
-      toast.error(message);
-      return null;
-    }
-  }, [user, startPolling]);
-
-  // ============================================
-  // APPROVE AND START
-  // ============================================
+  // Approve and start (for approval flow - currently auto-approves)
   const approveAndStart = useCallback(async () => {
-    if (!taskIdRef.current) {
-      toast.error('No task to approve');
-      return false;
-    }
+    console.log('[approveAndStart] Auto-approved');
+  }, []);
 
-    try {
-      const { error: updateError } = await supabase
-        .from('agent_tasks')
-        .update({ status: 'executing', started_at: new Date().toISOString() })
-        .eq('id', taskIdRef.current);
-
-      if (updateError) throw updateError;
-
-      setStatus('executing');
-      
-      const response = await supabase.functions.invoke('agent-worker', {
-        body: { task_id: taskIdRef.current },
-      });
-
-      if (response.error) {
-        console.error('[AgentExecution] Worker error:', response.error);
-      }
-
-      startPolling(taskIdRef.current);
-      
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to start task';
-      toast.error(message);
-      return false;
-    }
-  }, [startPolling]);
-
-  // ============================================
-  // CANCEL TASK
-  // ============================================
-  const cancelTask = useCallback(async () => {
-    if (!taskIdRef.current) return;
-
-    try {
-      stopPolling();
-      cleanupChannels();
-
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'cancelled' })
-        .eq('id', taskIdRef.current);
-
-      setStatus('failed');
-      setError('Task cancelled');
-      toast.info('Task cancelled');
-    } catch (err) {
-      console.error('[AgentExecution] Cancel error:', err);
-    }
-  }, [stopPolling, cleanupChannels]);
-
-  // ============================================
-  // RESET STATE
-  // ============================================
-  const reset = useCallback(() => {
-    stopPolling();
-    cleanupChannels();
-    setTask(null);
-    setSteps([]);
-    setOutputs([]);
-    setLogs([]);
-    setCurrentOutput(null);
-    setSuggestions([]);
-    setStatus('idle');
-    setError(null);
-    taskIdRef.current = null;
-  }, [stopPolling, cleanupChannels]);
-
-  // ============================================
-  // PAUSE TASK
-  // ============================================
+  // Pause task
   const pauseTask = useCallback(async () => {
-    if (!taskIdRef.current) return;
+    if (!task?.id) return;
+    
     try {
       await supabase
         .from('agent_tasks')
         .update({ status: 'paused' })
-        .eq('id', taskIdRef.current);
+        .eq('id', task.id);
+      
       setStatus('paused');
+      stopPolling();
     } catch (err) {
-      console.error('[AgentExecution] Pause error:', err);
+      console.error('[pauseTask] Error:', err);
     }
-  }, []);
+  }, [task, stopPolling]);
 
-  // ============================================
-  // RESUME TASK
-  // ============================================
+  // Resume task
   const resumeTask = useCallback(async () => {
-    if (!taskIdRef.current) return;
+    if (!task?.id) return;
+    
     try {
       await supabase
         .from('agent_tasks')
         .update({ status: 'executing' })
-        .eq('id', taskIdRef.current);
+        .eq('id', task.id);
+      
       setStatus('executing');
-      startPolling(taskIdRef.current);
+      pollTaskStatus(task.id);
     } catch (err) {
-      console.error('[AgentExecution] Resume error:', err);
+      console.error('[resumeTask] Error:', err);
     }
-  }, [startPolling]);
+  }, [task, pollTaskStatus]);
 
-  // ============================================
-  // STOP TASK (alias for cancel)
-  // ============================================
+  // Stop/cancel task
   const stopTask = useCallback(async () => {
-    await cancelTask();
-  }, [cancelTask]);
-
-  // ============================================
-  // RETRY TASK
-  // ============================================
-  const retryTask = useCallback(async () => {
-    if (!task) return null;
-    const taskPrompt = task.prompt;
-    const taskType = task.task_type || 'general';
-    reset();
-    return createTask(taskPrompt, { taskType });
-  }, [task, reset, createTask]);
-
-  // ============================================
-  // DOWNLOAD OUTPUT
-  // ============================================
-  const downloadOutput = useCallback(async (output: TaskOutput) => {
-    if (!output.download_url) {
-      toast.error('No download URL available');
-      return;
+    if (!task?.id) return;
+    
+    try {
+      await supabase
+        .from('agent_tasks')
+        .update({ status: 'cancelled' })
+        .eq('id', task.id);
+      
+      setStatus('failed');
+      stopPolling();
+    } catch (err) {
+      console.error('[stopTask] Error:', err);
     }
-    window.open(output.download_url, '_blank');
+  }, [task, stopPolling]);
+
+  // Download output
+  const downloadOutput = useCallback((output: TaskOutput) => {
+    if (output.download_url) {
+      window.open(output.download_url, '_blank');
+    }
   }, []);
 
-  // ============================================
-  // LOAD EXISTING TASK
-  // ============================================
-  const loadTask = useCallback(async (taskId: string) => {
-    // CRITICAL: Validate taskId before loading
-    if (!taskId || taskId === 'undefined' || taskId === 'null') {
-      console.error('[AgentExecution] loadTask called with invalid taskId:', taskId);
-      setError('Invalid task ID');
-      return;
-    }
+  // Reset
+  const reset = useCallback(() => {
+    stopPolling();
+    setTask(null);
+    setSteps([]);
+    setLogs([]);
+    setOutputs([]);
+    setStatus('idle');
+    setError(null);
+    setShowExecutionView(false);
+    taskIdRef.current = null;
+  }, [stopPolling]);
 
-    console.log('[AgentExecution] Loading task:', taskId);
-    taskIdRef.current = taskId;
-    setStatus('executing'); // Show as executing while loading
-    
-    // Add small delay to ensure task is committed to DB
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    await fetchTaskStatus(taskId);
-    subscribeToTask(taskId);
-  }, [fetchTaskStatus, subscribeToTask]);
-
-  // ============================================
-  // RETURN STABLE OBJECT
-  // ============================================
   return {
     // State
     task,
     steps,
-    outputs,
     logs,
-    currentOutput,
-    suggestions,
+    outputs,
     status,
     error,
+    showExecutionView,
+    setShowExecutionView,
+    
+    // Derived state
+    isIdle,
+    isExecuting,
+    isPlanning,
+    isAwaitingApproval,
+    isPaused,
+    isCompleted,
+    isFailed,
     
     // Actions
+    executeTask,
     createTask,
+    loadTask,
+    retryTask,
     approveAndStart,
-    cancelTask,
     pauseTask,
     resumeTask,
     stopTask,
-    retryTask,
     downloadOutput,
+    pollTaskStatus,
     reset,
-    loadTask,
-    
-    // Computed
-    isIdle: status === 'idle',
-    isPlanning: status === 'planning',
-    isExecuting: status === 'planning' || status === 'executing',
-    isComplete: status === 'completed',
-    isCompleted: status === 'completed',
-    isFailed: status === 'failed',
-    isPaused: status === 'paused',
-    isAwaitingApproval: status === 'awaiting_approval',
+    stopPolling,
   };
 }
