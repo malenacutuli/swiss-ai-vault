@@ -25,6 +25,7 @@ interface AgentsSidebarProps {
   recentTasks?: Array<{
     id: string;
     prompt: string;
+    plan_summary?: string;
     status: string;
     created_at?: string;
   }>;
@@ -172,7 +173,7 @@ export function AgentsSidebar({
                 onClick={() => onSelectTask?.(task)}
                 className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-[#F5F5F5] transition-colors group"
               >
-                <p className="text-[#1A1A1A] truncate text-xs leading-relaxed">{task.prompt}</p>
+                <p className="text-[#1A1A1A] truncate text-xs leading-relaxed">{task.plan_summary || task.prompt?.slice(0, 50) || 'Untitled task'}</p>
                 <span className={cn(
                   "text-[10px] font-medium uppercase tracking-wider mt-0.5 inline-block",
                   task.status === 'completed' && "text-emerald-600",

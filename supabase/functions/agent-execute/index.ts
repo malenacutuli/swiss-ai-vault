@@ -210,12 +210,41 @@ Deno.serve(async (req: Request) => {
     // Generate execution plan
     const plan = generateExecutionPlan(taskType, prompt);
     
+    // Extract clean title from prompt (removes document content)
+    const extractCleanTitle = (fullPrompt: string): string => {
+      // If prompt contains document markers, extract only the user request part
+      if (fullPrompt.includes('--- User Request ---')) {
+        const parts = fullPrompt.split('--- User Request ---');
+        return parts[parts.length - 1].trim().slice(0, 200);
+      }
+      if (fullPrompt.includes('--- END OF DOCUMENTS ---')) {
+        const parts = fullPrompt.split('--- END OF DOCUMENTS ---');
+        return parts[parts.length - 1].trim().slice(0, 200);
+      }
+      if (fullPrompt.includes('--- UPLOADED DOCUMENTS ---')) {
+        const parts = fullPrompt.split('--- UPLOADED DOCUMENTS ---');
+        // Get text before the documents section
+        const beforeDocs = parts[0].trim();
+        if (beforeDocs.length > 10) return beforeDocs.slice(0, 200);
+        // Or get text after all document content
+        if (parts.length > 1) {
+          const afterDocs = parts[parts.length - 1].split('===').pop()?.trim() || '';
+          if (afterDocs.length > 10) return afterDocs.slice(0, 200);
+        }
+      }
+      // No markers, use the prompt directly (limited)
+      return fullPrompt.trim().slice(0, 200);
+    };
+    
+    const cleanTitle = extractCleanTitle(prompt);
+    
     // Create task record
     const { data: task, error: taskError } = await supabase
       .from("agent_tasks")
       .insert({
         user_id: user.id,
         prompt,
+        plan_summary: cleanTitle, // Store clean title for display
         task_type: taskType,
         mode: mode || taskType,
         status: "executing",
