@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Brain, Loader2 } from 'lucide-react';
@@ -57,6 +58,8 @@ type PrivacyTier = 'ghost' | 'vault' | 'full';
 
 export default function Agents() {
   const { user } = useAuth();
+  const location = useLocation();
+  
   // Core state
   const [taskPrompt, setTaskPrompt] = useState('');
   const [currentMode, setCurrentMode] = useState<TaskMode>('default');
@@ -94,6 +97,21 @@ export default function Agents() {
     onComplete: () => toast.success('Task completed'),
     onError: (err) => toast.error(err),
   });
+  
+  // Handle incoming state from Studio navigation
+  useEffect(() => {
+    const state = location.state as { taskId?: string; taskType?: string; sources?: any[] } | null;
+    
+    if (state?.taskId) {
+      console.log('[Agents] Loading task from Studio:', state.taskId);
+      
+      // Load the task via execution hook - just pass the taskId
+      execution.loadTask(state.taskId);
+      
+      // Clear the router state to prevent reloading on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   
   // Memory hook
   const {
