@@ -1067,6 +1067,154 @@ export type Database = {
           },
         ]
       }
+      artifact_jobs: {
+        Row: {
+          artifact_type: string
+          cache_key: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_code: string | null
+          error_message: string | null
+          google_operation_name: string | null
+          id: string
+          max_retries: number | null
+          notebook_id: string
+          org_id: string | null
+          params: Json | null
+          result_metadata: Json | null
+          result_storage_key: string | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          artifact_type: string
+          cache_key?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          google_operation_name?: string | null
+          id?: string
+          max_retries?: number | null
+          notebook_id: string
+          org_id?: string | null
+          params?: Json | null
+          result_metadata?: Json | null
+          result_storage_key?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          artifact_type?: string
+          cache_key?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          google_operation_name?: string | null
+          id?: string
+          max_retries?: number | null
+          notebook_id?: string
+          org_id?: string | null
+          params?: Json | null
+          result_metadata?: Json | null
+          result_storage_key?: string | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_jobs_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "studio_notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artifact_jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artifact_outputs: {
+        Row: {
+          artifact_type: string
+          created_at: string | null
+          duration_seconds: number | null
+          evidence: Json | null
+          id: string
+          is_public: boolean | null
+          job_id: string | null
+          metadata: Json | null
+          notebook_id: string
+          org_id: string | null
+          storage_bucket: string | null
+          storage_key: string
+          title: string | null
+        }
+        Insert: {
+          artifact_type: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          evidence?: Json | null
+          id?: string
+          is_public?: boolean | null
+          job_id?: string | null
+          metadata?: Json | null
+          notebook_id: string
+          org_id?: string | null
+          storage_bucket?: string | null
+          storage_key: string
+          title?: string | null
+        }
+        Update: {
+          artifact_type?: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          evidence?: Json | null
+          id?: string
+          is_public?: boolean | null
+          job_id?: string | null
+          metadata?: Json | null
+          notebook_id?: string
+          org_id?: string | null
+          storage_bucket?: string | null
+          storage_key?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_outputs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "artifact_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artifact_outputs_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "studio_notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artifact_outputs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -3534,6 +3682,63 @@ export type Database = {
           },
         ]
       }
+      notebook_quota_usage: {
+        Row: {
+          audio_overview_count: number | null
+          date: string
+          flashcard_count: number | null
+          id: string
+          mind_map_count: number | null
+          notebook_id: string
+          org_id: string | null
+          query_count: number | null
+          quiz_count: number | null
+          report_count: number | null
+          slides_count: number | null
+        }
+        Insert: {
+          audio_overview_count?: number | null
+          date?: string
+          flashcard_count?: number | null
+          id?: string
+          mind_map_count?: number | null
+          notebook_id: string
+          org_id?: string | null
+          query_count?: number | null
+          quiz_count?: number | null
+          report_count?: number | null
+          slides_count?: number | null
+        }
+        Update: {
+          audio_overview_count?: number | null
+          date?: string
+          flashcard_count?: number | null
+          id?: string
+          mind_map_count?: number | null
+          notebook_id?: string
+          org_id?: string | null
+          query_count?: number | null
+          quiz_count?: number | null
+          report_count?: number | null
+          slides_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_quota_usage_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "studio_notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebook_quota_usage_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notebooklm_notebooks: {
         Row: {
           created_at: string | null
@@ -4605,6 +4810,179 @@ export type Database = {
             columns: ["sso_config_id"]
             isOneToOne: false
             referencedRelation: "sso_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          evidence: Json | null
+          grounding_metadata: Json | null
+          id: string
+          notebook_id: string
+          org_id: string | null
+          role: string
+          session_id: string | null
+          tokens_input: number | null
+          tokens_output: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          evidence?: Json | null
+          grounding_metadata?: Json | null
+          id?: string
+          notebook_id: string
+          org_id?: string | null
+          role: string
+          session_id?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          evidence?: Json | null
+          grounding_metadata?: Json | null
+          id?: string
+          notebook_id?: string
+          org_id?: string | null
+          role?: string
+          session_id?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_messages_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "studio_notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_notebooks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          discovery_engine_data_store_id: string | null
+          discovery_engine_notebook_id: string | null
+          id: string
+          org_id: string | null
+          settings: Json | null
+          sources_version: number | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          discovery_engine_data_store_id?: string | null
+          discovery_engine_notebook_id?: string | null
+          id?: string
+          org_id?: string | null
+          settings?: Json | null
+          sources_version?: number | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          discovery_engine_data_store_id?: string | null
+          discovery_engine_notebook_id?: string | null
+          id?: string
+          org_id?: string | null
+          settings?: Json | null
+          sources_version?: number | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_notebooks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_sources: {
+        Row: {
+          created_at: string | null
+          discovery_engine_source_id: string | null
+          file_size_bytes: number | null
+          id: string
+          ingestion_error: string | null
+          ingestion_manifest: Json | null
+          ingestion_status: string | null
+          notebook_id: string
+          org_id: string | null
+          page_count: number | null
+          source_type: string
+          source_url: string | null
+          storage_key: string | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          discovery_engine_source_id?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          ingestion_error?: string | null
+          ingestion_manifest?: Json | null
+          ingestion_status?: string | null
+          notebook_id: string
+          org_id?: string | null
+          page_count?: number | null
+          source_type: string
+          source_url?: string | null
+          storage_key?: string | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          discovery_engine_source_id?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          ingestion_error?: string | null
+          ingestion_manifest?: Json | null
+          ingestion_status?: string | null
+          notebook_id?: string
+          org_id?: string | null
+          page_count?: number | null
+          source_type?: string
+          source_url?: string | null
+          storage_key?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_sources_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "studio_notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_sources_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
