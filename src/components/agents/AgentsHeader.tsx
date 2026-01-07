@@ -39,10 +39,10 @@ export function AgentsHeader({ sidebarWidth = 256 }: AgentsHeaderProps) {
           {isFree && (
             <Button 
               variant="link" 
-              className="text-[#722F37] hover:text-[#5a252c] p-0 h-auto font-medium"
+              className="text-primary hover:text-primary/80 p-0 h-auto font-medium"
               asChild
             >
-              <Link to="/pricing">
+              <Link to="/upgrade">
                 <Crown className="w-3.5 h-3.5 mr-1" />
                 Upgrade
               </Link>

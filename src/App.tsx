@@ -70,6 +70,7 @@ import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
 import Agents from "./pages/Agents";
+import Upgrade from "./pages/Upgrade";
 import GhostFinance from "./pages/ghost/GhostFinance";
 import GhostPatents from "./pages/ghost/GhostPatents";
 import GhostLegal from "./pages/ghost/GhostLegal";
@@ -137,6 +138,11 @@ const App = () => {
                 <Route path="/ghost/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
                 <Route path="/ghost/research-library" element={<ProtectedRoute><ResearchDashboard /></ProtectedRoute>} />
                 <Route path="/ghost/agents" element={<ProtectedRoute><Agents /></ProtectedRoute>} />
+                
+                {/* Top-level convenience routes */}
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/upgrade" element={<Upgrade />} />
+                
                 <Route path="/ghost/finance" element={<GhostFinance />} />
                 <Route path="/ghost/patents" element={<GhostPatents />} />
                 <Route path="/ghost/legal" element={<GhostLegal />} />
