@@ -25,3 +25,4 @@ export { ExecutionView } from './ExecutionView';
 export { PreviewPanel } from './PreviewPanel';
 export { StudioLayout } from './StudioLayout';
 export { SourceUploadModal } from './SourceUploadModal';
+export { StudioOutputCards, OUTPUT_CARDS } from './StudioOutputCards';
