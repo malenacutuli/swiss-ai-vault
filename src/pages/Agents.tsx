@@ -8,12 +8,13 @@ import { useAgentExecution } from '@/hooks/useAgentExecution';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
 import { useAgentMemory } from '@/hooks/useAgentMemory';
 import { supabase } from '@/integrations/supabase/client';
-import { SwissAgentsIcon } from '@/components/icons/SwissAgentsIcon';
 import { QuickActionBar } from '@/components/agents/QuickActionBar';
 import { ConnectedToolsBar } from '@/components/agents/ConnectedToolsBar';
 import { TemplateBrowser, type ActionTemplate } from '@/components/agents/TemplateBrowser';
 import { TaskDetailModal } from '@/components/agents/TaskDetailModal';
 import { MasterExecutionView } from '@/components/agents/execution/MasterExecutionView';
+import { AgentsSidebar } from '@/components/agents/AgentsSidebar';
+import { AgentsHeader } from '@/components/agents/AgentsHeader';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -296,33 +297,20 @@ export default function Agents() {
         <title>Swiss Agents | SwissVault.ai</title>
         <meta name="description" content="Autonomous AI agents that work for you. Create research, documents, presentations, and more." />
       </Helmet>
-
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b border-border bg-card/50">
-          <div className="container max-w-5xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <SwissAgentsIcon className="h-6 w-6" />
-                <div>
-                  <h1 className="text-lg font-semibold text-foreground">Swiss Agents</h1>
-                  <p className="text-sm text-muted-foreground">Autonomous AI that works for you</p>
-                </div>
-              </div>
-              
-              {isExecuting && (
-                <button
-                  onClick={handleNewTask}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-                >
-                  + New Task
-                </button>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <main className="container max-w-5xl mx-auto px-4 py-8">
+      {/* Light theme wrapper for Agents only */}
+      <div className="min-h-screen bg-[#FAFAF8]">
+        {/* Sidebar */}
+        <AgentsSidebar 
+          onNewTask={handleNewTask} 
+          recentTasks={recentTasks}
+          onSelectTask={handleViewRecentTask}
+        />
+        
+        {/* Main content wrapper - offset by sidebar width */}
+        <div className="ml-64">
+          <AgentsHeader sidebarWidth={0} />
+          
+          <main className="p-8 max-w-3xl mx-auto">
           <AnimatePresence mode="wait">
             {!isExecuting ? (
               // TASK INPUT VIEW
@@ -361,9 +349,9 @@ export default function Agents() {
                   </AnimatePresence>
 
                   {/* Task Input Card */}
-                  <div className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="bg-white border border-[#E5E5E5] rounded-xl overflow-hidden shadow-sm">
                     <div className="p-6">
-                      <h2 className="text-2xl font-light text-center text-foreground mb-6">
+                      <h2 className="text-2xl font-light text-center text-[#1A1A1A] mb-6">
                         What can I do for you?
                       </h2>
                       
@@ -371,7 +359,7 @@ export default function Agents() {
                         value={taskPrompt}
                         onChange={(e) => setTaskPrompt(e.target.value)}
                         placeholder="Describe your task in detail..."
-                        className="w-full min-h-[280px] text-base bg-transparent border-0 focus:ring-0 focus:outline-none resize-y placeholder:text-muted-foreground"
+                        className="w-full min-h-[280px] text-base bg-transparent border-0 focus:ring-0 focus:outline-none resize-y placeholder:text-[#999999] text-[#1A1A1A]"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && e.metaKey) {
                             handleSubmit();
@@ -414,11 +402,11 @@ export default function Agents() {
                     </div>
 
                     {/* Action Row */}
-                    <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center gap-3">
+                    <div className="px-6 py-4 bg-[#FAFAF8] border-t border-[#E5E5E5] flex items-center gap-3">
                       {/* Add Files */}
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-[#666666] hover:text-[#1A1A1A] hover:bg-[#F0F0F0] rounded-lg transition-colors"
                       >
                         <span className="text-base">+</span>
                         <span>Add files</span>
@@ -436,7 +424,7 @@ export default function Agents() {
                       {/* Templates */}
                       <button
                         onClick={() => setShowTemplates(true)}
-                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-[#666666] hover:text-[#1A1A1A] hover:bg-[#F0F0F0] rounded-lg transition-colors"
                       >
                         <LayoutGrid className="h-4 w-4" />
                         <span>Templates</span>
@@ -448,7 +436,7 @@ export default function Agents() {
                       <button
                         onClick={handleSubmit}
                         disabled={!taskPrompt.trim() || isSubmitting}
-                        className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                        className="flex items-center gap-2 px-5 py-2 bg-[#722F37] text-white rounded-lg hover:bg-[#5a252c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                       >
                         {isSubmitting ? (
                           <span>{isUploading ? 'Uploading...' : 'Creating...'}</span>
@@ -512,36 +500,7 @@ export default function Agents() {
                   </div>
                 </div>
 
-                {/* Recent Tasks */}
-                {recentTasks.length > 0 && (
-                  <div className="max-w-2xl mx-auto mt-12">
-                    <h3 className="text-lg font-medium text-foreground mb-4">Recent Tasks</h3>
-                    <div className="grid gap-3">
-                      {recentTasks.slice(0, 5).map((task) => (
-                        <button
-                          key={task.id}
-                          onClick={() => handleViewRecentTask(task)}
-                          className="p-4 bg-card border border-border rounded-xl text-left hover:border-primary/30 transition-colors"
-                        >
-                          <p className="font-medium truncate text-foreground">{task.prompt}</p>
-                          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                "text-xs",
-                                task.status === 'completed' && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                                task.status === 'failed' && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                              )}
-                            >
-                              {task.status}
-                            </Badge>
-                            <span>{task.created_at ? new Date(task.created_at).toLocaleDateString() : ''}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Recent Tasks moved to sidebar */}
               </motion.div>
             ) : (
               // TASK EXECUTION VIEW
@@ -567,6 +526,7 @@ export default function Agents() {
             )}
           </AnimatePresence>
         </main>
+        </div>
       </div>
 
       {/* Template Browser Modal */}
