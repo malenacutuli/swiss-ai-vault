@@ -9,13 +9,13 @@ import {
   Gift, 
   Folder,
   ListTodo,
-  User,
   Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { SwissFlag } from '@/components/icons/SwissFlag';
 
 interface AgentsSidebarProps {
   collapsed?: boolean;
@@ -40,15 +40,6 @@ export function AgentsSidebar({
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Swiss flag SVG
-  const SwissFlag = () => (
-    <svg viewBox="0 0 32 32" className="w-6 h-6" aria-hidden="true">
-      <rect width="32" height="32" rx="3" fill="#FF0000" />
-      <path d="M14 8h4v16h-4z" fill="white" />
-      <path d="M8 14h16v4H8z" fill="white" />
-    </svg>
-  );
-
   const taskCount = recentTasks.length;
 
   return (
@@ -57,12 +48,9 @@ export function AgentsSidebar({
       collapsed ? "w-16" : "w-[280px]"
     )}>
       {/* Logo */}
-      <div className="p-5 border-b border-[#E5E5E5]">
-        <Link to="/ghost/agents" className="flex items-center gap-3">
-          <SwissFlag />
-          {!collapsed && (
-            <span className="font-semibold text-[#1A1A1A] text-base">Swiss Agents</span>
-          )}
+      <div className="p-4 border-b border-[#E5E5E5]">
+        <Link to="/ghost/agents" className="flex items-center">
+          <SwissFlag className={cn("h-8", collapsed && "h-6")} />
         </Link>
       </div>
       

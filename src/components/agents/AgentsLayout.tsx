@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 import { AgentsSidebar } from './AgentsSidebar';
-import { AgentsHeader } from './AgentsHeader';
 
 interface AgentsLayoutProps {
   children: ReactNode;
@@ -30,10 +29,7 @@ export function AgentsLayout({
       />
       
       {/* Main content area - offset by sidebar width */}
-      <div className="ml-[280px]">
-        {/* Header */}
-        <AgentsHeader />
-        
+      <div className="ml-[280px] flex-1">
         {/* Content */}
         <main className="p-8">
           {children}
