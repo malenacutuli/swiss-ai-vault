@@ -1,0 +1,1 @@
+export { SlidesMode } from './SlidesMode';
