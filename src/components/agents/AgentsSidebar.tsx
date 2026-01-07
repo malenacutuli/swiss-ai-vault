@@ -49,7 +49,7 @@ export function AgentsSidebar({
     )}>
       {/* Logo */}
       <div className="p-4 border-b border-[#E5E5E5]">
-        <Link to="/ghost/agents" className="flex items-center">
+        <Link to="/agents" className="flex items-center">
           <SwissFlag className={cn("h-8", collapsed && "h-6")} />
         </Link>
       </div>
