@@ -356,33 +356,152 @@ async function executeModalTask(
     
     const result = await response.json();
     
-    // Update task with result
-    await supabase
-      .from("agent_tasks")
-      .update({
-        status: "completed",
-        progress_percentage: 100,
-        result_summary: typeof result === 'string' ? result : JSON.stringify(result),
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", taskId);
+    // Log what Modal actually returns
+    console.log('[Modal] Response keys:', Object.keys(result));
     
-    // Store output file if present
+    // Handle different output formats
+    let downloadUrl: string | null = null;
+    let fileName: string = 'output';
+    let fileType: string = 'unknown';
+    let fileSize: number = 0;
+
+    // EXISTING: Direct URL
     if (result.file_url) {
-      await supabase.from("agent_outputs").insert({
+      downloadUrl = result.file_url;
+      fileName = result.file_name || 'output';
+      fileType = result.file_type || 'file';
+    }
+    // Base64 DOCX
+    else if (result.docx_base64) {
+      const decoded = Uint8Array.from(atob(result.docx_base64), c => c.charCodeAt(0));
+      fileSize = decoded.length;
+      fileName = `${taskType}_${taskId.slice(0, 8)}.docx`;
+      fileType = 'docx';
+      
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('agent-outputs')
+        .upload(`${userId}/${taskId}/${fileName}`, decoded, {
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          upsert: true,
+        });
+      
+      if (uploadError) {
+        console.error('[Modal] Storage upload error:', uploadError);
+        throw uploadError;
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('agent-outputs')
+        .getPublicUrl(`${userId}/${taskId}/${fileName}`);
+      
+      downloadUrl = urlData.publicUrl;
+    }
+    // Base64 PPTX
+    else if (result.pptx_base64) {
+      const decoded = Uint8Array.from(atob(result.pptx_base64), c => c.charCodeAt(0));
+      fileSize = decoded.length;
+      fileName = `${taskType}_${taskId.slice(0, 8)}.pptx`;
+      fileType = 'pptx';
+      
+      const { error: uploadError } = await supabase.storage
+        .from('agent-outputs')
+        .upload(`${userId}/${taskId}/${fileName}`, decoded, {
+          contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          upsert: true,
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('agent-outputs')
+        .getPublicUrl(`${userId}/${taskId}/${fileName}`);
+      
+      downloadUrl = urlData.publicUrl;
+    }
+    // Base64 XLSX
+    else if (result.xlsx_base64) {
+      const decoded = Uint8Array.from(atob(result.xlsx_base64), c => c.charCodeAt(0));
+      fileSize = decoded.length;
+      fileName = `${taskType}_${taskId.slice(0, 8)}.xlsx`;
+      fileType = 'xlsx';
+      
+      const { error: uploadError } = await supabase.storage
+        .from('agent-outputs')
+        .upload(`${userId}/${taskId}/${fileName}`, decoded, {
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          upsert: true,
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('agent-outputs')
+        .getPublicUrl(`${userId}/${taskId}/${fileName}`);
+      
+      downloadUrl = urlData.publicUrl;
+    }
+    // Text/Markdown content
+    else if (result.content || result.markdown || result.text) {
+      const content = result.content || result.markdown || result.text;
+      const textEncoder = new TextEncoder();
+      const encoded = textEncoder.encode(content);
+      fileSize = encoded.length;
+      fileName = `${taskType}_${taskId.slice(0, 8)}.md`;
+      fileType = 'markdown';
+      
+      const { error: uploadError } = await supabase.storage
+        .from('agent-outputs')
+        .upload(`${userId}/${taskId}/${fileName}`, encoded, {
+          contentType: 'text/markdown',
+          upsert: true,
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('agent-outputs')
+        .getPublicUrl(`${userId}/${taskId}/${fileName}`);
+      
+      downloadUrl = urlData.publicUrl;
+    }
+
+    // Create output record if we have a URL
+    if (downloadUrl) {
+      await supabase.from('agent_outputs').insert({
         task_id: taskId,
         user_id: userId,
-        output_type: taskType,
-        file_name: result.file_name || `output.${result.file_type || 'file'}`,
-        download_url: result.file_url,
+        output_type: fileType,
+        file_name: fileName,
+        download_url: downloadUrl,
+        file_size_bytes: fileSize,
+        created_at: new Date().toISOString(),
       });
+      
+      console.log('[Modal] Output saved:', fileName, downloadUrl);
+    } else {
+      console.warn('[Modal] No recognizable output format in response:', Object.keys(result));
     }
+
+    // Update task as completed with result summary
+    await supabase.from('agent_tasks').update({
+      status: 'completed',
+      progress_percentage: 100,
+      result: {
+        output_url: downloadUrl,
+        output_type: fileType,
+        file_name: fileName,
+      },
+      result_summary: downloadUrl ? `Generated ${fileType}: ${fileName}` : JSON.stringify(result),
+      completed_at: new Date().toISOString(),
+    }).eq('id', taskId);
     
     // Log completion
     await supabase.from("agent_task_logs").insert({
       task_id: taskId,
       log_type: "success",
-      content: `Task completed successfully`,
+      content: downloadUrl ? `Task completed - Output: ${fileName}` : `Task completed`,
       sequence_number: 99,
     });
     
