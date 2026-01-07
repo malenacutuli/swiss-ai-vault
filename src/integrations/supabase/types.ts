@@ -651,12 +651,15 @@ export type Database = {
           error_message: string | null
           file_actions: Json | null
           id: string
+          input_data: Json | null
+          output_data: Json | null
           retry_count: number | null
           started_at: string | null
           status: string | null
           step_number: number
           step_type: string
           task_id: string
+          title: string | null
           tool_input: Json | null
           tool_name: string | null
           tool_output: Json | null
@@ -670,12 +673,15 @@ export type Database = {
           error_message?: string | null
           file_actions?: Json | null
           id?: string
+          input_data?: Json | null
+          output_data?: Json | null
           retry_count?: number | null
           started_at?: string | null
           status?: string | null
           step_number: number
           step_type: string
           task_id: string
+          title?: string | null
           tool_input?: Json | null
           tool_name?: string | null
           tool_output?: Json | null
@@ -689,12 +695,15 @@ export type Database = {
           error_message?: string | null
           file_actions?: Json | null
           id?: string
+          input_data?: Json | null
+          output_data?: Json | null
           retry_count?: number | null
           started_at?: string | null
           status?: string | null
           step_number?: number
           step_type?: string
           task_id?: string
+          title?: string | null
           tool_input?: Json | null
           tool_name?: string | null
           tool_output?: Json | null
@@ -712,6 +721,7 @@ export type Database = {
       agent_tasks: {
         Row: {
           completed_at: string | null
+          cost_usd: number | null
           created_at: string | null
           credits_used: number | null
           current_step: number | null
@@ -720,23 +730,29 @@ export type Database = {
           id: string
           is_shared: boolean | null
           knowledge_sources: Json | null
+          memory_context: Json | null
           mode: string | null
           model_id: string | null
           model_used: string | null
           notebooklm_notebook_id: string | null
+          output_files: string[] | null
           output_format: string | null
+          params: Json | null
           plan_json: Json | null
           plan_summary: string | null
           privacy_tier: string | null
+          progress: number | null
           progress_percentage: number | null
           prompt: string
           reasoning_visible: boolean | null
           requested_format: string | null
+          result: Json | null
           result_summary: string | null
           share_token: string | null
           started_at: string | null
           status: string | null
           task_type: string | null
+          thinking_level: string | null
           tokens_used: number | null
           total_steps: number | null
           updated_at: string | null
@@ -745,6 +761,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          cost_usd?: number | null
           created_at?: string | null
           credits_used?: number | null
           current_step?: number | null
@@ -753,23 +770,29 @@ export type Database = {
           id?: string
           is_shared?: boolean | null
           knowledge_sources?: Json | null
+          memory_context?: Json | null
           mode?: string | null
           model_id?: string | null
           model_used?: string | null
           notebooklm_notebook_id?: string | null
+          output_files?: string[] | null
           output_format?: string | null
+          params?: Json | null
           plan_json?: Json | null
           plan_summary?: string | null
           privacy_tier?: string | null
+          progress?: number | null
           progress_percentage?: number | null
           prompt: string
           reasoning_visible?: boolean | null
           requested_format?: string | null
+          result?: Json | null
           result_summary?: string | null
           share_token?: string | null
           started_at?: string | null
           status?: string | null
           task_type?: string | null
+          thinking_level?: string | null
           tokens_used?: number | null
           total_steps?: number | null
           updated_at?: string | null
@@ -778,6 +801,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          cost_usd?: number | null
           created_at?: string | null
           credits_used?: number | null
           current_step?: number | null
@@ -786,23 +810,29 @@ export type Database = {
           id?: string
           is_shared?: boolean | null
           knowledge_sources?: Json | null
+          memory_context?: Json | null
           mode?: string | null
           model_id?: string | null
           model_used?: string | null
           notebooklm_notebook_id?: string | null
+          output_files?: string[] | null
           output_format?: string | null
+          params?: Json | null
           plan_json?: Json | null
           plan_summary?: string | null
           privacy_tier?: string | null
+          progress?: number | null
           progress_percentage?: number | null
           prompt?: string
           reasoning_visible?: boolean | null
           requested_format?: string | null
+          result?: Json | null
           result_summary?: string | null
           share_token?: string | null
           started_at?: string | null
           status?: string | null
           task_type?: string | null
+          thinking_level?: string | null
           tokens_used?: number | null
           total_steps?: number | null
           updated_at?: string | null
@@ -1998,6 +2028,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      deep_research_jobs: {
+        Row: {
+          citations: Json | null
+          completed_at: string | null
+          created_at: string | null
+          depth: string | null
+          error_message: string | null
+          id: string
+          query: string
+          report: string | null
+          sources_used: number | null
+          started_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          citations?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          depth?: string | null
+          error_message?: string | null
+          id?: string
+          query: string
+          report?: string | null
+          sources_used?: number | null
+          started_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          citations?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          depth?: string | null
+          error_message?: string | null
+          id?: string
+          query?: string
+          report?: string | null
+          sources_used?: number | null
+          started_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       deployments: {
         Row: {
@@ -4688,6 +4763,53 @@ export type Database = {
           },
         ]
       }
+      tts_generations: {
+        Row: {
+          audio_duration_seconds: number | null
+          audio_url: string | null
+          character_count: number | null
+          cost_usd: number | null
+          created_at: string | null
+          id: string
+          task_id: string | null
+          text: string
+          user_id: string
+          voice: string
+        }
+        Insert: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          character_count?: number | null
+          cost_usd?: number | null
+          created_at?: string | null
+          id?: string
+          task_id?: string | null
+          text: string
+          user_id: string
+          voice: string
+        }
+        Update: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          character_count?: number | null
+          cost_usd?: number | null
+          created_at?: string | null
+          id?: string
+          task_id?: string | null
+          text?: string
+          user_id?: string
+          voice?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tts_generations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unified_credits: {
         Row: {
           allowance_resets_at: string | null
@@ -5560,6 +5682,59 @@ export type Database = {
           },
         ]
       }
+      video_generations: {
+        Row: {
+          completed_at: string | null
+          cost_usd: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          prompt: string
+          status: string | null
+          style: string | null
+          task_id: string | null
+          user_id: string
+          video_duration_seconds: number | null
+          video_url: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          prompt: string
+          status?: string | null
+          style?: string | null
+          task_id?: string | null
+          user_id: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          prompt?: string
+          status?: string | null
+          style?: string | null
+          task_id?: string | null
+          user_id?: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_generations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wide_research_jobs: {
         Row: {
           avg_item_duration_ms: number | null
@@ -5706,6 +5881,14 @@ export type Database = {
       assign_role: {
         Args: { _expires_at?: string; _role_name: string; _user_id: string }
         Returns: string
+      }
+      calculate_gemini_cost: {
+        Args: {
+          input_tokens: number
+          model_name: string
+          output_tokens: number
+        }
+        Returns: number
       }
       calculate_next_cron_run: {
         Args: {
