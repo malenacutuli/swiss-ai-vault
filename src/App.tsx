@@ -71,6 +71,7 @@ import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
 import Agents from "./pages/Agents";
+import AgentsStudio from "./pages/AgentsStudio";
 import Upgrade from "./pages/Upgrade";
 import GhostFinance from "./pages/ghost/GhostFinance";
 import GhostPatents from "./pages/ghost/GhostPatents";
@@ -139,11 +140,13 @@ const App = () => {
                 <Route path="/ghost/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
                 <Route path="/ghost/research-library" element={<ProtectedRoute><ResearchDashboard /></ProtectedRoute>} />
                 <Route path="/ghost/agents" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/ghost/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
                 
                 {/* Top-level convenience routes */}
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/upgrade" element={<Upgrade />} />
                 <Route path="/agents" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
                 
                 <Route path="/ghost/finance" element={<GhostFinance />} />
                 <Route path="/ghost/patents" element={<GhostPatents />} />
