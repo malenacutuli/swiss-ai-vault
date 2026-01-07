@@ -227,6 +227,19 @@ export default function Agents() {
     handleFileDrop(e.dataTransfer.files);
   };
   
+  // Mode to task type mapping for proper backend routing
+  const MODE_TO_TASK_TYPE: Record<string, string> = {
+    flashcards: 'flashcards',
+    quiz: 'quiz',
+    mindmap: 'mind_map',
+    podcast: 'podcast',
+    slides: 'slides',
+    default: 'general',
+  };
+
+  // Modes that require sources to function
+  const SOURCE_REQUIRED_MODES = ['flashcards', 'quiz', 'mindmap', 'podcast'];
+
   // Submit handler
   const handleSubmit = async () => {
     if (!taskPrompt.trim()) {
@@ -237,6 +250,36 @@ export default function Agents() {
     if (!user) {
       toast.error('Please sign in to create tasks');
       return;
+    }
+
+    // Determine effective task type from mode or selected action
+    const effectiveTaskType = selectedAction || MODE_TO_TASK_TYPE[currentMode] || 'general';
+
+    // CRITICAL: Merge modeSources (from mode UI) with attachedFiles (from chat input)
+    const modeFileSources = modeSources
+      .filter(s => s.type === 'file' && s.file)
+      .map(s => s.file!);
+    
+    // Deduplicate files by name+size+lastModified
+    const seenKeys = new Set<string>();
+    const allFiles: File[] = [];
+    for (const file of [...attachedFiles, ...modeFileSources]) {
+      const key = `${file.name}-${file.size}-${file.lastModified}`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        allFiles.push(file);
+      }
+    }
+
+    // Get URL sources from modeSources
+    const urlSources = modeSources.filter(s => s.type === 'url' && s.url);
+
+    // Guardrail: Block submission if mode requires sources but none provided
+    if (SOURCE_REQUIRED_MODES.includes(currentMode)) {
+      if (allFiles.length === 0 && urlSources.length === 0) {
+        toast.error('Add at least one source before generating');
+        return;
+      }
     }
 
     try {
@@ -255,47 +298,61 @@ export default function Agents() {
         }
       }
 
-      // 2. Extract content from attached files
+      // 2. Extract content from ALL files (merged sources)
       let extractedContent = '';
       let uploadedFiles: Array<{ name: string; url: string; type: string }> = [];
       
-      if (attachedFiles.length > 0) {
+      if (allFiles.length > 0) {
         setIsUploading(true);
-        toast.info(`Processing ${attachedFiles.length} file(s)...`);
+        toast.info(`Processing ${allFiles.length} file(s)...`);
         
         // Extract content from files for AI
-        extractedContent = await extractFilesForPrompt(attachedFiles);
+        extractedContent = await extractFilesForPrompt(allFiles);
         console.log('[Agents] Extracted content length:', extractedContent.length);
         
         // Also upload to storage for reference
-        uploadedFiles = await uploadFilesToStorage(attachedFiles);
+        uploadedFiles = await uploadFilesToStorage(allFiles);
         setIsUploading(false);
         
         if (extractedContent.length > 100) {
-          toast.success(`Extracted content from ${attachedFiles.length} file(s)`);
+          toast.success(`Extracted content from ${allFiles.length} file(s)`);
         } else {
           toast.warning('Some files could not be processed');
         }
       }
 
-      // Build full prompt with extracted document content
-      const fullPrompt = extractedContent 
-        ? `${extractedContent}\n\n--- User Request ---\n${taskPrompt.trim()}`
+      // 3. Include URL sources as references
+      let urlSourceContent = '';
+      if (urlSources.length > 0) {
+        urlSourceContent = `--- URL SOURCES ---\n${urlSources.map(s => `- ${s.name}: ${s.url}`).join('\n')}\n--- END URL SOURCES ---`;
+      }
+
+      // Build full prompt with all extracted content
+      const allContent = [extractedContent, urlSourceContent]
+        .filter(Boolean)
+        .join('\n\n');
+      
+      const fullPrompt = allContent 
+        ? `${allContent}\n\n--- User Request ---\n${taskPrompt.trim()}`
         : taskPrompt.trim();
 
+      // Diagnostic log
       console.log('[Agents] Creating task with:', {
+        currentMode,
+        effectiveTaskType,
+        modeSourcesCount: modeSources.length,
+        attachedFilesCount: attachedFiles.length,
+        allFilesCount: allFiles.length,
+        urlSourcesCount: urlSources.length,
+        extractedContentLength: extractedContent.length,
+        hasDocumentMarkers: fullPrompt.includes('--- UPLOADED DOCUMENTS ---') || fullPrompt.includes('--- Document'),
         promptLength: fullPrompt.length,
-        taskType: selectedAction || 'general',
         privacyTier,
-        attachments: uploadedFiles.length,
-        connectedTools,
-        hasMemoryContext: !!memoryContext,
-        hasDocumentContent: !!extractedContent,
       });
 
-      // 3. Create the task
+      // 5. Create the task with correct task type
       const result = await execution.createTask(fullPrompt, {
-        taskType: selectedAction || 'general',
+        taskType: effectiveTaskType,
         privacyTier,
         memoryContext,
         attachments: uploadedFiles,
@@ -317,8 +374,10 @@ export default function Agents() {
           }
         }
 
+        // Reset state after successful submission
         setTaskPrompt('');
         setAttachedFiles([]);
+        setModeSources([]);
         setSelectedAction(null);
       }
     } catch (err: any) {
