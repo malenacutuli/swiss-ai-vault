@@ -3,6 +3,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+// Task types that route to Modal for specialized GPU-accelerated processing
+export const MODAL_ROUTED_TYPES = [
+  'slides',
+  'presentation',
+  'document',
+  'spreadsheet',
+  'research',
+  'podcast',
+  'flashcards',
+  'quiz',
+  'mindmap',
+  'audio',
+  'video',
+];
+
 export type ExecutionStatus = 
   | 'idle' 
   | 'planning' 
@@ -216,15 +231,20 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         options: taskOptions,
       });
 
+      // Determine if this should route to Modal for specialized processing
+      const taskType = taskOptions.taskType || 'general';
+      const shouldRouteToModal = MODAL_ROUTED_TYPES.includes(taskType);
+
       const response = await supabase.functions.invoke('agent-execute', {
         body: {
           prompt,
-          taskType: taskOptions.taskType || 'general',
+          taskType,
           privacyTier: taskOptions.privacyTier || 'vault',
           memoryContext: taskOptions.memoryContext,
           attachments: taskOptions.attachments,
           connectedTools: taskOptions.connectedTools || taskOptions.tools || [],
           templateId: taskOptions.templateId,
+          route_to_modal: shouldRouteToModal,
         },
       });
 
