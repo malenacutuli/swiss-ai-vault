@@ -15,9 +15,20 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const url = new URL(req.url);
-  const taskId = url.searchParams.get("task_id");
-  const afterSequence = url.searchParams.get("after") || "0";
+  // Parse from request body first (supabase.functions.invoke sends body)
+  let taskId: string | null = null;
+  let afterSequence = 0;
+
+  try {
+    const body = await req.json();
+    taskId = body.task_id;
+    afterSequence = parseInt(body.after) || 0;
+  } catch {
+    // Fallback to URL params for backwards compatibility
+    const url = new URL(req.url);
+    taskId = url.searchParams.get("task_id");
+    afterSequence = parseInt(url.searchParams.get("after") || "0");
+  }
 
   if (!taskId) {
     return new Response(JSON.stringify({ error: "task_id required" }), {
@@ -53,7 +64,7 @@ Deno.serve(async (req) => {
     .from("agent_task_logs")
     .select("*")
     .eq("task_id", taskId)
-    .gt("sequence_number", parseInt(afterSequence))
+    .gt("sequence_number", afterSequence)
     .order("sequence_number", { ascending: true });
 
   if (error) {
