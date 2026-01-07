@@ -1,9 +1,19 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import { Play, Pause, Download, FileText, Volume2, Loader2, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import ReactFlow, { 
+  Background, 
+  Controls, 
+  MiniMap, 
+  Node, 
+  Edge,
+  useNodesState,
+  useEdgesState,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 
 interface TaskResult {
   script?: string;
@@ -177,6 +187,17 @@ export function TaskResultRenderer({ result, artifactType, className }: TaskResu
         )}
       </div>
     );
+  }
+
+  // Mind Map output - check before flashcards since it might have bullet points
+  if (outputType === 'mind_map' || outputType === 'mindmap') {
+    const content = parsed.content || parsed.script || parsed.text || 
+      (typeof result === 'string' ? result : '');
+    const { nodes, edges } = parseMindMapFromMarkdown(String(content));
+    
+    if (nodes.length > 1) {
+      return <MindMapDisplay nodes={nodes} edges={edges} className={className} />;
+    }
   }
 
   // Flashcards output
@@ -533,4 +554,193 @@ function parseQuizFromText(text: string): Array<{ question: string; options: str
   });
 
   return questions;
+}
+
+// Mind Map Display Component
+interface MindMapDisplayProps {
+  nodes: Node[];
+  edges: Edge[];
+  className?: string;
+}
+
+function MindMapDisplay({ nodes: initialNodes, edges: initialEdges, className }: MindMapDisplayProps) {
+  const [nodes] = useNodesState(initialNodes);
+  const [edges] = useEdgesState(initialEdges);
+
+  if (nodes.length === 0) {
+    return (
+      <div className={cn("bg-card border border-border rounded-xl p-6 text-center", className)}>
+        <p className="text-muted-foreground">No mind map data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("h-[500px] bg-card rounded-xl border border-border overflow-hidden", className)}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        fitView
+        attributionPosition="bottom-left"
+        defaultEdgeOptions={{
+          style: { stroke: 'hsl(var(--muted-foreground) / 0.3)', strokeWidth: 2 },
+          animated: true,
+        }}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="hsl(var(--muted-foreground) / 0.1)" gap={20} />
+        <Controls className="!bg-card !border-border [&>button]:!bg-card [&>button]:!border-border [&>button]:!text-foreground" />
+        <MiniMap 
+          style={{ 
+            background: 'hsl(var(--card))',
+          }} 
+          nodeColor={(node) => (node.data as { color?: string })?.color || 'hsl(var(--primary))'}
+          maskColor="hsl(var(--background) / 0.8)"
+        />
+      </ReactFlow>
+    </div>
+  );
+}
+
+// Mind Map Parser
+interface ParsedMindMap {
+  nodes: Node[];
+  edges: Edge[];
+}
+
+function parseMindMapFromMarkdown(content: string): ParsedMindMap {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  const lines = content.split('\n').filter(line => line.trim());
+  
+  let nodeId = 0;
+  
+  // Find the central topic (usually first heading or bold text)
+  let centralTopic = 'Central Topic';
+  const headingMatch = content.match(/^#+ (.+)$/m) || content.match(/\*\*(.+?)\*\*/);
+  if (headingMatch) {
+    centralTopic = headingMatch[1].trim().replace(/\*\*/g, '');
+  }
+
+  // Add central node
+  const centralId = `node-${nodeId++}`;
+  nodes.push({
+    id: centralId,
+    data: { 
+      label: centralTopic,
+      color: 'hsl(193 53% 24%)'
+    },
+    position: { x: 400, y: 300 },
+    style: {
+      background: 'hsl(193 53% 24%)',
+      color: 'white',
+      border: 'none',
+      borderRadius: '50%',
+      width: 120,
+      height: 120,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      textAlign: 'center' as const,
+      padding: '10px',
+    },
+  });
+
+  // Parse bullet points
+  const bulletPattern = /^(\s*)[\*\-\+]\s+\*?\*?(.+?)\*?\*?\s*$/gm;
+  let match;
+  
+  const allMatches: Array<{ level: number; text: string }> = [];
+  
+  while ((match = bulletPattern.exec(content)) !== null) {
+    const indent = match[1].length;
+    const level = Math.floor(indent / 2) + 1;
+    const text = match[2].replace(/\*\*/g, '').trim();
+    
+    if (text && text !== centralTopic && !text.startsWith('#')) {
+      allMatches.push({ level, text });
+    }
+  }
+
+  // Position nodes in a radial layout
+  const levelCounts: Map<number, number> = new Map();
+  
+  allMatches.forEach((item) => {
+    const count = levelCounts.get(item.level) || 0;
+    levelCounts.set(item.level, count + 1);
+  });
+
+  const levelIndices: Map<number, number> = new Map();
+  const nodesByLevel: Map<number, string[]> = new Map();
+  
+  allMatches.forEach((item, index) => {
+    const currentLevelIndex = levelIndices.get(item.level) || 0;
+    levelIndices.set(item.level, currentLevelIndex + 1);
+    
+    const totalAtLevel = levelCounts.get(item.level) || 1;
+    const angleSpan = Math.PI * 1.5; // 270 degrees
+    const startAngle = -Math.PI * 0.75; // Start at -135 degrees
+    const angle = startAngle + (angleSpan * currentLevelIndex / Math.max(totalAtLevel - 1, 1));
+    
+    const radius = 150 + (item.level * 100);
+    const x = 400 + radius * Math.cos(angle);
+    const y = 300 + radius * Math.sin(angle);
+    const id = `node-${nodeId++}`;
+
+    // Store node by level for parent lookup
+    if (!nodesByLevel.has(item.level)) {
+      nodesByLevel.set(item.level, []);
+    }
+    nodesByLevel.get(item.level)!.push(id);
+
+    // Determine colors based on level
+    const colors = [
+      { bg: 'hsl(193 53% 24%)', text: 'white' },      // Level 1: Teal
+      { bg: 'hsl(193 53% 35%)', text: 'white' },      // Level 2: Lighter teal
+      { bg: 'hsl(var(--muted))', text: 'hsl(var(--foreground))' }, // Level 3+: Muted
+    ];
+    const colorIndex = Math.min(item.level - 1, colors.length - 1);
+    const nodeColor = colors[colorIndex];
+    
+    nodes.push({
+      id,
+      data: { 
+        label: item.text,
+        color: nodeColor.bg
+      },
+      position: { x, y },
+      style: {
+        background: nodeColor.bg,
+        color: nodeColor.text,
+        border: '1px solid hsl(var(--border))',
+        borderRadius: '8px',
+        padding: '8px 12px',
+        fontSize: item.level === 1 ? '13px' : '12px',
+        fontWeight: item.level === 1 ? '600' : '400',
+        maxWidth: '150px',
+        textAlign: 'center' as const,
+      },
+    });
+
+    // Connect to parent
+    let parentId = centralId;
+    if (item.level > 1) {
+      // Find the last node of the previous level
+      const prevLevelNodes = nodesByLevel.get(item.level - 1);
+      if (prevLevelNodes && prevLevelNodes.length > 0) {
+        parentId = prevLevelNodes[prevLevelNodes.length - 1];
+      }
+    }
+
+    edges.push({
+      id: `edge-${parentId}-${id}`,
+      source: parentId,
+      target: id,
+      style: { stroke: 'hsl(var(--muted-foreground) / 0.3)' },
+    });
+  });
+
+  return { nodes, edges };
 }
