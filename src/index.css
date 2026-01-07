@@ -9,184 +9,213 @@
 
 @layer base {
   :root {
-    /* Calm Research-First Light Theme */
-    /* Warm whites - avoids clinical feel */
-    --background: 50 20% 99%;
-    --foreground: 175 14% 25%;
+    /* SwissVault Agents - Light Theme */
+    /* Clean whites */
+    --background: 0 0% 100%;
+    --foreground: 220 13% 18%;
 
-    /* Secondary background for subtle grouping */
-    --card: 90 6% 97%;
-    --card-foreground: 175 14% 25%;
+    /* Secondary/tertiary backgrounds */
+    --card: 210 20% 98%;
+    --card-foreground: 220 13% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 175 14% 25%;
+    --popover-foreground: 220 13% 18%;
 
-    /* Desaturated Teal - calmer, less "techy" */
-    --primary: 175 52% 34%;
+    /* Sovereign Teal - PRIMARY ACCENT (#1D4E5F) */
+    --primary: 193 53% 24%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 90 6% 96%;
-    --secondary-foreground: 175 14% 25%;
+    --secondary: 210 20% 98%;
+    --secondary-foreground: 220 13% 18%;
 
-    --muted: 90 6% 96%;
-    --muted-foreground: 180 8% 56%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 175 30% 94%;
-    --accent-foreground: 175 52% 28%;
+    --accent: 193 40% 95%;
+    --accent-foreground: 193 53% 20%;
 
-    --destructive: 0 55% 50%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Soft borders - very low contrast */
-    --border: 90 8% 90%;
-    --input: 90 8% 90%;
-    --ring: 175 52% 34%;
+    /* Borders */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 193 53% 24%;
 
-    --radius: 0.875rem;
+    --radius: 0.5rem;
 
-    /* Muted semantic colors */
-    --success: 160 45% 40%;
+    /* Semantic colors */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    --info: 195 50% 48%;
+    --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-    --warning: 38 60% 50%;
+    --warning: 45 93% 47%;
     --warning-foreground: 0 0% 100%;
-    --error: 0 55% 50%;
+    --error: 0 84% 60%;
     --error-foreground: 0 0% 100%;
 
-    /* Brand colors - teal family */
-    --swiss-navy: 175 52% 34%;
-    --midnight-sapphire: 175 52% 28%;
-    --swiss-sapphire: 175 52% 34%;
-    --imperial-burgundy: 0 55% 50%;
-    --sovereign-teal: 175 52% 34%;
+    /* Brand colors - Sovereign Teal family */
+    --swiss-navy: 193 53% 24%;
+    --midnight-sapphire: 193 53% 20%;
+    --swiss-sapphire: 193 53% 24%;
+    --imperial-burgundy: 355 56% 33%;
+    --sovereign-teal: 193 53% 24%;
 
-    /* Ghost accent (dynamic, set via JS) */
-    --ghost-accent: #2A8C86;
-    --ghost-accent-hover: #237C77;
-    --ghost-accent-hsl: 175 52% 34%;
+    /* Ghost accent */
+    --ghost-accent: #1D4E5F;
+    --ghost-accent-hover: #245A6D;
+    --ghost-accent-hsl: 193 53% 24%;
 
-    /* Badge colors - desaturated */
-    --badge-private: 175 52% 34%;
-    --badge-default: 160 45% 40%;
-    --badge-new: 0 55% 50%;
-    --badge-pay-per-use: 38 60% 50%;
-    --badge-anonymized: 195 50% 48%;
-    --badge-beta: 260 40% 55%;
+    /* Badge colors */
+    --badge-private: 193 53% 24%;
+    --badge-default: 142 71% 45%;
+    --badge-new: 355 56% 33%;
+    --badge-pay-per-use: 45 93% 47%;
+    --badge-anonymized: 199 89% 48%;
+    --badge-beta: 270 50% 60%;
     --badge-vision: 185 50% 45%;
-    --badge-reasoning: 255 40% 55%;
-    --badge-audio: 160 45% 38%;
+    --badge-reasoning: 255 50% 60%;
+    --badge-audio: 142 71% 40%;
 
-    /* Subtle gradients - almost invisible */
-    --gradient-hero: linear-gradient(180deg, hsl(50 20% 99%) 0%, hsl(90 6% 97%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(90 6% 98%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(175 52% 34%) 0%, hsl(175 52% 28%) 100%);
-    --gradient-swiss: linear-gradient(180deg, hsl(50 20% 99%) 0%, hsl(90 6% 97%) 100%);
-    --gradient-luxury: linear-gradient(180deg, hsl(175 52% 34% / 0.02) 0%, hsl(175 52% 28% / 0.02) 100%);
+    /* Subtle gradients */
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 99%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(193 53% 24%) 0%, hsl(193 53% 20%) 100%);
+    --gradient-swiss: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
+    --gradient-luxury: linear-gradient(180deg, hsl(193 53% 24% / 0.02) 0%, hsl(193 53% 20% / 0.02) 100%);
     
-    /* Very soft shadows */
-    --shadow-glow: 0 0 40px hsl(175 52% 34% / 0.08);
-    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.04);
-    --shadow-elevated: 0 1px 2px hsl(0 0% 0% / 0.04), 0 8px 24px hsl(0 0% 0% / 0.06);
-    --shadow-luxury: 0 1px 3px hsl(175 52% 34% / 0.04);
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --shadow-glow: 0 0 40px hsl(193 53% 24% / 0.08);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.05);
+    --shadow-elevated: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-luxury: 0 1px 3px hsl(193 53% 24% / 0.04);
+
+    /* Terminal (dark panel within light theme) */
+    --terminal-bg: 220 13% 18%;
+    --terminal-text: 220 14% 96%;
+    --terminal-prompt: 142 71% 45%;
+    --terminal-command: 217 91% 60%;
+    --terminal-error: 0 91% 71%;
+    --terminal-success: 142 69% 58%;
+    --terminal-info: 199 89% 48%;
+    --terminal-warning: 45 93% 58%;
 
     /* Sidebar */
-    --sidebar-background: 90 6% 97%;
-    --sidebar-foreground: 175 14% 25%;
-    --sidebar-primary: 175 52% 34%;
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 220 13% 18%;
+    --sidebar-primary: 193 53% 24%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 90 6% 94%;
-    --sidebar-accent-foreground: 175 14% 25%;
-    --sidebar-border: 90 8% 92%;
-    --sidebar-ring: 175 52% 34%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 220 13% 18%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 193 53% 24%;
+
+    /* Layout */
+    --sidebar-width: 280px;
+    --content-max-width: 1200px;
+    --card-padding: 24px;
+    --section-gap: 32px;
   }
 
   .dark {
-    /* Calm Research-First Dark Theme */
-    --background: 200 18% 10%;
-    --foreground: 180 5% 90%;
+    /* SwissVault Agents - Dark Theme */
+    --background: 220 17% 7%;
+    --foreground: 220 14% 96%;
 
-    --card: 200 18% 12%;
-    --card-foreground: 180 5% 90%;
+    --card: 220 17% 10%;
+    --card-foreground: 220 14% 96%;
 
-    --popover: 200 18% 12%;
-    --popover-foreground: 180 5% 90%;
+    --popover: 220 17% 10%;
+    --popover-foreground: 220 14% 96%;
 
-    /* Desaturated Teal */
-    --primary: 175 52% 42%;
+    /* Sovereign Teal - lighter for dark mode */
+    --primary: 193 53% 35%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 18% 16%;
-    --secondary-foreground: 180 5% 90%;
+    --secondary: 220 17% 14%;
+    --secondary-foreground: 220 14% 96%;
 
-    --muted: 200 12% 18%;
-    --muted-foreground: 180 8% 60%;
+    --muted: 220 12% 16%;
+    --muted-foreground: 220 9% 60%;
 
-    --accent: 175 30% 20%;
-    --accent-foreground: 175 52% 70%;
+    --accent: 193 30% 18%;
+    --accent-foreground: 193 53% 70%;
 
-    --destructive: 0 50% 45%;
+    --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 12% 20%;
-    --input: 200 12% 20%;
-    --ring: 175 52% 42%;
+    --border: 220 12% 18%;
+    --input: 220 12% 18%;
+    --ring: 193 53% 35%;
 
-    /* Muted semantic colors */
-    --success: 160 45% 30%;
+    /* Semantic colors */
+    --success: 142 71% 35%;
     --success-foreground: 0 0% 100%;
-    --info: 195 50% 38%;
+    --info: 199 89% 40%;
     --info-foreground: 0 0% 100%;
-    --warning: 38 55% 40%;
+    --warning: 45 93% 40%;
     --warning-foreground: 0 0% 100%;
-    --error: 0 50% 45%;
+    --error: 0 62% 50%;
     --error-foreground: 0 0% 100%;
 
     /* Brand colors */
-    --swiss-navy: 175 52% 42%;
-    --midnight-sapphire: 175 52% 35%;
-    --swiss-sapphire: 175 52% 42%;
-    --imperial-burgundy: 0 50% 45%;
-    --sovereign-teal: 175 52% 42%;
+    --swiss-navy: 193 53% 35%;
+    --midnight-sapphire: 193 53% 28%;
+    --swiss-sapphire: 193 53% 35%;
+    --imperial-burgundy: 355 56% 40%;
+    --sovereign-teal: 193 53% 35%;
 
     /* Ghost accent */
-    --ghost-accent: #2DD4BF;
-    --ghost-accent-hover: #5EEAD4;
-    --ghost-accent-hsl: 175 52% 42%;
+    --ghost-accent: #245A6D;
+    --ghost-accent-hover: #2E6B80;
+    --ghost-accent-hsl: 193 53% 35%;
 
     /* Badge colors */
-    --badge-private: 175 52% 42%;
-    --badge-default: 160 45% 30%;
-    --badge-new: 0 50% 45%;
-    --badge-pay-per-use: 38 55% 40%;
-    --badge-anonymized: 195 50% 38%;
-    --badge-beta: 260 35% 50%;
-    --badge-vision: 185 45% 40%;
-    --badge-reasoning: 255 35% 50%;
-    --badge-audio: 160 45% 28%;
+    --badge-private: 193 53% 35%;
+    --badge-default: 142 71% 35%;
+    --badge-new: 355 56% 40%;
+    --badge-pay-per-use: 45 93% 40%;
+    --badge-anonymized: 199 89% 40%;
+    --badge-beta: 270 50% 55%;
+    --badge-vision: 185 50% 40%;
+    --badge-reasoning: 255 50% 55%;
+    --badge-audio: 142 71% 32%;
 
-    /* Subtle gradients */
-    --gradient-hero: linear-gradient(180deg, hsl(200 18% 10%) 0%, hsl(200 18% 8%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(200 18% 14%) 0%, hsl(200 18% 11%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(175 52% 42%) 0%, hsl(175 52% 35%) 100%);
-    --gradient-swiss: linear-gradient(180deg, hsl(200 18% 12%) 0%, hsl(200 18% 10%) 100%);
-    --gradient-luxury: linear-gradient(180deg, hsl(175 52% 42% / 0.05) 0%, hsl(175 52% 35% / 0.05) 100%);
+    /* Gradients */
+    --gradient-hero: linear-gradient(180deg, hsl(220 17% 7%) 0%, hsl(220 17% 5%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(220 17% 12%) 0%, hsl(220 17% 9%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(193 53% 35%) 0%, hsl(193 53% 28%) 100%);
+    --gradient-swiss: linear-gradient(180deg, hsl(220 17% 10%) 0%, hsl(220 17% 7%) 100%);
+    --gradient-luxury: linear-gradient(180deg, hsl(193 53% 35% / 0.05) 0%, hsl(193 53% 28% / 0.05) 100%);
     
-    /* Soft shadows */
-    --shadow-glow: 0 0 60px hsl(175 52% 42% / 0.15);
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.2);
-    --shadow-elevated: 0 1px 2px hsl(0 0% 0% / 0.2), 0 8px 24px hsl(0 0% 0% / 0.25);
-    --shadow-luxury: 0 2px 8px hsl(175 52% 42% / 0.08);
+    /* Shadows */
+    --shadow-glow: 0 0 60px hsl(193 53% 35% / 0.15);
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.25);
+    --shadow-elevated: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
+    --shadow-luxury: 0 2px 8px hsl(193 53% 35% / 0.08);
+
+    /* Terminal */
+    --terminal-bg: 220 13% 18%;
+    --terminal-text: 220 14% 96%;
+    --terminal-prompt: 142 69% 58%;
+    --terminal-command: 217 91% 70%;
+    --terminal-error: 0 91% 71%;
+    --terminal-success: 142 69% 58%;
+    --terminal-info: 199 89% 60%;
+    --terminal-warning: 45 93% 58%;
 
     /* Sidebar */
-    --sidebar-background: 200 18% 10%;
-    --sidebar-foreground: 180 5% 90%;
-    --sidebar-primary: 175 52% 42%;
+    --sidebar-background: 220 17% 7%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 193 53% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 200 12% 16%;
-    --sidebar-accent-foreground: 180 5% 90%;
-    --sidebar-border: 200 12% 18%;
-    --sidebar-ring: 175 52% 42%;
+    --sidebar-accent: 220 12% 14%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 220 12% 18%;
+    --sidebar-ring: 193 53% 35%;
   }
 
   @keyframes progress {
