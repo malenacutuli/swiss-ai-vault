@@ -10,6 +10,165 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ============================================
+// DIRECT API HELPER - NO LOVABLE GATEWAY
+// ============================================
+
+async function callAIDirect(
+  messages: any[],
+  options: { model?: string; temperature?: number; maxTokens?: number } = {}
+): Promise<{ content: string; usage?: any }> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  const GOOGLE_API_KEY = Deno.env.get("GOOGLE_GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  
+  const model = options.model || 'gpt-4o-mini';
+  const temperature = options.temperature ?? 0.7;
+  const maxTokens = options.maxTokens || 4096;
+
+  // Try OpenAI first (highest quota: 500+ RPM)
+  if (OPENAI_API_KEY) {
+    try {
+      console.log('[agent-execute] Using OpenAI direct API');
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          content: data.choices?.[0]?.message?.content || "",
+          usage: data.usage,
+        };
+      }
+      console.warn('[agent-execute] OpenAI failed:', response.status);
+    } catch (err) {
+      console.warn('[agent-execute] OpenAI error:', err);
+    }
+  }
+
+  // Fallback to Google Gemini
+  if (GOOGLE_API_KEY) {
+    try {
+      console.log('[agent-execute] Using Google Gemini direct API');
+      const geminiMessages = messages.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }));
+      
+      // Handle system message
+      const systemMsg = messages.find(m => m.role === 'system');
+      if (systemMsg) {
+        geminiMessages.unshift(
+          { role: 'user', parts: [{ text: systemMsg.content }] },
+          { role: 'model', parts: [{ text: 'Understood.' }] }
+        );
+      }
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: geminiMessages.filter(m => m.role !== 'system'),
+            generationConfig: { temperature, maxOutputTokens: maxTokens },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          content: data.candidates?.[0]?.content?.parts?.[0]?.text || "",
+          usage: data.usageMetadata,
+        };
+      }
+      console.warn('[agent-execute] Gemini failed:', response.status);
+    } catch (err) {
+      console.warn('[agent-execute] Gemini error:', err);
+    }
+  }
+
+  // Fallback to Anthropic
+  if (ANTHROPIC_API_KEY) {
+    try {
+      console.log('[agent-execute] Using Anthropic direct API');
+      const systemContent = messages.find(m => m.role === 'system')?.content || '';
+      const nonSystemMessages = messages.filter(m => m.role !== 'system');
+      
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-3-haiku-20240307",
+          max_tokens: maxTokens,
+          system: systemContent,
+          messages: nonSystemMessages.map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          content: data.content?.[0]?.text || "",
+          usage: data.usage,
+        };
+      }
+      console.warn('[agent-execute] Anthropic failed:', response.status);
+    } catch (err) {
+      console.warn('[agent-execute] Anthropic error:', err);
+    }
+  }
+
+  // Last resort: Lovable Gateway (will hit rate limits)
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (LOVABLE_API_KEY) {
+    console.warn('[agent-execute] Falling back to Lovable Gateway');
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: model.includes('gemini') ? 'google/gemini-2.5-flash' : 'openai/gpt-5-mini',
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        content: data.choices?.[0]?.message?.content || "",
+        usage: data.usage,
+      };
+    }
+    throw new Error(`AI request failed: ${response.status}`);
+  }
+
+  throw new Error("No AI API keys configured");
+}
+
 interface TaskRequest {
   prompt: string;
   taskType?: string;
@@ -615,42 +774,13 @@ Return a JSON object (no markdown):
   "output_type": "pptx|docx|xlsx|md|image|audio|podcast"
 }`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "You are a task planning AI. Always respond with valid JSON only, no markdown." },
-          { role: "user", content: planningPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 4096,
-      }),
-    });
+    // Use direct API call (bypasses Lovable Gateway rate limits)
+    const aiResult = await callAIDirect([
+      { role: "system", content: "You are a task planning AI. Always respond with valid JSON only, no markdown." },
+      { role: "user", content: planningPrompt }
+    ], { temperature: 0.7, maxTokens: 4096 });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("[agent-execute] AI Gateway error:", aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits required, please add funds" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const planText = aiData.choices?.[0]?.message?.content || "";
+    const planText = aiResult.content;
     
     // Parse JSON from response
     let plan;
@@ -985,25 +1115,13 @@ async function executeTaskAsync(taskId: string, userId: string, supabase: any, a
 async function executeWebSearch(input: any, apiKey: string, taskId: string, stepId: string, supabase: any) {
   const query = input.query || input.prompt || "search";
   
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: "You are a research assistant. Provide comprehensive, accurate information. Structure your response with clear sections and cite sources when possible." },
-        { role: "user", content: `Research and provide detailed information about: ${query}. Include multiple perspectives and key facts.` }
-      ],
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-  });
+  // Use direct API call (bypasses Lovable Gateway rate limits)
+  const result = await callAIDirect([
+    { role: "system", content: "You are a research assistant. Provide comprehensive, accurate information. Structure your response with clear sections and cite sources when possible." },
+    { role: "user", content: `Research and provide detailed information about: ${query}. Include multiple perspectives and key facts.` }
+  ], { temperature: 0.3, maxTokens: 4096 });
 
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content || "No results found";
+  const text = result.content || "No results found";
   
   // Store reasoning for web search
   await storeReasoning(
@@ -1025,25 +1143,13 @@ async function executeWebSearch(input: any, apiKey: string, taskId: string, step
 async function executeTextGeneration(input: any, apiKey: string, taskId: string, stepId: string, supabase: any) {
   const prompt = input.prompt || input.text || "Generate content";
   
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: "You are a professional content creator. Generate high-quality, well-structured content with clear formatting." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 8192,
-    }),
-  });
+  // Use direct API call (bypasses Lovable Gateway rate limits)
+  const result = await callAIDirect([
+    { role: "system", content: "You are a professional content creator. Generate high-quality, well-structured content with clear formatting." },
+    { role: "user", content: prompt }
+  ], { temperature: 0.7, maxTokens: 8192 });
 
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content || "";
+  const text = result.content || "";
   
   // Store reasoning
   await storeReasoning(
@@ -1062,25 +1168,13 @@ async function executeTextGeneration(input: any, apiKey: string, taskId: string,
 async function executeDataAnalysis(input: any, apiKey: string, taskId: string, stepId: string, supabase: any) {
   const dataPrompt = input.prompt || input.data || "Analyze the provided data";
   
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: "You are a data analyst. Provide structured analysis with insights, trends, and recommendations." },
-        { role: "user", content: `Analyze: ${dataPrompt}. Provide key insights, patterns, and actionable recommendations.` }
-      ],
-      temperature: 0.3,
-      max_tokens: 4096,
-    }),
-  });
+  // Use direct API call (bypasses Lovable Gateway rate limits)
+  const result = await callAIDirect([
+    { role: "system", content: "You are a data analyst. Provide structured analysis with insights, trends, and recommendations." },
+    { role: "user", content: `Analyze: ${dataPrompt}. Provide key insights, patterns, and actionable recommendations.` }
+  ], { temperature: 0.3, maxTokens: 4096 });
 
-  const data = await response.json();
-  const analysis = data.choices?.[0]?.message?.content || "";
+  const analysis = result.content || "";
   
   await storeReasoning(
     supabase, taskId, stepId, 'analyst',
@@ -1372,19 +1466,11 @@ async function executeDeepResearch(input: any, taskId: string, stepId: string, s
     return modalResult;
   }
 
-  // Fallback: use Lovable AI for research
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        { 
-          role: "system", 
-          content: `You are a Swiss research agent conducting comprehensive research. 
+  // Fallback: use direct API for research (bypasses Lovable Gateway rate limits)
+  const result = await callAIDirect([
+    { 
+      role: "system", 
+      content: `You are a Swiss research agent conducting comprehensive research. 
 Structure your response with:
 ## Executive Summary
 ## Key Findings
@@ -1393,16 +1479,11 @@ Structure your response with:
 ## Implications
 ## Sources
 Always cite sources with [1], [2], etc.` 
-        },
-        { role: "user", content: input.query || input.prompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 16384,
-    }),
-  });
+    },
+    { role: "user", content: input.query || input.prompt }
+  ], { temperature: 0.3, maxTokens: 16384 });
 
-  const data = await response.json();
-  const report = data.choices?.[0]?.message?.content || "";
+  const report = result.content || "";
 
   await storeReasoning(
     supabase, taskId, stepId, 'researcher',
