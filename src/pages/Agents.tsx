@@ -8,7 +8,9 @@ import { useAgentExecution } from '@/hooks/useAgentExecution';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
 import { useAgentMemory } from '@/hooks/useAgentMemory';
 import { supabase } from '@/integrations/supabase/client';
-import { QuickActionBar } from '@/components/agents/QuickActionBar';
+import { AgentsModeSelector } from '@/components/agents/AgentsModeSelector';
+import { AgentsFeatureCard } from '@/components/agents/AgentsFeatureCard';
+import type { TaskMode } from '@/components/agents/AgentsTaskInput';
 import { ConnectedToolsBar } from '@/components/agents/ConnectedToolsBar';
 import { TemplateBrowser, type ActionTemplate } from '@/components/agents/TemplateBrowser';
 import { TaskDetailModal } from '@/components/agents/TaskDetailModal';
@@ -53,6 +55,7 @@ export default function Agents() {
   const { user } = useAuth();
   // Core state
   const [taskPrompt, setTaskPrompt] = useState('');
+  const [currentMode, setCurrentMode] = useState<TaskMode>('default');
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [privacyTier, setPrivacyTier] = useState<PrivacyTier>('vault');
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -451,24 +454,29 @@ export default function Agents() {
                   </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Mode Selector */}
                 <div className="max-w-2xl mx-auto">
-                  <QuickActionBar
-                    selectedAction={selectedAction}
-                    onSelect={(action) => {
-                      setSelectedAction(action || null);
+                  <AgentsModeSelector
+                    currentMode={currentMode}
+                    onModeChange={(mode) => {
+                      setCurrentMode(mode);
+                      // Set starter prompts based on mode
                       const prompts: Record<string, string> = {
                         slides: 'Create a presentation about ',
-                        document: 'Write a document about ',
                         research: 'Research and summarize ',
-                        analyze: 'Analyze this data: ',
+                        website: 'Build a website for ',
+                        apps: 'Create an app that ',
+                        design: 'Design a visual for ',
                       };
-                      if (action && prompts[action] && !taskPrompt) {
-                        setTaskPrompt(prompts[action]);
+                      if (mode !== 'default' && prompts[mode] && !taskPrompt) {
+                        setTaskPrompt(prompts[mode]);
                       }
                     }}
                   />
                 </div>
+
+                {/* Feature Card */}
+                <AgentsFeatureCard mode={currentMode} />
 
                 {/* Connected Tools & Privacy */}
                 <div className="max-w-2xl mx-auto">
