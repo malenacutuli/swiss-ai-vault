@@ -21,8 +21,10 @@ export async function extractFileContent(file: File): Promise<string> {
   // PDF files
   if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
     try {
-      const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      // Use CDN worker for legacy build (version 4.0.379)
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
       
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -36,7 +38,8 @@ export async function extractFileContent(file: File): Promise<string> {
       return text.trim();
     } catch (e: any) {
       console.error('PDF extraction failed:', e);
-      return `[Could not extract PDF content: ${e.message}]`;
+      // Graceful fallback - return filename with instruction
+      return `[PDF Document: ${file.name} - ${file.size} bytes. PDF text extraction unavailable. Please paste key content manually or convert to .txt]`;
     }
   }
   
