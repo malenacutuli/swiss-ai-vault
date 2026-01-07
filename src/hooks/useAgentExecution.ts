@@ -77,6 +77,15 @@ export interface ExecutionTask {
   completed_at: string | null;
 }
 
+export interface TaskLog {
+  id: string;
+  task_id: string;
+  log_type: string | null;
+  content: string;
+  sequence_number: number | null;
+  timestamp: string | null;
+}
+
 interface UseAgentExecutionOptions {
   onComplete?: (task: ExecutionTask) => void;
   onError?: (error: string) => void;
@@ -87,6 +96,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
   const [task, setTask] = useState<ExecutionTask | null>(null);
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
+  const [logs, setLogs] = useState<TaskLog[]>([]);
   const [currentOutput, setCurrentOutput] = useState<TaskOutput | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [status, setStatus] = useState<ExecutionStatus>('idle');
@@ -94,15 +104,154 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
   
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const taskIdRef = useRef<string | null>(null);
+  const channelsRef = useRef<{ task: ReturnType<typeof supabase.channel> | null; logs: ReturnType<typeof supabase.channel> | null; steps: ReturnType<typeof supabase.channel> | null; outputs: ReturnType<typeof supabase.channel> | null }>({
+    task: null,
+    logs: null,
+    steps: null,
+    outputs: null,
+  });
 
-  // Clean up polling on unmount
+  // Map task status to execution status
+  const mapTaskStatus = useCallback((taskStatus: string): ExecutionStatus => {
+    if (taskStatus === 'queued' || taskStatus === 'planning') return 'planning';
+    if (taskStatus === 'awaiting_approval') return 'awaiting_approval';
+    if (taskStatus === 'executing') return 'executing';
+    if (taskStatus === 'paused') return 'paused';
+    if (taskStatus === 'completed') return 'completed';
+    if (taskStatus === 'failed') return 'failed';
+    return 'idle';
+  }, []);
+
+  // Clean up realtime subscriptions
+  const cleanupChannels = useCallback(() => {
+    if (channelsRef.current.task) {
+      supabase.removeChannel(channelsRef.current.task);
+      channelsRef.current.task = null;
+    }
+    if (channelsRef.current.logs) {
+      supabase.removeChannel(channelsRef.current.logs);
+      channelsRef.current.logs = null;
+    }
+    if (channelsRef.current.steps) {
+      supabase.removeChannel(channelsRef.current.steps);
+      channelsRef.current.steps = null;
+    }
+    if (channelsRef.current.outputs) {
+      supabase.removeChannel(channelsRef.current.outputs);
+      channelsRef.current.outputs = null;
+    }
+  }, []);
+
+  // Subscribe to realtime updates for task
+  const subscribeToTask = useCallback((taskId: string) => {
+    cleanupChannels();
+    console.log('[AgentExecution] Setting up realtime subscriptions for task:', taskId);
+
+    // Subscribe to task updates
+    channelsRef.current.task = supabase
+      .channel(`task-${taskId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'agent_tasks',
+          filter: `id=eq.${taskId}`,
+        },
+        (payload) => {
+          console.log('[AgentExecution] Task update received:', payload.new);
+          const newTask = payload.new as ExecutionTask;
+          setTask(newTask);
+          
+          const newStatus = mapTaskStatus(newTask.status);
+          setStatus(newStatus);
+
+          if (newTask.status === 'completed') {
+            options.onComplete?.(newTask);
+          } else if (newTask.status === 'failed') {
+            setError(newTask.error_message || 'Task failed');
+            options.onError?.(newTask.error_message || 'Task failed');
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to new logs
+    channelsRef.current.logs = supabase
+      .channel(`task-logs-${taskId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'agent_task_logs',
+          filter: `task_id=eq.${taskId}`,
+        },
+        (payload) => {
+          console.log('[AgentExecution] New log received:', payload.new);
+          setLogs((prev) => [...prev, payload.new as TaskLog]);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to step updates
+    channelsRef.current.steps = supabase
+      .channel(`task-steps-${taskId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'agent_task_steps',
+          filter: `task_id=eq.${taskId}`,
+        },
+        (payload) => {
+          console.log('[AgentExecution] Step update received:', payload);
+          if (payload.eventType === 'INSERT') {
+            setSteps((prev) => [...prev, payload.new as ExecutionStep]);
+          } else if (payload.eventType === 'UPDATE') {
+            setSteps((prev) =>
+              prev.map((step) =>
+                step.id === (payload.new as ExecutionStep).id
+                  ? (payload.new as ExecutionStep)
+                  : step
+              )
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to new outputs
+    channelsRef.current.outputs = supabase
+      .channel(`task-outputs-${taskId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'agent_outputs',
+          filter: `task_id=eq.${taskId}`,
+        },
+        (payload) => {
+          console.log('[AgentExecution] New output received:', payload.new);
+          const newOutput = payload.new as TaskOutput;
+          setOutputs((prev) => [...prev, newOutput]);
+          setCurrentOutput(newOutput);
+        }
+      )
+      .subscribe();
+  }, [cleanupChannels, mapTaskStatus, options]);
+
+  // Clean up on unmount
   useEffect(() => {
     return () => {
+      cleanupChannels();
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
       }
     };
-  }, []);
+  }, [cleanupChannels]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -187,18 +336,23 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, [options, stopPolling]);
 
-  const startPolling = useCallback((taskId: string) => {
-    stopPolling();
+  // Start realtime subscriptions (replaces polling for instant updates)
+  const startRealtimeSubscription = useCallback((taskId: string) => {
+    stopPolling(); // Stop any legacy polling
     taskIdRef.current = taskId;
     
-    // Initial fetch
+    // Initial fetch to get current state
     fetchTaskStatus(taskId);
     
-    // Poll every 2 seconds
-    pollingRef.current = setInterval(() => {
-      fetchTaskStatus(taskId);
-    }, 2000);
-  }, [fetchTaskStatus, stopPolling]);
+    // Set up realtime subscriptions for instant updates
+    subscribeToTask(taskId);
+  }, [fetchTaskStatus, stopPolling, subscribeToTask]);
+
+  // Legacy polling fallback (kept for backward compatibility)
+  const startPolling = useCallback((taskId: string) => {
+    // Use realtime by default
+    startRealtimeSubscription(taskId);
+  }, [startRealtimeSubscription]);
 
   const createTask = useCallback(async (
     prompt: string,
@@ -434,15 +588,17 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
   const reset = useCallback(() => {
     stopPolling();
+    cleanupChannels(); // Clean up realtime subscriptions
     setTask(null);
     setSteps([]);
     setOutputs([]);
+    setLogs([]);
     setCurrentOutput(null);
     setSuggestions([]);
     setStatus('idle');
     setError(null);
     taskIdRef.current = null;
-  }, [stopPolling]);
+  }, [stopPolling, cleanupChannels]);
 
   const downloadOutput = useCallback(async (output: TaskOutput) => {
     if (!output.download_url) {
@@ -462,6 +618,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     task,
     steps,
     outputs,
+    logs,
     suggestions,
     currentOutput,
     status,
@@ -488,3 +645,5 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     downloadOutput,
   };
 }
+
+
