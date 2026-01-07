@@ -145,6 +145,44 @@ export type Database = {
           },
         ]
       }
+      agent_events: {
+        Row: {
+          content: Json
+          created_at: string | null
+          duration_ms: number | null
+          event_type: string
+          id: string
+          session_id: string
+          token_count: number | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          duration_ms?: number | null
+          event_type: string
+          id?: string
+          session_id: string
+          token_count?: number | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          duration_ms?: number | null
+          event_type?: string
+          id?: string
+          session_id?: string
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_file_actions: {
         Row: {
           action_type: string
@@ -292,6 +330,7 @@ export type Database = {
           is_encrypted: boolean | null
           mime_type: string | null
           notebooklm_source_id: string | null
+          org_id: string | null
           output_type: string
           preview_url: string | null
           requested_format: string | null
@@ -315,6 +354,7 @@ export type Database = {
           is_encrypted?: boolean | null
           mime_type?: string | null
           notebooklm_source_id?: string | null
+          org_id?: string | null
           output_type: string
           preview_url?: string | null
           requested_format?: string | null
@@ -338,6 +378,7 @@ export type Database = {
           is_encrypted?: boolean | null
           mime_type?: string | null
           notebooklm_source_id?: string | null
+          org_id?: string | null
           output_type?: string
           preview_url?: string | null
           requested_format?: string | null
@@ -348,6 +389,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agent_outputs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agent_outputs_task_id_fkey"
             columns: ["task_id"]
@@ -422,15 +470,24 @@ export type Database = {
           browser_url: string | null
           cpu_seconds: number | null
           created_at: string | null
+          current_step: number | null
+          error_message: string | null
           expires_at: string | null
           id: string
           last_activity_at: string | null
           memory_mb: number | null
+          org_id: string | null
+          privacy_tier: string | null
+          prompt: string | null
           screenshot_url: string | null
           session_type: string
           started_at: string | null
           status: string | null
           task_id: string | null
+          title: string | null
+          todo_md: string | null
+          total_steps: number | null
+          updated_at: string | null
           user_id: string
           workspace_path: string | null
         }
@@ -438,15 +495,24 @@ export type Database = {
           browser_url?: string | null
           cpu_seconds?: number | null
           created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
           expires_at?: string | null
           id?: string
           last_activity_at?: string | null
           memory_mb?: number | null
+          org_id?: string | null
+          privacy_tier?: string | null
+          prompt?: string | null
           screenshot_url?: string | null
           session_type: string
           started_at?: string | null
           status?: string | null
           task_id?: string | null
+          title?: string | null
+          todo_md?: string | null
+          total_steps?: number | null
+          updated_at?: string | null
           user_id: string
           workspace_path?: string | null
         }
@@ -454,19 +520,35 @@ export type Database = {
           browser_url?: string | null
           cpu_seconds?: number | null
           created_at?: string | null
+          current_step?: number | null
+          error_message?: string | null
           expires_at?: string | null
           id?: string
           last_activity_at?: string | null
           memory_mb?: number | null
+          org_id?: string | null
+          privacy_tier?: string | null
+          prompt?: string | null
           screenshot_url?: string | null
           session_type?: string
           started_at?: string | null
           status?: string | null
           task_id?: string | null
+          title?: string | null
+          todo_md?: string | null
+          total_steps?: number | null
+          updated_at?: string | null
           user_id?: string
           workspace_path?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "agent_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agent_sessions_task_id_fkey"
             columns: ["task_id"]
@@ -652,6 +734,7 @@ export type Database = {
           file_actions: Json | null
           id: string
           input_data: Json | null
+          org_id: string | null
           output_data: Json | null
           retry_count: number | null
           started_at: string | null
@@ -674,6 +757,7 @@ export type Database = {
           file_actions?: Json | null
           id?: string
           input_data?: Json | null
+          org_id?: string | null
           output_data?: Json | null
           retry_count?: number | null
           started_at?: string | null
@@ -696,6 +780,7 @@ export type Database = {
           file_actions?: Json | null
           id?: string
           input_data?: Json | null
+          org_id?: string | null
           output_data?: Json | null
           retry_count?: number | null
           started_at?: string | null
@@ -709,6 +794,13 @@ export type Database = {
           tool_output?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "agent_task_steps_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agent_task_steps_task_id_fkey"
             columns: ["task_id"]
@@ -735,6 +827,7 @@ export type Database = {
           model_id: string | null
           model_used: string | null
           notebooklm_notebook_id: string | null
+          org_id: string | null
           output_files: string[] | null
           output_format: string | null
           params: Json | null
@@ -775,6 +868,7 @@ export type Database = {
           model_id?: string | null
           model_used?: string | null
           notebooklm_notebook_id?: string | null
+          org_id?: string | null
           output_files?: string[] | null
           output_format?: string | null
           params?: Json | null
@@ -815,6 +909,7 @@ export type Database = {
           model_id?: string | null
           model_used?: string | null
           notebooklm_notebook_id?: string | null
+          org_id?: string | null
           output_files?: string[] | null
           output_format?: string | null
           params?: Json | null
@@ -839,11 +934,20 @@ export type Database = {
           user_id?: string
           user_rating?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_tool_calls: {
         Row: {
           completed_at: string | null
+          cost_usd: number | null
           created_at: string | null
           credits_charged: number | null
           duration_ms: number | null
@@ -851,7 +955,14 @@ export type Database = {
           id: string
           input_hash: string | null
           input_size_bytes: number | null
+          ip_address: unknown
+          latency_ms: number | null
+          model: string | null
+          org_id: string | null
           output_size_bytes: number | null
+          provider: string | null
+          request_json: Json | null
+          response_json: Json | null
           started_at: string
           status: string
           step_id: string | null
@@ -859,10 +970,12 @@ export type Database = {
           tokens_used: number | null
           tool_name: string
           tool_version: string | null
+          user_agent: string | null
           user_id: string
         }
         Insert: {
           completed_at?: string | null
+          cost_usd?: number | null
           created_at?: string | null
           credits_charged?: number | null
           duration_ms?: number | null
@@ -870,7 +983,14 @@ export type Database = {
           id?: string
           input_hash?: string | null
           input_size_bytes?: number | null
+          ip_address?: unknown
+          latency_ms?: number | null
+          model?: string | null
+          org_id?: string | null
           output_size_bytes?: number | null
+          provider?: string | null
+          request_json?: Json | null
+          response_json?: Json | null
           started_at: string
           status: string
           step_id?: string | null
@@ -878,10 +998,12 @@ export type Database = {
           tokens_used?: number | null
           tool_name: string
           tool_version?: string | null
+          user_agent?: string | null
           user_id: string
         }
         Update: {
           completed_at?: string | null
+          cost_usd?: number | null
           created_at?: string | null
           credits_charged?: number | null
           duration_ms?: number | null
@@ -889,7 +1011,14 @@ export type Database = {
           id?: string
           input_hash?: string | null
           input_size_bytes?: number | null
+          ip_address?: unknown
+          latency_ms?: number | null
+          model?: string | null
+          org_id?: string | null
           output_size_bytes?: number | null
+          provider?: string | null
+          request_json?: Json | null
+          response_json?: Json | null
           started_at?: string
           status?: string
           step_id?: string | null
@@ -897,9 +1026,17 @@ export type Database = {
           tokens_used?: number | null
           tool_name?: string
           tool_version?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agent_tool_calls_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agent_tool_calls_step_id_fkey"
             columns: ["step_id"]
@@ -912,6 +1049,59 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_workspace_files: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size_bytes: number | null
+          file_type: string
+          id: string
+          is_intermediate: boolean | null
+          is_output: boolean | null
+          metadata: Json | null
+          session_id: string
+          storage_bucket: string | null
+          storage_key: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size_bytes?: number | null
+          file_type: string
+          id?: string
+          is_intermediate?: boolean | null
+          is_output?: boolean | null
+          metadata?: Json | null
+          session_id: string
+          storage_bucket?: string | null
+          storage_key?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size_bytes?: number | null
+          file_type?: string
+          id?: string
+          is_intermediate?: boolean | null
+          is_output?: boolean | null
+          metadata?: Json | null
+          session_id?: string
+          storage_bucket?: string | null
+          storage_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_workspace_files_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -1208,6 +1398,74 @@ export type Database = {
           },
           {
             foreignKeyName: "artifact_outputs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_events: {
+        Row: {
+          country_code: string | null
+          created_at: string | null
+          description: string | null
+          event_category: string
+          event_severity: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          org_id: string | null
+          region: string | null
+          request_id: string | null
+          target_id: string | null
+          target_name: string | null
+          target_type: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_category: string
+          event_severity?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          org_id?: string | null
+          region?: string | null
+          request_id?: string | null
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          event_category?: string
+          event_severity?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          org_id?: string | null
+          region?: string | null
+          request_id?: string | null
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
