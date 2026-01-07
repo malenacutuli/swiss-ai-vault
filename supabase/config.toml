@@ -158,3 +158,6 @@ verify_jwt = false
 
 [functions.deep-research]
 verify_jwt = true
+
+[functions.studio-notebooklm]
+verify_jwt = false
