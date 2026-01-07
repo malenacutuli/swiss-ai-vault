@@ -1,6 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
-  X,
   Search,
   Upload,
   Link,
@@ -9,7 +8,7 @@ import {
   FileText,
   Globe,
   Zap,
-} from '@/icons';
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,9 +43,13 @@ const ACCEPTED_TYPES = {
   'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
   'audio/*': ['.mp3', '.wav', '.m4a', '.ogg'],
   'video/*': ['.mp4', '.webm', '.mov'],
+  'text/plain': ['.txt'],
+  'text/markdown': ['.md'],
+  'text/csv': ['.csv'],
+  'application/json': ['.json'],
 };
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export function SourceUploadModal({
   open,
@@ -63,6 +66,9 @@ export function SourceUploadModal({
   const [urlInput, setUrlInput] = useState('');
   const [textInput, setTextInput] = useState('');
 
+  // CRITICAL: Dedicated file input ref for reliable file picker in Radix Dialog
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const validFiles = acceptedFiles.filter((file) => file.size <= MAX_FILE_SIZE);
@@ -74,12 +80,32 @@ export function SourceUploadModal({
     [onUploadFiles, onOpenChange]
   );
 
-  const { getRootProps, getInputProps, isDragActive, open: openFilePicker } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: ACCEPTED_TYPES,
     maxSize: MAX_FILE_SIZE,
-    noClick: true, // Prevent default click on dropzone
+    noClick: true,    // Don't open picker on dropzone click
+    noKeyboard: true, // Prevent keyboard triggers in dialog
   });
+
+  // CRITICAL: Direct file input click handler - bypasses dropzone's open()
+  const handleUploadClick = useCallback(() => {
+    console.log('[SourceUploadModal] Upload button clicked, triggering file input');
+    fileInputRef.current?.click();
+  }, []);
+
+  // Handle file input change
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[SourceUploadModal] File input changed');
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter((file) => file.size <= MAX_FILE_SIZE);
+    if (validFiles.length > 0 && onUploadFiles) {
+      onUploadFiles(validFiles);
+      onOpenChange(false);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  }, [onUploadFiles, onOpenChange]);
 
   const handleSearch = () => {
     if (searchQuery.trim() && onWebSearch) {
@@ -110,7 +136,7 @@ export function SourceUploadModal({
       id: 'upload',
       label: 'Upload files',
       icon: Upload,
-      onClick: () => openFilePicker(), // Use dropzone's built-in open method
+      onClick: handleUploadClick, // Use direct ref click instead of dropzone open()
     },
     {
       id: 'url',
@@ -135,6 +161,16 @@ export function SourceUploadModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] p-0 gap-0 bg-white">
+        {/* CRITICAL: Hidden file input with ref - MUST be in DOM for reliable file picker */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv,.json,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.m4a,.ogg,.mp4,.webm,.mov"
+          onChange={handleFileInputChange}
+          className="hidden"
+        />
+
         {/* Header */}
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-xl font-medium text-foreground">
@@ -163,6 +199,7 @@ export function SourceUploadModal({
             {/* Toggle Pills */}
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => setSearchMode('web')}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors',
@@ -175,6 +212,7 @@ export function SourceUploadModal({
                 Web
               </button>
               <button
+                type="button"
                 onClick={() => setSearchMode('quick')}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors',
@@ -205,7 +243,7 @@ export function SourceUploadModal({
               {isDragActive ? 'Drop files here...' : 'or drop your files here'}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              PDF, DOCX, XLSX, images, audio, video (max 20MB)
+              PDF, DOCX, XLSX, TXT, MD, images, audio, video (max 50MB)
             </p>
           </div>
 
@@ -219,6 +257,7 @@ export function SourceUploadModal({
 
               return (
                 <button
+                  type="button"
                   key={button.id}
                   onClick={button.onClick}
                   className={cn(
@@ -261,6 +300,7 @@ export function SourceUploadModal({
               />
               <div className="flex justify-end">
                 <Button
+                  type="button"
                   onClick={handleAddUrl}
                   disabled={!urlInput.trim()}
                   size="sm"
@@ -284,6 +324,7 @@ export function SourceUploadModal({
               />
               <div className="flex justify-end">
                 <Button
+                  type="button"
                   onClick={handleAddText}
                   disabled={!textInput.trim()}
                   size="sm"
