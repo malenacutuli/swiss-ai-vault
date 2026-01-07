@@ -85,9 +85,16 @@ export function AgentsExecutionView({
     }
   };
 
-  const completedSteps = steps.filter(s => s.status === 'completed').length;
+  // Use task state as source of truth when completed
+  const completedSteps = task?.status === 'completed' 
+    ? (task.total_steps || steps.length || 4) 
+    : steps.filter(s => s.status === 'completed').length;
   const currentStep = steps.find(s => s.status === 'executing' || s.status === 'running');
-  const progress = steps.length > 0 ? (completedSteps / steps.length) * 100 : 0;
+  const progress = task?.status === 'completed'
+    ? 100
+    : steps.length > 0 
+      ? (completedSteps / steps.length) * 100 
+      : (task?.progress_percentage || 0);
 
   return (
     <div className="flex h-[calc(100vh-140px)] bg-[#FAFAF8] rounded-xl overflow-hidden border border-[#E5E5E5]">
@@ -410,7 +417,12 @@ export function AgentsExecutionView({
               <Check className="w-5 h-5 text-green-400" />
               <div className="flex-1">
                 <p className="text-sm text-green-400">Task completed successfully</p>
-                <p className="text-xs text-green-600">{completedSteps}/{steps.length} steps completed</p>
+                <p className="text-xs text-green-600">
+                  {task?.status === 'completed' 
+                    ? `${task.total_steps || 4}/${task.total_steps || 4} steps completed`
+                    : `${completedSteps}/${steps.length} steps completed`
+                  }
+                </p>
               </div>
               {onNewTask && (
                 <Button 
