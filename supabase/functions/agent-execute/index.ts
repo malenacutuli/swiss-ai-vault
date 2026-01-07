@@ -437,6 +437,134 @@ Deno.serve(async (req) => {
 
     if (taskError) throw taskError;
 
+    // ============================================
+    // MODAL ROUTING FOR DOCUMENT GENERATION TASKS
+    // ============================================
+    const MODAL_TASK_TYPES = ['slides', 'spreadsheet', 'document', 'podcast', 'flashcards', 'quiz', 'mindmap', 'pptx', 'docx', 'xlsx'];
+    const taskType = request.taskType || 'general';
+    
+    if (MODAL_TASK_TYPES.includes(taskType)) {
+      console.log(`[agent-execute] Routing ${taskType} task to Modal endpoint`);
+      
+      const MODAL_ENDPOINT = Deno.env.get("MODAL_ENDPOINT") || 
+        'https://axessible-labs--swissvault-agents-execute-task-endpoint.modal.run';
+      
+      try {
+        // Update task status
+        await supabase
+          .from("agent_tasks")
+          .update({ status: "running", started_at: new Date().toISOString() })
+          .eq("id", task.id);
+
+        // Log Modal execution start
+        await supabase.from("agent_task_logs").insert({
+          task_id: task.id,
+          log_type: "system",
+          content: `Routing to Modal for ${taskType} generation`
+        });
+
+        // Store reasoning for transparency
+        await storeReasoning(
+          supabase, task.id, null, 'planner',
+          `Task type "${taskType}" routed to Modal compute backend for high-quality generation`,
+          0.95, [], ['Using Modal.com for document generation'], 'modal-orchestrator'
+        );
+
+        const modalResponse = await fetch(MODAL_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            task_type: taskType,
+            params: {
+              prompt: request.prompt,
+              template: request.attachments?.[0]?.content || 'swiss-classic',
+              slide_count: 12,
+              depth: 'standard',
+              card_count: 20,
+              question_count: 10,
+              doc_type: taskType === 'document' ? 'report' : taskType,
+              content: request.prompt,
+            },
+            memory_context: request.memoryContext ? [request.memoryContext] : [],
+            sources: request.attachments?.map(a => ({ name: a.name, type: a.type })) || [],
+            task_id: task.id,
+            user_id: user.id
+          })
+        });
+
+        const result = await modalResponse.json();
+        
+        // Log Modal response
+        await supabase.from("agent_task_logs").insert({
+          task_id: task.id,
+          log_type: result.success ? "stdout" : "stderr",
+          content: result.success 
+            ? `Modal generation completed: ${result.filename || taskType}` 
+            : `Modal error: ${result.error || 'Unknown error'}`
+        });
+
+        if (result.success) {
+          // Store output record
+          await supabase.from("agent_outputs").insert({
+            task_id: task.id,
+            user_id: user.id,
+            output_type: result.output_type || taskType,
+            file_name: result.filename || `${taskType}-output`,
+            file_path: result.file_path,
+            download_url: result.file_url || result.download_url,
+            actual_format: result.format || taskType,
+            conversion_status: 'completed',
+          });
+
+          // Store completion reasoning
+          await storeReasoning(
+            supabase, task.id, null, 'synthesizer',
+            `Successfully generated ${taskType} output via Modal`,
+            0.95, [result.file_url].filter(Boolean), ['Generation complete'], 'modal-orchestrator'
+          );
+        }
+
+        // Update task status
+        await supabase
+          .from("agent_tasks")
+          .update({
+            status: result.success ? 'completed' : 'failed',
+            result_summary: result.success ? `${taskType} generated successfully` : null,
+            error_message: result.error || null,
+            completed_at: new Date().toISOString(),
+            progress_percentage: 100,
+          })
+          .eq("id", task.id);
+
+        return new Response(JSON.stringify({ 
+          success: result.success, 
+          task: { ...task, status: result.success ? 'completed' : 'failed' },
+          taskId: task.id,
+          result,
+          message: result.success ? `${taskType} generated via Modal` : result.error
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+
+      } catch (modalError) {
+        console.error(`[agent-execute] Modal routing failed:`, modalError);
+        
+        // Log error and fall through to Gemini execution
+        await supabase.from("agent_task_logs").insert({
+          task_id: task.id,
+          log_type: "stderr",
+          content: `Modal unavailable, falling back to Gemini: ${modalError instanceof Error ? modalError.message : 'Unknown'}`
+        });
+        
+        // Continue to regular execution below
+        console.log(`[agent-execute] Falling back to Gemini for task ${task.id}`);
+      }
+    }
+
+    // ============================================
+    // REGULAR GEMINI-BASED EXECUTION
+    // ============================================
+
     // 4. Generate execution plan using Lovable AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
