@@ -24,3 +24,4 @@ export { TasksList } from './TasksList';
 export { ExecutionView } from './ExecutionView';
 export { PreviewPanel } from './PreviewPanel';
 export { StudioLayout } from './StudioLayout';
+export { SourceUploadModal } from './SourceUploadModal';
