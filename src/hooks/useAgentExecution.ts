@@ -188,6 +188,12 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
   // FETCH TASK STATUS
   // ============================================
   const fetchTaskStatus = useCallback(async (taskId: string) => {
+    // CRITICAL: Validate taskId before fetching
+    if (!taskId || taskId === 'undefined' || taskId === 'null') {
+      console.error('[AgentExecution] Invalid taskId:', taskId);
+      return null;
+    }
+
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) {
@@ -200,42 +206,42 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
       if (response.error) {
         console.error('[AgentExecution] Status error:', response.error);
-        throw new Error(response.error.message || 'Failed to fetch status');
+        // Don't throw - just return null to keep polling
+        return null;
       }
 
       const data = response.data;
       
-      if (!data?.success) {
-        console.error('[AgentExecution] Status check failed:', data?.error);
-        return null;
+      // CRITICAL: Handle null task gracefully (race condition)
+      if (!data?.task) {
+        console.log('[AgentExecution] Task not ready yet, waiting...');
+        return null; // Task might still be creating, keep polling
       }
       
       // Update task
-      if (data.task) {
-        setTask(data.task);
-        
-        // Map task status to execution status
-        const taskStatus = data.task.status;
-        if (taskStatus === 'queued' || taskStatus === 'planning') {
-          setStatus('planning');
-        } else if (taskStatus === 'awaiting_approval') {
-          setStatus('awaiting_approval');
-          stopPolling();
-        } else if (taskStatus === 'executing') {
-          setStatus('executing');
-        } else if (taskStatus === 'paused') {
-          setStatus('paused');
-          stopPolling();
-        } else if (taskStatus === 'completed') {
-          setStatus('completed');
-          stopPolling();
-          optionsRef.current.onComplete?.(data.task);
-        } else if (taskStatus === 'failed') {
-          setStatus('failed');
-          setError(data.task.error_message || 'Task failed');
-          stopPolling();
-          optionsRef.current.onError?.(data.task.error_message || 'Task failed');
-        }
+      setTask(data.task);
+      
+      // Map task status to execution status
+      const taskStatus = data.task.status;
+      if (taskStatus === 'queued' || taskStatus === 'planning') {
+        setStatus('planning');
+      } else if (taskStatus === 'awaiting_approval') {
+        setStatus('awaiting_approval');
+        stopPolling();
+      } else if (taskStatus === 'executing') {
+        setStatus('executing');
+      } else if (taskStatus === 'paused') {
+        setStatus('paused');
+        stopPolling();
+      } else if (taskStatus === 'completed') {
+        setStatus('completed');
+        stopPolling();
+        optionsRef.current.onComplete?.(data.task);
+      } else if (taskStatus === 'failed') {
+        setStatus('failed');
+        setError(data.task.error_message || 'Task failed');
+        stopPolling();
+        optionsRef.current.onError?.(data.task.error_message || 'Task failed');
       }
 
       // Update steps
@@ -259,6 +265,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       return data;
     } catch (err) {
       console.error('[AgentExecution] Fetch status error:', err);
+      // Don't crash on polling errors - just return null
       return null;
     }
   }, [stopPolling]);
@@ -652,7 +659,20 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
   // LOAD EXISTING TASK
   // ============================================
   const loadTask = useCallback(async (taskId: string) => {
+    // CRITICAL: Validate taskId before loading
+    if (!taskId || taskId === 'undefined' || taskId === 'null') {
+      console.error('[AgentExecution] loadTask called with invalid taskId:', taskId);
+      setError('Invalid task ID');
+      return;
+    }
+
+    console.log('[AgentExecution] Loading task:', taskId);
     taskIdRef.current = taskId;
+    setStatus('executing'); // Show as executing while loading
+    
+    // Add small delay to ensure task is committed to DB
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     await fetchTaskStatus(taskId);
     subscribeToTask(taskId);
   }, [fetchTaskStatus, subscribeToTask]);

@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
+        JSON.stringify({ error: 'Authorization required', task: null, steps: [], outputs: [] }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Invalid token', task: null, steps: [], outputs: [] }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -50,9 +50,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!taskId) {
+    // CRITICAL: Validate task_id before querying
+    if (!taskId || taskId === 'undefined' || taskId === 'null') {
+      console.error('[agent-status] Invalid task_id:', taskId);
       return new Response(
-        JSON.stringify({ error: 'task_id parameter required' }),
+        JSON.stringify({ 
+          error: 'Invalid task ID',
+          success: false,
+          task: null,
+          steps: [],
+          outputs: [],
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -80,34 +88,45 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
+    // CRITICAL: Return graceful response even if task not found
     if (taskError || !task) {
+      console.error('[agent-status] Task not found:', taskId, taskError?.message);
+      
+      // Return 200 with null task instead of 404
+      // This prevents UI from crashing during race conditions
       return new Response(
-        JSON.stringify({ error: 'Task not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: false,
+          task: null,
+          steps: [],
+          outputs: [],
+          error: 'Task not found - it may still be creating',
+        }),
+        { 
+          status: 200,  // NOT 404 - prevents UI crash
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    // Fetch outputs if completed
-    let outputs: any[] = [];
-    if (task.status === 'completed') {
-      const { data: outputData } = await supabase
-        .from('agent_outputs')
-        .select('*')
-        .eq('task_id', taskId)
-        .order('created_at', { ascending: true });
-      
-      outputs = (outputData || []).map((o: any) => ({
-        id: o.id,
-        type: o.output_type,
-        file_name: o.file_name,
-        file_size: o.file_size_bytes,
-        mime_type: o.mime_type,
-        download_url: o.download_url || o.file_path,
-        preview_url: o.preview_url,
-        thumbnail_url: o.thumbnail_url,
-        created_at: o.created_at,
-      }));
-    }
+    // Fetch outputs (always, not just on completed)
+    const { data: outputData } = await supabase
+      .from('agent_outputs')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: true });
+    
+    const outputs = (outputData || []).map((o: any) => ({
+      id: o.id,
+      type: o.output_type,
+      file_name: o.file_name,
+      file_size: o.file_size_bytes,
+      mime_type: o.mime_type,
+      download_url: o.download_url || o.file_path,
+      preview_url: o.preview_url,
+      thumbnail_url: o.thumbnail_url,
+      created_at: o.created_at,
+    }));
 
     // Sort steps by step_number
     const sortedSteps = (task.steps || [])
@@ -154,11 +173,19 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: unknown) {
-    console.error('Agent status error:', error);
+    console.error('[agent-status] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    
+    // Return 200 even on error to prevent UI crash
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: false,
+        error: errorMessage,
+        task: null,
+        steps: [],
+        outputs: [],
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
