@@ -33,6 +33,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { AgentOutputRenderer } from './AgentOutputRenderer';
 
 interface TaskStep {
   id: string;
@@ -536,11 +537,14 @@ export function TaskDetailModal({
             <TabsContent value="results" className="flex-1 overflow-hidden m-0 p-0">
               <ScrollArea className="h-[320px] px-6 py-4">
                 <div className="space-y-4">
-                  {/* Result Summary */}
+                  {/* Result Summary - Smart Rendering */}
                   {task.result_summary && (
-                    <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
-                      <h4 className="text-xs font-medium text-green-500 mb-1">Result Summary</h4>
-                      <p className="text-sm text-foreground">{task.result_summary}</p>
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-muted-foreground">Result</h4>
+                      <AgentOutputRenderer 
+                        content={task.result_summary} 
+                        outputType={task.task_type || undefined}
+                      />
                     </div>
                   )}
 

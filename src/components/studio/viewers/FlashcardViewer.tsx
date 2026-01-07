@@ -68,58 +68,54 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
 
   if (cards.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-        <p className="text-white/60">No flashcards available.</p>
+      <div className="bg-card border border-border rounded-xl p-6 text-center">
+        <p className="text-muted-foreground">No flashcards available.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-      {title && <h3 className="text-lg font-medium text-white mb-4">{title}</h3>}
+    <div className="bg-card border border-border rounded-xl p-6">
+      {title && <h3 className="text-lg font-medium text-foreground mb-4">{title}</h3>}
 
       {/* Progress */}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm text-white/60">
+        <span className="text-sm text-muted-foreground">
           Card {currentIndex + 1} of {cards.length}
         </span>
-        <div className="flex gap-4 text-sm text-white/60">
-          <span className="text-green-400">Known: {knownCards.size}</span>
-          <span className="text-yellow-400">Study: {studyMoreCards.size}</span>
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <span className="text-green-600 dark:text-green-400">Known: {knownCards.size}</span>
+          <span className="text-yellow-600 dark:text-yellow-400">Study: {studyMoreCards.size}</span>
         </div>
       </div>
 
       {/* Card */}
       <div
         onClick={handleFlip}
-        className="relative cursor-pointer mb-6"
-        style={{ perspective: '1000px' }}
+        className="relative cursor-pointer mb-6 perspective-1000"
       >
         <div
           className={cn(
-            'relative w-full min-h-[280px] transition-transform duration-500',
-            isFlipped && '[transform:rotateY(180deg)]'
+            'relative w-full min-h-[280px] transition-transform duration-500 transform-style-3d',
+            isFlipped && 'rotate-y-180'
           )}
-          style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Front */}
           <div
-            className="absolute inset-0 flex items-center justify-center p-8 bg-white/10 border border-white/20 rounded-xl backface-hidden"
-            style={{ backfaceVisibility: 'hidden' }}
+            className="absolute inset-0 flex items-center justify-center p-8 bg-muted border border-border rounded-xl backface-hidden"
           >
-            <p className="text-xl text-white text-center">{currentCard?.front}</p>
+            <p className="text-xl text-foreground text-center">{currentCard?.front}</p>
           </div>
 
           {/* Back */}
           <div
-            className="absolute inset-0 flex items-center justify-center p-8 bg-[#e63946]/10 border border-[#e63946]/20 rounded-xl"
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+            className="absolute inset-0 flex items-center justify-center p-8 bg-primary/10 border border-primary/30 rounded-xl backface-hidden rotate-y-180"
           >
-            <p className="text-xl text-white text-center">{currentCard?.back}</p>
+            <p className="text-xl text-foreground text-center">{currentCard?.back}</p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-white/40 mt-3">Click card to flip</p>
+        <p className="text-center text-xs text-muted-foreground mt-3">Click card to flip</p>
       </div>
 
       {/* Know It / Study More */}
@@ -135,7 +131,7 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
           <Button
             onClick={handleStudyMore}
             variant="outline"
-            className="border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
+            className="border-yellow-500 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10"
           >
             <BookOpen className="w-4 h-4 mr-2" />
             Study More
@@ -150,7 +146,7 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
           size="icon"
           onClick={handlePrevious}
           disabled={currentIndex === 0}
-          className="h-10 w-10 text-white/60 hover:text-white hover:bg-white/10"
+          className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <ChevronLeft className="w-5 h-5" />
         </Button>
@@ -158,7 +154,7 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
         <Button
           variant="ghost"
           onClick={handleShuffle}
-          className="text-white/60 hover:text-white hover:bg-white/10"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <Shuffle className="w-4 h-4 mr-2" />
           Shuffle
@@ -169,7 +165,7 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
           size="icon"
           onClick={handleNext}
           disabled={currentIndex === cards.length - 1}
-          className="h-10 w-10 text-white/60 hover:text-white hover:bg-white/10"
+          className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <ChevronRight className="w-5 h-5" />
         </Button>
