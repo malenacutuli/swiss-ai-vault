@@ -68,6 +68,7 @@ export interface ExecutionTask {
   plan_summary: string | null;
   plan_json: any | null;
   result_summary: string | null;
+  result: { content?: string; model?: string; provider?: string; usage?: any } | string | null;
   error_message: string | null;
   credits_used: number | null;
   tokens_used: number | null;
@@ -468,6 +469,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
           plan_summary: data.plan?.plan_summary || null,
           plan_json: data.plan || null,
           result_summary: null,
+          result: null,
           error_message: null,
           credits_used: null,
           tokens_used: null,
