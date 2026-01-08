@@ -840,9 +840,9 @@
         "badge": "Más Popular",
         "feature1": "Prompts de texto ilimitados",
         "feature2": "100 generaciones de imágenes diarias",
-        "feature3": "GPT-4o, Claude 3.5, Gemini 2.0",
+        "feature3": "Todos los modelos más recientes (SwissVault, ChatGPT, Gemini, etc.)",
         "feature4": "Deep Research (10/mes)",
-        "feature5": "Acceso API (10K solicitudes/mes)",
+        "feature5": "Sincronización en la nube entre dispositivos",
         "cta": "Obtener Ghost Pro"
       },
       "vaultPro": {
@@ -853,7 +853,7 @@
         "feature2": "Vault Chat con cifrado de extremo a extremo",
         "feature3": "5 integraciones (Slack, GitHub, Gmail)",
         "feature4": "25 Deep Research por mes",
-        "feature5": "Soporte prioritario",
+        "feature5": "Acceso API (10K solicitudes/mes)",
         "cta": "Obtener Vault Pro"
       },
       "pro": {
