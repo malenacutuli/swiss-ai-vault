@@ -1,5 +1,4 @@
 import { Shield, Lock, Server, ArrowRight } from "@/icons";
-import swissBrainIcon from "@/assets/swiss-brain-icon.png";
 import { useTranslation } from "react-i18next";
 
 export const WhySwissVaultSection = () => {
@@ -49,7 +48,7 @@ export const WhySwissVaultSection = () => {
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 {pillar.useSwissFlag ? (
-                  <img src={swissBrainIcon} alt="Swiss Brain" className="w-10 h-10 object-contain" />
+                  <img src="/favicon.svg" alt="Swiss Flag" className="h-6 w-6" />
                 ) : (
                   <pillar.icon className="h-6 w-6 text-primary" />
                 )}
