@@ -2490,27 +2490,27 @@ Use this context to inform your response when relevant. Cite sources by number w
 
         {/* Privacy Protection Notice for Anonymous Users */}
         {corruptedCount > 0 && (
-          <Alert className="m-4 border-purple-500/30 bg-purple-500/10">
-            <Shield className="h-4 w-4 text-purple-400" />
-            <AlertTitle className="text-purple-100">{t('ghost.alerts.corruptedTitle', 'Your privacy is protected')}</AlertTitle>
-            <AlertDescription className="mt-2 text-purple-200/80">
+          <Alert className="m-4 border-[#1D4E5F]/30 bg-[#1D4E5F]/10">
+            <Shield className="h-4 w-4 text-[#1D4E5F]" />
+            <AlertTitle className="text-[#1D4E5F] font-semibold">{t('ghost.alerts.corruptedTitle', 'Your privacy is protected')}</AlertTitle>
+            <AlertDescription className="mt-2 text-[#1D4E5F]/80">
               {t('ghost.alerts.corruptedDescription', 'Previous conversations were encrypted with a temporary session key. For anonymous browsing, this key changes when browser data is cleared — keeping your data private by design.')}
               
-              <p className="mt-3 text-purple-300">{t('ghost.alerts.signUpPrompt', 'Want conversations that persist across sessions?')}</p>
+              <p className="mt-3 text-[#1D4E5F]">{t('ghost.alerts.signUpPrompt', 'Want conversations that persist across sessions?')}</p>
               
               <div className="mt-3 flex flex-col sm:flex-row gap-2">
                 <Button 
                   variant="default" 
                   size="sm"
                   onClick={() => navigate('/auth?intent=ghost')}
-                  className="bg-purple-600 hover:bg-purple-500 text-white"
+                  className="bg-[#1D4E5F] hover:bg-[#1D4E5F]/90 text-white"
                 >
                   {t('ghost.alerts.signUpFree', 'Sign up for free')}
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="text-purple-300 hover:text-purple-100 hover:bg-purple-500/20"
+                  className="text-[#1D4E5F] hover:text-[#1D4E5F] hover:bg-[#1D4E5F]/20"
                   onClick={() => {
                     clearAllData();
                     toast({ 
