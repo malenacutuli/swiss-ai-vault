@@ -88,7 +88,7 @@ export default function Auth() {
   const benefits = intent === 'vault' ? vaultBenefits : ghostBenefits;
   const pageTitle = intent === 'vault' 
     ? 'Access Vault Chat & Labs' 
-    : 'Welcome to SwissVault';
+    : 'Welcome to Swiss BrAIn';
   const pageSubtitle = intent === 'vault'
     ? 'End-to-end encrypted AI with custom model training'
     : 'Private AI chat with Swiss data protection';
