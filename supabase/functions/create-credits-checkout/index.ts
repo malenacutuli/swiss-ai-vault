@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getAppBaseUrl } from "../_shared/domains.ts";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -28,9 +25,11 @@ const TRAINING_PACKAGES: Record<number, { priceInCents: number; credits: number;
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+  
+  const corsHeaders = getCorsHeaders(req);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("EXTERNAL_SUPABASE_PUBLISHABLE_KEY")!;
@@ -79,7 +78,7 @@ serve(async (req) => {
       logStep("Found existing Stripe customer", { customerId });
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:5173";
+    const origin = getAppBaseUrl(req);
 
     // Create checkout session for one-time payment
     const session = await stripe.checkout.sessions.create({

@@ -67,6 +67,7 @@ import DPA from "./pages/DPA";
 import Security from "./pages/Security";
 import Status from "./pages/Status";
 import OAuthCallback from "./pages/OAuthCallback";
+import AuthCallback from "./pages/auth/callback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
 import VaultLabsFeatures from "./pages/VaultLabsFeatures";
 import APIPricing from "./pages/APIPricing";
@@ -109,6 +110,7 @@ const App = () => {
                 {/* Public routes - Marketing pages with MarketingLayout */}
                 <Route path="/" element={<MarketingLayout><Index /></MarketingLayout>} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/docs/api" element={<MarketingLayout><ApiDocs /></MarketingLayout>} />
                 <Route path="/docs/on-premises" element={<MarketingLayout><OnPremisesDeployment /></MarketingLayout>} />
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />

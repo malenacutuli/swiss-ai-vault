@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getAppBaseUrl } from "../_shared/domains.ts";
 
 // Ghost credit packages - tokens mapped to price in cents
 const CREDIT_PACKAGES = {
@@ -16,9 +13,11 @@ const CREDIT_PACKAGES = {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+  
+  const corsHeaders = getCorsHeaders(req);
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -77,8 +76,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/ghost?purchase=success&credits=${creditAmount}`,
-      cancel_url: `${req.headers.get("origin")}/ghost?purchase=cancelled`,
+      success_url: `${getAppBaseUrl(req)}/ghost?purchase=success&credits=${creditAmount}`,
+      cancel_url: `${getAppBaseUrl(req)}/ghost?purchase=cancelled`,
       metadata: {
         user_id: user.id,
         credits: creditAmount,
