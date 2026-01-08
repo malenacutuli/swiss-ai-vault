@@ -9,7 +9,7 @@ export const SwissFlag = ({ className }: SwissFlagProps) => {
   return (
     <img
       src={swissVaultLogo}
-      alt="SwissVault.ai"
+      alt="Swiss BrAIn"
       className={cn("object-contain", className)}
     />
   );
