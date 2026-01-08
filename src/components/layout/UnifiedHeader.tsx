@@ -59,7 +59,7 @@ export function UnifiedHeader({
 
         {/* Logo */}
         <Link to={product === 'ghost' ? '/ghost/chat' : '/'} className="flex items-center">
-          <SwissFlag className="h-10" />
+          <SwissFlag className="h-12" />
         </Link>
 
         {/* Product Badge */}
