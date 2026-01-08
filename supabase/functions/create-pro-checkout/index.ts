@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { getAppBaseUrl } from "../_shared/domains.ts";
 
 // Product price IDs for different tiers
 const TIER_PRICES: Record<string, { priceId: string; name: string }> = {
@@ -16,9 +13,11 @@ const TIER_PRICES: Record<string, { priceId: string; name: string }> = {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+  
+  const corsHeaders = getCorsHeaders(req);
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -70,14 +69,15 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    // Determine success/cancel URLs based on tier
+    // Determine success/cancel URLs based on tier and domain
+    const baseUrl = getAppBaseUrl(req);
     const successUrl = tier.startsWith('ghost') || tier === 'swissvault_pro'
-      ? `${req.headers.get("origin")}/ghost?subscription=success`
-      : `${req.headers.get("origin")}/dashboard?subscription=success`;
+      ? `${baseUrl}/ghost?subscription=success`
+      : `${baseUrl}/dashboard?subscription=success`;
     
     const cancelUrl = tier.startsWith('ghost') || tier === 'swissvault_pro'
-      ? `${req.headers.get("origin")}/ghost?subscription=cancelled`
-      : `${req.headers.get("origin")}/#pricing`;
+      ? `${baseUrl}/ghost?subscription=cancelled`
+      : `${baseUrl}/#pricing`;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

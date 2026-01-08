@@ -1,3 +1,6 @@
+User-agent: *
+Allow: /
+
 User-agent: Googlebot
 Allow: /
 
@@ -10,5 +13,5 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+Sitemap: https://swissbrain.ai/sitemap.xml
+Sitemap: https://swissvault.ai/sitemap.xml
