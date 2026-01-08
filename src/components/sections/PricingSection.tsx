@@ -17,20 +17,58 @@ export const PricingSection = () => {
 
   const plans = [
     {
-      nameKey: "home.pricing.free.name",
+      nameKey: "home.pricing.ghostFree.name",
       price: "$0",
-      periodKey: "home.pricing.free.period",
-      descriptionKey: "home.pricing.free.description",
+      periodKey: "home.pricing.ghostFree.period",
+      descriptionKey: "home.pricing.ghostFree.description",
       features: [
-        t('home.pricing.free.feature1'),
-        t('home.pricing.free.feature2'),
-        t('home.pricing.free.feature3'),
-        t('home.pricing.free.feature4'),
+        t('home.pricing.ghostFree.feature1'),
+        t('home.pricing.ghostFree.feature2'),
+        t('home.pricing.ghostFree.feature3'),
+        t('home.pricing.ghostFree.feature4'),
+        t('home.pricing.ghostFree.feature5'),
       ],
-      ctaKey: "home.pricing.free.cta",
+      ctaKey: "home.pricing.ghostFree.cta",
       variant: "outline" as const,
       popular: false,
-      planId: "Free",
+      planId: "GhostFree",
+    },
+    {
+      nameKey: "home.pricing.ghostPro.name",
+      price: "$18",
+      periodKey: "home.pricing.ghostPro.period",
+      descriptionKey: "home.pricing.ghostPro.description",
+      badgeKey: "home.pricing.ghostPro.badge",
+      features: [
+        t('home.pricing.ghostPro.feature1'),
+        t('home.pricing.ghostPro.feature2'),
+        t('home.pricing.ghostPro.feature3'),
+        t('home.pricing.ghostPro.feature4'),
+        t('home.pricing.ghostPro.feature5'),
+      ],
+      ctaKey: "home.pricing.ghostPro.cta",
+      variant: "swiss" as const,
+      popular: true,
+      planId: "GhostPro",
+      tier: "ghost_pro",
+    },
+    {
+      nameKey: "home.pricing.vaultPro.name",
+      price: "$49",
+      periodKey: "home.pricing.vaultPro.period",
+      descriptionKey: "home.pricing.vaultPro.description",
+      features: [
+        t('home.pricing.vaultPro.feature1'),
+        t('home.pricing.vaultPro.feature2'),
+        t('home.pricing.vaultPro.feature3'),
+        t('home.pricing.vaultPro.feature4'),
+        t('home.pricing.vaultPro.feature5'),
+      ],
+      ctaKey: "home.pricing.vaultPro.cta",
+      variant: "swiss" as const,
+      popular: false,
+      planId: "VaultPro",
+      tier: "vault_pro",
     },
     {
       nameKey: "home.pricing.pro.name",
@@ -46,8 +84,8 @@ export const PricingSection = () => {
         t('home.pricing.pro.feature5'),
       ],
       ctaKey: "home.pricing.pro.cta",
-      variant: "swiss" as const,
-      popular: true,
+      variant: "outline" as const,
+      popular: false,
       planId: "Pro",
     },
     {
@@ -70,20 +108,26 @@ export const PricingSection = () => {
     },
   ];
 
-  const handleCTA = async (planId: string) => {
+  const handleCTA = async (planId: string, tier?: string) => {
     if (planId === "Enterprise") {
       setDemoOpen(true);
     } else if (planId === "Pro") {
+      setEarlyAccessOpen(true);
+    } else if (planId === "GhostFree") {
+      navigate('/ghost');
+    } else if (planId === "GhostPro" || planId === "VaultPro") {
       setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          localStorage.setItem('pendingCheckout', 'pro');
+          localStorage.setItem('pendingCheckout', tier || 'ghost_pro');
           navigate('/auth');
           setIsLoading(false);
           return;
         }
-        const { data, error } = await supabase.functions.invoke('create-pro-checkout');
+        const { data, error } = await supabase.functions.invoke('create-pro-checkout', {
+          body: { tier: tier || 'ghost_pro', billing_period: 'monthly' }
+        });
         if (error) throw error;
         if (data?.url) {
           window.open(data.url, '_blank');
@@ -114,11 +158,11 @@ export const PricingSection = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {plans.filter(plan => plan.planId !== "Free").map((plan) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-7xl mx-auto">
+            {plans.map((plan) => (
               <div
                 key={plan.planId}
-                className={`relative rounded-2xl p-6 ${
+                className={`relative rounded-2xl p-5 flex flex-col ${
                   plan.popular
                     ? "bg-card border-2 border-primary shadow-glow"
                     : "bg-card border border-border/60"
@@ -131,20 +175,27 @@ export const PricingSection = () => {
                     </span>
                   </div>
                 )}
-
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold mb-2">{t(plan.nameKey)}</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground">{plan.periodKey ? t(plan.periodKey) : ''}</span>
+                {!plan.popular && plan.badgeKey && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium whitespace-nowrap">
+                      {t(plan.badgeKey)}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">{t(plan.descriptionKey)}</p>
+                )}
+
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">{t(plan.nameKey)}</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">{plan.price}</span>
+                    <span className="text-sm text-muted-foreground">{plan.periodKey ? t(plan.periodKey) : ''}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{t(plan.descriptionKey)}</p>
                 </div>
 
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-2 mb-6 flex-1">
                   {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
-                      <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <li key={idx} className="flex items-start gap-2 text-xs">
+                      <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
                       <span className="text-muted-foreground">{feature}</span>
                     </li>
                   ))}
@@ -152,11 +203,14 @@ export const PricingSection = () => {
 
                 <Button 
                   variant={plan.variant} 
+                  size="sm"
                   className="w-full"
-                  onClick={() => handleCTA(plan.planId)}
-                  disabled={plan.planId === "Pro" && isLoading}
+                  onClick={() => handleCTA(plan.planId, (plan as any).tier)}
+                  disabled={(plan.planId === "GhostPro" || plan.planId === "VaultPro") && isLoading}
                 >
-                  {plan.planId === "Pro" && isLoading ? t('common.loading') : t(plan.ctaKey)}
+                  {(plan.planId === "GhostPro" || plan.planId === "VaultPro") && isLoading 
+                    ? t('common.loading') 
+                    : t(plan.ctaKey)}
                 </Button>
               </div>
             ))}
