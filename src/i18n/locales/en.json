@@ -1,7 +1,7 @@
 {
   "contact": {
     "title": "Get in Touch",
-    "subtitle": "Have questions about SwissVault? Want to discuss enterprise deployment? We'd love to hear from you.",
+    "subtitle": "Have questions about Swiss BrAIn? Want to discuss enterprise deployment? We'd love to hear from you.",
     "sendMessage": "Send us a message",
     "firstName": "First Name",
     "lastName": "Last Name",
@@ -137,7 +137,7 @@
   "modeToggle": {
     "toVault": {
       "title": "Switch to Vault Chat?",
-      "description1": "Vault Chat stores your conversations on SwissVault servers (encrypted).",
+      "description1": "Vault Chat stores your conversations on Swiss BrAIn servers (encrypted).",
       "description2": "Your Ghost conversations will remain local on this device.",
       "confirm": "Do you want to switch?",
       "cancel": "Stay in Ghost",
@@ -145,7 +145,7 @@
     },
     "toGhost": {
       "title": "Entering Ghost Mode",
-      "description": "Ghost Mode stores nothing on SwissVault servers.",
+      "description": "Ghost Mode stores nothing on Swiss BrAIn servers.",
       "feature1": "Conversations exist only on your device",
       "feature2": "Swiss-hosted AI models only",
       "feature3": "Export your data anytime",
@@ -242,12 +242,12 @@
     "compliance": "Compliance"
   },
   "auth": {
-    "welcomeTitle": "Welcome to SwissVault.ai",
+    "welcomeTitle": "Welcome to Swiss BrAIn",
     "welcomeSubtitle": "Secure AI fine-tuning with Swiss data residency",
     "welcomeBack": "Welcome back",
-    "signInToContinue": "Sign in to continue to SwissVault",
+    "signInToContinue": "Sign in to continue to Swiss BrAIn",
     "createAccount": "Create Account",
-    "getStarted": "Get started with SwissVault",
+    "getStarted": "Get started with Swiss BrAIn",
     "email": "Email",
     "emailPlaceholder": "you@company.com",
     "password": "Password",
@@ -636,7 +636,7 @@
       "e2eEncryption": "Client-side E2E encryption"
     },
     "mockUI": {
-      "workspaceTitle": "SwissVault Assistant Workspace",
+      "workspaceTitle": "Swiss BrAIn Assistant Workspace",
       "complianceCopilot": "Compliance Co-Pilot",
       "complianceCopilotDesc": "Financial regulations assistant",
       "e2eEncrypted": "E2E Encrypted",
@@ -652,7 +652,7 @@
       "ragSources": "RAG Sources"
     },
     "whySwissVault": {
-      "title": "Why SwissVault?",
+      "title": "Why Swiss BrAIn?",
       "subtitle": "Discretion-first AI for individuals and companies who cannot afford exposure.",
       "zeroKnowledge": {
         "title": "Zero-Knowledge by Design",
@@ -672,7 +672,7 @@
     },
     "solutions": {
       "title": "Built for Regulated Workflows",
-      "subtitle": "SwissVault is used to power internal assistants where privacy and explainability matter more than raw experimentation.",
+      "subtitle": "Swiss BrAIn is used to power internal assistants where privacy and explainability matter more than raw experimentation.",
       "compliance": {
         "title": "Compliance & Policy Assistants",
         "description": "Centralise internal policies, procedures and regulations.",
@@ -705,7 +705,7 @@
       },
       "step3": {
         "title": "Deploy Assistants in Vault Chat & via API",
-        "description": "Spin up encrypted assistants for each team or use SwissVault's OpenAI-compatible API in your own apps. Enforce per-org model and retention policies."
+        "description": "Spin up encrypted assistants for each team or use Swiss BrAIn's OpenAI-compatible API in your own apps. Enforce per-org model and retention policies."
       },
       "step4": {
         "title": "Monitor, Audit & Improve",
@@ -744,7 +744,7 @@
           "description": "AES-256-GCM encryption keys stored in IndexedDB. All encryption/decryption happens client-side."
         },
         "backend": {
-          "title": "SwissVault Backend",
+          "title": "Swiss BrAIn Backend",
           "description": "Stores only encrypted ciphertext + key hashes. RLS policies enforce data isolation."
         },
         "infrastructure": {
@@ -757,7 +757,7 @@
     },
     "models": {
       "title": "Use the Best Models – Without Losing Privacy",
-      "subtitle": "SwissVault abstracts away providers so you can choose the right model for each workload while keeping governance and logging in one place, or be completely anonymous with Ghost Chat.",
+      "subtitle": "Swiss BrAIn abstracts away providers so you can choose the right model for each workload while keeping governance and logging in one place, or be completely anonymous with Ghost Chat.",
       "hybridCloud": {
         "title": "Hybrid Cloud",
         "description": "Centralised routing, billing and monitoring, anonymous and encrypted options."
@@ -814,7 +814,7 @@
     },
     "socialProof": {
       "title": "Trusted by Security-First Teams",
-      "testimonial": "SwissVault let us roll out internal AI assistants without sending any client data to US clouds – that was non-negotiable.",
+      "testimonial": "Swiss BrAIn let us roll out internal AI assistants without sending any client data to US clouds – that was non-negotiable.",
       "author": "CISO",
       "company": "Swiss Financial Institution",
       "industries": {
@@ -897,7 +897,7 @@
     },
     "trust": {
       "title": "Your Data Never Leaves Your Control",
-      "subtitle": "SwissVault operates on a zero-knowledge principle",
+      "subtitle": "Swiss BrAIn operates on a zero-knowledge principle",
       "items": {
         "keys": "Keys stored only in your browser",
         "residency": "Swiss data residency",
@@ -2005,7 +2005,7 @@
     "title": "Create Ghost Account",
     "subtitle": "Get 15 prompts + 3 images per day, free forever",
     "benefitsTitle": "Ghost Free includes:",
-    "benefit1": "15 AI prompts per day with SwissVault 1.0",
+    "benefit1": "15 AI prompts per day with Swiss BrAIn 1.0",
     "benefit2": "3 image generations per day",
     "benefit3": "File uploads & image analysis",
     "benefit4": "Encrypted conversation history",
@@ -2133,7 +2133,7 @@
       "legacyFileDesc": "This file was created with the old export format. Please create a new password-protected export from the source environment.",
       "invalidFile": "Invalid file",
       "previewWarning": "Preview Environment",
-      "previewWarningDesc": "Memories created here won't be available on swissvault.ai. Use 'Migrate Memory' to export before switching.",
+      "previewWarningDesc": "Memories created here won't be available on Swiss BrAIn. Use 'Migrate Memory' to export before switching.",
       "migrateNow": "Migrate Now"
     },
     "upload": {

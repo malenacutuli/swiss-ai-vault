@@ -52,7 +52,7 @@ export function GhostTextViewEmpty({ children, hasCompareResults }: GhostTextVie
       {/* AI disclaimer */}
       {!hasCompareResults && (
         <p className="mt-3 text-center text-[11px] text-muted-foreground/60 max-w-md">
-          AI can make mistakes. Always check results. Swiss Vault does not use your information to train models.
+          AI can make mistakes. Always check results. Swiss BrAIn does not use your information to train models.
         </p>
       )}
     </div>

@@ -232,7 +232,7 @@ export default function Studio() {
   return (
     <>
       <Helmet>
-        <title>Studio | SwissVault</title>
+        <title>Studio | Swiss BrAIn</title>
         <meta name="description" content="NotebookLM-style research and content generation workspace." />
       </Helmet>
 

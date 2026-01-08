@@ -107,7 +107,7 @@ export function CaptureToMemory({ message, previousMessage, conversationTitle, o
         previousMessage ? `**Question:** ${previousMessage.content}\n\n` : '',
         `**Answer:**\n${message.content}`,
         notes ? `\n\n**My Notes:**\n${notes}` : '',
-        `\n\n---\n_Captured from: ${conversationTitle || 'SwissVault Chat'}_`,
+        `\n\n---\n_Captured from: ${conversationTitle || 'Swiss BrAIn Chat'}_`,
         tags.length > 0 ? `\n_Tags: ${tags.join(', ')}_` : ''
       ].join('');
       
