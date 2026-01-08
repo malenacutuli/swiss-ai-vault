@@ -13,19 +13,19 @@ const TermsOfService = () => {
         <Card className="mb-8">
           <CardContent className="pt-6 prose prose-sm max-w-none text-foreground">
             <p className="text-muted-foreground mb-6">
-              Welcome to swissvault.ai, a website operated by Axessible Labs AG ("Axessible," "we," or "our"). By accessing or using our website and services ("Services"), you agree to be bound by these Terms. If you do not agree with any provision of these Terms, you may not access or use the Services. These Terms apply to all users and visitors of the platform.
+              Welcome to Swiss BrAIn, a website operated by Axessible Labs AG ("Axessible," "we," or "our"). By accessing or using our website and services ("Services"), you agree to be bound by these Terms. If you do not agree with any provision of these Terms, you may not access or use the Services. These Terms apply to all users and visitors of the platform.
             </p>
 
             <h2 className="text-xl font-semibold mt-8 mb-4">1. Accessing the Services</h2>
             
             <h3 className="text-lg font-medium mt-6 mb-3">1.1 Age Requirements</h3>
             <p className="text-muted-foreground mb-4">
-              To use our Services, you must be at least thirteen (13) years old. Minors require parental or legal guardian consent to create a Swiss Vault account. Accounts created in violation of this policy will be removed.
+              To use our Services, you must be at least thirteen (13) years old. Minors require parental or legal guardian consent to create a Swiss BrAIn account. Accounts created in violation of this policy will be removed.
             </p>
 
-            <h3 className="text-lg font-medium mt-6 mb-3">1.2 Swiss Vault Accounts</h3>
+            <h3 className="text-lg font-medium mt-6 mb-3">1.2 Swiss BrAIn Accounts</h3>
             <p className="text-muted-foreground mb-4">
-              Some Services require a Swiss Vault account. You agree to provide accurate, complete account information and keep it up to date. Your account is personal and non-transferable. Sharing login credentials, reselling, leasing, or unauthorized access is prohibited. You are responsible for all activity under your account, including use by any end user provisioned under your account. Notify us immediately at <a href="mailto:hola@axessible.ai" className="text-primary hover:underline">hola@axessible.ai</a> if you suspect unauthorized access or use.
+              Some Services require a Swiss BrAIn account. You agree to provide accurate, complete account information and keep it up to date. Your account is personal and non-transferable. Sharing login credentials, reselling, leasing, or unauthorized access is prohibited. You are responsible for all activity under your account, including use by any end user provisioned under your account. Notify us immediately at <a href="mailto:hola@axessible.ai" className="text-primary hover:underline">hola@axessible.ai</a> if you suspect unauthorized access or use.
             </p>
 
             <h3 className="text-lg font-medium mt-6 mb-3">1.3 Admin Accounts</h3>

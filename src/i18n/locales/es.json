@@ -1,7 +1,7 @@
 {
   "contact": {
     "title": "Contáctanos",
-    "subtitle": "¿Tienes preguntas sobre SwissVault? ¿Quieres hablar sobre implementación empresarial? Nos encantaría saber de ti.",
+    "subtitle": "¿Tienes preguntas sobre Swiss BrAIn? ¿Quieres hablar sobre implementación empresarial? Nos encantaría saber de ti.",
     "sendMessage": "Envíanos un mensaje",
     "firstName": "Nombre",
     "lastName": "Apellido",
@@ -138,7 +138,7 @@
   "modeToggle": {
     "toVault": {
       "title": "¿Cambiar a Vault Chat?",
-      "description1": "Vault Chat almacena tus conversaciones en los servidores de SwissVault (cifradas).",
+      "description1": "Vault Chat almacena tus conversaciones en los servidores de Swiss BrAIn (cifradas).",
       "description2": "Tus conversaciones Ghost permanecerán locales en este dispositivo.",
       "confirm": "¿Deseas cambiar?",
       "cancel": "Quedarse en Ghost",
@@ -146,7 +146,7 @@
     },
     "toGhost": {
       "title": "Entrando en Modo Ghost",
-      "description": "El Modo Ghost no almacena nada en los servidores de SwissVault.",
+      "description": "El Modo Ghost no almacena nada en los servidores de Swiss BrAIn.",
       "feature1": "Las conversaciones existen solo en tu dispositivo",
       "feature2": "Solo modelos de IA alojados en Suiza",
       "feature3": "Exporta tus datos en cualquier momento",
@@ -243,12 +243,12 @@
     "compliance": "Cumplimiento"
   },
   "auth": {
-    "welcomeTitle": "Bienvenido a SwissVault.ai",
+    "welcomeTitle": "Bienvenido a Swiss BrAIn",
     "welcomeSubtitle": "Ajuste fino de IA seguro con residencia de datos suiza",
     "welcomeBack": "Bienvenido de nuevo",
-    "signInToContinue": "Inicia sesión para continuar en SwissVault",
+    "signInToContinue": "Inicia sesión para continuar en Swiss BrAIn",
     "createAccount": "Crear una cuenta",
-    "getStarted": "Comienza con SwissVault",
+    "getStarted": "Comienza con Swiss BrAIn",
     "email": "Correo electrónico",
     "emailPlaceholder": "tu@empresa.com",
     "password": "Contraseña",
@@ -729,7 +729,7 @@
       "e2eEncryption": "Cifrado E2E del lado del cliente"
     },
     "mockUI": {
-      "workspaceTitle": "Espacio de Trabajo de Asistente SwissVault",
+      "workspaceTitle": "Espacio de Trabajo de Asistente Swiss BrAIn",
       "complianceCopilot": "Co-Piloto de Cumplimiento",
       "complianceCopilotDesc": "Asistente de regulaciones financieras",
       "e2eEncrypted": "Cifrado E2E",
@@ -745,7 +745,7 @@
       "ragSources": "Fuentes RAG"
     },
     "whySwissVault": {
-      "title": "¿Por qué SwissVault?",
+      "title": "¿Por qué Swiss BrAIn?",
       "subtitle": "Inteligencia Artificial con discreción absoluta: para quienes no pueden permitirse riesgos de exposición.",
       "zeroKnowledge": {
         "title": "Arquitectura de Conocimiento Cero",
@@ -765,7 +765,7 @@
     },
     "solutions": {
       "title": "Flujos de Trabajo Regulados",
-      "subtitle": "SwissVault potencia asistentes internos donde la privacidad y la explicabilidad son prioritarias frente a la experimentación.",
+      "subtitle": "Swiss BrAIn potencia asistentes internos donde la privacidad y la explicabilidad son prioritarias frente a la experimentación.",
       "compliance": {
         "title": "Asistentes de Cumplimiento y Políticas",
         "description": "Centraliza políticas internas, procedimientos y regulaciones.",
@@ -807,7 +807,7 @@
     },
     "models": {
       "title": "Usa los Mejores Modelos – Sin Perder Privacidad",
-      "subtitle": "SwissVault abstrae los proveedores para que puedas elegir el modelo correcto para cada carga de trabajo manteniendo la gobernanza y los registros en un solo lugar, o ser completamente anónimo con Ghost Chat.",
+      "subtitle": "Swiss BrAIn abstrae los proveedores para que puedas elegir el modelo correcto para cada carga de trabajo manteniendo la gobernanza y los registros en un solo lugar, o ser completamente anónimo con Ghost Chat.",
       "hybridCloud": {
         "title": "Nube Híbrida",
         "description": "Enrutamiento, facturación y monitoreo centralizados, opciones anónimas y cifradas."
@@ -864,7 +864,7 @@
     },
     "socialProof": {
       "title": "Confianza de Equipos que Priorizan la Seguridad",
-      "testimonial": "SwissVault nos permitió desplegar asistentes de IA internos sin enviar ningún dato de clientes a nubes estadounidenses – eso era innegociable.",
+      "testimonial": "Swiss BrAIn nos permitió desplegar asistentes de IA internos sin enviar ningún dato de clientes a nubes estadounidenses – eso era innegociable.",
       "author": "CISO",
       "company": "Institución Financiera Suiza",
       "industries": {

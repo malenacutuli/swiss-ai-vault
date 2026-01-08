@@ -72,7 +72,7 @@ export const Footer = () => {
             <div className="flex items-center mb-4">
               <img
                 src={swissvaultLogo}
-                alt="SwissVault.ai"
+                alt="Swiss BrAIn"
                 className="h-8"
               />
             </div>
@@ -129,7 +129,7 @@ export const Footer = () => {
           <p className="text-sm text-gray-300 flex items-center gap-2">
             <img
               src={swissvaultLogo}
-              alt="SwissVault.ai"
+              alt="Swiss BrAIn"
               className="h-4"
             />
             {t('footer.madeInSwitzerland')}

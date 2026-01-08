@@ -528,7 +528,7 @@ export default function Agents() {
   return (
     <>
       <Helmet>
-        <title>Swiss Agents | SwissVault.ai</title>
+        <title>Swiss Agents | Swiss BrAIn</title>
         <meta name="description" content="Autonomous AI agents that work for you. Create research, documents, presentations, and more." />
       </Helmet>
       {/* Light theme wrapper for Agents only */}

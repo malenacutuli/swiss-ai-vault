@@ -11,18 +11,18 @@ const PrivacyPolicy = () => {
         <Card className="bg-card border-border">
           <CardContent className="p-8 md:p-12">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Privacy Policy</h1>
-            <p className="text-muted-foreground mb-2">SwissVault.ai - Operated by Axessible Labs AG</p>
+            <p className="text-muted-foreground mb-2">Swiss BrAIn - Operated by Axessible Labs AG</p>
             <p className="text-muted-foreground mb-8">Effective Date: December 6, 2025</p>
             
             <div className="prose prose-invert max-w-none space-y-6 text-foreground/90">
               <p className="text-muted-foreground leading-relaxed">
-                SwissVault.ai, operated by Axessible Labs AG, is committed to protecting your privacy and ensuring the confidentiality of your interactions with our AI services. As a Swiss-based company, we adhere to the stringent requirements of the Swiss Federal Act on Data Protection (FADP) and other applicable Swiss privacy laws. This privacy policy outlines how we handle your data and your rights regarding that data.
+                Swiss BrAIn, operated by Axessible Labs AG, is committed to protecting your privacy and ensuring the confidentiality of your interactions with our AI services. As a Swiss-based company, we adhere to the stringent requirements of the Swiss Federal Act on Data Protection (FADP) and other applicable Swiss privacy laws. This privacy policy outlines how we handle your data and your rights regarding that data.
               </p>
 
               <section>
                 <h2 className="text-xl font-semibold text-foreground mb-3">1. Data Collection and Use</h2>
                 <p className="text-muted-foreground leading-relaxed mb-4">
-                  SwissVault.ai prioritizes your privacy and operates with a focus on minimizing data collection. Our general principle is:
+                  Swiss BrAIn prioritizes your privacy and operates with a focus on minimizing data collection. Our general principle is:
                 </p>
                 <ul className="list-disc list-inside text-muted-foreground space-y-2 ml-4 mb-4">
                   <li><strong>Privacy-First Design:</strong> We design our AI services with privacy as a core consideration, aiming to minimize the collection and retention of personal data.</li>
@@ -30,7 +30,7 @@ const PrivacyPolicy = () => {
                   <li><strong>Transparency:</strong> We are transparent about the data we collect and how we use it.</li>
                 </ul>
                 <p className="text-muted-foreground leading-relaxed mb-4">
-                  Specific data collection practices may vary depending on the specific SwissVault.ai service you are using. However, common practices include:
+                  Specific data collection practices may vary depending on the specific Swiss BrAIn service you are using. However, common practices include:
                 </p>
                 <ul className="list-disc list-inside text-muted-foreground space-y-2 ml-4">
                   <li><strong>Account Information:</strong> If you create an account, we may collect your name, email address, and password.</li>
@@ -69,7 +69,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-xl font-semibold text-foreground mb-3">4. Compliance with Swiss Law (FADP)</h2>
                 <p className="text-muted-foreground leading-relaxed mb-4">
-                  SwissVault.ai is committed to complying with the Swiss Federal Act on Data Protection (FADP). This means:
+                  Swiss BrAIn is committed to complying with the Swiss Federal Act on Data Protection (FADP). This means:
                 </p>
                 <ul className="list-disc list-inside text-muted-foreground space-y-2 ml-4">
                   <li><strong>Data Minimization:</strong> We only collect and retain data that is strictly necessary for the operation of our services and as permitted by law.</li>
@@ -121,7 +121,7 @@ const PrivacyPolicy = () => {
                   If you have any questions or concerns about this privacy policy or our data processing practices, please contact us at:
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Axessible Labs AG (SwissVault.ai)<br />
+                  Axessible Labs AG (Swiss BrAIn)<br />
                   Email:{' '}
                   <a href="mailto:malena@axessible.ai" className="text-primary hover:underline">
                     malena@axessible.ai
