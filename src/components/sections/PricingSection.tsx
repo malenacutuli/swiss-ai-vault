@@ -114,7 +114,7 @@ export const PricingSection = () => {
     } else if (planId === "Pro") {
       setEarlyAccessOpen(true);
     } else if (planId === "GhostFree") {
-      navigate('/ghost');
+      navigate('/auth?intent=ghost&plan=free');
     } else if (planId === "GhostPro" || planId === "VaultPro") {
       setIsLoading(true);
       try {
