@@ -2502,10 +2502,10 @@ Use this context to inform your response when relevant. Cite sources by number w
                 <Button 
                   variant="default" 
                   size="sm"
-                  onClick={() => navigate('/auth?intent=ghost')}
+                  onClick={() => navigate('/ghost/pricing')}
                   className="bg-[#1D4E5F] hover:bg-[#1D4E5F]/90 text-white"
                 >
-                  {t('ghost.alerts.signUpFree', 'Sign up for free')}
+                  {t('ghost.alerts.viewPlans', 'View plans')}
                 </Button>
                 <Button 
                   variant="ghost" 
