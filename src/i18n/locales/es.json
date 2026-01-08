@@ -822,16 +822,39 @@
     "pricing": {
       "title": "Acceso Privado Ahora. Poder Empresarial Cuando Lo Necesites",
       "subtitle": "El acceso es limitado. La entrada es por invitación o aprobación personal.",
-      "free": {
-        "name": "Gratis",
-        "price": "$0",
+      "ghostFree": {
+        "name": "Ghost Free",
         "period": "para siempre",
-        "description": "Para evaluación y equipos pequeños.",
-        "feature1": "10K llamadas API / mes",
-        "feature2": "2 trabajos de ajuste fino / mes",
-        "feature3": "1GB almacenamiento de datos",
-        "feature4": "Soporte comunitario",
+        "description": "IA con privacidad primero para todos",
+        "feature1": "10 prompts de texto diarios",
+        "feature2": "2 generaciones de imágenes diarias",
+        "feature3": "Modelos de IA suizos",
+        "feature4": "Cero retención de datos en servidor",
+        "feature5": "Sin cuenta requerida",
         "cta": "Comenzar"
+      },
+      "ghostPro": {
+        "name": "Ghost Pro",
+        "period": "/mes",
+        "description": "Para usuarios avanzados que necesitan más",
+        "badge": "Más Popular",
+        "feature1": "Prompts de texto ilimitados",
+        "feature2": "100 generaciones de imágenes diarias",
+        "feature3": "GPT-4o, Claude 3.5, Gemini 2.0",
+        "feature4": "Deep Research (10/mes)",
+        "feature5": "Acceso API (10K solicitudes/mes)",
+        "cta": "Obtener Ghost Pro"
+      },
+      "vaultPro": {
+        "name": "Vault Pro",
+        "period": "/mes",
+        "description": "Privacidad e integraciones de nivel empresarial",
+        "feature1": "Todo en Ghost Pro",
+        "feature2": "Vault Chat con cifrado de extremo a extremo",
+        "feature3": "5 integraciones (Slack, GitHub, Gmail)",
+        "feature4": "25 Deep Research por mes",
+        "feature5": "Soporte prioritario",
+        "cta": "Obtener Vault Pro"
       },
       "pro": {
         "name": "Vault Chat Private Edition",
