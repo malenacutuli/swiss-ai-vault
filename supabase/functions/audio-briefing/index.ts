@@ -114,6 +114,7 @@ serve(async (req) => {
     // Get user ID from auth header
     const authHeader = req.headers.get('Authorization');
     let userId = 'anonymous';
+    let isAnonymous = true;
     
     if (authHeader) {
       const { data: { user }, error: authError } = await supabase.auth.getUser(
@@ -121,6 +122,29 @@ serve(async (req) => {
       );
       if (!authError && user) {
         userId = user.id;
+        isAnonymous = false;
+      }
+    }
+
+    // Anonymous audio limit check
+    if (isAnonymous) {
+      const forwardedFor = req.headers.get('x-forwarded-for');
+      const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : 'unknown';
+      const ipHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
+      const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const { data: check } = await supabase.rpc('check_anonymous_usage', {
+        p_ip_hash: ipHash,
+        p_usage_type: 'audio'
+      });
+      
+      if (!check?.allowed) {
+        return new Response(JSON.stringify({
+          error: 'Free audio limit reached. Create an account for more.',
+          limit_reached: true,
+          used: check?.used || 1,
+          limit: check?.limit || 1
+        }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }
 

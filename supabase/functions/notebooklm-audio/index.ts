@@ -25,22 +25,41 @@ serve(async (req) => {
   const googleApiKey = Deno.env.get("GOOGLE_GEMINI_API_KEY");
 
   try {
-    // Auth
+    // Auth check
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let isAnonymous = true;
+    let userId: string | null = null;
+
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && user) {
+        isAnonymous = false;
+        userId = user.id;
+      }
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Anonymous audio limit check
+    if (isAnonymous) {
+      const forwardedFor = req.headers.get('x-forwarded-for');
+      const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : 'unknown';
+      const ipHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
+      const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const { data: check } = await supabase.rpc('check_anonymous_usage', {
+        p_ip_hash: ipHash,
+        p_usage_type: 'audio'
+      });
+      
+      if (!check?.allowed) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Free audio limit reached. Create an account for more.',
+          limit_reached: true,
+          used: check?.used || 1,
+          limit: check?.limit || 1
+        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     const body: AudioOverviewRequest = await req.json();

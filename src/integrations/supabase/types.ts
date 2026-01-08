@@ -1110,6 +1110,7 @@ export type Database = {
         Row: {
           block_reason: string | null
           created_at: string | null
+          daily_audio_used: number | null
           daily_images_used: number | null
           daily_prompts_used: number | null
           daily_research_used: number | null
@@ -1121,6 +1122,7 @@ export type Database = {
           ip_hash: string
           is_blocked: boolean | null
           last_seen_at: string | null
+          max_daily_audio: number | null
           max_daily_images: number | null
           max_daily_prompts: number | null
           max_daily_research: number | null
@@ -1131,6 +1133,7 @@ export type Database = {
         Insert: {
           block_reason?: string | null
           created_at?: string | null
+          daily_audio_used?: number | null
           daily_images_used?: number | null
           daily_prompts_used?: number | null
           daily_research_used?: number | null
@@ -1142,6 +1145,7 @@ export type Database = {
           ip_hash: string
           is_blocked?: boolean | null
           last_seen_at?: string | null
+          max_daily_audio?: number | null
           max_daily_images?: number | null
           max_daily_prompts?: number | null
           max_daily_research?: number | null
@@ -1152,6 +1156,7 @@ export type Database = {
         Update: {
           block_reason?: string | null
           created_at?: string | null
+          daily_audio_used?: number | null
           daily_images_used?: number | null
           daily_prompts_used?: number | null
           daily_research_used?: number | null
@@ -1163,6 +1168,7 @@ export type Database = {
           ip_hash?: string
           is_blocked?: boolean | null
           last_seen_at?: string | null
+          max_daily_audio?: number | null
           max_daily_images?: number | null
           max_daily_prompts?: number | null
           max_daily_research?: number | null
