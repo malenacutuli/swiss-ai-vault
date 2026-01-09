@@ -35,3 +35,6 @@ export { FileViewerPanel } from '../FileViewerPanel';
 
 // Browser automation
 export { BrowserViewer } from '../BrowserViewer';
+export { BrowserPreview } from '../BrowserPreview';
+export { BrowserActionLog } from '../BrowserActionLog';
+export { BrowserPanel } from '../BrowserPanel';
