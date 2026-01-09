@@ -108,6 +108,7 @@ export type Database = {
           expires_at: string | null
           id: string
           metadata: Json | null
+          plan_id: string | null
           state: Json
           task_id: string
           user_id: string
@@ -118,6 +119,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           metadata?: Json | null
+          plan_id?: string | null
           state: Json
           task_id: string
           user_id: string
@@ -128,11 +130,19 @@ export type Database = {
           expires_at?: string | null
           id?: string
           metadata?: Json | null
+          plan_id?: string | null
           state?: Json
           task_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agent_checkpoints_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "agent_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agent_checkpoints_task_id_fkey"
             columns: ["task_id"]
@@ -261,6 +271,75 @@ export type Database = {
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "agent_task_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_files: {
+        Row: {
+          action_type: string | null
+          content: string | null
+          content_type: string | null
+          created_at: string | null
+          file_name: string
+          file_path: string
+          id: string
+          original_content: string | null
+          size_bytes: number | null
+          step_id: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+          task_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type?: string | null
+          content?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          original_content?: string | null
+          size_bytes?: number | null
+          step_id?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          task_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string | null
+          content?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          original_content?: string | null
+          size_bytes?: number | null
+          step_id?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          task_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_files_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "agent_task_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_files_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -1146,6 +1225,75 @@ export type Database = {
           },
           {
             foreignKeyName: "agent_tool_calls_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_tool_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          input_params: Json | null
+          output_result: Json | null
+          required_confirmation: boolean | null
+          status: string | null
+          step_id: string | null
+          task_id: string
+          tool_category: string
+          tool_name: string
+          user_confirmed: boolean | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          input_params?: Json | null
+          output_result?: Json | null
+          required_confirmation?: boolean | null
+          status?: string | null
+          step_id?: string | null
+          task_id: string
+          tool_category: string
+          tool_name: string
+          user_confirmed?: boolean | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          input_params?: Json | null
+          output_result?: Json | null
+          required_confirmation?: boolean | null
+          status?: string | null
+          step_id?: string | null
+          task_id?: string
+          tool_category?: string
+          tool_name?: string
+          user_confirmed?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tool_executions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "agent_task_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tool_executions_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "agent_tasks"
