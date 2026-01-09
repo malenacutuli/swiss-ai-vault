@@ -18,6 +18,12 @@ import { chatEncryption } from "@/lib/encryption";
 import { ChatLayout } from "@/layouts/ChatLayout";
 import { LabsLayout } from "@/layouts/LabsLayout";
 import { MarketingLayout } from "@/layouts/MarketingLayout";
+import { AdminLayout as AdminLayoutComponent } from "@/layouts/AdminLayout";
+
+// Admin Pages
+import AdminDashboardPage from "@/pages/admin/AdminDashboard";
+import UsersManagementPage from "@/pages/admin/UsersManagement";
+import AdminAuditLogsPage from "@/pages/admin/AdminAuditLogs";
 
 // Pages
 import Index from "./pages/Index";
@@ -202,6 +208,13 @@ const App = () => {
                   <Route index element={<Admin />} />
                   <Route path="audit-logs" element={<AuditLogs />} />
                   <Route path="compliance" element={<Compliance />} />
+                </Route>
+
+                {/* New Admin Dashboard */}
+                <Route path="/admin" element={<AdminRoute><AdminLayoutComponent /></AdminRoute>}>
+                  <Route index element={<AdminDashboardPage />} />
+                  <Route path="users" element={<UsersManagementPage />} />
+                  <Route path="audit-logs" element={<AdminAuditLogsPage />} />
                 </Route>
 
                 {/* Legacy dashboard routes - redirect to labs with toast */}
