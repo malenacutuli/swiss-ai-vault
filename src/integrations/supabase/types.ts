@@ -5118,6 +5118,83 @@ export type Database = {
         }
         Relationships: []
       }
+      sandbox_containers: {
+        Row: {
+          assigned_at: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          region: string
+          released_at: string | null
+          status: string | null
+          task_id: string | null
+          template: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          region: string
+          released_at?: string | null
+          status?: string | null
+          task_id?: string | null
+          template: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          region?: string
+          released_at?: string | null
+          status?: string | null
+          task_id?: string | null
+          template?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sandbox_containers_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sandbox_pool_metrics: {
+        Row: {
+          id: string
+          metric_type: string
+          recorded_at: string | null
+          region: string
+          template: string
+          value: number
+        }
+        Insert: {
+          id?: string
+          metric_type: string
+          recorded_at?: string | null
+          region: string
+          template: string
+          value: number
+        }
+        Update: {
+          id?: string
+          metric_type?: string
+          recorded_at?: string | null
+          region?: string
+          template?: string
+          value?: number
+        }
+        Relationships: []
+      }
       scheduled_task_runs: {
         Row: {
           agent_task_id: string | null
@@ -7016,6 +7093,7 @@ export type Database = {
       }
       cleanup_api_key_usage: { Args: never; Returns: number }
       cleanup_expired_browser_sessions: { Args: never; Returns: undefined }
+      cleanup_expired_containers: { Args: never; Returns: number }
       cleanup_expired_messages: { Args: never; Returns: number }
       cleanup_old_checkpoints: { Args: never; Returns: undefined }
       cleanup_stale_agents: { Args: never; Returns: number }
@@ -7139,6 +7217,16 @@ export type Database = {
           avatar_url: string
           display_name: string
           id: string
+        }[]
+      }
+      get_pool_stats: {
+        Args: { p_region?: string }
+        Returns: {
+          assigned_count: number
+          expired_count: number
+          template: string
+          total_count: number
+          warm_count: number
         }[]
       }
       get_research_quota: { Args: never; Returns: Json }
