@@ -495,27 +495,69 @@ async function executeModalTask(
   // Step 3-4: Call Modal
   await updateStep(3, "running");
 
+  // Build Modal request with full ExecuteRequest interface
+  const modalRequest: Record<string, any> = {
+    task_id: taskId,
+    task_type: taskType,
+    prompt: prompt,
+    user_tier: "pro", // Default tier
+    memory_context: memoryContext,
+    user_id: userId,
+  };
+
+  // Add code execution fields if present in memory context
+  if (memoryContext?.code) {
+    modalRequest.code = memoryContext.code;
+    modalRequest.language = memoryContext.language || "python";
+  }
+
+  console.log('[Modal] Sending request:', { task_id: taskId, task_type: taskType, hasCode: !!modalRequest.code });
+
   const modalResponse = await fetch(MODAL_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      task_type: taskType,
-      prompt: prompt,
-      memory_context: memoryContext,
-      user_id: userId,
-      task_id: taskId,
-    }),
+    body: JSON.stringify(modalRequest),
   });
 
   if (!modalResponse.ok) {
-    throw new Error(`Modal returned ${modalResponse.status}`);
+    const errorText = await modalResponse.text();
+    console.error('[Modal] HTTP error:', modalResponse.status, errorText);
+    
+    // Mark task as failed
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "failed",
+        error_message: `Modal service error: ${modalResponse.status} - ${errorText.slice(0, 200)}`,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+    
+    throw new Error(`Modal returned ${modalResponse.status}: ${errorText}`);
   }
 
   await updateStep(3, "completed");
   await updateStep(4, "running");
 
   const result = await modalResponse.json();
-  console.log('[Modal] Response keys:', Object.keys(result));
+  console.log('[Modal] Response:', { keys: Object.keys(result), success: result.success, hasError: !!result.error });
+
+  // Check for Modal-level errors in response body
+  if (result.success === false || result.error) {
+    const errorMsg = result.error || result.message || 'Unknown Modal error';
+    console.error('[Modal] Task error:', errorMsg);
+    
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "failed",
+        error_message: errorMsg,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+    
+    throw new Error(`Modal task failed: ${errorMsg}`);
+  }
 
   await updateStep(4, "completed");
 
@@ -589,6 +631,18 @@ async function executeModalTask(
       created_at: new Date().toISOString(),
     });
     console.log('[Modal] Output saved:', fileName);
+  } else {
+    // No output generated - mark as failed
+    console.error('[Modal] No output generated from task');
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "failed",
+        error_message: "No output was generated. The task completed but produced no downloadable file.",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+    return; // Exit early - don't mark as completed
   }
 
   await updateStep(6, "completed");
