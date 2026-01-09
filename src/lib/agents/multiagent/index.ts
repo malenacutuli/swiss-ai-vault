@@ -62,3 +62,23 @@ export {
   ReviewerAgent,
   createSpecializedAgent,
 } from './SpecializedAgents';
+
+// Conflict Resolution
+export {
+  type VectorClock,
+  type ConflictEvent,
+  type ConflictContender,
+  type ConflictType,
+  type ResolutionResult,
+  ConflictResolver,
+  createConflictResolver,
+} from './ConflictResolver';
+
+// Deadlock Prevention
+export {
+  type LockInfo,
+  type WaitForEdge,
+  type DeadlockResult,
+  DeadlockPrevention,
+  createDeadlockPrevention,
+} from './DeadlockPrevention';
