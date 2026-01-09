@@ -85,7 +85,7 @@ export function AdminLayout() {
             <SwissFlag className="h-8 w-8" />
             {!collapsed && (
               <div className="flex flex-col">
-                <span className="font-serif italic text-lg text-gray-900">
+                <span className="font-serif text-lg text-gray-900">
                   Swiss Br<span className="text-red-600">AI</span>n
                 </span>
                 <span className="text-xs text-gray-500 -mt-1">Admin Dashboard</span>

@@ -39,7 +39,7 @@ export const SWISS_LUXURY_COLORS = {
 };
 
 export const SWISS_TYPOGRAPHY = {
-  // Playfair Display italic for headings
+  // Playfair Display for headings
   fontSerif: '"Playfair Display", Georgia, serif',
   // Inter for body text
   fontSans: '"Inter", system-ui, sans-serif',

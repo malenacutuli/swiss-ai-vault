@@ -221,7 +221,7 @@ function TextPart({ text }: { text: string }) {
         // Italic
         processed = processed.replace(
           /\*([^*]+)\*/g,
-          '<em class="italic">$1</em>'
+          '<em class="font-medium">$1</em>'
         );
         
         if (processed !== part) {

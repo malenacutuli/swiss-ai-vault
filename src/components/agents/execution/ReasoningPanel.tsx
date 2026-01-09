@@ -263,7 +263,7 @@ export const ReasoningPanel: React.FC<Props> = ({ taskId, isExpanded = true, onT
                         </a>
                       )}
                       {source.source_snippet && (
-                        <p className="mt-2 text-xs text-muted-foreground italic">
+                        <p className="mt-2 text-xs text-muted-foreground">
                           "{source.source_snippet.substring(0, 200)}..."
                         </p>
                       )}

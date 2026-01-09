@@ -101,7 +101,7 @@ export default function StatusPage() {
               Swiss Br<span className="text-red-600">AI</span>n
             </span>
           </Link>
-          <h1 className="font-['Playfair_Display'] italic text-4xl text-gray-900 mb-3">
+          <h1 className="font-['Playfair_Display'] text-4xl text-gray-900 mb-3">
             System Status
           </h1>
           <p className="text-gray-600">
@@ -143,7 +143,7 @@ export default function StatusPage() {
         {/* Services list */}
         <div className="bg-white rounded-xl border border-gray-200 mb-8 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#F8F9FA]">
-            <h2 className="font-['Playfair_Display'] italic text-xl text-gray-900">
+            <h2 className="font-['Playfair_Display'] text-xl text-gray-900">
               Services
             </h2>
             <Button

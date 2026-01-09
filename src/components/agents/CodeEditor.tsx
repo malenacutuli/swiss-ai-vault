@@ -13,7 +13,7 @@ const SWISS_LIGHT_THEME: MonacoThemeData = {
   base: 'vs',
   inherit: true,
   rules: [
-    { token: 'comment', foreground: '6b7280', fontStyle: 'italic' },
+    { token: 'comment', foreground: '6b7280' },
     { token: 'keyword', foreground: '1D4E5F', fontStyle: 'bold' },
     { token: 'string', foreground: '722F37' },
     { token: 'number', foreground: 'B8860B' },
@@ -46,7 +46,7 @@ const SWISS_DARK_THEME: MonacoThemeData = {
   base: 'vs-dark',
   inherit: true,
   rules: [
-    { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
+    { token: 'comment', foreground: '6A9955' },
     { token: 'keyword', foreground: '4EC9B0', fontStyle: 'bold' },
     { token: 'string', foreground: 'CE9178' },
     { token: 'number', foreground: 'B5CEA8' },

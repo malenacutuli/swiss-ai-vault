@@ -207,7 +207,7 @@ export default function AdminAuditLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif italic text-3xl text-gray-900">Audit Logs</h1>
+          <h1 className="font-serif text-3xl text-gray-900">Audit Logs</h1>
           <p className="text-gray-500 mt-1">FINMA-compliant activity tracking</p>
         </div>
         <Button onClick={handleExportFINMA} className="gap-2 bg-[#1D4E5F] hover:bg-[#1D4E5F]/90">

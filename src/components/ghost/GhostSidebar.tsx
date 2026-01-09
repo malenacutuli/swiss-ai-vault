@@ -577,7 +577,7 @@ export function GhostSidebar({
             {folderChats.length > 0 ? (
               folderChats.map(conv => renderChatItem(conv, true))
             ) : (
-              <p className="text-xs text-muted-foreground italic py-1 px-6">{t('ghost.sidebar.empty')}</p>
+              <p className="text-xs text-muted-foreground py-1 px-6">{t('ghost.sidebar.empty')}</p>
             )}
           </div>
         )}
