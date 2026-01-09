@@ -1123,6 +1123,47 @@ export type Database = {
           },
         ]
       }
+      agent_task_outputs: {
+        Row: {
+          content: Json | null
+          created_at: string
+          download_url: string | null
+          file_path: string | null
+          id: string
+          output_type: string
+          storage_region: string | null
+          task_id: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          download_url?: string | null
+          file_path?: string | null
+          id?: string
+          output_type?: string
+          storage_region?: string | null
+          task_id: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          download_url?: string | null
+          file_path?: string | null
+          id?: string
+          output_type?: string
+          storage_region?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_task_outputs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_task_steps: {
         Row: {
           completed_at: string | null
@@ -1219,6 +1260,7 @@ export type Database = {
           current_step: number | null
           duration_ms: number | null
           error_message: string | null
+          execution_region: string | null
           id: string
           is_shared: boolean | null
           knowledge_sources: Json | null
@@ -1260,6 +1302,7 @@ export type Database = {
           current_step?: number | null
           duration_ms?: number | null
           error_message?: string | null
+          execution_region?: string | null
           id?: string
           is_shared?: boolean | null
           knowledge_sources?: Json | null
@@ -1301,6 +1344,7 @@ export type Database = {
           current_step?: number | null
           duration_ms?: number | null
           error_message?: string | null
+          execution_region?: string | null
           id?: string
           is_shared?: boolean | null
           knowledge_sources?: Json | null
@@ -5281,6 +5325,33 @@ export type Database = {
           },
         ]
       }
+      sandbox_metrics: {
+        Row: {
+          id: string
+          metric_name: string
+          metric_value: number
+          recorded_at: string
+          region: string | null
+          template: string | null
+        }
+        Insert: {
+          id?: string
+          metric_name: string
+          metric_value: number
+          recorded_at?: string
+          region?: string | null
+          template?: string | null
+        }
+        Update: {
+          id?: string
+          metric_name?: string
+          metric_value?: number
+          recorded_at?: string
+          region?: string | null
+          template?: string | null
+        }
+        Relationships: []
+      }
       sandbox_pool_metrics: {
         Row: {
           id: string
@@ -5884,6 +5955,36 @@ export type Database = {
           name?: string
           price_monthly_cents?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          alert_type: string
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          severity: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          alert_type: string
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          severity?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          alert_type?: string
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          severity?: string
         }
         Relationships: []
       }
@@ -7203,6 +7304,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      claim_warm_container: {
+        Args: { p_region?: string; p_template: string }
+        Returns: string
       }
       cleanup_api_key_usage: { Args: never; Returns: number }
       cleanup_expired_browser_sessions: { Args: never; Returns: undefined }
