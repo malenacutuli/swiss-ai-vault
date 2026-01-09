@@ -32,3 +32,6 @@ export { AgentTerminal } from '../AgentTerminal';
 export { CodeEditor, detectLanguage } from '../CodeEditor';
 export { FileBrowser, buildFileTree } from '../FileBrowser';
 export { FileViewerPanel } from '../FileViewerPanel';
+
+// Browser automation
+export { BrowserViewer } from '../BrowserViewer';
