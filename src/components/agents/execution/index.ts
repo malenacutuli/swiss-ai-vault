@@ -27,3 +27,8 @@ export { CheckpointPanel } from '../CheckpointPanel';
 
 // Terminal component
 export { AgentTerminal } from '../AgentTerminal';
+
+// Code editor and file viewer
+export { CodeEditor, detectLanguage } from '../CodeEditor';
+export { FileBrowser, buildFileTree } from '../FileBrowser';
+export { FileViewerPanel } from '../FileViewerPanel';
