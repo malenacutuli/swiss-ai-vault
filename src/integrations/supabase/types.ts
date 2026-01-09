@@ -101,6 +101,47 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_checkpoints: {
+        Row: {
+          checkpoint_type: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          state: Json
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          checkpoint_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          state: Json
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          checkpoint_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          state?: Json
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_checkpoints_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_communications: {
         Row: {
           attachments: Json | null
@@ -6662,6 +6703,7 @@ export type Database = {
       }
       cleanup_api_key_usage: { Args: never; Returns: number }
       cleanup_expired_messages: { Args: never; Returns: number }
+      cleanup_old_checkpoints: { Args: never; Returns: undefined }
       clear_conversation_documents: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: number
