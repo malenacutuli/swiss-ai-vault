@@ -409,6 +409,53 @@ export type Database = {
           },
         ]
       }
+      agent_instances: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          current_subtask: string | null
+          id: string
+          last_heartbeat: string | null
+          metrics: Json | null
+          role: string
+          status: string | null
+          task_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          current_subtask?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          metrics?: Json | null
+          role: string
+          status?: string | null
+          task_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          current_subtask?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          metrics?: Json | null
+          role?: string
+          status?: string | null
+          task_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_instances_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_memory_context: {
         Row: {
           context_content: string
@@ -443,6 +490,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agent_memory_context_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_messages: {
+        Row: {
+          correlation_id: string | null
+          created_at: string | null
+          id: string
+          message_type: string
+          payload: Json | null
+          priority: string | null
+          processed_at: string | null
+          recipient: string | null
+          recipient_role: string | null
+          sender: string
+          sender_role: string | null
+          task_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_type: string
+          payload?: Json | null
+          priority?: string | null
+          processed_at?: string | null
+          recipient?: string | null
+          recipient_role?: string | null
+          sender: string
+          sender_role?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_type?: string
+          payload?: Json | null
+          priority?: string | null
+          processed_at?: string | null
+          recipient?: string | null
+          recipient_role?: string | null
+          sender?: string
+          sender_role?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "agent_tasks"
@@ -6918,6 +7018,7 @@ export type Database = {
       cleanup_expired_browser_sessions: { Args: never; Returns: undefined }
       cleanup_expired_messages: { Args: never; Returns: number }
       cleanup_old_checkpoints: { Args: never; Returns: undefined }
+      cleanup_stale_agents: { Args: never; Returns: number }
       clear_conversation_documents: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: number
