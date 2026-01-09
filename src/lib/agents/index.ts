@@ -46,10 +46,24 @@ export type {
   ValidationResult,
   ValidationError,
   ValidationWarning,
-  AgentPlan,
-  PlanStep,
+  AgentPlan as SafetyAgentPlan,
+  PlanStep as SafetyPlanStep,
   SafetyConfig,
   ConfirmationRequest,
   ConfirmationResult,
   SanitizedOutput,
 } from './safety';
+
+// Planning system exports
+export {
+  TodoParser,
+  todoParser,
+} from './planning';
+
+export type {
+  TodoPlan,
+  Phase,
+  Task,
+  TaskStatus,
+  PhaseStatus,
+} from './planning';
