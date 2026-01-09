@@ -1,34 +1,23 @@
-// Swiss Luxury Design System
-// Inspired by Patek Philippe, Audemars Piguet, Vacheron Constantin
+// Swiss BrAIn Design System
+// Light theme only, sovereignTeal primary, clean minimal aesthetic
 
 export const SWISS_LUXURY = {
   colors: {
-    // Primary palette (hex for reference, use CSS vars in components)
-    swissNavy: '#1A365D',
-    midnightSapphire: '#0F4C81',
-    imperialBurgundy: '#722F37',
+    // Primary: Sovereign Teal (#1D4E5F)
+    primary: '#1D4E5F',
     sovereignTeal: '#1D4E5F',
-
-    // Light mode neutrals
+    
+    // NO dark backgrounds, NO gold (#D4AF37)
+    
+    // Light mode neutrals ONLY
     light: {
-      bg: '#FDFBF7',
-      surface: '#F8F6F1',
-      surfaceHover: '#F0EDE6',
-      border: '#E5E0D5',
+      bg: '#FFFFFF',
+      surface: '#F8F9FA',
+      surfaceHover: '#F1F3F5',
+      border: '#E5E7EB',
       text: '#1A1A1A',
       textMuted: '#5C5C5C',
       textSubtle: '#8C8C8C',
-    },
-
-    // Dark mode neutrals
-    dark: {
-      bg: '#0A0F1A',
-      surface: '#111827',
-      surfaceHover: '#1F2937',
-      border: '#2D3748',
-      text: '#F7F7F7',
-      textMuted: '#A0AEC0',
-      textSubtle: '#718096',
     },
 
     // Semantic
@@ -51,64 +40,82 @@ export const SWISS_LUXURY = {
   },
 
   typography: {
-    serif: '"Playfair Display", serif',
-    sans: '"Inter", sans-serif',
+    // Playfair Display italic for headings
+    serif: '"Playfair Display", Georgia, serif',
+    // Inter for body text
+    sans: '"Inter", system-ui, sans-serif',
+    // JetBrains Mono for code
     mono: '"JetBrains Mono", monospace',
+  },
+
+  // Icon settings
+  icons: {
+    strokeWidth: 1.15,
+    // NO emojis - Lucide only
   },
 
   spacing: {
     xs: '0.25rem',    // 4px
     sm: '0.5rem',     // 8px
     md: '1rem',       // 16px
-    lg: '1.5rem',     // 24px
+    lg: '1.5rem',     // 24px - card padding
     xl: '2rem',       // 32px
     '2xl': '3rem',    // 48px
     '3xl': '4rem',    // 64px
   },
 
+  // NO gradients, NO glassmorphism
   shadows: {
-    subtle: '0 2px 8px rgba(0, 0, 0, 0.04)',
-    card: '0 4px 16px rgba(0, 0, 0, 0.06)',
-    elevated: '0 8px 24px rgba(0, 0, 0, 0.08)',
-    luxury: '0 2px 16px rgba(26, 54, 93, 0.08)',
+    subtle: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    card: '0 1px 3px rgba(0, 0, 0, 0.08)',
+    elevated: '0 4px 6px rgba(0, 0, 0, 0.1)',
   },
 
   transitions: {
     default: 'all 200ms ease-in-out',
-    fast: 'all 150ms ease-in-out',
-    slow: 'all 300ms ease-in-out',
   },
 
   borderRadius: {
-    none: '0',
     sm: '4px',
     md: '6px',
-    lg: '8px',
-    full: '9999px',
+    lg: '8px',  // max radius
   },
 } as const;
 
-// Design principles
+// Design principles - STRICT RULES
 export const DESIGN_PRINCIPLES = {
-  // Generous white space
-  minCardPadding: '24px',
+  // Theme
+  theme: 'light',  // LIGHT EVERYWHERE
   
-  // Subtle shadows
-  defaultShadow: SWISS_LUXURY.shadows.subtle,
+  // Primary color
+  primary: '#1D4E5F',  // sovereignTeal
   
-  // Smooth transitions
-  transitionTiming: 'ease-in-out',
+  // Backgrounds
+  backgrounds: {
+    white: '#FFFFFF',
+    lightGray: '#F8F9FA',
+  },
+  
+  // Borders
+  borderColor: '#E5E7EB',  // gray-200
+  
+  // Card padding
+  cardPadding: '24px',
+  
+  // Border radius max
+  maxBorderRadius: '8px',  // rounded-lg
+  
+  // Transitions
   transitionDuration: '200ms',
   
-  // Subtle border radius
-  maxBorderRadius: '8px',
+  // Icons
+  iconStrokeWidth: 1.15,  // Lucide only, NO emojis
   
-  // Typography rules
-  headingTracking: '0.05em',
-  capsTracking: '0.1em',
-  
-  // No bright colors, no gradients, no emojis
-  // Use elegant Lucide icons only
+  // FORBIDDEN
+  noGradients: true,
+  noGlassmorphism: true,
+  noDarkBackgrounds: true,
+  noGold: true,  // NO #D4AF37
 } as const;
 
 // Badge variant mapping for model tags
