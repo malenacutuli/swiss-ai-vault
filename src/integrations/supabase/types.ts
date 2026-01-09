@@ -101,6 +101,71 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_browser_sessions: {
+        Row: {
+          cookies: Json | null
+          created_at: string | null
+          current_url: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          local_storage: Json | null
+          session_id: string
+          session_storage: Json | null
+          storage_state: Json
+          task_id: string | null
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+          viewport_height: number | null
+          viewport_width: number | null
+        }
+        Insert: {
+          cookies?: Json | null
+          created_at?: string | null
+          current_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          local_storage?: Json | null
+          session_id: string
+          session_storage?: Json | null
+          storage_state?: Json
+          task_id?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+          viewport_height?: number | null
+          viewport_width?: number | null
+        }
+        Update: {
+          cookies?: Json | null
+          created_at?: string | null
+          current_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          local_storage?: Json | null
+          session_id?: string
+          session_storage?: Json | null
+          storage_state?: Json
+          task_id?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+          viewport_height?: number | null
+          viewport_width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_browser_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_checkpoints: {
         Row: {
           checkpoint_type: string
@@ -6850,6 +6915,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_api_key_usage: { Args: never; Returns: number }
+      cleanup_expired_browser_sessions: { Args: never; Returns: undefined }
       cleanup_expired_messages: { Args: never; Returns: number }
       cleanup_old_checkpoints: { Args: never; Returns: undefined }
       clear_conversation_documents: {
