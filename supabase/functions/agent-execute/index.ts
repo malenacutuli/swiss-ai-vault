@@ -18,6 +18,25 @@ interface TaskRouting {
 // Swiss API Endpoint for code execution (Swiss-hosted Kubernetes)
 const SWISS_API_ENDPOINT = Deno.env.get("SWISS_API_ENDPOINT") || "http://api.swissbrain.ai";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SWISS API HEALTH CHECK
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function checkSwissAPIHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(`${SWISS_API_ENDPOINT}/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+    const data = await response.json();
+    console.log('[SwissAPI] Health check:', data);
+    return data.status === 'healthy';
+  } catch (error) {
+    console.error('[SwissAPI] Health check failed:', error);
+    return false;
+  }
+}
+
 const TASK_ROUTING: Record<string, TaskRouting> = {
   // Modal tasks (document generation)
   slides: {
@@ -745,6 +764,20 @@ async function executeSwissAPITask(
   // Step 3: Execute on Swiss API
   await updateStep(3, "running");
 
+  // Check Swiss API health before execution
+  const isHealthy = await checkSwissAPIHealth();
+  if (!isHealthy) {
+    console.warn('[SwissAPI] Health check failed, proceeding anyway...');
+    // Log warning but continue - the API might still work
+    await supabase.from("agent_task_logs").insert({
+      task_id: taskId,
+      log_type: 'warning',
+      content: 'Swiss API health check failed, attempting execution anyway',
+      metadata: { region: 'ch-gva-2', endpoint: SWISS_API_ENDPOINT },
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   // Determine language from task type
   const language = taskType === 'shell' ? 'shell' : 'python';
 
@@ -854,6 +887,20 @@ ${output}
     console.log('[SwissAPI] Output saved:', fileName);
   }
 
+  // Add execution log with Swiss region metadata
+  await supabase.from("agent_task_logs").insert({
+    task_id: taskId,
+    log_type: result.success ? 'output' : 'error',
+    content: result.success ? result.output : result.error,
+    metadata: { 
+      duration_ms: result.duration_ms, 
+      region: 'ch-gva-2',
+      language: language,
+      endpoint: SWISS_API_ENDPOINT,
+    },
+    timestamp: new Date().toISOString(),
+  });
+
   await updateStep(4, "completed");
 
   // Mark task complete
@@ -870,6 +917,7 @@ ${output}
         output_type: 'markdown',
         file_name: fileName,
         summary: `Code executed successfully in ${result.duration_ms || 0}ms`,
+        region: 'ch-gva-2',
       },
       completed_at: new Date().toISOString(),
     })
