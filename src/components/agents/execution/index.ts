@@ -20,3 +20,7 @@ export { ReasoningPanel } from './ReasoningPanel';
 // Planning components
 export { PlanVisualizer } from '../PlanVisualizer';
 export { PlanPanel } from '../PlanPanel';
+
+// Checkpoint components
+export { CheckpointList } from '../CheckpointList';
+export { CheckpointPanel } from '../CheckpointPanel';

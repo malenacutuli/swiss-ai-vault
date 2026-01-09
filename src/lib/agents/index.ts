@@ -67,3 +67,20 @@ export type {
   TaskStatus,
   PhaseStatus,
 } from './planning';
+
+// Checkpoint system exports
+export {
+  CheckpointManager,
+  checkpointManager,
+} from './checkpoints';
+
+export type {
+  Checkpoint,
+  CheckpointState,
+  CheckpointType,
+  CheckpointMetadata,
+  CheckpointSummary,
+  FileState,
+  ToolExecution,
+  AgentContextState,
+} from './checkpoints';
