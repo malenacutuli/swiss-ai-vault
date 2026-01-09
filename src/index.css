@@ -1,5 +1,5 @@
 /* === IMPORTS MUST BE FIRST === */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap');
 @import './styles/swiss-luxury.css';
 
 /* === THEN TAILWIND === */
@@ -9,39 +9,42 @@
 
 @layer base {
   :root {
-    /* SwissVault Agents - Light Theme */
-    /* Clean whites */
+    /* Swiss BrAIn - Light Theme ONLY */
+    /* Pure white backgrounds */
     --background: 0 0% 100%;
     --foreground: 220 13% 18%;
 
-    /* Secondary/tertiary backgrounds */
-    --card: 210 20% 98%;
+    /* Light gray for cards (#F8F9FA) */
+    --card: 210 17% 98%;
     --card-foreground: 220 13% 18%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 18%;
 
-    /* Sovereign Teal - PRIMARY ACCENT (#1D4E5F) */
+    /* Sovereign Teal - PRIMARY (#1D4E5F) */
     --primary: 193 53% 24%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 98%;
+    /* Light gray secondary (#F8F9FA) */
+    --secondary: 210 17% 98%;
     --secondary-foreground: 220 13% 18%;
 
-    --muted: 220 14% 96%;
+    --muted: 210 17% 98%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 193 40% 95%;
-    --accent-foreground: 193 53% 20%;
+    /* Teal accent tint */
+    --accent: 193 30% 96%;
+    --accent-foreground: 193 53% 24%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    /* Borders (#E5E7EB = gray-200) */
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
     --ring: 193 53% 24%;
 
+    /* 8px max radius */
     --radius: 0.5rem;
 
     /* Semantic colors */
@@ -77,12 +80,12 @@
     --badge-reasoning: 255 50% 60%;
     --badge-audio: 142 71% 40%;
 
-    /* Subtle gradients */
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 99%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(193 53% 24%) 0%, hsl(193 53% 20%) 100%);
-    --gradient-swiss: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
-    --gradient-luxury: linear-gradient(180deg, hsl(193 53% 24% / 0.02) 0%, hsl(193 53% 20% / 0.02) 100%);
+    /* NO GRADIENTS - solid colors only */
+    --gradient-hero: none;
+    --gradient-card: none;
+    --gradient-accent: none;
+    --gradient-swiss: none;
+    --gradient-luxury: none;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -120,102 +123,82 @@
     --section-gap: 32px;
   }
 
+  /* DARK THEME DISABLED - Light theme everywhere */
+  /* .dark class inherits :root values */
   .dark {
-    /* SwissVault Agents - Dark Theme */
-    --background: 220 17% 7%;
-    --foreground: 220 14% 96%;
-
-    --card: 220 17% 10%;
-    --card-foreground: 220 14% 96%;
-
-    --popover: 220 17% 10%;
-    --popover-foreground: 220 14% 96%;
-
-    /* Sovereign Teal - lighter for dark mode */
-    --primary: 193 53% 35%;
+    /* Keep same as light theme */
+    --background: 0 0% 100%;
+    --foreground: 220 13% 18%;
+    --card: 210 17% 98%;
+    --card-foreground: 220 13% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 18%;
+    --primary: 193 53% 24%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 17% 14%;
-    --secondary-foreground: 220 14% 96%;
-
-    --muted: 220 12% 16%;
-    --muted-foreground: 220 9% 60%;
-
-    --accent: 193 30% 18%;
-    --accent-foreground: 193 53% 70%;
-
-    --destructive: 0 62% 50%;
+    --secondary: 210 17% 98%;
+    --secondary-foreground: 220 13% 18%;
+    --muted: 210 17% 98%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 193 30% 96%;
+    --accent-foreground: 193 53% 24%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 220 12% 18%;
-    --input: 220 12% 18%;
-    --ring: 193 53% 35%;
-
-    /* Semantic colors */
-    --success: 142 71% 35%;
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 193 53% 24%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    --info: 199 89% 40%;
+    --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-    --warning: 45 93% 40%;
+    --warning: 45 93% 47%;
     --warning-foreground: 0 0% 100%;
-    --error: 0 62% 50%;
+    --error: 0 84% 60%;
     --error-foreground: 0 0% 100%;
-
-    /* Brand colors */
-    --swiss-navy: 193 53% 35%;
-    --midnight-sapphire: 193 53% 28%;
-    --swiss-sapphire: 193 53% 35%;
-    --imperial-burgundy: 355 56% 40%;
-    --sovereign-teal: 193 53% 35%;
-
-    /* Ghost accent */
-    --ghost-accent: #245A6D;
-    --ghost-accent-hover: #2E6B80;
-    --ghost-accent-hsl: 193 53% 35%;
-
-    /* Badge colors */
-    --badge-private: 193 53% 35%;
-    --badge-default: 142 71% 35%;
-    --badge-new: 355 56% 40%;
-    --badge-pay-per-use: 45 93% 40%;
-    --badge-anonymized: 199 89% 40%;
-    --badge-beta: 270 50% 55%;
-    --badge-vision: 185 50% 40%;
-    --badge-reasoning: 255 50% 55%;
-    --badge-audio: 142 71% 32%;
-
-    /* Gradients */
-    --gradient-hero: linear-gradient(180deg, hsl(220 17% 7%) 0%, hsl(220 17% 5%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(220 17% 12%) 0%, hsl(220 17% 9%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(193 53% 35%) 0%, hsl(193 53% 28%) 100%);
-    --gradient-swiss: linear-gradient(180deg, hsl(220 17% 10%) 0%, hsl(220 17% 7%) 100%);
-    --gradient-luxury: linear-gradient(180deg, hsl(193 53% 35% / 0.05) 0%, hsl(193 53% 28% / 0.05) 100%);
-    
-    /* Shadows */
-    --shadow-glow: 0 0 60px hsl(193 53% 35% / 0.15);
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.25);
-    --shadow-elevated: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
-    --shadow-luxury: 0 2px 8px hsl(193 53% 35% / 0.08);
-
-    /* Terminal */
+    --swiss-navy: 193 53% 24%;
+    --midnight-sapphire: 193 53% 20%;
+    --swiss-sapphire: 193 53% 24%;
+    --imperial-burgundy: 355 56% 33%;
+    --sovereign-teal: 193 53% 24%;
+    --ghost-accent: #1D4E5F;
+    --ghost-accent-hover: #245A6D;
+    --ghost-accent-hsl: 193 53% 24%;
+    --badge-private: 193 53% 24%;
+    --badge-default: 142 71% 45%;
+    --badge-new: 355 56% 33%;
+    --badge-pay-per-use: 45 93% 47%;
+    --badge-anonymized: 199 89% 48%;
+    --badge-beta: 270 50% 60%;
+    --badge-vision: 185 50% 45%;
+    --badge-reasoning: 255 50% 60%;
+    --badge-audio: 142 71% 40%;
+    --gradient-hero: none;
+    --gradient-card: none;
+    --gradient-accent: none;
+    --gradient-swiss: none;
+    --gradient-luxury: none;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --shadow-glow: 0 0 40px hsl(193 53% 24% / 0.08);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.05);
+    --shadow-elevated: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-luxury: 0 1px 3px hsl(193 53% 24% / 0.04);
     --terminal-bg: 220 13% 18%;
     --terminal-text: 220 14% 96%;
-    --terminal-prompt: 142 69% 58%;
-    --terminal-command: 217 91% 70%;
+    --terminal-prompt: 142 71% 45%;
+    --terminal-command: 217 91% 60%;
     --terminal-error: 0 91% 71%;
     --terminal-success: 142 69% 58%;
-    --terminal-info: 199 89% 60%;
+    --terminal-info: 199 89% 48%;
     --terminal-warning: 45 93% 58%;
-
-    /* Sidebar */
-    --sidebar-background: 220 17% 7%;
-    --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 193 53% 35%;
+    --sidebar-background: 210 17% 98%;
+    --sidebar-foreground: 220 13% 18%;
+    --sidebar-primary: 193 53% 24%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 12% 14%;
-    --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 220 12% 18%;
-    --sidebar-ring: 193 53% 35%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 220 13% 18%;
+    --sidebar-border: 220 13% 90%;
+    --sidebar-ring: 193 53% 24%;
   }
 
   @keyframes progress {
@@ -241,8 +224,8 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    @apply font-medium tracking-tight;
+    font-family: 'Playfair Display', Georgia, serif;
+    @apply font-normal italic tracking-tight;
   }
 
   h1 {
