@@ -14,8 +14,8 @@ export const SWISS_LUXURY_COLORS = {
     border: '#E5E7EB',           // gray-200
     borderSubtle: '#F3F4F6',     // gray-100
     text: '#1A1A1A',             // Near black
-    textSecondary: '#5C5C5C',    // Medium gray
-    textTertiary: '#8C8C8C',     // Light gray
+    textSecondary: '#1D4E5F',    // Teal (was grey)
+    textTertiary: '#3A7A8C',     // Lighter teal (was grey)
   },
   
   // Semantic
@@ -92,8 +92,8 @@ export const SWISS_HSL = {
     surfaceHover: '210 14% 96%',
     border: '220 13% 90%',
     text: '0 0% 10%',
-    textSecondary: '0 0% 36%',
-    textTertiary: '0 0% 55%',
+    textSecondary: '193 53% 34%',
+    textTertiary: '193 40% 45%',
   },
   
   // Semantic
