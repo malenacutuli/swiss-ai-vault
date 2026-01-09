@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface TaskLog {
   id: string;
@@ -8,6 +9,7 @@ export interface TaskLog {
   log_type: string | null;
   sequence_number: number | null;
   timestamp: string | null;
+  metadata?: Json | null;
 }
 
 interface UseTaskLogsOptions {

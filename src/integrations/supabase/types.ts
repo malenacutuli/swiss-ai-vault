@@ -693,6 +693,7 @@ export type Database = {
           content: string
           id: string
           log_type: string | null
+          metadata: Json | null
           sequence_number: number | null
           task_id: string | null
           timestamp: string | null
@@ -701,6 +702,7 @@ export type Database = {
           content: string
           id?: string
           log_type?: string | null
+          metadata?: Json | null
           sequence_number?: number | null
           task_id?: string | null
           timestamp?: string | null
@@ -709,6 +711,7 @@ export type Database = {
           content?: string
           id?: string
           log_type?: string | null
+          metadata?: Json | null
           sequence_number?: number | null
           task_id?: string | null
           timestamp?: string | null
