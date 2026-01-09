@@ -161,7 +161,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif italic text-3xl text-gray-900">Dashboard</h1>
+          <h1 className="font-serif text-3xl text-gray-900">Dashboard</h1>
           <p className="text-gray-500 mt-1">System overview and metrics</p>
         </div>
         <Button 

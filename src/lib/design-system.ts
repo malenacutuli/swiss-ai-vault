@@ -40,7 +40,7 @@ export const SWISS_LUXURY = {
   },
 
   typography: {
-    // Playfair Display italic for headings
+    // Playfair Display for headings
     serif: '"Playfair Display", Georgia, serif',
     // Inter for body text
     sans: '"Inter", system-ui, sans-serif',

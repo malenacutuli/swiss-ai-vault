@@ -57,7 +57,7 @@ export default function LaunchPage() {
             Now Available
           </div>
 
-          <h1 className="font-['Playfair_Display'] italic text-5xl md:text-6xl text-gray-900 mb-6">
+          <h1 className="font-['Playfair_Display'] text-5xl md:text-6xl text-gray-900 mb-6">
             Swiss Br<span className="text-red-600">AI</span>n is Live
           </h1>
 
@@ -92,7 +92,7 @@ export default function LaunchPage() {
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="font-['Playfair_Display'] italic text-3xl text-gray-900 mb-4">
+            <h2 className="font-['Playfair_Display'] text-3xl text-gray-900 mb-4">
               Why Swiss Br<span className="text-red-600">AI</span>n?
             </h2>
             <p className="text-gray-600 max-w-xl mx-auto">

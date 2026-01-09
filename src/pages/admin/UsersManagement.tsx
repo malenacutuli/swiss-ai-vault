@@ -141,7 +141,7 @@ export default function UsersManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif italic text-3xl text-gray-900">Users</h1>
+          <h1 className="font-serif text-3xl text-gray-900">Users</h1>
           <p className="text-gray-500 mt-1">Manage platform users</p>
         </div>
         <Button onClick={handleExport} variant="outline" className="gap-2">

@@ -142,7 +142,7 @@ export function MarkdownViewer({ content, title }: MarkdownViewerProps) {
                 ol: ({ children }) => <ol className="list-decimal list-inside text-foreground/80 mb-4 space-y-1">{children}</ol>,
                 li: ({ children }) => <li className="text-foreground/80">{children}</li>,
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-primary pl-4 my-4 text-muted-foreground italic">
+                  <blockquote className="border-l-4 border-primary pl-4 my-4 text-muted-foreground">
                     {children}
                   </blockquote>
                 ),

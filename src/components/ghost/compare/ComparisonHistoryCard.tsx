@@ -114,7 +114,7 @@ export function ComparisonHistoryCard({ data, className }: ComparisonHistoryCard
                     {response.response}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic">No response</p>
+                  <p className="text-xs text-muted-foreground">No response</p>
                 )}
               </div>
             );

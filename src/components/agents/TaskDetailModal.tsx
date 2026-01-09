@@ -415,7 +415,7 @@ export function TaskDetailModal({
                           )}
                         </div>
                         {entry.thought_summary && (
-                          <p className="text-xs text-primary/80 mb-2 italic">
+                          <p className="text-xs text-primary/80 mb-2">
                             {entry.thought_summary}
                           </p>
                         )}

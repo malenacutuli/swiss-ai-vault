@@ -237,7 +237,7 @@ export function ExecutionView({ task, onCancel, onPause, onRetry }: ExecutionVie
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Original prompt */}
             <div className="bg-gray-50 rounded-lg p-3 border-l-2 border-teal-500">
-              <p className="text-sm text-gray-700 italic line-clamp-3">
+              <p className="text-sm text-gray-700 line-clamp-3">
                 "{task.prompt}"
               </p>
               {task.created_at && (

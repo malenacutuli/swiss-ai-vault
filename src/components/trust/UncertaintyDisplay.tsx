@@ -50,7 +50,7 @@ export function UncertaintyDisplay({
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-start gap-2">
               <Search className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-              <span className="text-sm italic">"{query}"</span>
+              <span className="text-sm">"{query}"</span>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
