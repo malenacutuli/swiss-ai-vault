@@ -405,6 +405,62 @@ export type Database = {
           },
         ]
       }
+      agent_plans: {
+        Row: {
+          completed_tasks: number | null
+          created_at: string | null
+          current_phase: number | null
+          id: string
+          metadata: Json | null
+          plan_markdown: string
+          plan_title: string | null
+          status: string | null
+          task_id: string | null
+          total_phases: number | null
+          total_tasks: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_tasks?: number | null
+          created_at?: string | null
+          current_phase?: number | null
+          id?: string
+          metadata?: Json | null
+          plan_markdown: string
+          plan_title?: string | null
+          status?: string | null
+          task_id?: string | null
+          total_phases?: number | null
+          total_tasks?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_tasks?: number | null
+          created_at?: string | null
+          current_phase?: number | null
+          id?: string
+          metadata?: Json | null
+          plan_markdown?: string
+          plan_title?: string | null
+          status?: string | null
+          task_id?: string | null
+          total_phases?: number | null
+          total_tasks?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_plans_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_reasoning: {
         Row: {
           agent_type: string
