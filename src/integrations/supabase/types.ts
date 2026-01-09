@@ -1575,6 +1575,63 @@ export type Database = {
           },
         ]
       }
+      alert_history: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          channels_notified: string[] | null
+          created_at: string | null
+          fired_at: string
+          id: string
+          metric_name: string | null
+          metric_value: number | null
+          notes: string | null
+          resolution_time_ms: number | null
+          resolved_at: string | null
+          rule_id: string
+          rule_name: string
+          severity: string
+          status: string
+          threshold: number | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channels_notified?: string[] | null
+          created_at?: string | null
+          fired_at?: string
+          id?: string
+          metric_name?: string | null
+          metric_value?: number | null
+          notes?: string | null
+          resolution_time_ms?: number | null
+          resolved_at?: string | null
+          rule_id: string
+          rule_name: string
+          severity: string
+          status: string
+          threshold?: number | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channels_notified?: string[] | null
+          created_at?: string | null
+          fired_at?: string
+          id?: string
+          metric_name?: string | null
+          metric_value?: number | null
+          notes?: string | null
+          resolution_time_ms?: number | null
+          resolved_at?: string | null
+          rule_id?: string
+          rule_name?: string
+          severity?: string
+          status?: string
+          threshold?: number | null
+        }
+        Relationships: []
+      }
       anonymous_usage: {
         Row: {
           block_reason: string | null
