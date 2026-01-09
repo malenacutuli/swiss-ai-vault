@@ -53,11 +53,16 @@ export const Navbar = () => {
                       Vault Labs
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild>
                     <Link to="/ghost/agents" className="flex items-center gap-2">
                       <SwissAgentsIcon className="h-4 w-4" />
                       Swiss Agents
                       <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">New</Badge>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/docs/on-premises">
+                      Enterprise
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -111,6 +116,9 @@ export const Navbar = () => {
                   <SwissAgentsIcon className="h-4 w-4" />
                   Swiss Agents
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">New</Badge>
+                </Link>
+                <Link to="/docs/on-premises" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
+                  Enterprise
                 </Link>
                 <a href="/#models" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsOpen(false)}>
                   {t('nav.models')}
