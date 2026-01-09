@@ -71,7 +71,7 @@ export default function OnPremisesDeployment() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">On-Premises Deployment</h1>
-            <p className="text-muted-foreground">Deploy SwissVault.ai in your own infrastructure</p>
+            <p className="text-muted-foreground">Deploy Swiss BrAIn in your own infrastructure</p>
           </div>
         </div>
         
@@ -80,7 +80,7 @@ export default function OnPremisesDeployment() {
           <AlertTitle>Enterprise Feature</AlertTitle>
           <AlertDescription>
             On-premises deployment is available for Enterprise customers. 
-            Contact <a href="mailto:sales@swissvault.ai" className="text-primary hover:underline">sales@swissvault.ai</a> for licensing.
+            Contact <a href="mailto:sales@swissbrain.ai" className="text-primary hover:underline">sales@swissbrain.ai</a> for licensing.
           </AlertDescription>
         </Alert>
 
@@ -89,7 +89,7 @@ export default function OnPremisesDeployment() {
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-foreground">Overview</h2>
             <p className="text-muted-foreground leading-relaxed">
-              SwissVault can be deployed entirely within your infrastructure, 
+              Swiss BrAIn can be deployed entirely within your infrastructure, 
               ensuring complete data sovereignty and air-gapped operation. This enables
               organizations with strict compliance requirements to leverage our fine-tuning
               platform while maintaining full control over their data.
@@ -174,8 +174,8 @@ export default function OnPremisesDeployment() {
             </h2>
             <CodeBlock language="bash">
 {`# Clone deployment repository
-git clone https://github.com/swissvault/swissvault-onprem.git
-cd swissvault-onprem
+git clone https://github.com/swissbrain/swissbrain-onprem.git
+cd swissbrain-onprem
 
 # Copy and configure environment
 cp .env.example .env
@@ -201,13 +201,13 @@ curl http://localhost/health`}
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-4">
               <li>Download the offline bundle from your enterprise portal</li>
               <li>Transfer to air-gapped server via secure media</li>
-              <li>Load Docker images: <code className="bg-muted px-2 py-0.5 rounded text-sm">docker load -i swissvault-images.tar</code></li>
+              <li>Load Docker images: <code className="bg-muted px-2 py-0.5 rounded text-sm">docker load -i swissbrain-images.tar</code></li>
               <li>Pre-download model weights to <code className="bg-muted px-2 py-0.5 rounded text-sm">./models/</code></li>
               <li>Start services with the air-gap compose file</li>
             </ol>
             <CodeBlock language="bash">
 {`# Load pre-downloaded images
-docker load -i swissvault-images.tar
+docker load -i swissbrain-images.tar
 
 # Start air-gapped deployment
 docker-compose -f docker-compose.airgap.yml up -d`}
@@ -265,10 +265,10 @@ docker-compose -f docker-compose.airgap.yml up -d`}
 python scripts/download_models.py --models qwen2.5-3b,mistral-7b
 
 # Copy to air-gapped server
-scp -r ./models/ user@airgap-server:/opt/swissvault/models/
+scp -r ./models/ user@airgap-server:/opt/swissbrain/models/
 
 # Configure model path in .env
-MODEL_PATH=/opt/swissvault/models`}
+MODEL_PATH=/opt/swissbrain/models`}
             </CodeBlock>
           </section>
 
@@ -280,13 +280,13 @@ MODEL_PATH=/opt/swissvault/models`}
             </h2>
             <CodeBlock language="bash">
 {`# Backup database
-docker exec swissvault-db pg_dump -U postgres swissvault > backup.sql
+docker exec swissbrain-db pg_dump -U postgres swissbrain > backup.sql
 
 # Backup storage
 tar -czf storage_backup.tar.gz ./volumes/storage/
 
 # Restore
-docker exec -i swissvault-db psql -U postgres swissvault < backup.sql`}
+docker exec -i swissbrain-db psql -U postgres swissbrain < backup.sql`}
             </CodeBlock>
           </section>
 
@@ -336,12 +336,12 @@ docker exec -i swissvault-db psql -U postgres swissvault < backup.sql`}
                 </p>
                 <div className="flex gap-3">
                   <Button asChild>
-                    <a href="mailto:enterprise-support@swissvault.ai">
+                    <a href="mailto:enterprise-support@swissbrain.ai">
                       Contact Support
                     </a>
                   </Button>
                   <Button variant="outline" asChild>
-                    <a href="mailto:sales@swissvault.ai">
+                    <a href="mailto:sales@swissbrain.ai">
                       Talk to Sales
                     </a>
                   </Button>
