@@ -16,8 +16,8 @@ export const SWISS_LUXURY = {
       surfaceHover: '#F1F3F5',
       border: '#E5E7EB',
       text: '#1A1A1A',
-      textMuted: '#5C5C5C',
-      textSubtle: '#8C8C8C',
+      textMuted: '#1D4E5F',
+      textSubtle: '#3A7A8C',
     },
 
     // Semantic
