@@ -12,3 +12,30 @@ export {
   browserWait,
   browserFillForm,
 } from './tools';
+
+// Security exports
+export {
+  NetworkFilter,
+  networkFilter,
+  isUrlAllowed,
+  ResourceLimiter,
+  resourceLimiter,
+  DEFAULT_RESOURCE_LIMITS,
+  SessionPersistence,
+  createSessionPersistence,
+  ContentSecurityManager,
+  contentSecurityManager,
+  DEFAULT_CSP,
+  STRICT_CSP,
+} from './security';
+
+export type {
+  NetworkFilterResult,
+  ResourceLimits,
+  SessionResources,
+  ResourceCheckResult,
+  StorageState,
+  Cookie,
+  PersistedSession,
+  ContentSecurityPolicy,
+} from './security';
