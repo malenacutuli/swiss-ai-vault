@@ -24,3 +24,6 @@ export { PlanPanel } from '../PlanPanel';
 // Checkpoint components
 export { CheckpointList } from '../CheckpointList';
 export { CheckpointPanel } from '../CheckpointPanel';
+
+// Terminal component
+export { AgentTerminal } from '../AgentTerminal';

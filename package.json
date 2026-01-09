@@ -45,6 +45,9 @@
     "@tanstack/react-query": "^5.83.0",
     "@tanstack/react-table": "^8.21.3",
     "@types/d3": "^7.4.3",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.15.0",
+    "@xterm/addon-web-links": "^0.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -83,6 +86,7 @@
     "vaul": "^0.9.9",
     "wavesurfer.js": "^7.12.1",
     "xlsx": "^0.18.5",
+    "xterm": "^5.3.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
