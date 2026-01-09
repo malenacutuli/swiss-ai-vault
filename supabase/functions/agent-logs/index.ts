@@ -44,10 +44,10 @@ Deno.serve(async (req: Request) => {
     
     console.log(`[agent-logs] Fetching logs for task ${task_id}, after=${after}, since=${since}`);
     
-    // Build query
+    // Build query - select specific columns for consistency
     let query = supabase
       .from("agent_task_logs")
-      .select("*")
+      .select("id, task_id, log_type, content, timestamp, sequence_number, metadata")
       .eq("task_id", task_id)
       .order("sequence_number", { ascending: true });
     
@@ -55,7 +55,8 @@ Deno.serve(async (req: Request) => {
     if (after !== undefined && after !== null && !isNaN(after)) {
       query = query.gt("sequence_number", after);
     } else if (since) {
-      query = query.gt("created_at", since);
+      // Use 'timestamp' column (not 'created_at')
+      query = query.gt("timestamp", since);
     }
     
     const { data: logs, error } = await query;

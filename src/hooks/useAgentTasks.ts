@@ -171,19 +171,29 @@ export function useAgentTasks() {
 
       // Handle the correct response format
       // Edge function returns: { success, task: {...}, plan: {...}, output: {...} }
+      // Also support legacy format: { taskId: string }
       if (!data.success) {
         throw new Error(data.error || 'Task execution failed');
       }
 
-      if (!data.task || !data.task.id) {
+      // Backwards compatibility: handle both { task: {...} } and { taskId: string }
+      const taskData = data.task || (data.taskId ? {
+        id: data.taskId,
+        status: 'processing',
+        prompt: request.prompt,
+        task_type: request.taskType || 'general',
+        created_at: new Date().toISOString(),
+      } : null);
+
+      if (!taskData || !taskData.id) {
         throw new Error('Invalid response: missing task data');
       }
 
-      console.log('[useAgentTasks] Task completed:', data.task.id);
+      console.log('[useAgentTasks] Task started:', taskData.id);
       
       // Set the current task for display
-      setTask(data.task);
-      taskIdRef.current = data.task.id;
+      setTask(taskData as AgentTask);
+      taskIdRef.current = taskData.id;
       
       // Show execution view
       setShowExecutionView(true);
