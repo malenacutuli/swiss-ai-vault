@@ -409,6 +409,62 @@ export type Database = {
           },
         ]
       }
+      agent_git_commits: {
+        Row: {
+          author: string | null
+          commit_hash: string
+          created_at: string | null
+          deletions: number | null
+          diff_content: string | null
+          files_changed: number | null
+          id: string
+          insertions: number | null
+          message: string
+          parent_hash: string | null
+          short_hash: string
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          author?: string | null
+          commit_hash: string
+          created_at?: string | null
+          deletions?: number | null
+          diff_content?: string | null
+          files_changed?: number | null
+          id?: string
+          insertions?: number | null
+          message: string
+          parent_hash?: string | null
+          short_hash: string
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          author?: string | null
+          commit_hash?: string
+          created_at?: string | null
+          deletions?: number | null
+          diff_content?: string | null
+          files_changed?: number | null
+          id?: string
+          insertions?: number | null
+          message?: string
+          parent_hash?: string | null
+          short_hash?: string
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_git_commits_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_instances: {
         Row: {
           agent_id: string
