@@ -44,3 +44,21 @@ export {
   Orchestrator,
   createOrchestrator,
 } from './Orchestrator';
+
+// Worker Agents
+export {
+  type WorkerContext,
+  type WorkerResult,
+  type WorkerStatus,
+  type WorkerConfig,
+  WorkerAgent,
+} from './WorkerAgent';
+
+// Specialized Agents
+export {
+  ResearcherAgent,
+  CoderAgent,
+  AnalystAgent,
+  ReviewerAgent,
+  createSpecializedAgent,
+} from './SpecializedAgents';
