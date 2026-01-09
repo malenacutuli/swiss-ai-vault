@@ -72,6 +72,8 @@ import Contact from "./pages/Contact";
 import DPA from "./pages/DPA";
 import Security from "./pages/Security";
 import Status from "./pages/Status";
+import StatusPage from "./pages/StatusPage";
+import LaunchPage from "./pages/LaunchPage";
 import OAuthCallback from "./pages/OAuthCallback";
 import AuthCallback from "./pages/auth/callback";
 import VaultChatFeatures from "./pages/VaultChatFeatures";
@@ -128,7 +130,8 @@ const App = () => {
                 <Route path="/contact" element={<MarketingLayout><Contact /></MarketingLayout>} />
                 <Route path="/dpa" element={<MarketingLayout><DPA /></MarketingLayout>} />
                 <Route path="/security" element={<MarketingLayout><Security /></MarketingLayout>} />
-                <Route path="/status" element={<MarketingLayout><Status /></MarketingLayout>} />
+                <Route path="/status" element={<StatusPage />} />
+                <Route path="/launch" element={<LaunchPage />} />
                 <Route path="/features/vault-chat" element={<MarketingLayout><VaultChatFeatures /></MarketingLayout>} />
                 <Route path="/features/vault-labs" element={<MarketingLayout><VaultLabsFeatures /></MarketingLayout>} />
                 <Route path="/api-pricing" element={<MarketingLayout><APIPricing /></MarketingLayout>} />
