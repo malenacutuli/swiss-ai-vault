@@ -768,7 +768,7 @@ Use this context to inform your response when relevant. Cite sources by number w
     setSelectedModels(prev => ({ ...prev, [mode]: modelId }));
   };
 
-  // Load messages when conversation changes - WITH RACE CONDITION GUARDS
+  // Load messages when conversation changes - WITH RACE CONDITION GUARDS AND RECOVERY
   useEffect(() => {
     // Guard A: Skip if we're in the middle of sending a message
     if (isSubmittingRef.current) {
@@ -799,13 +799,23 @@ Use this context to inform your response when relevant. Cite sources by number w
     if (selectedConversation && isInitialized) {
       const conv = getConversation(selectedConversation);
       if (conv) {
-        console.log(`[GhostChat] Hydrating ${conv.messages.length} messages from storage`);
+        console.log(`[GhostChat] Hydrating ${conv.messages.length} messages from storage for conversation ${selectedConversation.slice(0, 8)}`);
         // Map storage messages to UI messages, preserving metadata like comparisonData
         const hydratedMessages: GhostMessageData[] = conv.messages.map(m => ({
           ...m,
           comparisonData: m.metadata?.comparisonData,
         }));
         setMessages(hydratedMessages);
+        
+        // FIX: Clear any stale streaming/submitting state after successful hydration
+        // This allows the user to continue chatting if refs were stuck
+        isSubmittingRef.current = false;
+        isStreamingRef.current = false;
+      } else {
+        // Conversation not found in storage - could be corrupted or deleted
+        console.warn(`[GhostChat] Conversation ${selectedConversation.slice(0, 8)} not found in storage`);
+        // Don't clear messages immediately - let user see what was there
+        // They can manually refresh or select another conversation
       }
     } else if (!selectedConversation) {
       // Only clear if explicitly no conversation selected (not during transition)
@@ -943,7 +953,7 @@ Use this context to inform your response when relevant. Cite sources by number w
     }
   }, [createConversation, settings?.start_temporary, selectedConversation, conversations, messages.length]);
 
-  // Handle selecting a conversation - with incognito warning
+  // Handle selecting a conversation - with incognito warning and stale state cleanup
   const handleSelectConversation = useCallback((id: string) => {
     // Check if currently in an incognito chat with messages
     const currentConv = selectedConversation 
@@ -955,6 +965,15 @@ Use this context to inform your response when relevant. Cite sources by number w
       setPendingAction({ type: 'select', id });
       setShowIncognitoWarning(true);
       return;
+    }
+    
+    // FIX: Clear stale busy refs that can block hydration
+    // Only clear if we're not actively submitting/streaming for THIS conversation
+    if (selectedConversation !== id) {
+      console.log('[GhostChat] Selecting conversation, clearing stale refs');
+      isSubmittingRef.current = false;
+      isStreamingRef.current = false;
+      skipNextHydrationRef.current = null; // Clear any stale skip flag
     }
     
     setSelectedConversation(id);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getGhostStorage, resetGhostStorage, resetGhostStorageAsync, GhostConversation } from '@/lib/ghost/ghost-storage';
+import { getGhostStorage, resetGhostStorage, resetGhostStorageAsync, wipeGhostStorageAsync, GhostConversation } from '@/lib/ghost/ghost-storage';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ANON_ID_KEY = 'ghost_anon_user_id_v1';
@@ -116,10 +116,11 @@ export function useGhostStorage() {
         return;
       }
 
-      // If user changed, reset storage properly (await to avoid race)
+      // If user changed, reset storage non-destructively (preserves IndexedDB)
+      // This allows chats to persist and be re-decrypted with appropriate key
       if (lastUserIdRef.current && lastUserIdRef.current !== userId) {
-        console.log('[Ghost Storage] User changed, resetting...');
-        await resetGhostStorageAsync();
+        console.log('[Ghost Storage] User identity changed, reinitializing (preserving IndexedDB)...');
+        await resetGhostStorageAsync(); // Non-destructive: clears hot store, keeps IndexedDB
         setIsInitialized(false);
       }
 
@@ -143,7 +144,16 @@ export function useGhostStorage() {
 
         // Get conversation list
         const convList = storage.listConversations();
-        console.log('[Ghost Storage] Loaded conversations:', convList.length);
+        
+        // Enhanced diagnostic logging
+        console.log('[Ghost Storage] Init complete', {
+          userId: userId.slice(0, 8),
+          conversationCount: convList.length,
+          corruptedCount: corrupted,
+          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+          isAuthenticated: !!user?.id,
+        });
+        
         setConversations(convList);
       } catch (error) {
         console.error('[Ghost Storage] Failed to initialize:', error);
@@ -278,8 +288,13 @@ export function useGhostStorage() {
     setCorruptedCount(0);
   }, [isInitialized]);
 
-  const clearAllData = useCallback(() => {
-    resetGhostStorage();
+  /**
+   * DESTRUCTIVE: Wipes all Ghost Chat data from IndexedDB.
+   * Only call for explicit user-initiated "Clear all data" actions.
+   */
+  const clearAllData = useCallback(async () => {
+    console.log('[useGhostStorage] User-initiated DESTRUCTIVE wipe');
+    await wipeGhostStorageAsync();
     setConversations([]);
     setIsInitialized(false);
     setCorruptedCount(0);
