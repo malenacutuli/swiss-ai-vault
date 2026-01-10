@@ -1,5 +1,7 @@
 import type { Tool, AgentContext, ToolResult } from '../types';
 import { browserNavigateSchema, browserClickSchema, browserTypeSchema, browserScreenshotSchema } from '../schemas/browser';
+import { validateUrl } from '../safety';
+import { supabase } from '@/integrations/supabase/client';
 
 // browser.navigate - Navigate to URL
 export const browserNavigate: Tool = {
@@ -12,20 +14,71 @@ export const browserNavigate: Tool = {
   requiresConfirmation: false,
   execute: async (params: unknown, context: AgentContext): Promise<ToolResult> => {
     const validated = browserNavigateSchema.parse(params);
+    const startTime = Date.now();
+    
+    // Security validation
+    const safetyCheck = validateUrl(validated.url);
+    if (!safetyCheck.allowed) {
+      return {
+        success: false,
+        error: safetyCheck.reason || 'URL blocked by security policy',
+        metadata: { blockedBy: safetyCheck.blockedBy },
+      };
+    }
     
     console.log('[browser.navigate] Navigating to:', validated.url);
     
-    return {
-      success: true,
-      output: {
-        url: validated.url,
-        title: `[Simulated] Page at ${validated.url}`,
-        loadTime: 1500,
-      },
-      metadata: {
-        browserSessionId: context.browserSessionId,
-      },
-    };
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-execute', {
+        body: {
+          task_type: 'browser_navigate',
+          url: validated.url,
+          task_id: context.taskId,
+          user_id: context.userId,
+          browser_session_id: context.browserSessionId,
+          wait_for: validated.waitFor || 'load',
+          timeout: validated.timeout || 30000,
+        },
+      });
+      
+      const durationMs = Date.now() - startTime;
+      
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+          durationMs,
+        };
+      }
+      
+      // Update browser session with current URL
+      if (context.browserSessionId) {
+        await supabase
+          .from('agent_browser_sessions')
+          .update({ current_url: validated.url, updated_at: new Date().toISOString() })
+          .eq('session_id', context.browserSessionId);
+      }
+      
+      return {
+        success: true,
+        output: {
+          url: validated.url,
+          title: data?.title || '',
+          loadTime: durationMs,
+          status: data?.status || 200,
+        },
+        durationMs,
+        metadata: {
+          browserSessionId: context.browserSessionId,
+        },
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Navigation failed',
+        durationMs: Date.now() - startTime,
+      };
+    }
   },
 };
 
@@ -40,17 +93,51 @@ export const browserClick: Tool = {
   requiresConfirmation: false,
   execute: async (params: unknown, context: AgentContext): Promise<ToolResult> => {
     const validated = browserClickSchema.parse(params);
+    const startTime = Date.now();
     
     console.log('[browser.click] Clicking:', validated.selector);
     
-    return {
-      success: true,
-      output: {
-        selector: validated.selector,
-        clicked: true,
-        button: validated.button,
-      },
-    };
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-execute', {
+        body: {
+          task_type: 'browser_click',
+          selector: validated.selector,
+          task_id: context.taskId,
+          user_id: context.userId,
+          browser_session_id: context.browserSessionId,
+          button: validated.button || 'left',
+          click_count: validated.clickCount || 1,
+          delay: validated.delay || 0,
+        },
+      });
+      
+      const durationMs = Date.now() - startTime;
+      
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+          durationMs,
+        };
+      }
+      
+      return {
+        success: true,
+        output: {
+          selector: validated.selector,
+          clicked: true,
+          button: validated.button || 'left',
+          elementText: data?.elementText,
+        },
+        durationMs,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Click failed',
+        durationMs: Date.now() - startTime,
+      };
+    }
   },
 };
 
@@ -65,17 +152,50 @@ export const browserType: Tool = {
   requiresConfirmation: false,
   execute: async (params: unknown, context: AgentContext): Promise<ToolResult> => {
     const validated = browserTypeSchema.parse(params);
+    const startTime = Date.now();
     
     console.log('[browser.type] Typing into:', validated.selector, 'text length:', validated.text.length);
     
-    return {
-      success: true,
-      output: {
-        selector: validated.selector,
-        typed: true,
-        length: validated.text.length,
-      },
-    };
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-execute', {
+        body: {
+          task_type: 'browser_type',
+          selector: validated.selector,
+          text: validated.text,
+          task_id: context.taskId,
+          user_id: context.userId,
+          browser_session_id: context.browserSessionId,
+          delay: validated.delay || 50,
+          clear: validated.clear || false,
+        },
+      });
+      
+      const durationMs = Date.now() - startTime;
+      
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+          durationMs,
+        };
+      }
+      
+      return {
+        success: true,
+        output: {
+          selector: validated.selector,
+          typed: true,
+          length: validated.text.length,
+        },
+        durationMs,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Type failed',
+        durationMs: Date.now() - startTime,
+      };
+    }
   },
 };
 
@@ -90,16 +210,50 @@ export const browserScreenshot: Tool = {
   requiresConfirmation: false,
   execute: async (params: unknown, context: AgentContext): Promise<ToolResult> => {
     const validated = browserScreenshotSchema.parse(params);
+    const startTime = Date.now();
     
     console.log('[browser.screenshot] Taking screenshot, fullPage:', validated.fullPage);
     
-    return {
-      success: true,
-      output: {
-        format: validated.format,
-        fullPage: validated.fullPage,
-        url: '[Simulated screenshot URL]',
-      },
-    };
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-execute', {
+        body: {
+          task_type: 'browser_screenshot',
+          task_id: context.taskId,
+          user_id: context.userId,
+          browser_session_id: context.browserSessionId,
+          selector: validated.selector,
+          full_page: validated.fullPage || false,
+          format: validated.format || 'png',
+          quality: validated.quality || 80,
+        },
+      });
+      
+      const durationMs = Date.now() - startTime;
+      
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+          durationMs,
+        };
+      }
+      
+      return {
+        success: true,
+        output: {
+          format: validated.format || 'png',
+          fullPage: validated.fullPage || false,
+          url: data?.url || data?.screenshot_url,
+          size: data?.size,
+        },
+        durationMs,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Screenshot failed',
+        durationMs: Date.now() - startTime,
+      };
+    }
   },
 };
