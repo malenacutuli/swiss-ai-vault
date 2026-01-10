@@ -161,3 +161,6 @@ verify_jwt = true
 
 [functions.studio-notebooklm]
 verify_jwt = false
+
+[functions.agent-plan]
+verify_jwt = true
