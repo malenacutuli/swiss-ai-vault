@@ -1,4 +1,20 @@
-// Tool system exports
+// ═══════════════════════════════════════════════════════════════════════════
+// AGENT EXECUTOR - Manus-style agentic execution loop
+// ═══════════════════════════════════════════════════════════════════════════
+
+export { 
+  AgentExecutor, 
+  createAgentExecutor,
+  type ExecutionPlan,
+  type PlanStep,
+  type ToolCall,
+  type ExecutorConfig,
+} from './AgentExecutor';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOOL SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
 export {
   toolRegistry,
   executeTool,
@@ -14,7 +30,10 @@ export {
 export * from './tools/types';
 export * from './tools/schemas';
 
-// Safety system exports
+// ═══════════════════════════════════════════════════════════════════════════
+// SAFETY SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
 export {
   validateInput,
   validatePlan,
@@ -54,7 +73,10 @@ export type {
   SanitizedOutput,
 } from './safety';
 
-// Planning system exports
+// ═══════════════════════════════════════════════════════════════════════════
+// PLANNING SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
 export {
   TodoParser,
   todoParser,
@@ -68,7 +90,10 @@ export type {
   PhaseStatus,
 } from './planning';
 
-// Checkpoint system exports
+// ═══════════════════════════════════════════════════════════════════════════
+// CHECKPOINT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
 export {
   CheckpointManager,
   checkpointManager,
