@@ -412,6 +412,7 @@ function GhostChat() {
     }
   }, [settings?.accent_color]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const handleSidebarToggle = useCallback(() => setSidebarOpen(prev => !prev), []);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<GhostMessageData[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -920,15 +921,18 @@ Use this context to inform your response when relevant. Cite sources by number w
       }
     }
   }, [user?.id, isInitialized, refreshConversations]); // Trigger when user changes
-  // Convert conversations for sidebar (temporary chats are already filtered out by listConversations)
-  const sidebarConversations: GhostConversation[] = conversations.map(c => ({
-    id: c.id,
-    title: c.title,
-    updatedAt: c.updatedAt,
-    messageCount: c.messageCount || 0,
-    isTemporary: c.isTemporary ?? false,
-    folderId: c.folderId,
-  }));
+  // Convert conversations for sidebar - memoized to prevent unnecessary re-renders
+  const sidebarConversations: GhostConversation[] = useMemo(() => 
+    conversations.map(c => ({
+      id: c.id,
+      title: c.title,
+      updatedAt: c.updatedAt,
+      messageCount: c.messageCount || 0,
+      isTemporary: c.isTemporary ?? false,
+      folderId: c.folderId,
+    })),
+    [conversations]
+  );
 
   // Handle new chat creation - accepts optional isTemporary parameter from sidebar
   const handleNewChat = useCallback((isTemporary?: boolean) => {
@@ -2472,7 +2476,7 @@ Use this context to inform your response when relevant. Cite sources by number w
       {/* Sidebar */}
       <GhostSidebar
         isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onToggle={handleSidebarToggle}
         conversations={sidebarConversations}
         folders={folders}
         selectedConversation={selectedConversation}
@@ -2506,7 +2510,7 @@ Use this context to inform your response when relevant. Cite sources by number w
         {/* Unified Header */}
         <UnifiedHeader
           product="ghost"
-          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+          onMenuToggle={handleSidebarToggle}
           isMenuOpen={sidebarOpen}
         />
 

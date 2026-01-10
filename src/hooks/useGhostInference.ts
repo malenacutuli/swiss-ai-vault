@@ -60,13 +60,14 @@ export function useGhostInference() {
   }, []);
 
   // Timer effect for elapsed time during streaming
+  // Throttled to 1000ms to reduce re-renders and prevent sidebar flickering
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
     if (isStreaming && streamStartRef.current) {
       interval = setInterval(() => {
         setElapsedTime((Date.now() - streamStartRef.current!) / 1000);
-      }, 100);
+      }, 1000); // Reduced from 100ms to 1000ms to prevent UI flickering
     }
 
     return () => {

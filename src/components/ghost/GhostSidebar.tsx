@@ -1,5 +1,5 @@
 // GhostSidebar v2 - Centralized Icons
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
@@ -299,7 +299,7 @@ interface GhostSidebarProps {
   onExportFolder?: (folderId: string) => void;
 }
 
-export function GhostSidebar({
+export const GhostSidebar = memo(function GhostSidebar({
   isOpen,
   onToggle,
   conversations,
@@ -341,6 +341,27 @@ export function GhostSidebar({
   // Drag and drop state
   const [isDraggingChat, setIsDraggingChat] = useState(false);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+
+  // Debounced hover handlers to prevent flickering during re-renders
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const handleMouseEnter = useCallback(() => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsHovered(true);
+  }, []);
+  
+  const handleMouseLeave = useCallback(() => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 150);
+  }, []);
+  
+  // Cleanup hover timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
 
   const isExpanded = isOpen || isHovered;
 
@@ -635,8 +656,8 @@ export function GhostSidebar({
 
       {/* Sidebar */}
       <aside
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={cn(
           'fixed lg:relative inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border/60 transition-all duration-200 ease-out',
           isExpanded ? 'w-64' : 'w-20',
@@ -1061,4 +1082,4 @@ export function GhostSidebar({
       )}
     </TooltipProvider>
   );
-}
+});
