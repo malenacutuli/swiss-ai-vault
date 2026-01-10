@@ -682,9 +682,39 @@ export class GhostStorageManager {
   }
 
   /**
-   * Clear all data and reset (for logout)
+   * Non-destructive cleanup - closes connections and clears in-memory state
+   * but DOES NOT wipe IndexedDB data. Use wipeAllData() for destructive reset.
    */
   async destroy(): Promise<void> {
+    console.log('[GhostStorage] Non-destructive destroy (preserving IndexedDB)');
+    
+    // Cancel all pending persists
+    for (const timeout of this.saveTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.saveTimeouts.clear();
+
+    // Clear hot storage (in-memory only)
+    this.hotStore.clear();
+
+    // Close database connection but DO NOT clear data
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
+
+    this.masterKey = null;
+    this.initialized = false;
+    this.cachedSettings = null;
+  }
+
+  /**
+   * DESTRUCTIVE: Wipe all data from IndexedDB. 
+   * Only use for explicit user-initiated "Clear all data" actions.
+   */
+  async wipeAllData(): Promise<void> {
+    console.log('[GhostStorage] DESTRUCTIVE wipe - clearing all IndexedDB data');
+    
     // Cancel all pending persists
     for (const timeout of this.saveTimeouts.values()) {
       clearTimeout(timeout);
@@ -694,7 +724,7 @@ export class GhostStorageManager {
     // Clear hot storage
     this.hotStore.clear();
 
-    // Clear cold storage
+    // Clear cold storage (DESTRUCTIVE)
     if (this.db) {
       await this.clearIndexedDB();
       this.db.close();
@@ -703,6 +733,8 @@ export class GhostStorageManager {
 
     this.masterKey = null;
     this.initialized = false;
+    this.cachedSettings = null;
+    this.corruptedCount = 0;
   }
 
   /**
@@ -848,28 +880,46 @@ export function getGhostStorage(): GhostStorageManager {
   return ghostStorageInstance;
 }
 
+/**
+ * Non-destructive reset - drops singleton but preserves IndexedDB data.
+ * Safe to call on user identity changes.
+ */
 export function resetGhostStorage(): void {
   if (ghostStorageInstance) {
+    console.log('[GhostStorage] Non-destructive reset (preserving IndexedDB)');
     ghostStorageInstance.destroy();
     ghostStorageInstance = null;
   }
 }
 
 /**
- * Properly reset storage with awaited cleanup.
- * Use this when changing users to avoid race conditions.
+ * Non-destructive async reset with awaited cleanup.
+ * Use this when changing users - preserves IndexedDB data.
  */
 export async function resetGhostStorageAsync(): Promise<void> {
   if (ghostStorageInstance) {
-    console.log('[GhostStorage] Async reset starting...');
+    console.log('[GhostStorage] Async non-destructive reset starting...');
     
-    // First, synchronously clear temporary chats
+    // First, synchronously clear temporary chats (incognito only)
     ghostStorageInstance.clearAllTemporarySync();
     
-    // Then await the full destroy
+    // Then await the non-destructive destroy (closes DB, clears hot store, keeps IndexedDB)
     await ghostStorageInstance.destroy();
     
     ghostStorageInstance = null;
-    console.log('[GhostStorage] Async reset complete');
+    console.log('[GhostStorage] Async reset complete (IndexedDB preserved)');
+  }
+}
+
+/**
+ * DESTRUCTIVE reset - wipes all IndexedDB data.
+ * Only use for explicit user-initiated "Clear all data" actions.
+ */
+export async function wipeGhostStorageAsync(): Promise<void> {
+  if (ghostStorageInstance) {
+    console.log('[GhostStorage] DESTRUCTIVE wipe starting...');
+    await ghostStorageInstance.wipeAllData();
+    ghostStorageInstance = null;
+    console.log('[GhostStorage] DESTRUCTIVE wipe complete');
   }
 }
