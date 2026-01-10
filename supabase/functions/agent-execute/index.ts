@@ -16,7 +16,7 @@ interface TaskRouting {
 }
 
 // Swiss API Endpoint for code execution (Swiss-hosted Kubernetes)
-const SWISS_API_ENDPOINT = Deno.env.get("SWISS_API_ENDPOINT") || "http://api.swissbrain.ai";
+const SWISS_API_ENDPOINT = "https://api.swissbrain.ai/v1/sandbox";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SWISS API HEALTH CHECK
@@ -255,6 +255,14 @@ const TASK_ROUTING: Record<string, TaskRouting> = {
 function detectTaskType(prompt: string): string {
   const p = prompt.toLowerCase();
   
+  // Code execution types - check FIRST for explicit code requests
+  if (p.includes('```python') || p.includes('```py')) return 'python';
+  if (p.includes('```javascript') || p.includes('```js') || p.includes('```typescript') || p.includes('```ts')) return 'code';
+  if (p.includes('```shell') || p.includes('```bash') || p.includes('```sh')) return 'shell';
+  if (p.includes('run this code') || p.includes('execute this') || p.includes('run the following')) return 'code';
+  if (p.includes('write a script') || p.includes('write code') || p.includes('create a script')) return 'python';
+  if ((p.includes('run') || p.includes('execute')) && (p.includes('python') || p.includes('script'))) return 'python';
+  
   // Document types
   if (p.includes('pitch deck') || p.includes('presentation') || p.includes('slide') || p.includes('pptx')) return 'slides';
   if (p.includes('document') || p.includes('report') || p.includes('docx') || p.includes('word')) return 'document';
@@ -272,6 +280,50 @@ function detectTaskType(prompt: string): string {
   if (p.includes('research') || p.includes('analyze') || p.includes('investigate')) return 'research';
   
   return 'general';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER: Extract code from markdown code blocks
+// ═══════════════════════════════════════════════════════════════════════════
+
+function extractCodeFromPrompt(prompt: string): { code: string; language: string } | null {
+  // Match code blocks like ```python\ncode\n``` or ```javascript\ncode\n```
+  const codeBlockMatch = prompt.match(/```(\w+)?\s*\n([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    const lang = codeBlockMatch[1]?.toLowerCase() || 'python';
+    const code = codeBlockMatch[2].trim();
+    if (code) {
+      return {
+        language: lang === 'py' ? 'python' : lang === 'js' || lang === 'ts' || lang === 'typescript' ? 'javascript' : lang === 'sh' || lang === 'bash' ? 'shell' : lang,
+        code: code,
+      };
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER: Stream log to agent_task_logs for real-time terminal output
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function streamLog(
+  supabase: any, 
+  taskId: string, 
+  content: string, 
+  logType: 'info' | 'command' | 'stdout' | 'stderr' | 'success' | 'error' | 'warning'
+) {
+  try {
+    await supabase.from("agent_task_logs").insert({
+      task_id: taskId,
+      content: content,
+      log_type: logType,
+      sequence_number: Date.now(),
+      timestamp: new Date().toISOString(),
+      metadata: { region: 'ch-gva-2' },
+    });
+  } catch (err) {
+    console.error('[streamLog] Failed to insert log:', err);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -751,177 +803,234 @@ async function executeSwissAPITask(
       .eq("id", taskId);
   };
 
-  // Step 1: Preparing environment
-  await updateStep(1, "running");
-  await new Promise(r => setTimeout(r, 300));
-  await updateStep(1, "completed");
-
-  // Step 2: Parsing code
-  await updateStep(2, "running");
-  await new Promise(r => setTimeout(r, 200));
-  await updateStep(2, "completed");
-
-  // Step 3: Execute on Swiss API
-  await updateStep(3, "running");
-
-  // Check Swiss API health before execution
-  const isHealthy = await checkSwissAPIHealth();
-  if (!isHealthy) {
-    console.warn('[SwissAPI] Health check failed, proceeding anyway...');
-    // Log warning but continue - the API might still work
-    await supabase.from("agent_task_logs").insert({
-      task_id: taskId,
-      log_type: 'warning',
-      content: 'Swiss API health check failed, attempting execution anyway',
-      metadata: { region: 'ch-gva-2', endpoint: SWISS_API_ENDPOINT },
-      timestamp: new Date().toISOString(),
-    });
+  // Get Swiss API key from secrets
+  const swissApiKey = Deno.env.get('SWISS_SANDBOX_API_KEY');
+  if (!swissApiKey) {
+    console.error('[SwissAPI] SWISS_SANDBOX_API_KEY not configured');
+    await streamLog(supabase, taskId, '❌ Swiss API key not configured', 'error');
+    
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "failed",
+        error_message: "Swiss API key not configured. Please add SWISS_SANDBOX_API_KEY to secrets.",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+    
+    throw new Error('SWISS_SANDBOX_API_KEY not configured');
   }
 
-  // Determine language from task type
-  const language = taskType === 'shell' ? 'shell' : 'python';
+  // Step 1: Preparing environment
+  await updateStep(1, "running");
+  await streamLog(supabase, taskId, '🔧 Preparing Swiss K8s sandbox environment...', 'info');
+  await streamLog(supabase, taskId, `📍 Region: ch-gva-2 (Geneva, Switzerland)`, 'info');
+  await updateStep(1, "completed");
+
+  // Step 2: Parsing code - extract from prompt if not in memoryContext
+  await updateStep(2, "running");
+  
+  // Extract code from markdown blocks in prompt
+  const extracted = extractCodeFromPrompt(prompt);
+  const code = memoryContext?.code || extracted?.code || '';
+  const language = extracted?.language || (taskType === 'shell' ? 'shell' : taskType === 'python' ? 'python' : 'python');
+  
+  if (code) {
+    await streamLog(supabase, taskId, `📝 Detected ${language} code (${code.split('\n').length} lines)`, 'info');
+    // Show the command being executed
+    const firstLine = code.split('\n')[0];
+    await streamLog(supabase, taskId, `$ ${firstLine}${code.split('\n').length > 1 ? '...' : ''}`, 'command');
+  } else {
+    await streamLog(supabase, taskId, '⚠️ No code block detected in prompt', 'warning');
+  }
+  
+  await updateStep(2, "completed");
+
+  // Step 3: Execute on Swiss K8s Sandbox
+  await updateStep(3, "running");
+  await streamLog(supabase, taskId, `🚀 Executing ${language} code on Swiss K8s...`, 'info');
 
   // Get user tier (default to 'pro' for now)
   const userTier = 'pro';
-
-  // Extract code from memory context or prompt
-  const code = memoryContext?.code || '';
 
   console.log('[SwissAPI] Sending request:', { 
     task_id: taskId, 
     task_type: taskType, 
     language, 
     hasCode: !!code,
-    promptLength: prompt.length 
+    promptLength: prompt.length,
+    endpoint: `${SWISS_API_ENDPOINT}/execute`,
   });
 
-  const swissResponse = await fetch(`${SWISS_API_ENDPOINT}/execute`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      task_id: taskId,
-      task_type: taskType,
-      prompt: prompt,
-      code: code,
-      language: language,
-      user_tier: userTier,
-      memory_context: typeof memoryContext === 'string' ? memoryContext : JSON.stringify(memoryContext || ''),
-    }),
-  });
+  try {
+    const swissResponse = await fetch(`${SWISS_API_ENDPOINT}/execute`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-API-Key": swissApiKey,
+      },
+      body: JSON.stringify({
+        code: code || prompt, // Fall back to prompt if no code extracted
+        language: language,
+        user_id: userId,
+        tier: userTier,
+        timeout_seconds: 30,
+      }),
+    });
 
-  if (!swissResponse.ok) {
-    const errorText = await swissResponse.text();
-    console.error('[SwissAPI] HTTP error:', swissResponse.status, errorText);
+    if (!swissResponse.ok) {
+      const errorText = await swissResponse.text();
+      console.error('[SwissAPI] HTTP error:', swissResponse.status, errorText);
+      await streamLog(supabase, taskId, `❌ Swiss API error: ${swissResponse.status}`, 'error');
+      await streamLog(supabase, taskId, errorText.slice(0, 500), 'stderr');
 
-    await supabase
-      .from("agent_tasks")
-      .update({
-        status: "failed",
-        error_message: `Swiss API error: ${swissResponse.status} - ${errorText.slice(0, 200)}`,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", taskId);
+      await supabase
+        .from("agent_tasks")
+        .update({
+          status: "failed",
+          error_message: `Swiss API error: ${swissResponse.status} - ${errorText.slice(0, 200)}`,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", taskId);
 
-    throw new Error(`Swiss API returned ${swissResponse.status}: ${errorText}`);
-  }
+      throw new Error(`Swiss API returned ${swissResponse.status}: ${errorText}`);
+    }
 
-  const result = await swissResponse.json();
-  console.log('[SwissAPI] Response:', { 
-    success: result.success, 
-    hasOutput: !!result.output, 
-    hasError: !!result.error,
-    duration_ms: result.duration_ms 
-  });
+    const result = await swissResponse.json();
+    console.log('[SwissAPI] Response:', { 
+      success: result.success, 
+      hasOutput: !!result.output || !!result.stdout, 
+      hasError: !!result.error || !!result.stderr,
+      duration_ms: result.duration_ms || result.execution_time_ms,
+    });
 
-  // Check for execution errors in response
-  if (result.success === false || result.error) {
-    const errorMsg = result.error || 'Unknown Swiss API error';
-    console.error('[SwissAPI] Execution error:', errorMsg);
+    // Stream stdout line by line
+    const stdout = result.stdout || result.output || '';
+    if (stdout) {
+      const lines = stdout.split('\n');
+      for (const line of lines) {
+        if (line.trim()) {
+          await streamLog(supabase, taskId, line, 'stdout');
+        }
+      }
+    }
 
-    await supabase
-      .from("agent_tasks")
-      .update({
-        status: "failed",
-        error_message: errorMsg,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", taskId);
+    // Stream stderr line by line
+    const stderr = result.stderr || '';
+    if (stderr) {
+      const lines = stderr.split('\n');
+      for (const line of lines) {
+        if (line.trim()) {
+          await streamLog(supabase, taskId, line, 'stderr');
+        }
+      }
+    }
 
-    throw new Error(`Swiss API execution failed: ${errorMsg}`);
-  }
+    // Check for execution errors in response
+    if (result.success === false || result.error) {
+      const errorMsg = result.error || 'Unknown Swiss API error';
+      console.error('[SwissAPI] Execution error:', errorMsg);
+      await streamLog(supabase, taskId, `❌ Execution failed: ${errorMsg}`, 'error');
 
-  await updateStep(3, "completed");
+      await supabase
+        .from("agent_tasks")
+        .update({
+          status: "failed",
+          error_message: errorMsg,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", taskId);
 
-  // Step 4: Collect output
-  await updateStep(4, "running");
+      throw new Error(`Swiss API execution failed: ${errorMsg}`);
+    }
 
-  // Store output as markdown file
-  const output = result.output || 'No output';
-  const fileName = `execution_${taskId.slice(0, 8)}.md`;
-  const outputContent = `# Code Execution Result
+    const durationMs = result.duration_ms || result.execution_time_ms || 0;
+    await streamLog(supabase, taskId, `✅ Execution completed in ${durationMs}ms`, 'success');
+    await updateStep(3, "completed");
+
+    // Step 4: Collect output
+    await updateStep(4, "running");
+
+    // Store output as markdown file
+    const output = stdout || 'No output';
+    const fileName = `execution_${taskId.slice(0, 8)}.md`;
+    const outputContent = `# Code Execution Result
 
 **Task ID:** ${taskId}
 **Language:** ${language}
-**Duration:** ${result.duration_ms || 0}ms
+**Duration:** ${durationMs}ms
+**Region:** ch-gva-2 (Swiss K8s Sandbox)
+
+## Code
+
+\`\`\`${language}
+${code || prompt}
+\`\`\`
 
 ## Output
 
 \`\`\`
 ${output}
 \`\`\`
+${stderr ? `\n## Errors/Warnings\n\n\`\`\`\n${stderr}\n\`\`\`` : ''}
 `;
 
-  const encoded = new TextEncoder().encode(outputContent);
-  const downloadUrl = await uploadToStorage(supabase, userId, taskId, fileName, encoded, 'text/markdown');
+    const encoded = new TextEncoder().encode(outputContent);
+    const downloadUrl = await uploadToStorage(supabase, userId, taskId, fileName, encoded, 'text/markdown');
 
-  if (downloadUrl) {
-    await supabase.from("agent_outputs").insert({
-      task_id: taskId,
-      user_id: userId,
-      output_type: 'markdown',
-      file_name: fileName,
-      download_url: downloadUrl,
-      file_size_bytes: encoded.length,
-      created_at: new Date().toISOString(),
-    });
-    console.log('[SwissAPI] Output saved:', fileName);
-  }
-
-  // Add execution log with Swiss region metadata
-  await supabase.from("agent_task_logs").insert({
-    task_id: taskId,
-    log_type: result.success ? 'output' : 'error',
-    content: result.success ? result.output : result.error,
-    metadata: { 
-      duration_ms: result.duration_ms, 
-      region: 'ch-gva-2',
-      language: language,
-      endpoint: SWISS_API_ENDPOINT,
-    },
-    timestamp: new Date().toISOString(),
-  });
-
-  await updateStep(4, "completed");
-
-  // Mark task complete
-  await supabase
-    .from("agent_tasks")
-    .update({
-      status: "completed",
-      progress: 100,
-      current_step: 4,
-      duration_ms: result.duration_ms || 0,
-      result: {
-        output: result.output,
-        output_url: downloadUrl,
+    if (downloadUrl) {
+      await supabase.from("agent_outputs").insert({
+        task_id: taskId,
+        user_id: userId,
         output_type: 'markdown',
         file_name: fileName,
-        summary: `Code executed successfully in ${result.duration_ms || 0}ms`,
-        region: 'ch-gva-2',
-      },
-      completed_at: new Date().toISOString(),
-    })
-    .eq("id", taskId);
+        download_url: downloadUrl,
+        file_size_bytes: encoded.length,
+        created_at: new Date().toISOString(),
+      });
+      console.log('[SwissAPI] Output saved:', fileName);
+      await streamLog(supabase, taskId, `📄 Output saved: ${fileName}`, 'info');
+    }
+
+    await updateStep(4, "completed");
+
+    // Mark task complete
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "completed",
+        progress: 100,
+        current_step: 4,
+        duration_ms: durationMs,
+        result: {
+          output: output,
+          stderr: stderr || null,
+          output_url: downloadUrl,
+          output_type: 'markdown',
+          file_name: fileName,
+          summary: `Code executed successfully in ${durationMs}ms`,
+          sandbox_region: 'ch-gva-2',
+        },
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+
+  } catch (fetchError: unknown) {
+    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    console.error('[SwissAPI] Fetch error:', fetchError);
+    await streamLog(supabase, taskId, `❌ Connection error: ${errorMessage}`, 'error');
+    
+    await supabase
+      .from("agent_tasks")
+      .update({
+        status: "failed",
+        error_message: `Swiss API connection error: ${errorMessage}`,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", taskId);
+    
+    throw fetchError;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
