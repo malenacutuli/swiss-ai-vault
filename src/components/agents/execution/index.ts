@@ -16,6 +16,7 @@ export { FileActionChip, parseToolToFileActions } from './FileActionChip';
 export { SuggestedFollowups } from './SuggestedFollowups';
 export { TaskRating } from './TaskRating';
 export { ReasoningPanel } from './ReasoningPanel';
+export { AgentExecutionPanel } from './AgentExecutionPanel';
 
 // Planning components
 export { PlanVisualizer } from '../PlanVisualizer';
