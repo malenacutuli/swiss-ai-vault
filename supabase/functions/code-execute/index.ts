@@ -83,6 +83,72 @@ interface ExecutionResult {
   memory_used_mb?: number;
   truncated: boolean;
   security_warnings: string[];
+  sandbox_region?: string;
+}
+
+// Swiss K8s execution - Primary sandbox provider
+async function executeWithSwissK8s(
+  code: string,
+  language: string,
+  limits: typeof RESOURCE_LIMITS.free,
+  apiKey: string,
+  startTime: number,
+  userId?: string,
+  tier?: string
+): Promise<ExecutionResult & { sandbox_region: string }> {
+  const SWISS_API_URL = 'https://api.swissbrain.ai/v1/sandbox/execute';
+  
+  try {
+    console.log(`[code-execute] Calling Swiss K8s API for ${language} execution`);
+    
+    const response = await fetch(SWISS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+      },
+      body: JSON.stringify({
+        code,
+        language,
+        user_id: userId || 'anonymous',
+        tier: tier || 'free',
+        timeout_seconds: Math.ceil(limits.timeout_ms / 1000),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Swiss K8s API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    const executionTime = Date.now() - startTime;
+
+    console.log(`[code-execute] Swiss K8s execution completed in ${executionTime}ms`);
+
+    let stdout = result.stdout || '';
+    let truncated = false;
+
+    if (stdout.length > limits.max_output_bytes) {
+      stdout = stdout.slice(0, limits.max_output_bytes);
+      truncated = true;
+    }
+
+    return {
+      stdout,
+      stderr: result.stderr || '',
+      exit_code: result.exit_code ?? result.exitCode ?? 0,
+      execution_time_ms: result.execution_time_ms || executionTime,
+      memory_used_mb: result.memory_used_mb,
+      truncated,
+      security_warnings: result.security_warnings || [],
+      sandbox_region: 'ch-gva-2',
+    };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[code-execute] Swiss K8s execution failed: ${errorMessage}`);
+    throw error; // Re-throw to trigger fallback
+  }
 }
 
 // Scan code for security issues
@@ -209,28 +275,47 @@ ${stdin ? `STDIN_EOF` : ''}
   }
 }
 
-// Execute code using Modal or E2B
+// Execute code using Swiss K8s API (primary), or fallback to E2B/Modal
 async function executeInSandbox(
   code: string,
   language: string,
   limits: typeof RESOURCE_LIMITS.free,
-  stdin?: string
-): Promise<ExecutionResult> {
+  stdin?: string,
+  userId?: string,
+  tier?: string
+): Promise<ExecutionResult & { sandbox_region: string }> {
   const startTime = Date.now();
   const wrappedCode = wrapCode(code, language, stdin);
   
-  // Check for E2B API key first, then Modal
+  // Primary: Swiss K8s Sandbox API
+  const swissApiKey = Deno.env.get('SWISS_SANDBOX_API_KEY');
+  
+  if (swissApiKey) {
+    try {
+      const result = await executeWithSwissK8s(code, language, limits, swissApiKey, startTime, userId, tier);
+      return result;
+    } catch (error) {
+      console.error('[code-execute] Swiss K8s failed, trying fallback:', error);
+      // Fall through to other providers
+    }
+  }
+  
+  // Fallback: E2B or Modal
   const e2bApiKey = Deno.env.get('E2B_API_KEY');
   const modalApiKey = Deno.env.get('MODAL_API_KEY');
   
+  let result: ExecutionResult;
+  
   if (e2bApiKey) {
-    return await executeWithE2B(wrappedCode, language, limits, e2bApiKey, startTime);
+    result = await executeWithE2B(wrappedCode, language, limits, e2bApiKey, startTime);
   } else if (modalApiKey) {
-    return await executeWithModal(wrappedCode, language, limits, modalApiKey, startTime);
+    result = await executeWithModal(wrappedCode, language, limits, modalApiKey, startTime);
   } else {
     // Fallback to simulated execution for demo
-    return await simulateExecution(code, language, limits, stdin, startTime);
+    result = await simulateExecution(code, language, limits, stdin, startTime);
   }
+  
+  return { ...result, sandbox_region: 'fallback' };
 }
 
 // E2B execution
@@ -541,16 +626,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Execute code
-    const result = await executeInSandbox(code, language, limits, stdin);
+    // Execute code with Swiss K8s as primary
+    const result = await executeInSandbox(code, language, limits, stdin, user.id, tier);
     
     // Add security warnings from scan
     result.security_warnings = [...securityWarnings, ...result.security_warnings];
+    
+    console.log(`[code-execute] Sandbox region: ${result.sandbox_region}`);
 
     // Log execution
     console.log(`[code-execute] Completed in ${result.execution_time_ms}ms, exit code: ${result.exit_code}`);
 
-    // Store execution record
+    // Store execution record with sandbox region
     const { data: execution, error: insertError } = await supabase
       .from('code_executions')
       .insert({
@@ -563,6 +650,7 @@ Deno.serve(async (req) => {
         exit_code: result.exit_code,
         execution_time_ms: result.execution_time_ms,
         memory_used_mb: result.memory_used_mb,
+        sandbox_region: result.sandbox_region,
       })
       .select()
       .single();
