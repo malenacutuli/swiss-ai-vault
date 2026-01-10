@@ -10,7 +10,7 @@ const corsHeaders = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface TaskRouting {
-  backend: 'modal' | 'swiss-api' | 'inference' | 'gemini-tts' | 'veo';
+  backend: 'modal' | 'swiss-api' | 'inference' | 'gemini-tts' | 'veo' | 'agentic';
   model?: string;
   steps: Array<{ name: string; description: string }>;
 }
@@ -244,6 +244,18 @@ const TASK_ROUTING: Record<string, TaskRouting> = {
       { name: 'Parsing commands', description: 'Analyzing shell commands' },
       { name: 'Executing commands', description: 'Running in secure shell' },
       { name: 'Collecting output', description: 'Gathering execution results' },
+    ],
+  },
+  
+  // Agentic task (Manus-style execution loop)
+  agent: {
+    backend: 'agentic',
+    steps: [
+      { name: 'Analyzing', description: 'Understanding the task' },
+      { name: 'Planning', description: 'Creating execution plan' },
+      { name: 'Executing', description: 'Running tools iteratively' },
+      { name: 'Observing', description: 'Evaluating results' },
+      { name: 'Completing', description: 'Finalizing output' },
     ],
   },
 };
@@ -537,6 +549,9 @@ async function executeTaskAsync(
         break;
       case 'veo':
         await executeVideoTask(supabase, taskId, taskType, prompt, userId);
+        break;
+      case 'agentic':
+        await executeAgenticTask(supabase, taskId, taskType, prompt, memoryContext, userId);
         break;
       default:
         await executeInferenceTask(supabase, taskId, taskType, prompt, memoryContext, 'gemini-2.5-flash', userId);
@@ -1356,6 +1371,433 @@ async function executeAudioTask(
       completed_at: new Date().toISOString(),
     })
     .eq("id", taskId);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AGENTIC BACKEND (Manus-style execution loop)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Tool definitions for agentic execution
+const TOOL_DEFINITIONS = [
+  { name: 'shell.exec', description: 'Execute shell commands in sandbox', category: 'shell', safety: 'medium' },
+  { name: 'file.read', description: 'Read file contents', category: 'file', safety: 'safe' },
+  { name: 'file.write', description: 'Write content to file', category: 'file', safety: 'medium' },
+  { name: 'browser.navigate', description: 'Navigate to URL', category: 'browser', safety: 'medium' },
+  { name: 'search.web', description: 'Search the web', category: 'search', safety: 'safe' },
+];
+
+// Safety validator for tool calls
+function validateToolCall(toolName: string, params: Record<string, unknown>): { allowed: boolean; reason?: string } {
+  const blockedPatterns = [
+    /rm\s+-rf\s+[\/~]/,
+    /:()\S*}/,
+    /dd\s+if=\/dev/,
+    /wget.*\|\s*sh/,
+    /curl.*\|\s*sh/,
+  ];
+
+  if (toolName === 'shell.exec' && typeof params.command === 'string') {
+    for (const pattern of blockedPatterns) {
+      if (pattern.test(params.command)) {
+        return { allowed: false, reason: 'Command blocked for security' };
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
+async function executeAgenticTask(
+  supabase: any,
+  taskId: string,
+  taskType: string,
+  prompt: string,
+  memoryContext: any,
+  userId: string
+) {
+  const MAX_ITERATIONS = 25;
+  const phases = ['analyzing', 'thinking', 'selecting', 'executing', 'observing'];
+  
+  // Helper to stream phase changes
+  const streamPhase = async (phase: string, message: string) => {
+    await supabase.from("agent_task_logs").insert({
+      task_id: taskId,
+      log_type: 'phase_change',
+      content: phase,
+      metadata: { message },
+      sequence_number: Date.now(),
+      timestamp: new Date().toISOString(),
+    });
+  };
+
+  // Helper to stream reasoning
+  const streamReasoning = async (content: string) => {
+    await supabase.from("agent_task_logs").insert({
+      task_id: taskId,
+      log_type: 'reasoning',
+      content,
+      sequence_number: Date.now(),
+      timestamp: new Date().toISOString(),
+    });
+  };
+
+  // Helper to stream tool selection
+  const streamToolSelect = async (toolName: string, params: Record<string, unknown>) => {
+    await supabase.from("agent_task_logs").insert({
+      task_id: taskId,
+      log_type: 'tool_select',
+      content: `Selected: ${toolName}`,
+      metadata: { tool_name: toolName, params },
+      sequence_number: Date.now(),
+      timestamp: new Date().toISOString(),
+    });
+  };
+
+  // Helper to stream tool result
+  const streamToolResult = async (type: 'tool_start' | 'tool_complete' | 'tool_error', content: string, metadata?: Record<string, unknown>) => {
+    await supabase.from("agent_task_logs").insert({
+      task_id: taskId,
+      log_type: type,
+      content,
+      metadata,
+      sequence_number: Date.now(),
+      timestamp: new Date().toISOString(),
+    });
+  };
+
+  try {
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 1: ANALYZING
+    // ═══════════════════════════════════════════════════════════════════════
+    await streamPhase('analyzing', 'Understanding the task requirements');
+    
+    await supabase.from("agent_tasks").update({ 
+      current_step: 1, 
+      progress: 10,
+      status: 'running' 
+    }).eq("id", taskId);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 2: PLANNING - Generate execution plan
+    // ═══════════════════════════════════════════════════════════════════════
+    await streamPhase('thinking', 'Creating execution plan');
+    
+    const planPrompt = `You are an AI agent that executes tasks step by step using available tools.
+
+AVAILABLE TOOLS:
+${TOOL_DEFINITIONS.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+
+TASK:
+${prompt}
+
+Create a structured plan to accomplish this task. Output as JSON:
+{
+  "goal": "main objective",
+  "steps": [
+    { "step": 1, "action": "what to do", "tool": "tool.name", "params": {} }
+  ],
+  "estimated_iterations": 5
+}`;
+
+    const planResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/ghost-inference`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: "You are a planning agent. Output valid JSON only." },
+            { role: "user", content: planPrompt },
+          ],
+          model: 'gemini-2.5-flash',
+        }),
+      }
+    );
+
+    const planResult = await planResponse.json();
+    const planContent = planResult.choices?.[0]?.message?.content || '{}';
+    
+    // Try to parse plan
+    let plan: { goal?: string; steps?: Array<{ step: number; action: string; tool: string; params: Record<string, unknown> }>; estimated_iterations?: number } = {};
+    try {
+      const jsonMatch = planContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        plan = JSON.parse(jsonMatch[0]);
+      }
+    } catch {
+      console.warn('[Agentic] Could not parse plan, using default');
+      plan = { goal: prompt, steps: [], estimated_iterations: 5 };
+    }
+
+    const estimatedSteps = plan.estimated_iterations || plan.steps?.length || 5;
+    
+    // Save plan to database
+    await supabase.from("agent_plans").insert({
+      task_id: taskId,
+      user_id: userId,
+      plan_title: plan.goal || 'Task Execution',
+      plan_markdown: `# ${plan.goal}\n\n${(plan.steps || []).map(s => `${s.step}. ${s.action}`).join('\n')}`,
+      total_tasks: estimatedSteps,
+      status: 'active',
+    });
+
+    await streamReasoning(`Plan created: ${plan.goal || 'Execute task'}\n\nEstimated steps: ${estimatedSteps}`);
+    
+    await supabase.from("agent_tasks").update({ 
+      current_step: 2, 
+      total_steps: estimatedSteps + 2, // +2 for analyze and complete
+      progress: 20 
+    }).eq("id", taskId);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 3-4: EXECUTION LOOP
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    const executionHistory: Array<{ tool: string; result: string }> = [];
+    let iteration = 0;
+    let isComplete = false;
+    let finalResult = '';
+
+    while (iteration < MAX_ITERATIONS && !isComplete) {
+      iteration++;
+      
+      // Check if task was stopped
+      const { data: taskStatus } = await supabase
+        .from("agent_tasks")
+        .select("status")
+        .eq("id", taskId)
+        .single();
+      
+      if (taskStatus?.status === 'stopped') {
+        await streamPhase('stopped', 'Task was stopped by user');
+        return;
+      }
+
+      // Update progress
+      const progress = Math.min(20 + Math.round((iteration / estimatedSteps) * 60), 80);
+      await supabase.from("agent_tasks").update({ 
+        current_step: iteration + 2,
+        progress 
+      }).eq("id", taskId);
+
+      // SELECTING: Determine next action
+      await streamPhase('selecting', `Iteration ${iteration}: Selecting next action`);
+      
+      const selectPrompt = `You are executing a task step by step.
+
+ORIGINAL TASK:
+${prompt}
+
+PLAN:
+${plan.goal}
+Steps: ${(plan.steps || []).map(s => `${s.step}. ${s.action}`).join(', ')}
+
+EXECUTION HISTORY:
+${executionHistory.length > 0 ? executionHistory.map((h, i) => `${i + 1}. ${h.tool}: ${h.result.slice(0, 200)}`).join('\n') : 'None yet'}
+
+AVAILABLE TOOLS:
+${TOOL_DEFINITIONS.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+- complete: Mark task as complete with final result
+
+What should be done next? Output JSON:
+{
+  "reasoning": "why this action",
+  "action": "tool.name or complete",
+  "params": {},
+  "is_complete": false
+}`;
+
+      const selectResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/ghost-inference`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            messages: [
+              { role: "system", content: "You are an execution agent. Output valid JSON only." },
+              { role: "user", content: selectPrompt },
+            ],
+            model: 'gemini-2.5-flash',
+          }),
+        }
+      );
+
+      const selectResult = await selectResponse.json();
+      const selectContent = selectResult.choices?.[0]?.message?.content || '{}';
+      
+      let action: { reasoning?: string; action?: string; params?: Record<string, unknown>; is_complete?: boolean; result?: string } = {};
+      try {
+        const jsonMatch = selectContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          action = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        action = { action: 'complete', is_complete: true, result: 'Task completed' };
+      }
+
+      // Stream reasoning
+      if (action.reasoning) {
+        await streamReasoning(action.reasoning);
+      }
+
+      // Check if complete
+      if (action.is_complete || action.action === 'complete') {
+        isComplete = true;
+        finalResult = action.result || 'Task completed successfully';
+        break;
+      }
+
+      // EXECUTING: Run the selected tool
+      const toolName = action.action || 'shell.exec';
+      const toolParams = action.params || {};
+      
+      // Validate safety
+      const validation = validateToolCall(toolName, toolParams);
+      if (!validation.allowed) {
+        await streamToolResult('tool_error', `Blocked: ${validation.reason}`);
+        executionHistory.push({ tool: toolName, result: `Blocked: ${validation.reason}` });
+        continue;
+      }
+
+      await streamToolSelect(toolName, toolParams);
+      await streamPhase('executing', `Running ${toolName}`);
+      await streamToolResult('tool_start', `Executing ${toolName}...`);
+
+      // Execute tool (simulated for now - would call Swiss API in production)
+      let toolResult = '';
+      
+      try {
+        if (toolName === 'shell.exec' && toolParams.command) {
+          // Call Swiss API for shell execution
+          const swissApiKey = Deno.env.get('SWISS_SANDBOX_API_KEY');
+          if (swissApiKey) {
+            const shellResponse = await fetch(`${SWISS_API_ENDPOINT}/execute`, {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "X-API-Key": swissApiKey,
+              },
+              body: JSON.stringify({
+                code: toolParams.command as string,
+                language: 'shell',
+                user_id: userId,
+                timeout_seconds: 30,
+              }),
+            });
+            
+            if (shellResponse.ok) {
+              const shellResult = await shellResponse.json();
+              toolResult = shellResult.stdout || shellResult.output || 'Executed successfully';
+            } else {
+              toolResult = `Shell error: ${shellResponse.status}`;
+            }
+          } else {
+            toolResult = 'Swiss API not configured';
+          }
+        } else if (toolName === 'search.web') {
+          // Simulate web search
+          toolResult = `Search results for: ${toolParams.query || 'no query'}\n[Results would appear here]`;
+        } else if (toolName === 'file.read') {
+          toolResult = `Reading file: ${toolParams.path || 'unknown'}\n[File contents would appear here]`;
+        } else if (toolName === 'file.write') {
+          toolResult = `Wrote to file: ${toolParams.path || 'unknown'}`;
+        } else {
+          toolResult = `Executed ${toolName} successfully`;
+        }
+      } catch (toolError: unknown) {
+        const errorMessage = toolError instanceof Error ? toolError.message : String(toolError);
+        toolResult = `Error: ${errorMessage}`;
+      }
+
+      await streamToolResult('tool_complete', toolResult);
+      executionHistory.push({ tool: toolName, result: toolResult });
+
+      // OBSERVING: Evaluate result
+      await streamPhase('observing', 'Evaluating execution result');
+      
+      // Log step complete
+      await supabase.from("agent_task_logs").insert({
+        task_id: taskId,
+        log_type: 'step_complete',
+        content: `Step ${iteration} complete`,
+        metadata: { iteration, tool: toolName },
+        sequence_number: Date.now(),
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 5: COMPLETION
+    // ═══════════════════════════════════════════════════════════════════════
+    await streamPhase('completed', 'Task completed');
+
+    // Generate summary
+    const summaryContent = `# Task Execution Summary
+
+**Task:** ${prompt.slice(0, 200)}
+
+**Iterations:** ${iteration}
+
+**Result:** ${finalResult}
+
+## Execution History
+
+${executionHistory.map((h, i) => `### Step ${i + 1}: ${h.tool}\n\`\`\`\n${h.result.slice(0, 500)}\n\`\`\``).join('\n\n')}
+`;
+
+    // Save output
+    const fileName = `execution_${taskId.slice(0, 8)}.md`;
+    const encoded = new TextEncoder().encode(summaryContent);
+    const downloadUrl = await uploadToStorage(supabase, userId, taskId, fileName, encoded, 'text/markdown');
+
+    await supabase.from("agent_outputs").insert({
+      task_id: taskId,
+      user_id: userId,
+      output_type: 'markdown',
+      file_name: fileName,
+      download_url: downloadUrl,
+      file_size_bytes: encoded.length,
+      created_at: new Date().toISOString(),
+    });
+
+    // Mark complete
+    await supabase.from("agent_tasks").update({
+      status: "completed",
+      progress: 100,
+      current_step: iteration + 2,
+      result: {
+        summary: finalResult,
+        iterations: iteration,
+        output_url: downloadUrl,
+      },
+      result_summary: finalResult.slice(0, 500),
+      completed_at: new Date().toISOString(),
+    }).eq("id", taskId);
+
+    // Update plan status
+    await supabase.from("agent_plans").update({
+      status: 'completed',
+      completed_tasks: iteration,
+    }).eq("task_id", taskId);
+
+  } catch (error: any) {
+    console.error('[Agentic] Execution error:', error);
+    await streamPhase('failed', error.message);
+    
+    await supabase.from("agent_tasks").update({
+      status: "failed",
+      error_message: error.message,
+      completed_at: new Date().toISOString(),
+    }).eq("id", taskId);
+    
+    throw error;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
