@@ -16,7 +16,7 @@ interface TaskRouting {
 }
 
 // Swiss API Endpoint for code execution (Swiss-hosted Kubernetes)
-const SWISS_API_ENDPOINT = "https://api.swissbrain.ai/v1/sandbox";
+const SWISS_API_ENDPOINT = "http://api.swissbrain.ai/v1/sandbox";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SWISS API HEALTH CHECK
