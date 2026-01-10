@@ -559,13 +559,14 @@ Use this context to inform your response when relevant. Cite sources by number w
     if (response.response && compareResult) {
       // Create conversation FIRST if none is selected
       let convId = selectedConversation;
-      const isNewConversation = !convId;
       
       if (!convId) {
         // Create a new conversation with title from prompt
         const title = compareResult.prompt.slice(0, 50) + (compareResult.prompt.length > 50 ? '...' : '');
         convId = createConversation(title);
         if (convId) {
+          // FIX: Prevent hydration race condition by skipping next hydration for this conversation
+          skipNextHydrationRef.current = convId;
           setSelectedConversation(convId);
         }
       }
@@ -624,13 +625,16 @@ Use this context to inform your response when relevant. Cite sources by number w
       // Explicit refresh to ensure sidebar updates
       refreshConversations();
       
+      // FIX: Clear result AND exit compare mode so follow-up messages work normally
       clearCompareResult();
+      toggleCompareMode();
+      
       toast({
         title: 'Response selected',
-        description: `Using ${response.displayName} response. Chat saved.`,
+        description: `Using ${response.displayName} response. You can continue chatting.`,
       });
     }
-  }, [compareResult, selectedConversation, saveMessage, clearCompareResult, toast, createConversation, refreshConversations]);
+  }, [compareResult, selectedConversation, saveMessage, clearCompareResult, toggleCompareMode, toast, createConversation, refreshConversations]);
 
   const lastAssistantMessage = useMemo(() => {
     if (!messages || messages.length === 0) return undefined;

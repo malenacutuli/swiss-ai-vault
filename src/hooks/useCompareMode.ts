@@ -62,14 +62,42 @@ export const MODEL_PRESETS = {
 };
 
 export function useCompareMode() {
-  const [isCompareMode, setIsCompareMode] = useState(false);
+  const [isCompareMode, setIsCompareMode] = useState(() => {
+    // Restore compare mode from session storage on mount
+    try {
+      return sessionStorage.getItem('ghost_compare_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [selectedModels, setSelectedModels] = useState<string[]>(['swissvault-1.0', 'gpt-4o']);
   const [isComparing, setIsComparing] = useState(false);
-  const [result, setResult] = useState<CompareResult | null>(null);
+  const [result, setResult] = useState<CompareResult | null>(() => {
+    // Restore compare result from session storage on mount
+    try {
+      const saved = sessionStorage.getItem('ghost_compare_result');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {}
+    return null;
+  });
   const { toast } = useToast();
 
+  // Persist compare mode to session storage
   const toggleCompareMode = useCallback(() => {
-    setIsCompareMode(prev => !prev);
+    setIsCompareMode(prev => {
+      const next = !prev;
+      try {
+        if (next) {
+          sessionStorage.setItem('ghost_compare_mode', 'true');
+        } else {
+          sessionStorage.removeItem('ghost_compare_mode');
+          sessionStorage.removeItem('ghost_compare_result');
+        }
+      } catch {}
+      return next;
+    });
     if (isCompareMode) {
       setResult(null);
     }
@@ -150,6 +178,11 @@ export function useCompareMode() {
       if (error) throw error;
 
       setResult(data);
+      
+      // Persist result to session storage for recovery on refresh
+      try {
+        sessionStorage.setItem('ghost_compare_result', JSON.stringify(data));
+      } catch {}
 
       toast({
         title: 'Comparison complete',
@@ -183,6 +216,9 @@ export function useCompareMode() {
 
   const clearResult = useCallback(() => {
     setResult(null);
+    try {
+      sessionStorage.removeItem('ghost_compare_result');
+    } catch {}
   }, []);
 
   return {

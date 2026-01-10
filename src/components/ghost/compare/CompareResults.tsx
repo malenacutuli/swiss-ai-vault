@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Copy, ThumbsUp, ThumbsDown, Check, Loader2, AlertCircle, Clock, Coins } from 'lucide-react';
+import { Copy, ThumbsUp, ThumbsDown, Check, Loader2, AlertCircle, Clock, Coins, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import type { CompareResult, CompareResponse } from '@/hooks/useCompareMode';
 
@@ -152,8 +153,22 @@ export function CompareResults({ result, onRate, onUseResponse }: CompareResults
     ? 'lg:grid-cols-3' 
     : 'lg:grid-cols-4';
 
+  // Check if any response is still loading
+  const isAnyLoading = result.responses.some(r => r.status === 'pending' || r.status === 'streaming');
+  const hasCompletedResponses = result.responses.some(r => r.status === 'complete');
+  
   return (
     <div className="flex flex-col gap-4">
+      {/* Warning banner for unsaved comparison results */}
+      {hasCompletedResponses && (
+        <Alert variant="default" className="bg-amber-500/10 border-amber-500/30">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-xs text-amber-600 dark:text-amber-400">
+            Click "Use this" to save a response. Comparison results will be lost on page refresh.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {/* Prompt shown above results */}
       <div className="p-3 rounded-lg bg-muted/50 border">
         <span className="text-xs font-medium text-muted-foreground">Your prompt:</span>
