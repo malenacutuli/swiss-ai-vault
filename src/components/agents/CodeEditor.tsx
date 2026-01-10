@@ -180,28 +180,28 @@ export function CodeEditor({
     onChange?.(value || '');
   }, [onChange]);
 
-  // Editor options
-  const editorOptions = {
+  // Editor options with proper types
+  const editorOptions: import('monaco-editor').editor.IStandaloneEditorConstructionOptions = {
     readOnly,
     minimap: { enabled: showMinimap },
     fontSize: 13,
     fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Menlo, monospace',
     fontLigatures: true,
-    lineNumbers: showLineNumbers ? 'on' : 'off',
+    lineNumbers: showLineNumbers ? 'on' as const : 'off' as const,
     scrollBeyondLastLine: false,
     automaticLayout: true,
     tabSize: 2,
     wordWrap,
     padding: { top: 12, bottom: 12 },
     scrollbar: {
-      vertical: 'auto',
-      horizontal: 'auto',
+      vertical: 'auto' as const,
+      horizontal: 'auto' as const,
       verticalScrollbarSize: 10,
       horizontalScrollbarSize: 10,
     },
-    renderLineHighlight: 'line',
-    cursorBlinking: 'smooth',
-    cursorSmoothCaretAnimation: 'on',
+    renderLineHighlight: 'line' as const,
+    cursorBlinking: 'smooth' as const,
+    cursorSmoothCaretAnimation: 'on' as const,
     smoothScrolling: true,
     bracketPairColorization: { enabled: true },
     guides: {
@@ -210,17 +210,24 @@ export function CodeEditor({
     },
     folding: true,
     foldingHighlight: true,
-    showFoldingControls: 'mouseover',
-    matchBrackets: 'always',
+    showFoldingControls: 'mouseover' as const,
+    matchBrackets: 'always' as const,
   };
 
   // Diff editor options
-  const diffOptions = {
+  const diffOptions: import('monaco-editor').editor.IDiffEditorConstructionOptions = {
     readOnly: true,
     renderSideBySide: true,
     originalEditable: false,
     enableSplitViewResizing: true,
-    ...editorOptions,
+    minimap: editorOptions.minimap,
+    fontSize: editorOptions.fontSize,
+    fontFamily: editorOptions.fontFamily,
+    fontLigatures: editorOptions.fontLigatures,
+    lineNumbers: editorOptions.lineNumbers,
+    scrollBeyondLastLine: editorOptions.scrollBeyondLastLine,
+    automaticLayout: editorOptions.automaticLayout,
+    scrollbar: editorOptions.scrollbar,
   };
 
   // Use light theme for Swiss design
