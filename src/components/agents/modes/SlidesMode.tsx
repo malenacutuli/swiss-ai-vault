@@ -5,10 +5,13 @@ import {
   TrendingUp, 
   ArrowUpRight, 
   Upload,
-  Crown
+  Crown,
+  Presentation,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface SamplePrompt {
   id: number;
@@ -134,11 +137,20 @@ export function SlidesMode({
   slideCount,
   onSlideCountChange
 }: SlidesModeProps) {
+  const handleImportTemplate = () => {
+    toast.info('Template import coming soon', {
+      description: 'You will be able to import your own PowerPoint templates',
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Sample Prompts */}
       <section>
-        <h3 className="text-sm font-medium text-[#666666] mb-4">Sample prompts</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-4 h-4 text-[#1D4E5F]" />
+          <h3 className="text-sm font-medium text-[#666666]">Sample prompts</h3>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {SAMPLE_PROMPTS.map(prompt => {
             const Icon = prompt.icon;
@@ -146,18 +158,18 @@ export function SlidesMode({
               <button
                 key={prompt.id}
                 onClick={() => onPromptSelect(prompt.text)}
-                className="text-left p-4 bg-white border border-[#E5E5E5] rounded-xl hover:border-[#722F37] hover:shadow-sm transition-all group"
+                className="text-left p-4 bg-white border border-[#E5E5E5] rounded-xl hover:border-[#1D4E5F] hover:shadow-sm transition-all group"
               >
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-[#FAFAF8] group-hover:bg-[#722F37]/10 transition-colors">
-                    <Icon className="w-4 h-4 text-[#666666] group-hover:text-[#722F37]" />
+                  <div className="p-2 rounded-lg bg-[#F8FAFB] group-hover:bg-[#1D4E5F]/10 transition-colors">
+                    <Icon className="w-4 h-4 text-[#666666] group-hover:text-[#1D4E5F]" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-[#4A4A4A] group-hover:text-[#1A1A1A]">
                       {prompt.text}
                     </p>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-[#CCCCCC] group-hover:text-[#722F37] transition-colors" />
+                  <ArrowUpRight className="w-4 h-4 text-[#CCCCCC] group-hover:text-[#1D4E5F] transition-colors" />
                 </div>
               </button>
             );
@@ -168,26 +180,33 @@ export function SlidesMode({
       {/* Template Gallery */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-[#666666]">Choose a template</h3>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Presentation className="w-4 h-4 text-[#1D4E5F]" />
+            <h3 className="text-sm font-medium text-[#666666]">Choose a template</h3>
+          </div>
+          <div className="flex items-center gap-3">
             {/* Slide count selector */}
-            <select
-              value={slideCount}
-              onChange={(e) => onSlideCountChange(Number(e.target.value))}
-              className="text-sm border border-[#E5E5E5] rounded-lg px-3 py-1.5 bg-white text-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-[#722F37]/20"
-            >
-              {SLIDE_COUNTS.map(count => (
-                <option key={count} value={count}>{count} slides</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#999999]">Slides:</span>
+              <select
+                value={slideCount}
+                onChange={(e) => onSlideCountChange(Number(e.target.value))}
+                className="text-sm border border-[#E5E5E5] rounded-lg px-3 py-1.5 bg-white text-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-[#1D4E5F]/20 focus:border-[#1D4E5F]"
+              >
+                {SLIDE_COUNTS.map(count => (
+                  <option key={count} value={count}>{count}</option>
+                ))}
+              </select>
+            </div>
             
             {/* Import template */}
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm"
-              className="text-[#666666] hover:text-[#1A1A1A]"
+              className="text-[#666666] hover:text-[#1A1A1A] border-[#E5E5E5] hover:border-[#1D4E5F] hover:bg-[#F8FAFB]"
+              onClick={handleImportTemplate}
             >
-              <Upload className="w-4 h-4 mr-1.5" />
+              <Upload className="w-4 h-4 mr-1.5" strokeWidth={1.5} />
               Import template
             </Button>
           </div>
@@ -200,10 +219,10 @@ export function SlidesMode({
               key={template.id}
               onClick={() => onTemplateSelect(template.id)}
               className={cn(
-                "relative aspect-[16/10] rounded-xl border-2 overflow-hidden transition-all hover:shadow-md",
+                "relative aspect-[16/10] rounded-xl border-2 overflow-hidden transition-all hover:shadow-md group",
                 selectedTemplate === template.id
-                  ? "border-[#722F37] shadow-lg ring-2 ring-[#722F37]/20"
-                  : "border-[#E5E5E5] hover:border-[#CCCCCC]"
+                  ? "border-[#1D4E5F] shadow-lg ring-2 ring-[#1D4E5F]/20"
+                  : "border-[#E5E5E5] hover:border-[#1D4E5F]/50"
               )}
             >
               <TemplatePreview template={template} />
@@ -213,21 +232,36 @@ export function SlidesMode({
                 <div className="flex items-center gap-1">
                   <span className="text-white text-xs font-medium">{template.name}</span>
                   {template.premium && (
-                    <Crown className="w-3 h-3 text-yellow-400" />
+                    <Crown className="w-3 h-3 text-amber-400" />
                   )}
                 </div>
               </div>
               
               {/* Selected checkmark */}
               {selectedTemplate === template.id && (
-                <div className="absolute top-2 right-2 w-5 h-5 bg-[#722F37] rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-5 h-5 bg-[#1D4E5F] rounded-full flex items-center justify-center shadow-md">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
               )}
+              
+              {/* Premium badge */}
+              {template.premium && (
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-amber-500/90 rounded text-[10px] font-semibold text-white shadow-sm">
+                  PRO
+                </div>
+              )}
             </button>
           ))}
+        </div>
+        
+        {/* Template info */}
+        <div className="mt-4 p-3 bg-[#F8FAFB] rounded-lg border border-[#E5E5E5]">
+          <p className="text-xs text-[#666666]">
+            <span className="font-medium text-[#1A1A1A]">Selected: </span>
+            {TEMPLATES.find(t => t.id === selectedTemplate)?.name || 'Swiss Classic'} template with {slideCount} slides
+          </p>
         </div>
       </section>
     </div>
