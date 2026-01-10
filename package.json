@@ -63,6 +63,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.462.0",
     "mammoth": "^1.11.0",
+    "monaco-editor": "^0.55.1",
     "next-themes": "^0.3.0",
     "pdfjs-dist": "^4.0.379",
     "pptxgenjs": "^3.12.0",
