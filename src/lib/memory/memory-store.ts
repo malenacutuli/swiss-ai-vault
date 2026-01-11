@@ -1417,7 +1417,23 @@ export async function searchMemoriesInProject(
   
   console.log(`[MemoryStore] Project has ${projectDocIds.size} doc IDs, matched ${projectStored.length} chunks from ${allStored.length} total`);
   
-  const scored = projectStored.map(stored => ({
+  // Filter out chat transcripts and AI conversation content - only keep actual documents
+  const documentsOnly = projectStored.filter(stored => {
+    // StoredMemory has metadata field that we can check
+    const metadata = (stored as any).metadata || {};
+    
+    // Skip if this is chat/conversation content
+    if (metadata.source === 'chat') return false;
+    if (metadata.aiPlatform) return false;  // Imported AI conversations
+    if (metadata.type === 'conversation') return false;
+    if (metadata.type === 'chat') return false;
+    
+    return true;
+  });
+  
+  console.log(`[MemoryStore] After filtering chat content: ${documentsOnly.length} document chunks`);
+  
+  const scored = documentsOnly.map(stored => ({
     stored,
     score: similarity(queryEmbedding, stored.embedding)
   }));
