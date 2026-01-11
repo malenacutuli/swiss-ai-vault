@@ -896,6 +896,9 @@ async function callGoogle(
     return result as { content: string; usage?: any };
   }
 
+  // Strip provider prefix if present (e.g., "google/gemini-2.5-flash" -> "gemini-2.5-flash")
+  const cleanModel = model.replace(/^google\//, '').replace(/^openai\//, '');
+  
   // Map display names to Google Gemini API model IDs.
   // Using verified model names from Google's API
   const modelMap: Record<string, string> = {
@@ -916,7 +919,7 @@ async function callGoogle(
     'gemini-3-flash': 'gemini-2.5-flash-preview-04-17',
   };
 
-  const googleModel = modelMap[model] || model;
+  const googleModel = modelMap[cleanModel] || cleanModel;
 
   /**
    * Convert OpenAI message content format to Google Gemini parts format
