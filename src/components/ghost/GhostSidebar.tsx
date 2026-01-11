@@ -606,7 +606,7 @@ export const GhostSidebar = memo(function GhostSidebar({
     );
   };
 
-  const IconButton = ({ icon: Icon, label, onClick, active = false }: { icon: any; label: string; onClick: () => void; active?: boolean }) => (
+  const IconButton = ({ icon: Icon, label, onClick, active = false, badge }: { icon: any; label: string; onClick: () => void; active?: boolean; badge?: string }) => (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
@@ -630,7 +630,14 @@ export const GhostSidebar = memo(function GhostSidebar({
         >
           <Icon className="w-5 h-5 shrink-0" />
           {isExpanded ? (
-            <span className="text-[13px] truncate">{label}</span>
+            <>
+              <span className="text-[13px] truncate">{label}</span>
+              {badge && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium ml-auto">
+                  {badge}
+                </span>
+              )}
+            </>
           ) : (
             <span className="text-[10px] font-medium truncate w-full text-center px-1">{label}</span>
           )}
@@ -638,7 +645,7 @@ export const GhostSidebar = memo(function GhostSidebar({
       </TooltipTrigger>
       {!isExpanded && (
         <TooltipContent side="right" sideOffset={8}>
-          {label}
+          {label} {badge && `(${badge})`}
         </TooltipContent>
       )}
     </Tooltip>
@@ -1011,6 +1018,7 @@ export const GhostSidebar = memo(function GhostSidebar({
             label="Agents" 
             onClick={() => navigate('/ghost/agents')} 
             active={location.pathname === '/ghost/agents'}
+            badge="Beta"
           />
           <IconButton 
             icon={FlaskConical} 
