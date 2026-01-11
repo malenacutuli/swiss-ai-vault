@@ -500,7 +500,7 @@ export const GhostSidebar = memo(function GhostSidebar({
           </div>
         ) : (
           <>
-            <span className="text-[13px] truncate flex-1">{conv.title}</span>
+            <span className="text-xs truncate flex-1">{conv.title}</span>
             
             <ChatActionsMenu
               conversationId={conv.id}
@@ -566,7 +566,7 @@ export const GhostSidebar = memo(function GhostSidebar({
             ) : (
               <>
                 <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                  <span className="text-[13px] truncate">{folder.name}</span>
+                  <span className="text-xs truncate">{folder.name}</span>
                   {isFolderExpanded ? <IconChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.5} /> : <IconChevronRight className="w-3 h-3 shrink-0" strokeWidth={1.5} />}
                 </div>
 
