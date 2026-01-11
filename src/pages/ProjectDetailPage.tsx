@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Settings, FileText, Send, 
-  Loader2, Quote, ChevronRight, Plus, Shield, Lock, Mic
+  Loader2, Quote, ChevronRight, Plus, Shield, Lock, Mic, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import {
   getProject,
   getProjectDocuments,
   removeDocumentFromProject,
+  migrateProjectDocumentIds,
   type MemoryProject,
   type MemoryItem,
 } from '@/lib/memory/memory-store';
@@ -50,6 +51,45 @@ export default function ProjectDetailPage() {
   
   const { queryWithContext, isQuerying, isReady } = useProjectQuery(projectId);
 
+  // Load saved conversation from localStorage
+  useEffect(() => {
+    if (!projectId) return;
+    
+    const storageKey = `project-conversation-${projectId}`;
+    const saved = localStorage.getItem(storageKey);
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          console.log(`[Project] Loaded ${parsed.length} saved messages`);
+          setMessages(parsed);
+        }
+      } catch (e) {
+        console.error('[Project] Failed to load conversation:', e);
+        localStorage.removeItem(storageKey);
+      }
+    }
+  }, [projectId]);
+
+  // Save conversation on change
+  useEffect(() => {
+    if (!projectId) return;
+    
+    const storageKey = `project-conversation-${projectId}`;
+    
+    if (messages.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    }
+  }, [projectId, messages]);
+
+  // Clear conversation function
+  const clearConversation = useCallback(() => {
+    if (!projectId) return;
+    setMessages([]);
+    localStorage.removeItem(`project-conversation-${projectId}`);
+  }, [projectId]);
+
   useEffect(() => {
     if (projectId && isUnlocked) {
       loadProject();
@@ -67,6 +107,12 @@ export default function ProjectDetailPage() {
     try {
       const key = await getMasterKey();
       if (!key) return;
+      
+      // Migrate chunk IDs for existing projects (one-time fix)
+      const migrated = await migrateProjectDocumentIds(projectId!, key);
+      if (migrated > 0) {
+        console.log(`[Project] Migrated ${migrated} chunk IDs`);
+      }
       
       const [proj, docs] = await Promise.all([
         getProject(projectId!),

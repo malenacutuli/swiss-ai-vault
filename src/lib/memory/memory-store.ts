@@ -1765,3 +1765,46 @@ export async function getAudioBriefingsCount(): Promise<number> {
   const briefings = await getAudioBriefings();
   return briefings.length;
 }
+
+/**
+ * Migrate existing projects to include ALL chunk IDs
+ * Call this once when loading a project to fix historical data
+ */
+export async function migrateProjectDocumentIds(
+  projectId: string,
+  encryptionKey: CryptoKey
+): Promise<number> {
+  const project = await getProject(projectId);
+  if (!project || !project.documentIds || project.documentIds.length === 0) {
+    return 0;
+  }
+  
+  // Get all document groups
+  const groups = await getDocumentGroups(encryptionKey);
+  const currentIds = new Set(project.documentIds);
+  const idsToAdd: string[] = [];
+  
+  // For each document that has at least one chunk in the project,
+  // add ALL its chunks
+  for (const group of groups) {
+    const hasAnyChunk = group.chunkIds.some(id => currentIds.has(id));
+    
+    if (hasAnyChunk) {
+      for (const chunkId of group.chunkIds) {
+        if (!currentIds.has(chunkId)) {
+          idsToAdd.push(chunkId);
+        }
+      }
+    }
+  }
+  
+  if (idsToAdd.length > 0) {
+    // Add missing chunks to project
+    for (const chunkId of idsToAdd) {
+      await addDocumentToProject(projectId, chunkId, encryptionKey);
+    }
+    console.log(`[Migration] Added ${idsToAdd.length} missing chunks to project ${projectId}`);
+  }
+  
+  return idsToAdd.length;
+}
