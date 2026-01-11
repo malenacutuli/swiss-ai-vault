@@ -897,18 +897,23 @@ async function callGoogle(
   }
 
   // Map display names to Google Gemini API model IDs.
-  // NOTE: some Google API keys/projects do not have access to these models; we fall back if we get a model_not_found 404.
+  // Using verified model names from Google's API
   const modelMap: Record<string, string> = {
-    'gemini-2.0-flash': 'gemini-2.0-flash-exp',
-    'gemini-2.0-pro': 'gemini-2.0-pro-exp',
+    // Gemini 1.5 series (stable)
     'gemini-1.5-pro': 'gemini-1.5-pro',
     'gemini-1.5-flash': 'gemini-1.5-flash',
-    // Newer UI labels → best-effort Google IDs (may 404 depending on key)
-    'gemini-2.5-pro': 'gemini-2.5-pro',
-    'gemini-2.5-flash': 'gemini-2.5-flash',
-    'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite-preview',
-    'gemini-3-pro': 'gemini-3-pro',
-    'gemini-3-flash': 'gemini-3-flash-preview',
+    'gemini-1.5-flash-8b': 'gemini-1.5-flash-8b',
+    // Gemini 2.0 series
+    'gemini-2.0-flash': 'gemini-2.0-flash',
+    'gemini-2.0-flash-exp': 'gemini-2.0-flash-exp',
+    'gemini-2.0-pro': 'gemini-exp-1206', // experimental pro
+    // Gemini 2.5 series (latest experimental)
+    'gemini-2.5-pro': 'gemini-2.5-pro-exp-03-25',
+    'gemini-2.5-flash': 'gemini-2.5-flash-preview-04-17',
+    'gemini-2.5-flash-lite': 'gemini-2.0-flash', // fallback to 2.0-flash
+    // Gemini 3 series (not yet available - fallback)
+    'gemini-3-pro': 'gemini-2.5-pro-exp-03-25',
+    'gemini-3-flash': 'gemini-2.5-flash-preview-04-17',
   };
 
   const googleModel = modelMap[model] || model;
@@ -1006,14 +1011,57 @@ async function callGoogle(
     const errorText = await response.text();
     console.error('[Google] Error:', response.status, errorText);
 
-    // Many users' Google keys don't have access to Gemini (or specific variants) → fall back to OpenAI.
-    const looksLikeModelNotFound =
-      response.status === 404 &&
-      (errorText.includes('models/') || errorText.includes('not found') || errorText.includes('NOT_FOUND'));
-
-    if (looksLikeModelNotFound) {
-      console.log('[Google] Model not available for this key; falling back to OpenAI (gpt-4o-mini)');
-      // Fall back to OpenAI instead of Lovable Gateway to avoid 10/day limit
+    // Fall back to a stable model on 404 (model not found) or 400 (bad request due to model)
+    if (response.status === 404 || response.status === 400) {
+      console.log(`[Google] Model "${googleModel}" not available (${response.status}); retrying with gemini-2.0-flash`);
+      
+      // Retry with stable fallback model
+      const fallbackResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+      
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        return {
+          content: fallbackData.candidates?.[0]?.content?.parts?.[0]?.text || '',
+          usage: {
+            prompt_tokens: fallbackData.usageMetadata?.promptTokenCount,
+            completion_tokens: fallbackData.usageMetadata?.candidatesTokenCount,
+            total_tokens: fallbackData.usageMetadata?.totalTokenCount,
+          },
+        };
+      }
+      
+      // If gemini-2.0-flash also fails, try gemini-1.5-flash as final fallback
+      console.log('[Google] gemini-2.0-flash also failed; trying gemini-1.5-flash');
+      const finalFallbackResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+      
+      if (finalFallbackResponse.ok) {
+        const finalFallbackData = await finalFallbackResponse.json();
+        return {
+          content: finalFallbackData.candidates?.[0]?.content?.parts?.[0]?.text || '',
+          usage: {
+            prompt_tokens: finalFallbackData.usageMetadata?.promptTokenCount,
+            completion_tokens: finalFallbackData.usageMetadata?.candidatesTokenCount,
+            total_tokens: finalFallbackData.usageMetadata?.totalTokenCount,
+          },
+        };
+      }
+      
+      // All Google models failed - fall back to OpenAI
+      console.log('[Google] All models failed; falling back to OpenAI (gpt-4o-mini)');
       const result = await callOpenAI('gpt-4o-mini', messages, { ...options, stream: false });
       return result as { content: string; usage?: any };
     }
