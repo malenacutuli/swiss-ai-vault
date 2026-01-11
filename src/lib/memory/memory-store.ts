@@ -1395,7 +1395,27 @@ export async function searchMemoriesInProject(
   });
   
   // Filter to only project documents and calculate similarity
-  const projectStored = allStored.filter(s => projectDocIds.has(s.id));
+  // Use prefix matching to find all chunks of documents in the project
+  const projectStored = allStored.filter(s => {
+    // Direct exact match
+    if (projectDocIds.has(s.id)) return true;
+    
+    // Prefix match: find all chunks of the same document
+    // Chunk IDs follow pattern: "baseId-0", "baseId-1", "baseId-2", etc.
+    const baseId = s.id.replace(/-\d+$/, '');  // Remove trailing "-N"
+    
+    // Check if any project document shares the same base ID
+    for (const projectDocId of projectDocIds) {
+      const projectBaseId = projectDocId.replace(/-\d+$/, '');
+      if (baseId === projectBaseId) {
+        return true;
+      }
+    }
+    
+    return false;
+  });
+  
+  console.log(`[MemoryStore] Project has ${projectDocIds.size} doc IDs, matched ${projectStored.length} chunks from ${allStored.length} total`);
   
   const scored = projectStored.map(stored => ({
     stored,
