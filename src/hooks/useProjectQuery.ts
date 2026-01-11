@@ -20,7 +20,7 @@ interface QueryResult {
   sources: QuerySource[];
 }
 
-export function useProjectQuery(projectId: string) {
+export function useProjectQuery(projectId: string | undefined) {
   const { getMasterKey, isUnlocked } = useEncryptionContext();
   const [isQuerying, setIsQuerying] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -30,7 +30,11 @@ export function useProjectQuery(projectId: string) {
 
   useEffect(() => {
     async function load() {
-      if (!projectId || !isUnlocked) return;
+      // Guard inside effect to maintain consistent hook order
+      if (!projectId || !isUnlocked) {
+        setIsReady(false);
+        return;
+      }
       
       try {
         const key = await getMasterKey();
@@ -67,7 +71,7 @@ export function useProjectQuery(projectId: string) {
     query: string,
     conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<QueryResult> => {
-    if (!isReady || !encryptionKeyRef.current) {
+    if (!projectId || !isReady || !encryptionKeyRef.current) {
       throw new Error('Project not ready for querying');
     }
 

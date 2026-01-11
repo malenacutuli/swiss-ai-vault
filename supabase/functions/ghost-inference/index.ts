@@ -998,7 +998,15 @@ async function callGoogle(
   };
 
   if (systemInstruction) {
-    body.systemInstruction = { parts: [{ text: systemInstruction.content }] };
+    // Handle both string and array content formats
+    const systemContent = typeof systemInstruction.content === 'string'
+      ? systemInstruction.content
+      : Array.isArray(systemInstruction.content)
+        ? systemInstruction.content.map((p: any) => p.text || p.content || '').join('')
+        : String(systemInstruction.content);
+    
+    body.systemInstruction = { parts: [{ text: systemContent }] };
+    console.log(`[Google] System instruction length: ${systemContent.length} chars`);
   }
 
   const response = await fetch(
