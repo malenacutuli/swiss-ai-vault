@@ -207,7 +207,7 @@ export default function ProjectDetailPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-foreground truncate">{project.name}</h1>
+              <h1 className="text-sm font-semibold text-foreground truncate">{project.name}</h1>
             </div>
             <Button
               variant="ghost"
