@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Settings, FileText, Send, 
-  Loader2, Quote, ChevronRight, Plus, Shield, Lock, Mic, Trash2
+  Loader2, Quote, ChevronRight, Plus, Shield, Lock, Mic, Trash2, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import {
   getProject,
   getProjectDocuments,
   removeDocumentFromProject,
-  migrateProjectDocumentIds,
+  resetProjectDocuments,
   type MemoryProject,
   type MemoryItem,
 } from '@/lib/memory/memory-store';
@@ -108,12 +108,6 @@ export default function ProjectDetailPage() {
       const key = await getMasterKey();
       if (!key) return;
       
-      // Migrate chunk IDs for existing projects (one-time fix)
-      const migrated = await migrateProjectDocumentIds(projectId!, key);
-      if (migrated > 0) {
-        console.log(`[Project] Migrated ${migrated} chunk IDs`);
-      }
-      
       const [proj, docs] = await Promise.all([
         getProject(projectId!),
         getProjectDocuments(projectId!, key),
@@ -124,6 +118,42 @@ export default function ProjectDetailPage() {
       setIsLoading(false);
     }
   }
+
+  // Compute unique document count (not chunk count)
+  const uniqueDocumentCount = useMemo(() => {
+    if (!documents || documents.length === 0) return 0;
+    const uniqueFiles = new Set<string>();
+    for (const doc of documents) {
+      const filename = doc.metadata?.filename || doc.metadata?.title || doc.id.replace(/-\d+$/, '');
+      uniqueFiles.add(filename);
+    }
+    return uniqueFiles.size;
+  }, [documents]);
+
+  // Unique documents for sidebar display
+  const uniqueDocuments = useMemo(() => {
+    if (!documents || documents.length === 0) return [];
+    const seen = new Map<string, typeof documents[0]>();
+    for (const doc of documents) {
+      const filename = doc.metadata?.filename || doc.metadata?.title || doc.id.replace(/-\d+$/, '');
+      if (!seen.has(filename)) {
+        seen.set(filename, doc);
+      }
+    }
+    return Array.from(seen.values());
+  }, [documents]);
+
+  // Reset project documents (for corrupted projects)
+  const handleResetDocuments = async () => {
+    if (!projectId) return;
+    const confirmed = window.confirm(
+      'This will remove all documents from this project. You will need to re-add them. Continue?'
+    );
+    if (confirmed) {
+      await resetProjectDocuments(projectId);
+      window.location.reload();
+    }
+  };
 
   const getDocumentTitle = (doc: MemoryItem): string => {
     return doc.metadata.title || doc.metadata.filename || 'Untitled Document';
@@ -273,18 +303,31 @@ export default function ProjectDetailPage() {
 
         <div className="p-3 border-b border-border space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">Documents</span>
-            <Button variant="ghost" size="sm" onClick={() => setShowAddDocs(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </Button>
+            <span className="text-sm font-medium text-foreground">
+              Documents ({uniqueDocumentCount})
+            </span>
+            <div className="flex gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={handleResetDocuments}
+                title="Reset documents"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowAddDocs(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
           </div>
           <Button
             variant="outline"
             size="sm"
             className="w-full gap-2"
             onClick={() => setShowBriefingDialog(true)}
-            disabled={documents.length === 0}
+            disabled={uniqueDocuments.length === 0}
           >
             <Mic className="h-4 w-4" />
             Brief Me
@@ -293,7 +336,7 @@ export default function ProjectDetailPage() {
 
         <div className="flex-1 overflow-y-auto">
           <div className="p-2 space-y-1">
-            {documents.length === 0 ? (
+            {uniqueDocuments.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
                 <p className="text-sm text-muted-foreground">No documents yet</p>
@@ -306,7 +349,7 @@ export default function ProjectDetailPage() {
                 </Button>
               </div>
             ) : (
-              documents.map((doc) => (
+              uniqueDocuments.map((doc) => (
                 <div
                   key={doc.id}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/50 group"
@@ -344,7 +387,7 @@ export default function ProjectDetailPage() {
                   Chat with {project.name}
                 </h2>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Ask questions about your {documents.length} documents.
+                  Ask questions about your {uniqueDocumentCount} document{uniqueDocumentCount !== 1 ? 's' : ''}.
                   <br />
                   AI will only answer from your documents (no hallucination).
                 </p>
