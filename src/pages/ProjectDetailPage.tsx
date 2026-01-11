@@ -48,7 +48,7 @@ export default function ProjectDetailPage() {
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { queryWithContext, isQuerying, isReady } = useProjectQuery(projectId!);
+  const { queryWithContext, isQuerying, isReady } = useProjectQuery(projectId);
 
   useEffect(() => {
     if (projectId && isUnlocked) {
