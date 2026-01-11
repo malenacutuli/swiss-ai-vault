@@ -93,7 +93,11 @@ export function AddDocumentsDialog({
       for (const docId of selectedIds) {
         const group = allDocs.find(g => g.documentId === docId);
         if (group) {
-          await addDocumentToProject(projectId, group.chunkIds[0], key);
+          // Add ALL chunks for complete document coverage
+          console.log(`[AddDocuments] Adding ${group.chunkIds.length} chunks for ${group.filename || docId}`);
+          for (const chunkId of group.chunkIds) {
+            await addDocumentToProject(projectId, chunkId, key);
+          }
         }
       }
       toast({ title: t('projects.addDocs.addedCount', 'Added {{count}} document(s)').replace('{{count}}', String(selectedIds.size)) });
