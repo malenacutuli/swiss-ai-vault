@@ -1394,26 +1394,9 @@ export async function searchMemoriesInProject(
     request.onerror = () => reject(request.error);
   });
   
-  // Filter to only project documents and calculate similarity
-  // Use prefix matching to find all chunks of documents in the project
-  const projectStored = allStored.filter(s => {
-    // Direct exact match
-    if (projectDocIds.has(s.id)) return true;
-    
-    // Prefix match: find all chunks of the same document
-    // Chunk IDs follow pattern: "baseId-0", "baseId-1", "baseId-2", etc.
-    const baseId = s.id.replace(/-\d+$/, '');  // Remove trailing "-N"
-    
-    // Check if any project document shares the same base ID
-    for (const projectDocId of projectDocIds) {
-      const projectBaseId = projectDocId.replace(/-\d+$/, '');
-      if (baseId === projectBaseId) {
-        return true;
-      }
-    }
-    
-    return false;
-  });
+  // Filter to only project documents using EXACT ID matching
+  // AddDocumentsDialog already adds ALL chunk IDs, so no prefix matching needed
+  const projectStored = allStored.filter(s => projectDocIds.has(s.id));
   
   console.log(`[MemoryStore] Project has ${projectDocIds.size} doc IDs, matched ${projectStored.length} chunks from ${allStored.length} total`);
   
@@ -1767,44 +1750,32 @@ export async function getAudioBriefingsCount(): Promise<number> {
 }
 
 /**
- * Migrate existing projects to include ALL chunk IDs
- * Call this once when loading a project to fix historical data
+ * Migration DISABLED - was adding wrong chunks
+ * Use AddDocumentsDialog to properly add documents
  */
 export async function migrateProjectDocumentIds(
   projectId: string,
   encryptionKey: CryptoKey
 ): Promise<number> {
+  // DISABLED - the migration was causing problems by adding unrelated chunks
+  console.log('[MemoryStore] Migration disabled - use AddDocumentsDialog to add documents');
+  return 0;
+}
+
+/**
+ * Reset a project's documents - clears all document IDs
+ * User will need to re-add documents after reset
+ */
+export async function resetProjectDocuments(
+  projectId: string
+): Promise<boolean> {
   const project = await getProject(projectId);
-  if (!project || !project.documentIds || project.documentIds.length === 0) {
-    return 0;
-  }
+  if (!project) return false;
   
-  // Get all document groups
-  const groups = await getDocumentGroups(encryptionKey);
-  const currentIds = new Set(project.documentIds);
-  const idsToAdd: string[] = [];
+  const originalCount = project.documentIds?.length || 0;
   
-  // For each document that has at least one chunk in the project,
-  // add ALL its chunks
-  for (const group of groups) {
-    const hasAnyChunk = group.chunkIds.some(id => currentIds.has(id));
-    
-    if (hasAnyChunk) {
-      for (const chunkId of group.chunkIds) {
-        if (!currentIds.has(chunkId)) {
-          idsToAdd.push(chunkId);
-        }
-      }
-    }
-  }
+  await updateProject(projectId, { documentIds: [], updatedAt: Date.now() });
   
-  if (idsToAdd.length > 0) {
-    // Add missing chunks to project
-    for (const chunkId of idsToAdd) {
-      await addDocumentToProject(projectId, chunkId, encryptionKey);
-    }
-    console.log(`[Migration] Added ${idsToAdd.length} missing chunks to project ${projectId}`);
-  }
-  
-  return idsToAdd.length;
+  console.log(`[MemoryStore] Reset project ${projectId}: removed ${originalCount} doc IDs`);
+  return true;
 }
