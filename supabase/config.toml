@@ -94,7 +94,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.ghost-voice]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ghost-api]
 verify_jwt = false
