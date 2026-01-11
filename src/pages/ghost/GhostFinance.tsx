@@ -251,7 +251,8 @@ export default function GhostFinance() {
                 <h1 className="text-xl font-semibold text-slate-900">{t('ghost.modules.finance.title')}</h1>
               </div>
               <Button variant="outline" size="sm" className="gap-2 text-slate-500 border-slate-200">
-                <Bell className="w-4 h-4" strokeWidth={1.5} />{t('common.notifications')}
+                <Bell className="w-4 h-4" strokeWidth={1.5} />
+                {t('common.notifications', 'Notifications')}
               </Button>
             </div>
 
