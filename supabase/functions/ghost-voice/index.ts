@@ -12,6 +12,14 @@ serve(async (req) => {
   }
 
   try {
+    // Optional: Get user for logging (but allow anonymous)
+    const authHeader = req.headers.get('Authorization');
+    let userId = 'anonymous';
+    if (authHeader?.startsWith('Bearer ') && authHeader.length > 20) {
+      userId = 'authenticated';
+    }
+    console.log(`[ghost-voice] Request from: ${userId}`);
+
     const { action, text, voice = 'alloy', speed = 1.0, audio, language } = await req.json();
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
