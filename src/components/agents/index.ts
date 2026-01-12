@@ -29,3 +29,4 @@ export { StudioOutputCards, OUTPUT_CARDS } from './StudioOutputCards';
 export { TaskCard } from './TaskCard';
 export { TaskDetails } from './TaskDetails';
 export { AgentDashboard } from './AgentDashboard';
+export { TaskCreationModal } from './TaskCreationModal';

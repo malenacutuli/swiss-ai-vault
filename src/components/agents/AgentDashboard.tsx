@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { useAgentTasks } from '@/hooks/useAgentTasks';
 import { TaskCard } from './TaskCard';
 import { TaskDetails } from './TaskDetails';
+import { TaskCreationModal } from './TaskCreationModal';
 
 export function AgentDashboard() {
   const { activeTasks, recentTasks, isLoading, error, fetchTasks } = useAgentTasks();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const allTasks = [...activeTasks, ...recentTasks];
 
@@ -24,7 +26,10 @@ export function AgentDashboard() {
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button className="bg-[#1D4E5F] hover:bg-[#163d4d]">
+          <Button
+            className="bg-[#1D4E5F] hover:bg-[#163d4d]"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Task
           </Button>
@@ -102,6 +107,15 @@ export function AgentDashboard() {
           )}
         </div>
       </div>
+
+      <TaskCreationModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreated={(taskId) => {
+          setSelectedTaskId(taskId);
+          fetchTasks();
+        }}
+      />
     </div>
   );
 }
