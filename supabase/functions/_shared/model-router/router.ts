@@ -144,13 +144,12 @@ async function trackUsage(
   runId?: string
 ): Promise<void> {
   try {
-    await supabase.from('token_usage').insert({
-      user_id: userId,
-      model_id: modelId,
-      run_id: runId,
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens
+    await supabase.rpc('record_token_usage', {
+      p_user_id: userId,
+      p_model_id: modelId,
+      p_run_id: runId,
+      p_prompt_tokens: usage.prompt_tokens,
+      p_completion_tokens: usage.completion_tokens
     });
   } catch (e) {
     console.error('Failed to track usage:', e);
