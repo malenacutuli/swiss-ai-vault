@@ -106,6 +106,7 @@ import GhostTravel from "./pages/ghost/GhostTravel";
 import GhostRealEstate from "./pages/ghost/GhostRealEstate";
 import GhostArt from "./pages/ghost/GhostArt";
 import GhostVentureCapital from "./pages/ghost/GhostVentureCapital";
+import { OnboardingWizard } from "./components/onboarding";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,7 @@ const App = () => {
                 <Route path="/" element={<MarketingLayout><Index /></MarketingLayout>} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/onboarding" element={<OnboardingWizard />} />
                 <Route path="/docs/api" element={<MarketingLayout><ApiDocs /></MarketingLayout>} />
                 <Route path="/docs/on-premises" element={<MarketingLayout><OnPremisesDeployment /></MarketingLayout>} />
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />
