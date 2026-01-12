@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +13,19 @@ import { FirstTimeOrganizationModal } from "@/components/FirstTimeOrganizationMo
 import { LegacyRedirect } from "@/components/LegacyRedirect";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { chatEncryption } from "@/lib/encryption";
+
+// Lazy load new dashboard components
+const AdminDashboardNew = lazy(() => import('@/components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const SettingsPageNew = lazy(() => import('@/components/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const AgentDashboardNew = lazy(() => import('@/components/agents/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
+const IntegrationsPageNew = lazy(() => import('@/components/integrations/IntegrationsPage').then(m => ({ default: m.IntegrationsPage })));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin w-8 h-8 border-2 border-[#1D4E5F] border-t-transparent rounded-full" />
+  </div>
+);
 
 // Layouts
 import { ChatLayout } from "@/layouts/ChatLayout";
@@ -155,11 +168,31 @@ const App = () => {
                 <Route path="/ghost/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
                 
                 {/* Top-level convenience routes */}
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <SettingsPageNew />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
                 <Route path="/upgrade" element={<Upgrade />} />
                 <Route path="/agents" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents/dashboard" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <AgentDashboardNew />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
                 <Route path="/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/studio" element={<ProtectedRoute><ErrorBoundary><Studio /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/integrations" element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <IntegrationsPageNew />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
                 
                 <Route path="/ghost/finance" element={<GhostFinance />} />
                 <Route path="/ghost/patents" element={<GhostPatents />} />
@@ -216,6 +249,11 @@ const App = () => {
                 {/* New Admin Dashboard */}
                 <Route path="/admin" element={<AdminRoute><AdminLayoutComponent /></AdminRoute>}>
                   <Route index element={<AdminDashboardPage />} />
+                  <Route path="dashboard" element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminDashboardNew />
+                    </Suspense>
+                  } />
                   <Route path="users" element={<UsersManagementPage />} />
                   <Route path="audit-logs" element={<AdminAuditLogsPage />} />
                 </Route>
