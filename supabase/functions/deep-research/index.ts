@@ -1,163 +1,336 @@
+// supabase/functions/deep-research/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req: Request) => {
+interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+  relevance_score?: number;
+}
+
+interface ResearchQuery {
+  query: string;
+  sub_queries?: string[];
+  max_results?: number;
+  search_depth?: 'quick' | 'standard' | 'deep';
+}
+
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-  
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
-    
-    const { query, depth, sources } = await req.json();
-    
+    const {
+      query,
+      sub_queries,
+      max_results = 10,
+      search_depth = 'standard',
+      run_id,
+      step_id,
+      synthesize = true
+    } = await req.json() as ResearchQuery & { run_id?: string; step_id?: string; synthesize?: boolean };
+
     if (!query) {
-      throw new Error("Missing query");
+      return new Response(
+        JSON.stringify({ error: "Query is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-    
-    const apiKey = Deno.env.get("GOOGLE_GEMINI_API_KEY");
-    if (!apiKey) {
-      throw new Error("GOOGLE_GEMINI_API_KEY not configured");
+
+    // Generate sub-queries if not provided
+    const queries = sub_queries?.length ? sub_queries : await generateSubQueries(query, search_depth);
+
+    // Execute parallel searches
+    const searchPromises = queries.map(q => executeSearch(q, Math.ceil(max_results / queries.length)));
+    const searchResults = await Promise.allSettled(searchPromises);
+
+    // Collect successful results
+    const allResults: SearchResult[] = [];
+    const errors: string[] = [];
+
+    searchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        allResults.push(...result.value);
+      } else {
+        errors.push(`Query "${queries[index]}" failed: ${result.reason}`);
+      }
+    });
+
+    // Deduplicate by URL
+    const uniqueResults = deduplicateResults(allResults);
+
+    // Rank results by relevance
+    const rankedResults = rankResults(uniqueResults, query);
+
+    // Synthesize if requested
+    let synthesis = null;
+    if (synthesize && rankedResults.length > 0) {
+      synthesis = await synthesizeResults(query, rankedResults.slice(0, 15));
     }
-    
-    console.log(`[deep-research] Starting research for user ${user.id}: "${query.slice(0, 50)}..."`);
-    
-    // Create research job record
-    const { data: job, error: jobError } = await supabase
-      .from("deep_research_jobs")
-      .insert({
-        user_id: user.id,
+
+    // Store research results if run_id provided
+    if (run_id && step_id) {
+      await supabase.from('agent_task_outputs').insert({
+        task_id: run_id,
+        step_id: step_id,
+        output_type: 'research',
+        content: {
+          query,
+          sub_queries: queries,
+          results_count: rankedResults.length,
+          synthesis: synthesis?.summary,
+          sources: rankedResults.slice(0, 20).map(r => ({ title: r.title, url: r.url }))
+        }
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
         query,
-        depth: depth || "standard",
-        status: "running",
-      })
-      .select()
-      .single();
-    
-    if (jobError) {
-      console.error(`[deep-research] Job creation error:`, jobError);
-      throw new Error(`Failed to create job: ${jobError.message}`);
-    }
-    
-    // Start deep research with Gemini (background execution)
-    executeDeepResearch(supabase, apiKey, job.id, query, depth, sources);
-    
-    return new Response(JSON.stringify({
-      job_id: job.id,
-      status: "running",
-      message: "Research started. Poll /deep-research-status for updates.",
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-    
-  } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    console.error(`[deep-research] Error: ${error.message}`);
-    return new Response(JSON.stringify({
-      error: error.message,
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+        sub_queries: queries,
+        results: rankedResults.slice(0, max_results),
+        total_found: rankedResults.length,
+        synthesis,
+        errors: errors.length > 0 ? errors : undefined
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Deep research error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
 
-async function executeDeepResearch(
-  supabase: any,
-  apiKey: string,
-  jobId: string,
-  query: string,
-  depth: string,
-  _sources?: any[]
-) {
+async function generateSubQueries(mainQuery: string, depth: string): Promise<string[]> {
+  const queryCount = depth === 'quick' ? 2 : depth === 'deep' ? 8 : 4;
+
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!geminiKey) {
+    return [mainQuery];
+  }
+
   try {
-    console.log(`[deep-research] Executing research job ${jobId}`);
-    
-    // Use Gemini with web grounding for deep research
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `You are a research analyst. Conduct comprehensive research on: "${query}"
-              
-              Depth: ${depth}
-              
-              Provide:
-              1. Executive Summary
-              2. Key Findings (with citations)
-              3. Analysis
-              4. Recommendations
-              5. Sources Used
-              
-              Format as a professional research report.`,
-            }],
+              text: `Generate ${queryCount} diverse search queries to thoroughly research this topic. Return ONLY a JSON array of strings, no other text.
+
+Topic: ${mainQuery}
+
+Requirements:
+- Each query should explore a different aspect
+- Include specific, factual queries
+- Include comparison/analysis queries
+- Keep queries concise (under 10 words each)`
+            }]
           }],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 8192,
-          },
-          tools: [{
-            googleSearch: {},  // Enable web grounding
-          }],
-        }),
+          generationConfig: { temperature: 0.7 }
+        })
       }
     );
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Research API error: ${errorText}`);
-    }
-    
+
     const data = await response.json();
-    const report = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const groundingMetadata = data.candidates?.[0]?.groundingMetadata;
-    
-    // Extract citations
-    const citations = groundingMetadata?.webSearchQueries || [];
-    
-    console.log(`[deep-research] Research completed for job ${jobId}`);
-    
-    // Update job with results
-    await supabase.from("deep_research_jobs").update({
-      status: "completed",
-      report,
-      citations,
-      completed_at: new Date().toISOString(),
-    }).eq("id", jobId);
-    
-  } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    console.error(`[deep-research] Research error for job ${jobId}: ${error.message}`);
-    
-    await supabase.from("deep_research_jobs").update({
-      status: "failed",
-      error_message: error.message,
-      completed_at: new Date().toISOString(),
-    }).eq("id", jobId);
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Parse JSON array from response
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+      const queries = JSON.parse(match[0]);
+      return [mainQuery, ...queries.slice(0, queryCount - 1)];
+    }
+  } catch (e) {
+    console.error("Failed to generate sub-queries:", e);
   }
+
+  return [mainQuery];
+}
+
+async function executeSearch(query: string, limit: number): Promise<SearchResult[]> {
+  const results: SearchResult[] = [];
+
+  // Try Perplexity first
+  const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
+  if (perplexityKey) {
+    try {
+      const perplexityResults = await searchPerplexity(query, perplexityKey, limit);
+      results.push(...perplexityResults);
+    } catch (e) {
+      console.error("Perplexity search failed:", e);
+    }
+  }
+
+  // Fallback to Serper
+  if (results.length < limit) {
+    const serperKey = Deno.env.get("SERPER_API_KEY");
+    if (serperKey) {
+      try {
+        const serperResults = await searchSerper(query, serperKey, limit - results.length);
+        results.push(...serperResults);
+      } catch (e) {
+        console.error("Serper search failed:", e);
+      }
+    }
+  }
+
+  return results;
+}
+
+async function searchPerplexity(query: string, apiKey: string, limit: number): Promise<SearchResult[]> {
+  const response = await fetch("https://api.perplexity.ai/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-sonar-small-128k-online",
+      messages: [{ role: "user", content: query }],
+      max_tokens: 1024,
+      return_citations: true
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Perplexity API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const citations = data.citations || [];
+
+  return citations.slice(0, limit).map((url: string, i: number) => ({
+    title: `Source ${i + 1}`,
+    url,
+    snippet: data.choices?.[0]?.message?.content?.slice(0, 200) || '',
+    source: 'perplexity'
+  }));
+}
+
+async function searchSerper(query: string, apiKey: string, limit: number): Promise<SearchResult[]> {
+  const response = await fetch("https://google.serper.dev/search", {
+    method: "POST",
+    headers: {
+      "X-API-KEY": apiKey,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ q: query, num: limit })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Serper API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  return (data.organic || []).map((result: any) => ({
+    title: result.title,
+    url: result.link,
+    snippet: result.snippet || '',
+    source: 'serper'
+  }));
+}
+
+function deduplicateResults(results: SearchResult[]): SearchResult[] {
+  const seen = new Set<string>();
+  return results.filter(r => {
+    const key = new URL(r.url).hostname + new URL(r.url).pathname;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function rankResults(results: SearchResult[], query: string): SearchResult[] {
+  const queryTerms = query.toLowerCase().split(/\s+/);
+
+  return results
+    .map(r => {
+      const text = `${r.title} ${r.snippet}`.toLowerCase();
+      const matchCount = queryTerms.filter(term => text.includes(term)).length;
+      return { ...r, relevance_score: matchCount / queryTerms.length };
+    })
+    .sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+}
+
+async function synthesizeResults(
+  query: string,
+  results: SearchResult[]
+): Promise<{ summary: string; key_points: string[]; sources_used: number }> {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!geminiKey) {
+    return { summary: '', key_points: [], sources_used: 0 };
+  }
+
+  const sourcesText = results
+    .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`)
+    .join('\n\n');
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Synthesize these search results into a comprehensive answer. Include citations using [1], [2], etc.
+
+Query: ${query}
+
+Sources:
+${sourcesText}
+
+Provide:
+1. A clear, well-organized summary (2-3 paragraphs)
+2. 3-5 key points as bullet points
+3. Cite sources using [n] notation
+
+Format as JSON: { "summary": "...", "key_points": ["...", "..."] }`
+            }]
+          }],
+          generationConfig: { temperature: 0.3 }
+        })
+      }
+    );
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return {
+        summary: parsed.summary || '',
+        key_points: parsed.key_points || [],
+        sources_used: results.length
+      };
+    }
+  } catch (e) {
+    console.error("Synthesis failed:", e);
+  }
+
+  return { summary: '', key_points: [], sources_used: 0 };
 }
