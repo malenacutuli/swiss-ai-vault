@@ -299,33 +299,62 @@ Deno.serve(async (req) => {
   }
 });
 
+// Retry helper for API calls
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown error');
+      if (i < maxRetries - 1) {
+        const delay = initialDelay * Math.pow(2, i);
+        console.log(`[Worker] Retry ${i + 1}/${maxRetries} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError || new Error('All retries failed');
+}
+
 // Tool execution functions
 async function executeWebSearch(
-  supabaseUrl: string, 
-  authHeader: string, 
+  supabaseUrl: string,
+  authHeader: string,
   input: any
 ): Promise<StepResult> {
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/ghost-web-search`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        query: input.query || input.search_query,
-        max_results: input.max_results || 5,
-      }),
-    });
+    const response = await retryWithBackoff(async () => {
+      const res = await fetch(`${supabaseUrl}/functions/v1/ghost-web-search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({
+          query: input.query || input.search_query,
+          max_results: input.max_results || 5,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Web search failed: ${response.status}`);
-    }
+      if (!res.ok) {
+        throw new Error(`Web search failed: ${res.status}`);
+      }
+
+      return res;
+    }, 3, 1000);
 
     const data = await response.json();
     return { success: true, output: data };
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Web search error';
+    console.error('[Worker] Web search failed after retries:', errorMessage);
     return { success: false, error: errorMessage };
   }
 }
@@ -336,28 +365,33 @@ async function executeImageGen(
   input: any
 ): Promise<StepResult> {
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/ghost-image-gen`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        prompt: input.prompt,
-        model: input.model || 'flux-schnell',
-        width: input.width || 1024,
-        height: input.height || 1024,
-      }),
-    });
+    const response = await retryWithBackoff(async () => {
+      const res = await fetch(`${supabaseUrl}/functions/v1/ghost-image-gen`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({
+          prompt: input.prompt,
+          model: input.model || 'flux-schnell',
+          width: input.width || 1024,
+          height: input.height || 1024,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Image gen failed: ${response.status}`);
-    }
+      if (!res.ok) {
+        throw new Error(`Image gen failed: ${res.status}`);
+      }
+
+      return res;
+    }, 3, 1000);
 
     const data = await response.json();
     return { success: true, output: data };
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Image gen error';
+    console.error('[Worker] Image gen failed after retries:', errorMessage);
     return { success: false, error: errorMessage };
   }
 }
@@ -537,24 +571,31 @@ async function tryModalGeneration(
   supabase: any
 ): Promise<StepResult> {
   const modalUrl = getModalEndpoint(format);
-  
+
   if (!modalUrl) {
+    console.log(`[agent-worker] No Modal endpoint configured for ${format}, using fallback`);
     return { success: false, error: 'No Modal endpoint configured' };
   }
 
   try {
-    console.log(`[agent-worker] Calling Modal for ${format} generation`);
-    
-    const response = await fetch(modalUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: format, ...data }),
-    });
+    console.log(`[agent-worker] Calling Modal for ${format} generation at ${modalUrl}`);
 
-    if (!response.ok) {
-      console.warn(`[agent-worker] Modal returned ${response.status}`);
-      return { success: false, error: `Modal returned ${response.status}` };
-    }
+    const response = await retryWithBackoff(async () => {
+      const res = await fetch(modalUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: format, ...data }),
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.warn(`[agent-worker] Modal returned ${res.status}: ${errorText}`);
+        throw new Error(`Modal returned ${res.status}: ${errorText}`);
+      }
+
+      return res;
+    }, 2, 2000); // 2 retries with 2 second initial delay
 
     const fileBuffer = await response.arrayBuffer();
     const filename = `${format}-${Date.now()}.${format}`;
@@ -765,26 +806,31 @@ async function executeMemorySearch(
   input: any
 ): Promise<StepResult> {
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/search-documents`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: JSON.stringify({
-        query: input.query,
-        limit: input.limit || 5,
-      }),
-    });
+    const response = await retryWithBackoff(async () => {
+      const res = await fetch(`${supabaseUrl}/functions/v1/search-documents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({
+          query: input.query,
+          limit: input.limit || 5,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Memory search failed: ${response.status}`);
-    }
+      if (!res.ok) {
+        throw new Error(`Memory search failed: ${res.status}`);
+      }
+
+      return res;
+    }, 3, 1000);
 
     const data = await response.json();
     return { success: true, output: data };
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Memory search error';
+    console.error('[Worker] Memory search failed after retries:', errorMessage);
     return { success: false, error: errorMessage };
   }
 }
