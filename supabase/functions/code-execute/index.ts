@@ -96,7 +96,7 @@ async function executeWithSwissK8s(
   userId?: string,
   tier?: string
 ): Promise<ExecutionResult & { sandbox_region: string }> {
-  const SWISS_API_URL = 'https://api.swissbrain.ai/v1/sandbox/execute';
+  const SWISS_API_URL = 'http://api.swissbrain.ai/execute';
   
   try {
     console.log(`[code-execute] Calling Swiss K8s API for ${language} execution`);

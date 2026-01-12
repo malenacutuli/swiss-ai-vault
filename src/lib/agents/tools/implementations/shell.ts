@@ -4,7 +4,7 @@ import { validateCommand, sanitizeForLogging } from '../safety';
 import { supabase } from '@/integrations/supabase/client';
 
 // Swiss API endpoint (HTTP for now due to SSL certificate provisioning)
-const SWISS_API_ENDPOINT = 'http://api.swissbrain.ai/v1/sandbox';
+const SWISS_API_ENDPOINT = 'http://api.swissbrain.ai';
 
 // shell.exec - Execute shell command
 export const shellExec: Tool = {
