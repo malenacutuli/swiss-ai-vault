@@ -2,6 +2,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Run, RunStatus } from "../types/run.ts";
+import { Phase } from "../types/plan.ts";
 
 export interface StateTransition {
   from: RunStatus;
@@ -33,7 +34,7 @@ export const VALID_TRANSITIONS: StateTransition[] = [
   { from: 'executing', to: 'waiting_user' },
   { from: 'executing', to: 'completed', guard: (r) => {
     if (!r.plan) return false;
-    return r.plan.phases.every(p => p.status === 'completed' || p.status === 'skipped');
+    return r.plan.phases.every((p: Phase) => p.status === 'completed' || p.status === 'skipped');
   }},
   { from: 'executing', to: 'failed' },
   { from: 'executing', to: 'cancelled' },

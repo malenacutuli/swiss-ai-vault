@@ -91,12 +91,13 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Health check error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
       JSON.stringify({
         overall_status: 'unhealthy',
-        error: error.message,
+        error: errorMessage,
         timestamp: new Date().toISOString()
       }),
       { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -137,12 +138,15 @@ async function checkSwissApi(): Promise<HealthCheckResult> {
         timestamp: new Date().toISOString()
       };
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error 
+      ? (error.name === 'AbortError' ? 'Timeout after 10s' : error.message)
+      : String(error);
     return {
       service,
       status: 'unhealthy',
       latency_ms: Date.now() - start,
-      message: error.name === 'AbortError' ? 'Timeout after 10s' : error.message,
+      message: errorMessage,
       timestamp: new Date().toISOString()
     };
   }
@@ -196,12 +200,15 @@ async function checkPythonExecution(): Promise<HealthCheckResult> {
       message: 'Python execution failed',
       timestamp: new Date().toISOString()
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error 
+      ? (error.name === 'AbortError' ? 'Timeout after 30s' : error.message)
+      : String(error);
     return {
       service,
       status: 'unhealthy',
       latency_ms: Date.now() - start,
-      message: error.name === 'AbortError' ? 'Timeout after 30s' : error.message,
+      message: errorMessage,
       timestamp: new Date().toISOString()
     };
   }
@@ -236,12 +243,13 @@ async function checkSupabase(supabase: any): Promise<HealthCheckResult> {
       message: 'Database connection OK',
       timestamp: new Date().toISOString()
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       service,
       status: 'unhealthy',
       latency_ms: Date.now() - start,
-      message: error.message,
+      message: errorMessage,
       timestamp: new Date().toISOString()
     };
   }
@@ -288,12 +296,13 @@ async function checkRedis(): Promise<HealthCheckResult> {
       message: `Redis returned ${response.status}`,
       timestamp: new Date().toISOString()
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       service,
       status: 'unhealthy',
       latency_ms: Date.now() - start,
-      message: error.message,
+      message: errorMessage,
       timestamp: new Date().toISOString()
     };
   }
@@ -339,12 +348,13 @@ async function checkGemini(): Promise<HealthCheckResult> {
       message: `Gemini returned ${response.status}`,
       timestamp: new Date().toISOString()
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       service,
       status: 'unhealthy',
       latency_ms: Date.now() - start,
-      message: error.message,
+      message: errorMessage,
       timestamp: new Date().toISOString()
     };
   }

@@ -17,10 +17,10 @@ export async function createArtifact(
   // Convert content to Uint8Array if string
   const contentBytes = typeof input.content === 'string'
     ? new TextEncoder().encode(input.content)
-    : input.content;
+    : new Uint8Array(input.content);
 
   // Generate content hash (SHA-256)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', contentBytes);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', contentBytes.buffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const contentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 

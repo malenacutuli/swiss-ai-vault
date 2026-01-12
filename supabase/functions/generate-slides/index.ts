@@ -95,10 +95,18 @@ serve(async (req) => {
 
     const fileName = `${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.pptx`;
 
+    // Get base64 content and decode to Uint8Array
+    const base64Content = pptxResult.output_files?.[0]?.content || '';
+    const binaryString = atob(base64Content);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
     // Upload to storage
     const { data: uploadData, error: uploadError } = await serviceClient.storage
       .from('artifacts')
-      .upload(fileName, Buffer.from(pptxResult.output_files?.[0]?.content || '', 'base64'), {
+      .upload(fileName, bytes, {
         contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
       });
 
@@ -118,8 +126,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

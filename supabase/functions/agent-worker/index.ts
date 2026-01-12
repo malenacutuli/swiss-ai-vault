@@ -39,10 +39,11 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Worker error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -110,12 +111,16 @@ async function processRun(supabase: any, run: Run): Promise<{ success: boolean; 
 
     // Mark phase as in_progress
     if (currentPhase.status === "pending") {
-      currentPhase.status = "in_progress";
+      currentPhase.status = "executing";
       await updatePlan(supabase, run.id, plan);
     }
 
-    // Execute steps in phase
-    for (const capability of currentPhase.capabilities || []) {
+    // Execute steps in phase - iterate over capability keys
+    const capabilityKeys = Object.keys(currentPhase.capabilities || {}).filter(
+      key => currentPhase.capabilities[key as keyof typeof currentPhase.capabilities]
+    );
+    
+    for (const capability of capabilityKeys) {
       const stepResult = await executeStep(supabase, run, currentPhase, capability);
 
       if (!stepResult.success) {
@@ -152,11 +157,12 @@ async function processRun(supabase: any, run: Run): Promise<{ success: boolean; 
     await finalizeCredits(supabase, run.id, "completed");
     return { success: true };
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Process run error:", error);
-    await transitionRun(supabase, run.id, "failed", { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await transitionRun(supabase, run.id, "failed", { error: errorMessage });
     await finalizeCredits(supabase, run.id, "failed");
-    return { success: false, error: error.message };
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -239,16 +245,17 @@ async function executeStep(
 
     return { success: true, creditsUsed: 1 };
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Step execution error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     await supabase.from("agent_task_steps").update({
       status: "failed",
-      error: error.message,
+      error: errorMessage,
       completed_at: new Date().toISOString()
     }).eq("id", stepId);
 
-    return { success: false, error: error.message };
+    return { success: false, error: errorMessage };
   }
 }
 

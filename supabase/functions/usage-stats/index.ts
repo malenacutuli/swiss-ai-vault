@@ -87,10 +87,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Usage stats error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -192,9 +193,11 @@ async function getDailyUsage(
   if (error) throw error;
 
   // Calculate totals
-  const totals = data.reduce((acc, day) => ({
+  interface DailyTotal { total_tokens: number; total_cost_usd: number; request_count: number; }
+  interface UsageDay { total_tokens?: number; total_cost_usd?: string; request_count?: number; }
+  const totals = (data as UsageDay[]).reduce((acc: DailyTotal, day: UsageDay) => ({
     total_tokens: acc.total_tokens + (day.total_tokens || 0),
-    total_cost_usd: acc.total_cost_usd + (parseFloat(day.total_cost_usd) || 0),
+    total_cost_usd: acc.total_cost_usd + (parseFloat(day.total_cost_usd || '0') || 0),
     request_count: acc.request_count + (day.request_count || 0)
   }), { total_tokens: 0, total_cost_usd: 0, request_count: 0 });
 
@@ -228,8 +231,8 @@ async function getModelBreakdown(
 
   // Aggregate by model
   const modelMap = new Map();
-
-  data.forEach(record => {
+  interface UsageRecord { model_id: string; total_tokens?: number; prompt_tokens?: number; completion_tokens?: number; cost_usd?: string; }
+  (data as UsageRecord[]).forEach((record: UsageRecord) => {
     const existing = modelMap.get(record.model_id) || {
       model_id: record.model_id,
       total_tokens: 0,
