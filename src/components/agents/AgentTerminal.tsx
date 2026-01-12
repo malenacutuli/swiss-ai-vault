@@ -156,6 +156,52 @@ export function AgentTerminal({
     onFullscreenChange?.(isFullscreen);
   }, [isFullscreen, onFullscreenChange]);
 
+  // Fetch existing logs on mount
+  useEffect(() => {
+    const fetchExistingLogs = async () => {
+      try {
+        const { data: logs, error } = await supabase
+          .from('agent_task_logs')
+          .select('content, log_type, timestamp, sequence_number')
+          .eq('task_id', taskId)
+          .order('sequence_number', { ascending: true })
+          .order('timestamp', { ascending: true });
+
+        if (error) {
+          console.error('[Terminal] Failed to fetch logs:', error);
+          if (terminalInstance.current) {
+            terminalInstance.current.writeln(formatLogLine('Waiting for task execution...', 'info'));
+          }
+          return;
+        }
+
+        if (logs && logs.length > 0 && terminalInstance.current) {
+          logs.forEach((log) => {
+            const formatted = formatLogLine(log.content, log.log_type);
+            terminalInstance.current!.writeln(formatted);
+            setOutputBuffer(prev => [...prev, log.content]);
+          });
+
+          if (autoScroll) {
+            terminalInstance.current.scrollToBottom();
+          }
+        } else if (terminalInstance.current) {
+          // No logs yet - show waiting message
+          terminalInstance.current.writeln(formatLogLine('Waiting for task execution...', 'info'));
+        }
+      } catch (err) {
+        console.error('[Terminal] Error fetching logs:', err);
+        if (terminalInstance.current) {
+          terminalInstance.current.writeln(formatLogLine('Error loading logs. Check console.', 'error'));
+        }
+      }
+    };
+
+    if (terminalInstance.current) {
+      fetchExistingLogs();
+    }
+  }, [taskId, formatLogLine, autoScroll]);
+
   // Subscribe to real-time logs
   useEffect(() => {
     const channel = supabase
@@ -174,7 +220,7 @@ export function AgentTerminal({
             const formatted = formatLogLine(log.content, log.log_type);
             terminalInstance.current.writeln(formatted);
             setOutputBuffer(prev => [...prev, log.content]);
-            
+
             if (autoScroll) {
               terminalInstance.current.scrollToBottom();
             }
@@ -188,7 +234,7 @@ export function AgentTerminal({
     return () => {
       channel.unsubscribe();
     };
-  }, [taskId, autoScroll]);
+  }, [taskId, autoScroll, formatLogLine]);
 
   // Format log line with ANSI colors based on type
   const formatLogLine = useCallback((content: string, type?: string): string => {
