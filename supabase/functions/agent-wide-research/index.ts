@@ -504,7 +504,7 @@ async function searchGemini(
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -537,7 +537,7 @@ async function searchGemini(
         relevanceScore: calculateRelevance(sections[i], query),
         qualityScore: sourceConfig.weight,
         timestamp: new Date().toISOString(),
-        metadata: { model: 'gemini-2.0-flash-exp' },
+        metadata: { model: 'gemini-2.5-flash' },
       });
     }
 
@@ -619,7 +619,7 @@ async function generateSynthesis(
     const topResults = results.slice(0, 15).map(r => r.content.substring(0, 300)).join('\n\n---\n\n');
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

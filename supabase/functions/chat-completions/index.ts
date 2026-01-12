@@ -19,7 +19,7 @@ const MODEL_ALIASES: Record<string, string> = {
   'gpt-4o-mini': 'gpt-5-mini',
   'gpt-4-turbo': 'gpt-5',
   // Legacy Gemini aliases - map to valid API model names
-  'gemini-2.0-flash-exp': 'gemini-2.0-flash',
+  'gemini-2.5-flash': 'gemini-2.0-flash',
   'gemini-1.5-pro': 'gemini-2.5-pro',
   'gemini-1.5-flash': 'gemini-2.5-flash',
   // Map UI model names to actual API model names

@@ -137,7 +137,7 @@ Begin the script now:`;
     console.log("[notebooklm-audio] Calling Gemini API for script generation...");
 
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${googleApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleApiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

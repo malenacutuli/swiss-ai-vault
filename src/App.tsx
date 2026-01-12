@@ -222,6 +222,8 @@ const App = () => {
 
                 {/* Legacy dashboard routes - redirect to labs with toast */}
                 <Route path="/dashboard" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
+                <Route path="/dashboard/settings" element={<LegacyRedirect to="/settings" message="Settings has moved to /settings" />} />
+                <Route path="/dashboard/upgrade" element={<LegacyRedirect to="/upgrade" message="Upgrade has moved to /upgrade" />} />
                 <Route path="/dashboard/*" element={<LegacyRedirect to="/labs" message="Dashboard has moved to /labs" />} />
 
                 {/* Catch-all */}
