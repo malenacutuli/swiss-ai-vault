@@ -2,12 +2,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { ChatRequest, ChatResponse, FALLBACK_CHAINS } from './types.ts';
 import { callProvider } from './adapters.ts';
+import { generateCacheKey, getCachedResponse, storeCachedResponse } from '../cache/index.ts';
 
 export async function routeRequest(request: ChatRequest): Promise<ChatResponse> {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  const temperature = request.temperature ?? 0.7;
 
   // Determine model to use
   let modelId = request.model;
@@ -37,6 +40,17 @@ export async function routeRequest(request: ChatRequest): Promise<ChatResponse> 
       .single();
 
     provider = model?.provider || 'google';
+  }
+
+  // Check cache for low-temperature requests
+  if (temperature <= 0.3) {
+    const cacheKey = await generateCacheKey(modelId, request.messages, temperature);
+    const cached = await getCachedResponse(supabase, cacheKey);
+
+    if (cached) {
+      console.log(`Cache hit for ${modelId}`);
+      return cached;
+    }
   }
 
   // Get fallback chain
@@ -79,6 +93,12 @@ export async function routeRequest(request: ChatRequest): Promise<ChatResponse> 
       // Track usage
       if (request.user_id) {
         await trackUsage(supabase, request.user_id, currentModel, response.usage, request.run_id);
+      }
+
+      // Store in cache if low temperature
+      if (temperature <= 0.3) {
+        const cacheKey = await generateCacheKey(currentModel, request.messages, temperature);
+        await storeCachedResponse(supabase, cacheKey, currentModel, request.messages, temperature, response);
       }
 
       return response;
