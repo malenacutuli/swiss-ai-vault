@@ -1,836 +1,323 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// supabase/functions/agent-worker/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { Run, RunStatus } from "../_shared/types/run.ts";
+import { Step } from "../_shared/types/step.ts";
+import { transitionRun, claimNextTask } from "../_shared/state-machine/executor.ts";
+import { executeToolCall, ToolExecutionContext } from "../_shared/tool-router/executor.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface WorkerRequest {
-  task_id: string;
-}
+const WORKER_ID = `worker-${crypto.randomUUID().slice(0, 8)}`;
 
-interface StepResult {
-  success: boolean;
-  output?: any;
-  error?: string;
-}
-
-// Modal endpoint - check multiple possible env var names
-const getModalEndpoint = (type: string = 'default'): string | null => {
-  const endpoints: Record<string, string[]> = {
-    default: ['MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_DOCUMENT_GEN_URL', 'MODAL_ENDPOINT'],
-    pptx: ['MODAL_PPTX_ENDPOINT', 'MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_ENDPOINT'],
-    docx: ['MODAL_DOCX_ENDPOINT', 'MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_ENDPOINT'],
-    xlsx: ['MODAL_XLSX_ENDPOINT', 'MODAL_DOCUMENT_GEN_ENDPOINT', 'MODAL_ENDPOINT'],
-  };
-  const varsToCheck = endpoints[type] || endpoints.default;
-  
-  for (const varName of varsToCheck) {
-    const value = Deno.env.get(varName);
-    if (value) {
-      console.log(`[agent-worker] Using Modal endpoint from ${varName}`);
-      return value;
-    }
-  }
-  
-  console.warn('[agent-worker] No Modal endpoint configured');
-  return null;
-};
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
   try {
-    const { task_id } = await req.json() as WorkerRequest;
+    const { action, run_id } = await req.json();
 
-    if (!task_id) {
-      return new Response(
-        JSON.stringify({ error: 'task_id required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    switch (action) {
+      case "poll":
+        return await handlePoll(supabase);
+      case "execute_step":
+        return await handleExecuteStep(supabase, run_id);
+      case "process_run":
+        return await handleProcessRun(supabase, run_id);
+      default:
+        return new Response(
+          JSON.stringify({ error: "Invalid action" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
     }
-
-    // Authenticate
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verify user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get task
-    const { data: task, error: taskError } = await supabase
-      .from('agent_tasks')
-      .select('*')
-      .eq('id', task_id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (taskError || !task) {
-      return new Response(
-        JSON.stringify({ error: 'Task not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if task is in valid state
-    if (task.status === 'completed' || task.status === 'failed') {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          task_status: task.status,
-          message: 'Task already finished' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get next pending step
-    const { data: steps, error: stepsError } = await supabase
-      .from('agent_task_steps')
-      .select('*')
-      .eq('task_id', task_id)
-      .order('step_number', { ascending: true });
-
-    if (stepsError) {
-      throw new Error('Failed to fetch steps');
-    }
-
-    const pendingStep = steps?.find((s: any) => s.status === 'pending');
-
-    if (!pendingStep) {
-      // All steps completed - mark task as completed
-      const duration = task.started_at 
-        ? Date.now() - new Date(task.started_at).getTime() 
-        : 0;
-
-      await supabase
-        .from('agent_tasks')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          duration_ms: duration,
-          progress_percentage: 100,
-        })
-        .eq('id', task_id);
-
-      // Get outputs
-      const { data: outputs } = await supabase
-        .from('agent_outputs')
-        .select('*')
-        .eq('task_id', task_id);
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          task_status: 'completed',
-          step_executed: null,
-          next_step: null,
-          outputs: (outputs || []).map((o: any) => ({
-            id: o.id,
-            type: o.output_type,
-            file_name: o.file_name,
-            download_url: o.download_url,
-          })),
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Mark step as executing
-    const stepStartTime = Date.now();
-    const fileActions: Array<{ type: string; target: string }> = [];
-    
-    // Helper to track file actions and update step
-    const trackAction = async (type: string, target: string) => {
-      fileActions.push({ type, target });
-      await supabase
-        .from('agent_task_steps')
-        .update({
-          current_action: `${type} ${target}`,
-          file_actions: fileActions,
-        })
-        .eq('id', pendingStep.id);
-    };
-    
-    await supabase
-      .from('agent_task_steps')
-      .update({ 
-        status: 'executing', 
-        started_at: new Date().toISOString(),
-        current_action: 'Initializing...',
-        file_actions: [],
-      })
-      .eq('id', pendingStep.id);
-
-    // Execute the step based on tool
-    let stepResult: StepResult;
-    const toolName = pendingStep.tool_name || '';
-    const toolInput = pendingStep.tool_input || {};
-
-    console.log(`[Worker] Executing step ${pendingStep.step_number}: ${toolName}`);
-
-    try {
-      switch (toolName) {
-        case 'web_search':
-          await trackAction('searching', toolInput.query || 'web');
-          stepResult = await executeWebSearch(supabaseUrl, authHeader, toolInput);
-          break;
-        case 'image_generator':
-          await trackAction('generating', toolInput.filename || 'image.png');
-          stepResult = await executeImageGen(supabaseUrl, authHeader, toolInput);
-          break;
-        case 'document_generator':
-          const docName = toolInput.filename || toolInput.title || 'document';
-          await trackAction('creating', docName);
-          // Pass task prompt for format detection
-          stepResult = await handleDocumentGeneration(pendingStep, task_id, supabase, user.id, task.prompt);
-          break;
-        case 'memory_search':
-          await trackAction('reading', 'memory');
-          stepResult = await executeMemorySearch(supabaseUrl, authHeader, toolInput);
-          break;
-        case 'code_executor':
-          await trackAction('executing', toolInput.command || 'code');
-          stepResult = { success: true, output: { message: 'Code execution placeholder' } };
-          break;
-        case 'file_reader':
-          await trackAction('reading', toolInput.filename || 'file');
-          stepResult = { success: true, output: { message: 'File read placeholder' } };
-          break;
-        default:
-          await trackAction('processing', toolName || 'task');
-          stepResult = {
-            success: true,
-            output: { message: `Tool ${toolName} executed (placeholder)` },
-          };
-      }
-    } catch (toolError: unknown) {
-      const errorMessage = toolError instanceof Error ? toolError.message : 'Tool execution failed';
-      stepResult = { success: false, error: errorMessage };
-    }
-
-    const stepDuration = Date.now() - stepStartTime;
-
-    // Update step with final result and all file actions
-    await supabase
-      .from('agent_task_steps')
-      .update({
-        status: stepResult.success ? 'completed' : 'failed',
-        completed_at: new Date().toISOString(),
-        duration_ms: stepDuration,
-        tool_output: stepResult.output || null,
-        error_message: stepResult.error || null,
-        file_actions: fileActions,
-        current_action: null,
-      })
-      .eq('id', pendingStep.id);
-
-    // Calculate progress
-    const completedCount = steps!.filter((s: any) => 
-      s.status === 'completed' || s.id === pendingStep.id
-    ).length;
-    const progressPct = Math.round((completedCount / (task.total_steps || 1)) * 100);
-
-    // Update task progress
-    await supabase
-      .from('agent_tasks')
-      .update({
-        current_step: pendingStep.step_number,
-        progress_percentage: progressPct,
-      })
-      .eq('id', task_id);
-
-    // Find next step
-    const nextStep = steps?.find((s: any) => 
-      s.step_number > pendingStep.step_number && s.status === 'pending'
-    );
-
+  } catch (error) {
+    console.error("Worker error:", error);
     return new Response(
-      JSON.stringify({
-        success: true,
-        task_status: nextStep ? 'executing' : 'completing',
-        step_executed: {
-          step_number: pendingStep.step_number,
-          tool_name: toolName,
-          status: stepResult.success ? 'completed' : 'failed',
-          duration_ms: stepDuration,
-          error: stepResult.error || null,
-        },
-        next_step: nextStep?.step_number || null,
-        outputs: [],
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error: unknown) {
-    console.error('[Worker] Error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
 
-// Retry helper for API calls
-async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  initialDelay: number = 1000
-): Promise<T> {
-  let lastError: Error | null = null;
+async function handlePoll(supabase: any): Promise<Response> {
+  const task = await claimNextTask(supabase, WORKER_ID);
 
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      if (i < maxRetries - 1) {
-        const delay = initialDelay * Math.pow(2, i);
-        console.log(`[Worker] Retry ${i + 1}/${maxRetries} after ${delay}ms`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+  if (!task) {
+    return new Response(
+      JSON.stringify({ message: "No tasks available" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Start processing the claimed task
+  const result = await processRun(supabase, task);
+
+  return new Response(
+    JSON.stringify({ task_id: task.id, result }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+async function handleProcessRun(supabase: any, runId: string): Promise<Response> {
+  const { data: run, error } = await supabase
+    .from("agent_tasks")
+    .select("*")
+    .eq("id", runId)
+    .single();
+
+  if (error || !run) {
+    return new Response(
+      JSON.stringify({ error: "Run not found" }),
+      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const result = await processRun(supabase, run);
+
+  return new Response(
+    JSON.stringify(result),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+async function processRun(supabase: any, run: Run): Promise<{ success: boolean; error?: string }> {
+  const plan = run.plan;
+
+  if (!plan || !plan.phases) {
+    await transitionRun(supabase, run.id, "failed", { error: "No plan found" });
+    return { success: false, error: "No plan found" };
+  }
+
+  try {
+    // Find current phase
+    const currentPhase = plan.phases.find((p: any) => p.status === "pending" || p.status === "in_progress");
+
+    if (!currentPhase) {
+      // All phases complete
+      await transitionRun(supabase, run.id, "completed");
+      await finalizeCredits(supabase, run.id, "completed");
+      return { success: true };
     }
-  }
 
-  throw lastError || new Error('All retries failed');
-}
+    // Mark phase as in_progress
+    if (currentPhase.status === "pending") {
+      currentPhase.status = "in_progress";
+      await updatePlan(supabase, run.id, plan);
+    }
 
-// Tool execution functions
-async function executeWebSearch(
-  supabaseUrl: string,
-  authHeader: string,
-  input: any
-): Promise<StepResult> {
-  try {
-    const response = await retryWithBackoff(async () => {
-      const res = await fetch(`${supabaseUrl}/functions/v1/ghost-web-search`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          query: input.query || input.search_query,
-          max_results: input.max_results || 5,
-        }),
-      });
+    // Execute steps in phase
+    for (const capability of currentPhase.capabilities || []) {
+      const stepResult = await executeStep(supabase, run, currentPhase, capability);
 
-      if (!res.ok) {
-        throw new Error(`Web search failed: ${res.status}`);
+      if (!stepResult.success) {
+        if (stepResult.needsUserInput) {
+          await transitionRun(supabase, run.id, "waiting_user", {
+            waiting_for: stepResult.waitingFor
+          });
+          return { success: true };
+        }
+
+        // Step failed
+        await transitionRun(supabase, run.id, "failed", { error: stepResult.error });
+        await finalizeCredits(supabase, run.id, "failed");
+        return { success: false, error: stepResult.error };
       }
 
-      return res;
-    }, 3, 1000);
+      // Consume credits for step
+      await consumeStepCredits(supabase, run.id, stepResult.creditsUsed || 1);
+    }
 
-    const data = await response.json();
-    return { success: true, output: data };
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Web search error';
-    console.error('[Worker] Web search failed after retries:', errorMessage);
-    return { success: false, error: errorMessage };
+    // Mark phase complete
+    currentPhase.status = "completed";
+    await updatePlan(supabase, run.id, plan);
+
+    // Check if more phases remain
+    const remainingPhases = plan.phases.filter((p: any) => p.status === "pending");
+    if (remainingPhases.length > 0) {
+      // Continue with next phase (recursive or re-invoke)
+      return await processRun(supabase, { ...run, plan });
+    }
+
+    // All done
+    await transitionRun(supabase, run.id, "completed");
+    await finalizeCredits(supabase, run.id, "completed");
+    return { success: true };
+
+  } catch (error) {
+    console.error("Process run error:", error);
+    await transitionRun(supabase, run.id, "failed", { error: error.message });
+    await finalizeCredits(supabase, run.id, "failed");
+    return { success: false, error: error.message };
   }
 }
 
-async function executeImageGen(
-  supabaseUrl: string,
-  authHeader: string,
-  input: any
-): Promise<StepResult> {
-  try {
-    const response = await retryWithBackoff(async () => {
-      const res = await fetch(`${supabaseUrl}/functions/v1/ghost-image-gen`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          prompt: input.prompt,
-          model: input.model || 'flux-schnell',
-          width: input.width || 1024,
-          height: input.height || 1024,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Image gen failed: ${res.status}`);
-      }
-
-      return res;
-    }, 3, 1000);
-
-    const data = await response.json();
-    return { success: true, output: data };
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Image gen error';
-    console.error('[Worker] Image gen failed after retries:', errorMessage);
-    return { success: false, error: errorMessage };
-  }
-}
-
-// ============================================
-// DOCUMENT GENERATION WITH FORMAT DETECTION
-// ============================================
-
-interface SlideContent {
-  title: string;
-  content: string[];
-  notes?: string;
-  layout?: string;
-}
-
-interface DocSection {
-  title: string;
-  content: string;
-  level?: number;
-}
-
-// Detect requested format from task prompt
-function detectRequestedFormat(prompt: string): string {
-  const promptLower = prompt.toLowerCase();
-  
-  if (promptLower.includes('presentation') || 
-      promptLower.includes('slides') || 
-      promptLower.includes('pptx') ||
-      promptLower.includes('powerpoint') ||
-      promptLower.includes('deck')) {
-    return 'pptx';
-  }
-  
-  if (promptLower.includes('document') || 
-      promptLower.includes('report') || 
-      promptLower.includes('docx') ||
-      promptLower.includes('word')) {
-    return 'docx';
-  }
-  
-  if (promptLower.includes('spreadsheet') || 
-      promptLower.includes('excel') || 
-      promptLower.includes('xlsx') ||
-      promptLower.includes('table') ||
-      promptLower.includes('data')) {
-    return 'xlsx';
-  }
-  
-  if (promptLower.includes('pdf')) {
-    return 'pdf';
-  }
-  
-  return 'md'; // Default fallback
-}
-
-// Main document generation handler
-async function handleDocumentGeneration(
-  step: any,
-  taskId: string,
+async function executeStep(
   supabase: any,
-  userId: string,
-  taskPrompt: string = ''
-): Promise<StepResult> {
-  const { type, content, title, slides, sections, rows, document_type } = step.tool_input || {};
-  
-  // Use explicit type if provided, otherwise detect from prompt
-  const requestedFormat = type || document_type || detectRequestedFormat(taskPrompt);
-  
-  console.log(`[agent-worker] Document generation requested: ${requestedFormat}`);
-  console.log(`[agent-worker] Content type:`, { 
-    hasSlides: !!slides, 
-    hasSections: !!sections, 
-    hasRows: !!rows,
-    hasContent: !!content 
+  run: Run,
+  phase: any,
+  capability: string
+): Promise<{ success: boolean; error?: string; needsUserInput?: boolean; waitingFor?: string; creditsUsed?: number }> {
+  const stepId = crypto.randomUUID();
+
+  // Create step record
+  await supabase.from("agent_task_steps").insert({
+    id: stepId,
+    task_id: run.id,
+    phase_id: phase.id,
+    tool_name: capability,
+    status: "running",
+    started_at: new Date().toISOString()
   });
 
-  // Store reasoning about format decision
   try {
-    await supabase.from('agent_reasoning').insert({
-      task_id: taskId,
-      step_id: step.id,
-      agent_type: 'executor',
-      reasoning_text: `Detected document format: ${requestedFormat.toUpperCase()}. Task prompt analysis indicates user wants a ${requestedFormat === 'pptx' ? 'presentation' : requestedFormat === 'docx' ? 'document' : requestedFormat === 'xlsx' ? 'spreadsheet' : 'document'}.`,
-      confidence_score: 0.9,
-      decisions_made: [`Selected format: ${requestedFormat}`, `Title: ${title || 'Untitled'}`],
-    });
-  } catch (reasoningErr) {
-    console.warn('[agent-worker] Failed to store reasoning:', reasoningErr);
-  }
-
-  // Try Modal first for PPTX/DOCX/XLSX
-  if (['pptx', 'docx', 'xlsx'].includes(requestedFormat)) {
-    const modalResult = await tryModalGeneration(requestedFormat, {
-      title: title || 'Generated Document',
-      content,
-      slides: slides || generateSlidesFromContent(content, title),
-      sections: sections || generateSectionsFromContent(content, title),
-      rows: rows || [],
-    }, taskId, userId, supabase);
-
-    if (modalResult.success) {
-      return modalResult;
-    }
-
-    console.log('[agent-worker] Modal unavailable, returning structured data for client-side generation');
-  }
-
-  // Return structured data for client-side generation
-  const structuredSlides = slides || generateSlidesFromContent(content, title);
-  const structuredSections = sections || generateSectionsFromContent(content, title);
-  
-  const structuredData = {
-    type: requestedFormat,
-    title: title || 'Generated Document',
-    slides: structuredSlides,
-    sections: structuredSections,
-    rows: rows || [],
-    content: content,
-    requires_client_generation: true,
-    generated_by: 'fallback',
-  };
-
-  // Save as JSON for client processing
-  const filename = `${requestedFormat}-data-${Date.now()}.json`;
-  const filePath = `${userId}/documents/${filename}`;
-  
-  const encoder = new TextEncoder();
-  const buffer = encoder.encode(JSON.stringify(structuredData, null, 2));
-
-  await supabase.storage
-    .from('agent-outputs')
-    .upload(filePath, buffer, {
-      contentType: 'application/json',
-      upsert: true,
-    });
-
-  const { data: urlData } = supabase.storage
-    .from('agent-outputs')
-    .getPublicUrl(filePath);
-
-  // Save output record with target format metadata
-  await supabase.from('agent_outputs').insert({
-    task_id: taskId,
-    user_id: userId,
-    output_type: 'json',
-    file_name: filename,
-    file_path: filePath,
-    download_url: urlData.publicUrl,
-    storage_bucket: 'agent-outputs',
-    mime_type: 'application/json',
-    requested_format: requestedFormat,
-    actual_format: 'json',
-    conversion_status: 'pending_client',
-  });
-
-  return {
-    success: true,
-    output: {
-      filename,
-      url: urlData.publicUrl,
-      format: 'json',
-      target_format: requestedFormat,
-      requires_client_generation: true,
-      data: structuredData,
-      slide_count: structuredSlides.length,
-      section_count: structuredSections.length,
-    },
-  };
-}
-
-// Try Modal for document generation
-async function tryModalGeneration(
-  format: string,
-  data: any,
-  taskId: string,
-  userId: string,
-  supabase: any
-): Promise<StepResult> {
-  const modalUrl = getModalEndpoint(format);
-
-  if (!modalUrl) {
-    console.log(`[agent-worker] No Modal endpoint configured for ${format}, using fallback`);
-    return { success: false, error: 'No Modal endpoint configured' };
-  }
-
-  try {
-    console.log(`[agent-worker] Calling Modal for ${format} generation at ${modalUrl}`);
-
-    const response = await retryWithBackoff(async () => {
-      const res = await fetch(modalUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: format, ...data }),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.warn(`[agent-worker] Modal returned ${res.status}: ${errorText}`);
-        throw new Error(`Modal returned ${res.status}: ${errorText}`);
-      }
-
-      return res;
-    }, 2, 2000); // 2 retries with 2 second initial delay
-
-    const fileBuffer = await response.arrayBuffer();
-    const filename = `${format}-${Date.now()}.${format}`;
-    const filePath = `${userId}/documents/${filename}`;
-
-    await supabase.storage
-      .from('agent-outputs')
-      .upload(filePath, new Uint8Array(fileBuffer), {
-        contentType: getMimeType(format),
-        upsert: true,
-      });
-
-    const { data: urlData } = supabase.storage
-      .from('agent-outputs')
-      .getPublicUrl(filePath);
-
-    await supabase.from('agent_outputs').insert({
-      task_id: taskId,
-      user_id: userId,
-      output_type: format,
-      file_name: filename,
-      file_path: filePath,
-      download_url: urlData.publicUrl,
-      storage_bucket: 'agent-outputs',
-      mime_type: getMimeType(format),
-      requested_format: format,
-      actual_format: format,
-      conversion_status: 'complete',
-    });
-
-    return {
-      success: true,
-      output: {
-        filename,
-        url: urlData.publicUrl,
-        format,
-        generated_by: 'modal',
-      },
+    // Map capability to tool
+    const toolMapping: Record<string, string> = {
+      "web_search": "search_web",
+      "research": "search_web",
+      "file_creation": "file_write",
+      "code_execution": "shell_execute",
+      "document_generation": "generate_document",
+      "presentation": "generate_slides",
+      "data_analysis": "shell_execute",
+      "user_confirmation": "ask_user"
     };
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Modal generation failed';
-    console.error('[agent-worker] Modal generation failed:', errorMessage);
-    return { success: false, error: errorMessage };
-  }
-}
 
-// Generate slides from unstructured content
-function generateSlidesFromContent(content: any, title: string): SlideContent[] {
-  const slides: SlideContent[] = [];
-  
-  // Title slide
-  slides.push({
-    title: title || 'Presentation',
-    content: ['Generated by SwissVault AI'],
-    layout: 'title',
-  });
+    const toolName = toolMapping[capability] || capability;
 
-  if (typeof content === 'string') {
-    // Split content into logical sections
-    const paragraphs = content.split('\n\n').filter((p: string) => p.trim());
-    
-    for (let i = 0; i < paragraphs.length; i++) {
-      const para = paragraphs[i].trim();
-      if (para.startsWith('#')) {
-        // Header becomes slide title
-        const headerMatch = para.match(/^#+\s*(.+)/);
-        if (headerMatch) {
-          slides.push({
-            title: headerMatch[1],
-            content: [],
-            layout: 'content',
-          });
-        }
-      } else if (para.startsWith('-') || para.startsWith('*')) {
-        // Bullet points
-        const bullets = para.split('\n').map((b: string) => b.replace(/^[-*]\s*/, '').trim());
-        if (slides.length > 1) {
-          slides[slides.length - 1].content.push(...bullets);
-        } else {
-          slides.push({
-            title: 'Key Points',
-            content: bullets,
-            layout: 'content',
-          });
-        }
-      } else if (para.length > 50) {
-        // Regular paragraph becomes a slide
-        slides.push({
-          title: `Section ${slides.length}`,
-          content: [para.substring(0, 200) + (para.length > 200 ? '...' : '')],
-          layout: 'content',
-        });
-      }
+    // Check if needs user input
+    if (toolName === "ask_user") {
+      await supabase.from("agent_task_steps").update({
+        status: "waiting_user",
+        updated_at: new Date().toISOString()
+      }).eq("id", stepId);
+
+      return { success: false, needsUserInput: true, waitingFor: capability };
     }
-  } else if (Array.isArray(content)) {
-    content.forEach((item: any, i: number) => {
-      if (typeof item === 'string') {
-        slides.push({
-          title: `Point ${i + 1}`,
-          content: [item],
-          layout: 'content',
-        });
-      } else if (item.title) {
-        slides.push({
-          title: item.title,
-          content: Array.isArray(item.content) ? item.content : [item.content || ''],
-          layout: item.layout || 'content',
-        });
-      }
-    });
-  }
 
-  // Ensure at least 3 slides
-  while (slides.length < 3) {
-    slides.push({
-      title: 'Additional Information',
-      content: ['Content to be added'],
-      layout: 'content',
-    });
-  }
+    // Build execution context
+    const context: ToolExecutionContext = {
+      runId: run.id,
+      stepId,
+      tenantId: run.user_id,
+      userId: run.user_id,
+      timeout: 60000,
+      creditBudget: 10,
+      idempotencyKey: `${run.id}-${stepId}-${toolName}`
+    };
 
-  return slides;
+    // Execute tool
+    const result = await executeToolCall(toolName, { phase: phase.title, capability }, context, supabase);
+
+    // Update step as completed
+    await supabase.from("agent_task_steps").update({
+      status: "completed",
+      tool_output: result.output,
+      completed_at: new Date().toISOString(),
+      credits_used: result.metadata?.duration_ms ? Math.ceil(result.metadata.duration_ms / 1000) : 1
+    }).eq("id", stepId);
+
+    // Store artifacts
+    if (result.artifacts && result.artifacts.length > 0) {
+      await supabase.from("agent_task_outputs").insert(
+        result.artifacts.map((artifactId: string) => ({
+          task_id: run.id,
+          step_id: stepId,
+          artifact_id: artifactId,
+          created_at: new Date().toISOString()
+        }))
+      );
+    }
+
+    return { success: true, creditsUsed: 1 };
+
+  } catch (error) {
+    console.error("Step execution error:", error);
+
+    await supabase.from("agent_task_steps").update({
+      status: "failed",
+      error: error.message,
+      completed_at: new Date().toISOString()
+    }).eq("id", stepId);
+
+    return { success: false, error: error.message };
+  }
 }
 
-// Generate sections from content
-function generateSectionsFromContent(content: any, title: string): DocSection[] {
-  const sections: DocSection[] = [];
-  
-  sections.push({
-    title: title || 'Document',
-    content: '',
-    level: 1,
-  });
+async function handleExecuteStep(supabase: any, runId: string): Promise<Response> {
+  // Get run and find next pending step
+  const { data: run } = await supabase
+    .from("agent_tasks")
+    .select("*")
+    .eq("id", runId)
+    .single();
 
-  if (typeof content === 'string') {
-    const parts = content.split('\n\n');
-    parts.forEach((part: string, i: number) => {
-      if (part.trim()) {
-        sections.push({
-          title: `Section ${i + 1}`,
-          content: part.trim(),
-          level: 2,
-        });
-      }
-    });
-  } else if (Array.isArray(content)) {
-    content.forEach((item: any, i: number) => {
-      if (typeof item === 'string') {
-        sections.push({
-          title: `Section ${i + 1}`,
-          content: item,
-          level: 2,
-        });
-      } else if (item.title) {
-        sections.push({
-          title: item.title,
-          content: Array.isArray(item.content) ? item.content.join('\n\n') : (item.content || ''),
-          level: item.level || 2,
-        });
-      }
-    });
+  if (!run) {
+    return new Response(
+      JSON.stringify({ error: "Run not found" }),
+      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
-  return sections;
+  const result = await processRun(supabase, run);
+
+  return new Response(
+    JSON.stringify(result),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
 }
 
-function getMimeType(type: string): string {
-  const mimeTypes: Record<string, string> = {
-    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    pdf: 'application/pdf',
-    md: 'text/markdown',
-    json: 'application/json',
-  };
-  return mimeTypes[type] || 'application/octet-stream';
+async function updatePlan(supabase: any, runId: string, plan: any): Promise<void> {
+  await supabase
+    .from("agent_tasks")
+    .update({ plan, updated_at: new Date().toISOString() })
+    .eq("id", runId);
 }
 
-function formatAsMarkdown(title: string, content: any): string {
-  let md = `# ${title || 'Document'}\n\n`;
-  
-  if (Array.isArray(content)) {
-    content.forEach(item => {
-      if (typeof item === 'string') {
-        md += `${item}\n\n`;
-      } else if (item.title && item.content) {
-        md += `## ${item.title}\n\n`;
-        if (Array.isArray(item.content)) {
-          item.content.forEach((point: string) => {
-            md += `- ${point}\n`;
-          });
-        } else {
-          md += `${item.content}\n`;
-        }
-        md += '\n';
-      }
+async function consumeStepCredits(supabase: any, runId: string, amount: number): Promise<void> {
+  // Get active reservation for this run
+  const { data: reservation } = await supabase
+    .from("credit_reservations")
+    .select("id")
+    .eq("run_id", runId)
+    .eq("status", "active")
+    .single();
+
+  if (reservation) {
+    await supabase.rpc("consume_credits", {
+      p_reservation_id: reservation.id,
+      p_amount: amount
     });
-  } else if (typeof content === 'string') {
-    md += content;
   }
-  
-  return md;
 }
 
-async function executeMemorySearch(
-  supabaseUrl: string,
-  authHeader: string,
-  input: any
-): Promise<StepResult> {
-  try {
-    const response = await retryWithBackoff(async () => {
-      const res = await fetch(`${supabaseUrl}/functions/v1/search-documents`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          query: input.query,
-          limit: input.limit || 5,
-        }),
+async function finalizeCredits(supabase: any, runId: string, reason: string): Promise<void> {
+  const { data: reservation } = await supabase
+    .from("credit_reservations")
+    .select("id")
+    .eq("run_id", runId)
+    .eq("status", "active")
+    .single();
+
+  if (reservation) {
+    if (reason === "completed") {
+      await supabase.rpc("finalize_reservation", {
+        p_reservation_id: reservation.id,
+        p_reason: reason
       });
-
-      if (!res.ok) {
-        throw new Error(`Memory search failed: ${res.status}`);
-      }
-
-      return res;
-    }, 3, 1000);
-
-    const data = await response.json();
-    return { success: true, output: data };
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Memory search error';
-    console.error('[Worker] Memory search failed after retries:', errorMessage);
-    return { success: false, error: errorMessage };
+    } else {
+      await supabase.rpc("release_reservation", {
+        p_reservation_id: reservation.id,
+        p_reason: reason
+      });
+    }
   }
 }
