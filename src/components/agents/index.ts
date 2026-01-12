@@ -26,3 +26,6 @@ export { PreviewPanel } from './PreviewPanel';
 export { StudioLayout } from './StudioLayout';
 export { SourceUploadModal } from './SourceUploadModal';
 export { StudioOutputCards, OUTPUT_CARDS } from './StudioOutputCards';
+export { TaskCard } from './TaskCard';
+export { TaskDetails } from './TaskDetails';
+export { AgentDashboard } from './AgentDashboard';
