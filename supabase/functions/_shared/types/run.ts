@@ -1,5 +1,7 @@
 // supabase/functions/_shared/types/run.ts
 
+import { Plan } from './plan.ts';
+
 export const RUN_STATUSES = [
   'pending',      // Created, not yet queued
   'queued',       // In queue, waiting for worker

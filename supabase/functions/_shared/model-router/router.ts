@@ -43,7 +43,7 @@ export async function routeRequest(request: ChatRequest): Promise<ChatResponse> 
   }
 
   // Check cache for low-temperature requests
-  if (temperature <= 0.3) {
+  if (temperature <= 0.3 && modelId) {
     const cacheKey = await generateCacheKey(modelId, request.messages, temperature);
     const cached = await getCachedResponse(supabase, cacheKey);
 
@@ -63,6 +63,7 @@ export async function routeRequest(request: ChatRequest): Promise<ChatResponse> 
   // Try each model in order
   for (let i = 0; i < Math.min(modelsToTry.length, chain.max_retries + 1); i++) {
     const currentModel = modelsToTry[i];
+    if (!currentModel) continue;
 
     // Get provider for current model
     const { data: modelData } = await supabase
@@ -103,12 +104,13 @@ export async function routeRequest(request: ChatRequest): Promise<ChatResponse> 
 
       return response;
 
-    } catch (error) {
-      lastError = error;
-      console.error(`Model ${currentModel} failed:`, error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      lastError = error instanceof Error ? error : new Error(errorMessage);
+      console.error(`Model ${currentModel} failed:`, errorMessage);
 
       // Record failure
-      await recordModelHealth(supabase, currentModel, false, 0, error.message);
+      await recordModelHealth(supabase, currentModel, false, 0, errorMessage);
     }
   }
 

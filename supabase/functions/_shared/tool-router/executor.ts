@@ -9,6 +9,9 @@ import {
 } from "./types.ts";
 import { TOOL_ROUTES } from "./routes.ts";
 
+// Re-export types for use by other functions
+export type { ToolExecutionContext, ToolExecutionResult, ToolExecutionError };
+
 const SWISS_API = "https://api.swissbrain.ai";
 
 export async function executeToolCall(
@@ -122,10 +125,10 @@ async function executeViaSwissK8s(
       error: null
     };
 
-  } catch (error) {
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
 
-    if (error.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       throw createError('TIMEOUT_TOTAL', `Tool execution timed out after ${timeout}ms`, true);
     }
 

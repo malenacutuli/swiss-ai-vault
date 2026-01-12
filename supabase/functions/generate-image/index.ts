@@ -126,8 +126,8 @@ serve(async (req) => {
       type: 'image',
       mime_type: 'image/png',
       file_name: `generated-${Date.now()}.png`,
-      run_id: body.run_id,
-      step_id: body.step_id,
+      run_id: body.run_id || `gen-${Date.now()}`,
+      step_id: body.step_id || `step-${Date.now()}`,
       tool_name: 'generate_image',
       metadata: {
         prompt: body.prompt,
@@ -157,10 +157,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Image generation error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -209,8 +210,8 @@ async function fallbackToDallE(supabase: any, body: ImageRequest, userId?: strin
     type: 'image',
     mime_type: 'image/png',
     file_name: `generated-${Date.now()}.png`,
-    run_id: body.run_id,
-    step_id: body.step_id,
+    run_id: body.run_id || `gen-${Date.now()}`,
+    step_id: body.step_id || `step-${Date.now()}`,
     tool_name: 'generate_image',
     metadata: {
       prompt: body.prompt,
