@@ -885,6 +885,9 @@ async function executeSwissAPITask(
         "X-API-Key": swissApiKey,
       },
       body: JSON.stringify({
+        task_id: taskId,
+        task_type: taskType,
+        prompt: prompt,
         code: code || prompt, // Fall back to prompt if no code extracted
         language: language,
         user_id: userId,
@@ -1684,6 +1687,9 @@ What should be done next? Output JSON:
                 "X-API-Key": swissApiKey,
               },
               body: JSON.stringify({
+                task_id: taskId,
+                task_type: taskType,
+                prompt: prompt,
                 code: toolParams.command as string,
                 language: 'shell',
                 user_id: userId,
