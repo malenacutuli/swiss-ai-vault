@@ -1,0 +1,65 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: sandbox-executor
+  namespace: swissbrain
+  labels:
+    app: sandbox-executor
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sandbox-executor
+
+  # Update policy
+  updatePolicy:
+    updateMode: "Auto"  # Options: Off, Initial, Recreate, Auto
+
+  # Resource policy
+  resourcePolicy:
+    containerPolicies:
+      - containerName: sandbox-executor
+        minAllowed:
+          cpu: 100m
+          memory: 256Mi
+        maxAllowed:
+          cpu: 2000m
+          memory: 4Gi
+        controlledResources:
+          - cpu
+          - memory
+        # Recommendation policy
+        mode: Auto
+
+---
+# VPA in recommendation mode (does not auto-update pods)
+# Use this to analyze resource usage before enabling auto-updates
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: sandbox-executor-recommender
+  namespace: swissbrain
+  labels:
+    app: sandbox-executor
+    mode: recommender
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sandbox-executor
+
+  updatePolicy:
+    updateMode: "Off"  # Only provides recommendations
+
+  resourcePolicy:
+    containerPolicies:
+      - containerName: sandbox-executor
+        minAllowed:
+          cpu: 100m
+          memory: 256Mi
+        maxAllowed:
+          cpu: 2000m
+          memory: 4Gi
+        controlledResources:
+          - cpu
+          - memory

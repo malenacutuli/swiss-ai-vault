@@ -1,0 +1,26 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sandbox-executor
+  namespace: swissbrain
+  labels:
+    app: sandbox-executor
+spec:
+  minAvailable: 2
+  # Alternatively, use maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: sandbox-executor
+
+---
+# Example: Using maxUnavailable instead
+# apiVersion: policy/v1
+# kind: PodDisruptionBudget
+# metadata:
+#   name: sandbox-executor-max-unavailable
+#   namespace: swissbrain
+# spec:
+#   maxUnavailable: 1
+#   selector:
+#     matchLabels:
+#       app: sandbox-executor

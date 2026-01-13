@@ -1,0 +1,166 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sandbox-executor
+  namespace: swissbrain
+  labels:
+    app: sandbox-executor
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: sandbox-executor
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+
+---
+# PodMonitor for more flexible pod-level monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: sandbox-executor
+  namespace: swissbrain
+  labels:
+    app: sandbox-executor
+spec:
+  selector:
+    matchLabels:
+      app: sandbox-executor
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+
+---
+# PrometheusRule for alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sandbox-executor-alerts
+  namespace: swissbrain
+  labels:
+    app: sandbox-executor
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: sandbox-executor.rules
+      interval: 30s
+      rules:
+        # High CPU usage
+        - alert: SandboxExecutorHighCPU
+          expr: |
+            (
+              sum(rate(container_cpu_usage_seconds_total{namespace="swissbrain",pod=~"sandbox-executor-.*"}[5m]))
+              by (pod)
+              /
+              sum(container_spec_cpu_quota{namespace="swissbrain",pod=~"sandbox-executor-.*"} / container_spec_cpu_period{namespace="swissbrain",pod=~"sandbox-executor-.*"})
+              by (pod)
+            ) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            component: sandbox-executor
+          annotations:
+            summary: "Sandbox Executor CPU usage is above 80%"
+            description: "Pod {{ $labels.pod }} is using {{ $value }}% of its CPU limit"
+
+        # High memory usage
+        - alert: SandboxExecutorHighMemory
+          expr: |
+            (
+              sum(container_memory_working_set_bytes{namespace="swissbrain",pod=~"sandbox-executor-.*"})
+              by (pod)
+              /
+              sum(container_spec_memory_limit_bytes{namespace="swissbrain",pod=~"sandbox-executor-.*"})
+              by (pod)
+            ) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            component: sandbox-executor
+          annotations:
+            summary: "Sandbox Executor memory usage is above 85%"
+            description: "Pod {{ $labels.pod }} is using {{ $value }}% of its memory limit"
+
+        # Pod restart rate
+        - alert: SandboxExecutorPodRestarting
+          expr: |
+            rate(kube_pod_container_status_restarts_total{namespace="swissbrain",pod=~"sandbox-executor-.*"}[15m]) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            component: sandbox-executor
+          annotations:
+            summary: "Sandbox Executor pod is restarting frequently"
+            description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes"
+
+        # Pod not ready
+        - alert: SandboxExecutorPodNotReady
+          expr: |
+            kube_pod_status_phase{namespace="swissbrain",pod=~"sandbox-executor-.*",phase!="Running"} == 1
+          for: 10m
+          labels:
+            severity: critical
+            component: sandbox-executor
+          annotations:
+            summary: "Sandbox Executor pod is not ready"
+            description: "Pod {{ $labels.pod }} has been in {{ $labels.phase }} phase for more than 10 minutes"
+
+        # Deployment replica mismatch
+        - alert: SandboxExecutorReplicaMismatch
+          expr: |
+            kube_deployment_spec_replicas{namespace="swissbrain",deployment="sandbox-executor"}
+            !=
+            kube_deployment_status_replicas_available{namespace="swissbrain",deployment="sandbox-executor"}
+          for: 15m
+          labels:
+            severity: warning
+            component: sandbox-executor
+          annotations:
+            summary: "Sandbox Executor deployment has replica mismatch"
+            description: "Deployment sandbox-executor has {{ $value }} replicas mismatch between desired and available"
+
+        # High error rate (example - customize based on your metrics)
+        - alert: SandboxExecutorHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{namespace="swissbrain",pod=~"sandbox-executor-.*",status=~"5.."}[5m]))
+              by (pod)
+              /
+              sum(rate(http_requests_total{namespace="swissbrain",pod=~"sandbox-executor-.*"}[5m]))
+              by (pod)
+            ) * 100 > 5
+          for: 5m
+          labels:
+            severity: warning
+            component: sandbox-executor
+          annotations:
+            summary: "Sandbox Executor error rate is above 5%"
+            description: "Pod {{ $labels.pod }} has {{ $value }}% error rate"
+
+        # Low availability
+        - alert: SandboxExecutorLowAvailability
+          expr: |
+            (
+              count(kube_pod_status_phase{namespace="swissbrain",pod=~"sandbox-executor-.*",phase="Running"})
+              /
+              kube_deployment_spec_replicas{namespace="swissbrain",deployment="sandbox-executor"}
+            ) * 100 < 70
+          for: 5m
+          labels:
+            severity: critical
+            component: sandbox-executor
+          annotations:
+            summary: "Sandbox Executor availability is below 70%"
+            description: "Only {{ $value }}% of sandbox-executor pods are running"
