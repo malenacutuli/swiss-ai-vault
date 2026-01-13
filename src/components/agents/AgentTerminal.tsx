@@ -73,6 +73,33 @@ export function AgentTerminal({
   const [autoScroll, setAutoScroll] = useState(true);
   const [outputBuffer, setOutputBuffer] = useState<string[]>([]);
 
+  // Format log line with ANSI colors based on type
+  const formatLogLine = useCallback((content: string, type?: string): string => {
+    const timestamp = new Date().toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    const prefix = `\x1b[38;2;113;113;122m[${timestamp}]\x1b[0m `;
+
+    switch (type) {
+      case 'error':
+        return prefix + `\x1b[38;2;114;47;55m✕ ${content}\x1b[0m`;
+      case 'success':
+        return prefix + `\x1b[38;2;29;78;95m✓ ${content}\x1b[0m`;
+      case 'command':
+        return prefix + `\x1b[38;2;29;78;95m$ ${content}\x1b[0m`;
+      case 'warning':
+        return prefix + `\x1b[38;2;184;134;11m⚠ ${content}\x1b[0m`;
+      case 'info':
+        return prefix + `\x1b[38;2;113;113;122mℹ ${content}\x1b[0m`;
+      default:
+        return prefix + content;
+    }
+  }, []);
+
   // Initialize terminal
   useEffect(() => {
     if (!terminalRef.current || terminalInstance.current) return;
@@ -235,33 +262,6 @@ export function AgentTerminal({
       channel.unsubscribe();
     };
   }, [taskId, autoScroll, formatLogLine]);
-
-  // Format log line with ANSI colors based on type
-  const formatLogLine = useCallback((content: string, type?: string): string => {
-    const timestamp = new Date().toLocaleTimeString('en-US', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    });
-    
-    const prefix = `\x1b[38;2;113;113;122m[${timestamp}]\x1b[0m `;
-    
-    switch (type) {
-      case 'error':
-        return prefix + `\x1b[38;2;114;47;55m✕ ${content}\x1b[0m`;
-      case 'success':
-        return prefix + `\x1b[38;2;29;78;95m✓ ${content}\x1b[0m`;
-      case 'command':
-        return prefix + `\x1b[38;2;29;78;95m$ ${content}\x1b[0m`;
-      case 'warning':
-        return prefix + `\x1b[38;2;184;134;11m⚠ ${content}\x1b[0m`;
-      case 'info':
-        return prefix + `\x1b[38;2;113;113;122mℹ ${content}\x1b[0m`;
-      default:
-        return prefix + content;
-    }
-  }, []);
 
   // Write output to terminal (for external use)
   const writeOutput = useCallback((text: string, type?: string) => {

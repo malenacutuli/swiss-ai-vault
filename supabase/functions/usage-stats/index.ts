@@ -244,10 +244,10 @@ async function getModelBreakdown(
 
     modelMap.set(record.model_id, {
       model_id: record.model_id,
-      total_tokens: existing.total_tokens + record.total_tokens,
-      prompt_tokens: existing.prompt_tokens + record.prompt_tokens,
-      completion_tokens: existing.completion_tokens + record.completion_tokens,
-      total_cost_usd: existing.total_cost_usd + parseFloat(record.cost_usd),
+      total_tokens: existing.total_tokens + (record.total_tokens ?? 0),
+      prompt_tokens: existing.prompt_tokens + (record.prompt_tokens ?? 0),
+      completion_tokens: existing.completion_tokens + (record.completion_tokens ?? 0),
+      total_cost_usd: existing.total_cost_usd + (parseFloat(record.cost_usd ?? '0') || 0),
       request_count: existing.request_count + 1
     });
   });

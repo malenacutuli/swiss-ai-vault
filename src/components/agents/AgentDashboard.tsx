@@ -8,7 +8,7 @@ import { TaskDetails } from './TaskDetails';
 import { TaskCreationModal } from './TaskCreationModal';
 
 export function AgentDashboard() {
-  const { activeTasks, recentTasks, isLoading, error, fetchTasks } = useAgentTasks();
+  const { activeTasks, recentTasks, isLoading, error, refetch } = useAgentTasks();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -22,7 +22,7 @@ export function AgentDashboard() {
           <p className="text-gray-500">Monitor and manage your AI agent tasks</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchTasks} disabled={isLoading}>
+          <Button variant="outline" onClick={refetch} disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
