@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: swissbrain
+  labels:
+    app: swissbrain
+    environment: development
+data:
+  # Environment
+  NODE_ENV: "development"
+  ENVIRONMENT: "development"
+  LOG_LEVEL: "debug"
+  DEBUG: "true"
+
+  # Application
+  APP_NAME: "SwissBrain AI"
+  APP_VERSION: "0.1.0-dev"
+  APP_URL: "http://localhost:3000"
+  API_URL: "http://localhost:8000"
+
+  # Feature Flags
+  ENABLE_ANALYTICS: "false"
+  ENABLE_ERROR_TRACKING: "false"
+  ENABLE_RATE_LIMITING: "false"
+  ENABLE_CACHING: "true"
+  ENABLE_DEBUG_MODE: "true"
+
+  # Redis Configuration
+  REDIS_HOST: "redis.swissbrain.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_TLS_ENABLED: "false"
+
+  # Database
+  DB_SSL_MODE: "prefer"
+  DB_POOL_MIN: "2"
+  DB_POOL_MAX: "10"
+  DB_IDLE_TIMEOUT: "10000"
+  DB_CONNECTION_TIMEOUT: "5000"
+
+  # API Configuration
+  API_RATE_LIMIT_WINDOW: "60000"
+  API_RATE_LIMIT_MAX_REQUESTS: "1000"
+  API_TIMEOUT: "30000"
+  API_MAX_PAYLOAD_SIZE: "10mb"
+
+  # Job Queue
+  QUEUE_CONCURRENCY: "5"
+  QUEUE_MAX_RETRIES: "3"
+  QUEUE_RETRY_DELAY: "1000"
+  QUEUE_JOB_TIMEOUT: "300000"
+
+  # File Upload
+  MAX_FILE_SIZE: "10485760"  # 10MB
+  ALLOWED_FILE_TYPES: "pdf,doc,docx,txt,md,jpg,jpeg,png,gif"
+  UPLOAD_TEMP_DIR: "/tmp/uploads"
+
+  # Agent Configuration
+  AGENT_MAX_EXECUTION_TIME: "300000"  # 5 minutes
+  AGENT_MAX_MEMORY: "2048"  # 2GB
+  AGENT_SANDBOX_ENABLED: "true"
+
+  # Cache Configuration
+  CACHE_TTL: "300"  # 5 minutes
+  CACHE_MAX_SIZE: "100"
+
+  # CORS Configuration
+  CORS_ENABLED: "true"
+  CORS_ORIGIN: "*"
+  CORS_METHODS: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+  CORS_CREDENTIALS: "true"
+
+  # Session Configuration
+  SESSION_SECRET_ROTATION: "false"
+  SESSION_MAX_AGE: "86400000"  # 24 hours
+  SESSION_SECURE: "false"  # HTTP allowed in dev
+
+  # Logging
+  LOG_FORMAT: "dev"
+  LOG_COLORIZE: "true"
+  LOG_INCLUDE_TIMESTAMP: "true"
+
+  # Monitoring
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  HEALTH_CHECK_PATH: "/health"
+
+  # Development Tools
+  HOT_RELOAD_ENABLED: "true"
+  SOURCE_MAPS_ENABLED: "true"
+  PROFILING_ENABLED: "false"
