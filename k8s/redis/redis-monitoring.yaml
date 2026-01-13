@@ -1,0 +1,145 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: swissbrain
+  labels:
+    app: redis
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+      scrapeTimeout: 10s
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: redis-alerts
+  namespace: swissbrain
+  labels:
+    app: redis
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: redis.rules
+      interval: 30s
+      rules:
+        # Redis down
+        - alert: RedisDown
+          expr: redis_up{namespace="swissbrain"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: redis
+          annotations:
+            summary: "Redis instance is down"
+            description: "Redis instance {{ $labels.instance }} has been down for more than 5 minutes"
+
+        # High memory usage
+        - alert: RedisHighMemoryUsage
+          expr: |
+            (redis_memory_used_bytes{namespace="swissbrain"} / redis_memory_max_bytes{namespace="swissbrain"}) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis memory usage is above 90%"
+            description: "Redis instance {{ $labels.instance }} is using {{ $value }}% of its memory limit"
+
+        # Too many connections
+        - alert: RedisTooManyConnections
+          expr: redis_connected_clients{namespace="swissbrain"} > 8000
+          for: 5m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis has too many connections"
+            description: "Redis instance {{ $labels.instance }} has {{ $value }} connections (threshold: 8000)"
+
+        # Rejected connections
+        - alert: RedisRejectedConnections
+          expr: rate(redis_rejected_connections_total{namespace="swissbrain"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis is rejecting connections"
+            description: "Redis instance {{ $labels.instance }} is rejecting connections at {{ $value }} connections/sec"
+
+        # High key eviction rate
+        - alert: RedisHighKeyEvictionRate
+          expr: rate(redis_evicted_keys_total{namespace="swissbrain"}[5m]) > 100
+          for: 5m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis key eviction rate is high"
+            description: "Redis instance {{ $labels.instance }} is evicting {{ $value }} keys/sec"
+
+        # Replication lag (if using replication)
+        - alert: RedisReplicationLag
+          expr: redis_replica_lag_seconds{namespace="swissbrain"} > 30
+          for: 5m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis replication lag is high"
+            description: "Redis replica {{ $labels.instance }} is lagging by {{ $value }} seconds"
+
+        # RDB save failures
+        - alert: RedisRDBSaveFailure
+          expr: rate(redis_rdb_last_save_status{namespace="swissbrain"}[5m]) == 0
+          for: 10m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis RDB save is failing"
+            description: "Redis instance {{ $labels.instance }} RDB save has been failing"
+
+        # AOF rewrite failures
+        - alert: RedisAOFRewriteFailure
+          expr: redis_aof_last_rewrite_status{namespace="swissbrain"} == 0
+          for: 10m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis AOF rewrite is failing"
+            description: "Redis instance {{ $labels.instance }} AOF rewrite has been failing"
+
+        # Slow queries
+        - alert: RedisSlowQueries
+          expr: rate(redis_slowlog_length{namespace="swissbrain"}[5m]) > 10
+          for: 5m
+          labels:
+            severity: info
+            component: redis
+          annotations:
+            summary: "Redis has many slow queries"
+            description: "Redis instance {{ $labels.instance }} has {{ $value }} slow queries/sec"
+
+        # High CPU usage
+        - alert: RedisHighCPUUsage
+          expr: |
+            rate(redis_cpu_sys_seconds_total{namespace="swissbrain"}[5m]) +
+            rate(redis_cpu_user_seconds_total{namespace="swissbrain"}[5m]) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+            component: redis
+          annotations:
+            summary: "Redis CPU usage is high"
+            description: "Redis instance {{ $labels.instance }} CPU usage is {{ $value }}"

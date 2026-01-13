@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bullmq-config
+  namespace: swissbrain
+  labels:
+    app: bullmq
+data:
+  # BullMQ connection configuration
+  redis-connection.json: |
+    {
+      "host": "redis.swissbrain.svc.cluster.local",
+      "port": 6379,
+      "maxRetriesPerRequest": 3,
+      "retryStrategy": "exponential",
+      "enableReadyCheck": true,
+      "enableOfflineQueue": true,
+      "connectTimeout": 10000,
+      "keepAlive": 30000,
+      "family": 4,
+      "db": 0
+    }
+
+  # BullMQ queue configuration
+  queue-config.json: |
+    {
+      "defaultJobOptions": {
+        "attempts": 3,
+        "backoff": {
+          "type": "exponential",
+          "delay": 1000
+        },
+        "removeOnComplete": {
+          "age": 86400,
+          "count": 1000
+        },
+        "removeOnFail": {
+          "age": 604800
+        }
+      },
+      "limiter": {
+        "max": 1000,
+        "duration": 60000
+      },
+      "metrics": {
+        "maxDataPoints": 100
+      }
+    }
+
+  # Worker configuration
+  worker-config.json: |
+    {
+      "concurrency": 10,
+      "maxStalledCount": 3,
+      "stalledInterval": 30000,
+      "lockDuration": 30000,
+      "lockRenewTime": 15000,
+      "settings": {
+        "backoffStrategy": "exponential",
+        "maxBackoff": 60000
+      }
+    }
+
+  # Queue names
+  queue-names.json: |
+    {
+      "queues": [
+        "agent-tasks",
+        "agent-planning",
+        "agent-execution",
+        "document-processing",
+        "image-generation",
+        "embeddings",
+        "notifications",
+        "scheduled-tasks"
+      ]
+    }
