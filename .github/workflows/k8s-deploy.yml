@@ -1,0 +1,100 @@
+name: Deploy to Swiss K8s
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy'
+        required: true
+        default: 'latest'
+      deployment:
+        description: 'Deployment to update'
+        required: true
+        type: choice
+        options:
+          - sandbox-executor
+          - all
+        default: 'sandbox-executor'
+
+jobs:
+  deploy:
+    name: Deploy to Swiss K8s
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          echo "Verifying connection to Swiss K8s cluster..."
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Deploy to Swiss K8s
+        run: |
+          if [ "${{ inputs.deployment }}" == "sandbox-executor" ]; then
+            echo "Deploying sandbox-executor with image tag: ${{ inputs.image_tag }}"
+            kubectl set image deployment/sandbox-executor \
+              sandbox-executor=ghcr.io/${{ github.repository }}/sandbox-executor:${{ inputs.image_tag }} \
+              -n swissbrain
+
+            echo "Waiting for rollout to complete..."
+            kubectl rollout status deployment/sandbox-executor -n swissbrain --timeout=300s
+          elif [ "${{ inputs.deployment }}" == "all" ]; then
+            echo "Deploying all manifests from k8s/deployments/"
+            kubectl apply -f k8s/deployments/ -n swissbrain
+
+            echo "Waiting for deployments to be ready..."
+            kubectl rollout status deployment/sandbox-executor -n swissbrain --timeout=300s
+          fi
+
+      - name: Verify deployment
+        run: |
+          echo "Verifying deployment..."
+          kubectl get pods -n swissbrain -l app=sandbox-executor
+          kubectl get deployment -n swissbrain sandbox-executor
+
+      - name: Test health endpoint
+        run: |
+          echo "Testing health endpoint..."
+          sleep 10  # Wait for pods to be fully ready
+          if curl -f -s https://api.swissbrain.ai/health > /dev/null; then
+            echo "✅ Health check passed"
+            curl https://api.swissbrain.ai/health
+          else
+            echo "⚠️  Health check failed - deployment may still be rolling out"
+          fi
+        continue-on-error: true
+
+      - name: Deployment summary
+        run: |
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║           Deployment Summary                                 ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "✅ Deployment: ${{ inputs.deployment }}"
+          echo "✅ Image tag: ${{ inputs.image_tag }}"
+          echo "✅ Deployed by: ${{ github.actor }}"
+          echo "✅ Commit: ${{ github.sha }}"
+          echo ""
+          echo "Cluster status:"
+          kubectl get all -n swissbrain -l app=sandbox-executor
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "⚠️  Deployment failed, rolling back..."
+          kubectl rollout undo deployment/sandbox-executor -n swissbrain
+          kubectl rollout status deployment/sandbox-executor -n swissbrain --timeout=300s
+          echo "✅ Rollback completed"

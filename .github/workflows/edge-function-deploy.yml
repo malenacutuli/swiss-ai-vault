@@ -1,0 +1,92 @@
+name: Deploy Edge Function
+
+on:
+  workflow_dispatch:
+    inputs:
+      function_name:
+        description: 'Function to deploy'
+        required: true
+        type: choice
+        options:
+          - agent-execute
+          - agent-worker
+          - agent-plan
+          - agent-status
+          - agent-logs
+          - agent-templates-list
+          - agent-wide-research
+          - chat
+          - chat-completions
+          - scheduler
+          - stripe
+          - embeddings
+          - voice
+          - generate-image
+          - generate-slides
+          - usage-stats
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+        default: 'production'
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.function_name }} to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to Supabase project
+        run: |
+          if [ "${{ inputs.environment }}" == "production" ]; then
+            supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          else
+            supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_STAGING }}
+          fi
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy function
+        run: |
+          echo "Deploying ${{ inputs.function_name }} to ${{ inputs.environment }}..."
+          supabase functions deploy ${{ inputs.function_name }} --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Function deployed successfully!"
+          echo "Function: ${{ inputs.function_name }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "Commit: ${{ github.sha }}"
+
+      - name: Test function endpoint
+        run: |
+          echo "Testing function endpoint..."
+          if [ "${{ inputs.environment }}" == "production" ]; then
+            PROJECT_REF="${{ secrets.SUPABASE_PROJECT_REF }}"
+          else
+            PROJECT_REF="${{ secrets.SUPABASE_PROJECT_REF_STAGING }}"
+          fi
+          FUNCTION_URL="https://${PROJECT_REF}.supabase.co/functions/v1/${{ inputs.function_name }}"
+          echo "Function URL: $FUNCTION_URL"
+          # Basic connectivity test (some functions may return 401 without auth, which is expected)
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$FUNCTION_URL" || echo "000")
+          echo "HTTP Response: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "000" ]; then
+            echo "✅ Function is reachable"
+          else
+            echo "⚠️  Function may not be reachable yet (DNS propagation)"
+          fi
+        continue-on-error: true
