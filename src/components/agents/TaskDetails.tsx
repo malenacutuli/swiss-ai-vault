@@ -30,11 +30,12 @@ interface TaskStep {
 interface TaskOutput {
   id: string;
   task_id: string;
-  step_id: string | null;
-  artifact_id: string | null;
-  output_type: string | null;
+  output_type: string;
   content: any;
   created_at: string;
+  download_url: string | null;
+  file_path: string | null;
+  storage_region: string | null;
 }
 
 export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
@@ -253,18 +254,20 @@ export function TaskDetails({ taskId, onClose }: TaskDetailsProps) {
                     <p className="text-sm font-medium">
                       {output.output_type || 'Output'}
                     </p>
-                    {output.artifact_id && (
+                    {output.file_path && (
                       <p className="text-xs text-gray-500 truncate">
-                        ID: {output.artifact_id.slice(0, 16)}...
+                        {output.file_path}
                       </p>
                     )}
                     <p className="text-xs text-gray-400">
                       {formatDistanceToNow(new Date(output.created_at), { addSuffix: true })}
                     </p>
                   </div>
-                  {output.artifact_id && (
-                    <Button size="sm" variant="ghost">
-                      <Download className="w-4 h-4" />
+                  {output.download_url && (
+                    <Button size="sm" variant="ghost" asChild>
+                      <a href={output.download_url} target="_blank" rel="noopener noreferrer">
+                        <Download className="w-4 h-4" />
+                      </a>
                     </Button>
                   )}
                 </div>

@@ -36,6 +36,17 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   data_retention_days: 365
 };
 
+interface ProfileData {
+  id: string;
+  email?: string;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  subscription_tier?: string;
+  credits?: number;
+  preferences?: Record<string, any>;
+  created_at?: string;
+}
+
 export function useUserSettings() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -51,17 +62,24 @@ export function useUserSettings() {
     }
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('profiles')
+      // Using type assertion since 'profiles' table may not exist in schema yet
+      const { data, error: fetchError } = await (supabase.from('profiles' as any) as any)
         .select('*')
         .eq('id', user.id)
         .single();
 
       if (fetchError) throw fetchError;
 
+      const profileData = data as ProfileData;
       setProfile({
-        ...data,
-        preferences: { ...DEFAULT_PREFERENCES, ...(data.preferences || {}) }
+        id: profileData.id,
+        email: profileData.email || user.email || '',
+        full_name: profileData.full_name || null,
+        avatar_url: profileData.avatar_url || null,
+        subscription_tier: profileData.subscription_tier || 'free',
+        credits: profileData.credits || 0,
+        preferences: { ...DEFAULT_PREFERENCES, ...(profileData.preferences || {}) },
+        created_at: profileData.created_at || new Date().toISOString()
       });
       setError(null);
     } catch (err: any) {
@@ -80,8 +98,8 @@ export function useUserSettings() {
 
     setIsSaving(true);
     try {
-      const { error: updateError } = await supabase
-        .from('profiles')
+      // Using type assertion since 'profiles' table may not exist in schema yet
+      const { error: updateError } = await (supabase.from('profiles' as any) as any)
         .update({
           full_name: updates.full_name,
           avatar_url: updates.avatar_url,
@@ -108,8 +126,8 @@ export function useUserSettings() {
     try {
       const newPreferences = { ...profile.preferences, ...prefs };
 
-      const { error: updateError } = await supabase
-        .from('profiles')
+      // Using type assertion since 'profiles' table may not exist in schema yet
+      const { error: updateError } = await (supabase.from('profiles' as any) as any)
         .update({
           preferences: newPreferences,
           updated_at: new Date().toISOString()

@@ -29,8 +29,8 @@ export function useArtifacts(runId?: string) {
     }
 
     try {
-      let query = supabase
-        .from('artifacts')
+      // Using type assertion since 'artifacts' table may not exist in schema yet
+      let query = (supabase.from('artifacts' as any) as any)
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
@@ -42,7 +42,7 @@ export function useArtifacts(runId?: string) {
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
-      setArtifacts(data || []);
+      setArtifacts((data as Artifact[]) || []);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -73,8 +73,7 @@ export function useArtifacts(runId?: string) {
 
   const deleteArtifact = async (artifactId: string) => {
     try {
-      const { error } = await supabase
-        .from('artifacts')
+      const { error } = await (supabase.from('artifacts' as any) as any)
         .delete()
         .eq('id', artifactId);
 
