@@ -3121,8 +3121,9 @@ Use this context to inform your response when relevant. Cite sources by number w
       <GhostUpgradeModal
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
-        limitType={upgradeReason === 'prompts' ? 'prompt' : upgradeReason === 'images' ? 'image' : upgradeReason === 'videos' ? 'video' : upgradeReason === 'files' ? 'file' : upgradeReason === 'searches' ? 'search' : 'prompt'}
+        limitType={upgradeReason === 'prompts' ? 'prompt' : upgradeReason === 'images' ? 'image' : upgradeReason === 'videos' ? 'video' : upgradeReason === 'files' ? 'file' : upgradeReason === 'searches' ? 'search' : upgradeReason === 'model' ? 'model' : 'prompt'}
         currentTier={tier}
+        isAnonymous={!user}
       />
 
       {/* Incognito Warning Dialog */}
