@@ -1,7 +1,6 @@
 // src/hooks/useDocumentSync.ts
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface Document {
   id: string;
@@ -29,8 +28,8 @@ export function useDocumentSync({ documentId, userId, onConflict }: UseDocumentS
     if (!documentId) return;
 
     const fetchDocument = async () => {
-      const { data, error } = await supabase
-        .from('documents')
+      // Using type assertion since 'documents' table may not exist in schema yet
+      const { data, error } = await (supabase.from('documents' as any) as any)
         .select('*')
         .eq('id', documentId)
         .single();
@@ -40,8 +39,9 @@ export function useDocumentSync({ documentId, userId, onConflict }: UseDocumentS
         return;
       }
 
-      setDocument(data);
-      localVersionRef.current = data.version;
+      const doc = data as Document;
+      setDocument(doc);
+      localVersionRef.current = doc.version;
     };
 
     fetchDocument();
@@ -102,8 +102,8 @@ export function useDocumentSync({ documentId, userId, onConflict }: UseDocumentS
     pendingChangesRef.current = content;
 
     try {
-      const { data, error } = await supabase
-        .from('documents')
+      // Using type assertion since 'documents' table may not exist in schema yet
+      const { data, error } = await (supabase.from('documents' as any) as any)
         .update({
           content,
           version: localVersionRef.current + 1,
@@ -118,34 +118,34 @@ export function useDocumentSync({ documentId, userId, onConflict }: UseDocumentS
       if (error) {
         // Conflict detected - refetch and retry
         if (error.code === 'PGRST116') {
-          const { data: freshDoc } = await supabase
-            .from('documents')
+          const { data: freshDoc } = await (supabase.from('documents' as any) as any)
             .select('*')
             .eq('id', documentId)
             .single();
 
           if (freshDoc && onConflict) {
-            const resolved = onConflict(freshDoc, { ...document, content });
-            await supabase
-              .from('documents')
+            const fresh = freshDoc as Document;
+            const resolved = onConflict(fresh, { ...document, content });
+            await (supabase.from('documents' as any) as any)
               .update({
                 content: resolved.content,
-                version: freshDoc.version + 1,
+                version: fresh.version + 1,
                 updated_at: new Date().toISOString(),
                 updated_by: userId
               })
               .eq('id', documentId);
 
             setDocument(resolved);
-            localVersionRef.current = freshDoc.version + 1;
+            localVersionRef.current = fresh.version + 1;
           }
         } else {
           setLastSyncError(error.message);
           return { success: false, error: error.message };
         }
       } else if (data) {
-        setDocument(data);
-        localVersionRef.current = data.version;
+        const doc = data as Document;
+        setDocument(doc);
+        localVersionRef.current = doc.version;
       }
 
       pendingChangesRef.current = null;

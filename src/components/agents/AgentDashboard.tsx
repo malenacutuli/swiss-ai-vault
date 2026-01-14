@@ -113,7 +113,7 @@ export function AgentDashboard() {
         onClose={() => setIsCreateModalOpen(false)}
         onCreated={(taskId) => {
           setSelectedTaskId(taskId);
-          fetchTasks();
+          refetch();
         }}
       />
     </div>
