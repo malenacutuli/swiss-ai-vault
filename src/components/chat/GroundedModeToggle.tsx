@@ -1,4 +1,4 @@
-import { Shield, ShieldOff } from 'lucide-react';
+import { Shield, ShieldOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,8 @@ interface GroundedModeToggleProps {
   onToggle: (enabled: boolean) => void;
   disabled?: boolean;
   documentsCount?: number;
+  isMemoryInitialized?: boolean;
+  isMemoryLoading?: boolean;
 }
 
 export function GroundedModeToggle({
@@ -15,8 +17,10 @@ export function GroundedModeToggle({
   onToggle,
   disabled,
   documentsCount = 0,
+  isMemoryInitialized = true,
+  isMemoryLoading = false,
 }: GroundedModeToggleProps) {
-  const canEnable = documentsCount > 0;
+  const canEnable = documentsCount > 0 && isMemoryInitialized;
 
   return (
     <TooltipProvider>
@@ -26,13 +30,18 @@ export function GroundedModeToggle({
             variant={isGrounded ? "default" : "outline"}
             size="sm"
             onClick={() => onToggle(!isGrounded)}
-            disabled={disabled || (!isGrounded && !canEnable)}
+            disabled={disabled || (!isGrounded && !canEnable) || isMemoryLoading}
             className={cn(
               "gap-2 transition-all",
               isGrounded && "bg-green-600 hover:bg-green-700 text-white border-green-600"
             )}
           >
-            {isGrounded ? (
+            {isMemoryLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : isGrounded ? (
               <>
                 <Shield className="h-4 w-4" />
                 Grounded
@@ -46,7 +55,21 @@ export function GroundedModeToggle({
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
-          {isGrounded ? (
+          {isMemoryLoading ? (
+            <div className="space-y-1">
+              <p className="font-medium text-sm">Loading Memory System...</p>
+              <p className="text-xs text-muted-foreground">
+                Please wait while the AI memory loads (~30 seconds first time)
+              </p>
+            </div>
+          ) : !isMemoryInitialized ? (
+            <div className="space-y-1">
+              <p className="font-medium text-sm">Memory Not Initialized</p>
+              <p className="text-xs text-muted-foreground">
+                Unlock your vault and enable memory to use grounded mode
+              </p>
+            </div>
+          ) : isGrounded ? (
             <div className="space-y-1">
               <p className="font-medium text-sm">🔒 Grounded Mode Active</p>
               <p className="text-xs text-muted-foreground">
