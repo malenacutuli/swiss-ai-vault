@@ -498,9 +498,33 @@ function GhostChat() {
   // Initialize memory when enabled and vault is unlocked
   useEffect(() => {
     if (memoryEnabled && isVaultUnlocked && !memory.isInitialized && !memory.isLoading) {
+      console.log('[GhostChat] Auto-initializing memory: vault unlocked and memory enabled');
       memory.initialize();
     }
   }, [memoryEnabled, isVaultUnlocked, memory.isInitialized, memory.isLoading]);
+  
+  // Auto-initialize memory when vault is unlocked (for grounded mode availability)
+  useEffect(() => {
+    if (isVaultUnlocked && !memory.isInitialized && !memory.isLoading) {
+      console.log('[GhostChat] 🔥 Vault unlocked, pre-warming memory system...');
+      memory.initialize().catch(err => {
+        console.error('[GhostChat] Memory pre-warm failed:', err);
+      });
+    }
+  }, [isVaultUnlocked, memory.isInitialized, memory.isLoading, memory.initialize]);
+  
+  // Debug: log memory state changes
+  useEffect(() => {
+    console.log('[GhostChat] Memory state:', {
+      isInitialized: memory.isInitialized,
+      isLoading: memory.isLoading,
+      isReady: memory.isReady,
+      isVaultUnlocked,
+      memoryEnabled,
+      documentsCount,
+      groundedMode,
+    });
+  }, [memory.isInitialized, memory.isLoading, memory.isReady, isVaultUnlocked, memoryEnabled, documentsCount, groundedMode]);
   
   // Search personal memory for relevant context
   const searchPersonalMemory = useCallback(async (query: string): Promise<{
@@ -2741,8 +2765,10 @@ Use this context to inform your response when relevant. Cite sources by number w
                 <GroundedModeToggle
                   isGrounded={groundedMode}
                   onToggle={setGroundedMode}
-                  disabled={isStreaming || !memory.isInitialized}
+                  disabled={isStreaming}
                   documentsCount={documentsCount}
+                  isMemoryInitialized={memory.isInitialized}
+                  isMemoryLoading={memory.isLoading}
                 />
                 {groundedMode && documentsCount > 0 && (
                   <span className="text-xs text-muted-foreground">
@@ -2843,13 +2869,38 @@ Use this context to inform your response when relevant. Cite sources by number w
                 onToggleMemory={() => {
                   if (!isVaultUnlocked) {
                     setShowVaultUnlock(true);
-                  } else {
-                    setMemoryEnabled(!memoryEnabled);
+                    return;
                   }
+                  
+                  // If memory not initialized, start initialization and enable
+                  if (!memory.isInitialized && !memory.isLoading) {
+                    toast({
+                      title: 'Initializing Memory',
+                      description: 'Loading AI memory system...',
+                    });
+                    memory.initialize().then(() => {
+                      setMemoryEnabled(true);
+                      toast({
+                        title: 'Memory Ready',
+                        description: 'Personal memory is now active',
+                      });
+                    }).catch(err => {
+                      console.error('[GhostChat] Memory init error:', err);
+                      toast({
+                        title: 'Memory Failed',
+                        description: 'Could not load memory system',
+                        variant: 'destructive',
+                      });
+                    });
+                    return;
+                  }
+                  
+                  setMemoryEnabled(!memoryEnabled);
                 }}
                 memoryCount={lastMemorySources.length}
                 isMemorySearching={memorySearching}
                 memoryDisabled={!isVaultUnlocked}
+                isMemoryInitializing={memory.isLoading && !memory.isInitialized}
                 lastAssistantMessage={lastAssistantMessage}
               />
             </GhostTextViewEmpty>
@@ -3245,13 +3296,38 @@ Use this context to inform your response when relevant. Cite sources by number w
                   onToggleMemory={() => {
                     if (!isVaultUnlocked) {
                       setShowVaultUnlock(true);
-                    } else {
-                      setMemoryEnabled(!memoryEnabled);
+                      return;
                     }
+                    
+                    // If memory not initialized, start initialization and enable
+                    if (!memory.isInitialized && !memory.isLoading) {
+                      toast({
+                        title: 'Initializing Memory',
+                        description: 'Loading AI memory system...',
+                      });
+                      memory.initialize().then(() => {
+                        setMemoryEnabled(true);
+                        toast({
+                          title: 'Memory Ready',
+                          description: 'Personal memory is now active',
+                        });
+                      }).catch(err => {
+                        console.error('[GhostChat] Memory init error:', err);
+                        toast({
+                          title: 'Memory Failed',
+                          description: 'Could not load memory system',
+                          variant: 'destructive',
+                        });
+                      });
+                      return;
+                    }
+                    
+                    setMemoryEnabled(!memoryEnabled);
                   }}
                   memoryCount={lastMemorySources.length}
                   isMemorySearching={memorySearching}
                   memoryDisabled={!isVaultUnlocked}
+                  isMemoryInitializing={memory.isLoading && !memory.isInitialized}
                   lastAssistantMessage={lastAssistantMessage}
                 />
               </div>

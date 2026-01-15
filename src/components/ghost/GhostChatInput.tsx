@@ -65,6 +65,7 @@ interface GhostChatInputProps {
   memoryCount?: number;
   isMemorySearching?: boolean;
   memoryDisabled?: boolean;
+  isMemoryInitializing?: boolean;
   // TTS props
   lastAssistantMessage?: string;
 }
@@ -123,6 +124,7 @@ export function GhostChatInput({
   memoryCount = 0,
   isMemorySearching = false,
   memoryDisabled = false,
+  isMemoryInitializing = false,
   // TTS props
   lastAssistantMessage,
 }: GhostChatInputProps) {
@@ -279,6 +281,7 @@ export function GhostChatInput({
                 memoryCount={memoryCount}
                 isSearching={isMemorySearching}
                 disabled={memoryDisabled}
+                isInitializing={isMemoryInitializing}
                 className="h-8 w-8"
               />
             )}
