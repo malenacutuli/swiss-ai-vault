@@ -6,7 +6,7 @@
  * agent implementations without affecting production.
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabaseAgents, isAgentsClientConfigured, getAgentsProjectUrl } from '@/integrations/supabase/agents-client';
+import { getAgentsClient, isAgentsClientConfigured, getAgentsProjectUrl } from '@/integrations/supabase/agents-client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ExecutionTask {
@@ -139,7 +139,10 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
       try {
         console.log('[DEV] Polling task status:', taskId);
         
-        const { data, error: statusError } = await supabaseAgents.functions.invoke('agent-status', {
+        const client = getAgentsClient();
+        if (!client) return;
+        
+        const { data, error: statusError } = await client.functions.invoke('agent-status', {
           body: { task_id: taskId },
         });
 
@@ -198,7 +201,12 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
     try {
       console.log('[DEV] Executing task on agents backend:', params);
       
-      const { data, error: executeError } = await supabaseAgents.functions.invoke('agent-execute', {
+      const client = getAgentsClient();
+      if (!client) {
+        throw new Error('Agents client not configured');
+      }
+      
+      const { data, error: executeError } = await client.functions.invoke('agent-execute', {
         body: {
           prompt: params.prompt,
           task_type: params.task_type,
@@ -311,7 +319,10 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
     if (!task?.id) return;
     
     try {
-      await supabaseAgents
+      const client = getAgentsClient();
+      if (!client) return;
+      
+      await client
         .from('agent_tasks')
         .update({ status: 'paused' })
         .eq('id', task.id);
@@ -328,7 +339,10 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
     if (!task?.id) return;
     
     try {
-      await supabaseAgents
+      const client = getAgentsClient();
+      if (!client) return;
+      
+      await client
         .from('agent_tasks')
         .update({ status: 'executing' })
         .eq('id', task.id);
@@ -345,7 +359,10 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
     if (!task?.id) return;
     
     try {
-      await supabaseAgents
+      const client = getAgentsClient();
+      if (!client) return;
+      
+      await client
         .from('agent_tasks')
         .update({ status: 'cancelled' })
         .eq('id', task.id);
@@ -360,7 +377,10 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
   // Get signed URL for secure downloads
   const getSignedUrl = useCallback(async (storageKey: string): Promise<string | null> => {
     try {
-      const { data, error } = await supabaseAgents.storage
+      const client = getAgentsClient();
+      if (!client) return null;
+      
+      const { data, error } = await client.storage
         .from('agent-outputs')
         .createSignedUrl(storageKey, 3600); // 1 hour expiry
 
