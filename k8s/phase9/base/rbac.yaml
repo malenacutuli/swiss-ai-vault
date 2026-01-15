@@ -1,0 +1,120 @@
+# Phase 9: RBAC Configuration
+# ServiceAccount, Role, and RoleBinding for agent-api and agent-worker
+#
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-api-sa
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: agent-api-sa
+    app.kubernetes.io/component: serviceaccount
+    app.kubernetes.io/part-of: swissbrain-platform
+automountServiceAccountToken: true
+
+---
+# ClusterRole for spawning K8s jobs (tool execution)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-job-spawner
+  labels:
+    app.kubernetes.io/name: agent-job-spawner
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/part-of: swissbrain-platform
+rules:
+# Jobs management
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create", "get", "list", "watch", "delete", "patch", "update"]
+
+# Pods management (for job monitoring)
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+# Pod logs (for streaming job output)
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list"]
+
+# Pod exec (for debugging)
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+
+# ConfigMaps (for job configuration)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+
+# Secrets (read-only for job execution)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-api-job-spawner
+  labels:
+    app.kubernetes.io/name: agent-api-job-spawner-binding
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/part-of: swissbrain-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-job-spawner
+subjects:
+- kind: ServiceAccount
+  name: agent-api-sa
+  namespace: agents
+
+---
+# Role for namespace-specific resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-namespace-role
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: agent-namespace-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/part-of: swissbrain-platform
+rules:
+# Events (for debugging)
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+
+# Services (read-only)
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list"]
+
+# Endpoints (for service discovery)
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "list"]
+
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-namespace-rolebinding
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: agent-namespace-rolebinding
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/part-of: swissbrain-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-namespace-role
+subjects:
+- kind: ServiceAccount
+  name: agent-api-sa
+  namespace: agents

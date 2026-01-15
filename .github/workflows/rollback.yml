@@ -1,0 +1,129 @@
+# Phase 9: Rollback Workflow
+# Emergency rollback to previous deployment
+#
+# Triggers: Manual workflow dispatch only
+#
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+      revision:
+        description: 'Revision to rollback to (leave empty for previous)'
+        required: false
+        default: ''
+
+env:
+  K8S_NAMESPACE_PROD: agents
+  K8S_NAMESPACE_STAGING: agents-staging
+
+jobs:
+  rollback:
+    name: Rollback ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Set namespace
+        id: namespace
+        run: |
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            echo "namespace=${{ env.K8S_NAMESPACE_PROD }}" >> $GITHUB_OUTPUT
+          else
+            echo "namespace=${{ env.K8S_NAMESPACE_STAGING }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show rollout history
+        run: |
+          echo "=== API Deployment History ==="
+          kubectl rollout history deployment/agent-api -n ${{ steps.namespace.outputs.namespace }}
+          echo ""
+          echo "=== Worker Deployment History ==="
+          kubectl rollout history deployment/agent-worker -n ${{ steps.namespace.outputs.namespace }}
+
+      - name: Rollback API deployment
+        run: |
+          if [ -n "${{ github.event.inputs.revision }}" ]; then
+            kubectl rollout undo deployment/agent-api \
+              --to-revision=${{ github.event.inputs.revision }} \
+              -n ${{ steps.namespace.outputs.namespace }}
+          else
+            kubectl rollout undo deployment/agent-api \
+              -n ${{ steps.namespace.outputs.namespace }}
+          fi
+
+      - name: Rollback worker deployment
+        run: |
+          if [ -n "${{ github.event.inputs.revision }}" ]; then
+            kubectl rollout undo deployment/agent-worker \
+              --to-revision=${{ github.event.inputs.revision }} \
+              -n ${{ steps.namespace.outputs.namespace }}
+          else
+            kubectl rollout undo deployment/agent-worker \
+              -n ${{ steps.namespace.outputs.namespace }}
+          fi
+
+      - name: Wait for rollback completion
+        run: |
+          kubectl rollout status deployment/agent-api -n ${{ steps.namespace.outputs.namespace }} --timeout=5m
+          kubectl rollout status deployment/agent-worker -n ${{ steps.namespace.outputs.namespace }} --timeout=5m
+
+      - name: Verify rollback
+        run: |
+          echo "=== Current API Pods ==="
+          kubectl get pods -n ${{ steps.namespace.outputs.namespace }} -l app=agent-api
+          echo ""
+          echo "=== Current Worker Pods ==="
+          kubectl get pods -n ${{ steps.namespace.outputs.namespace }} -l app=agent-worker
+          echo ""
+          echo "=== Health Check ==="
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            sleep 10
+            curl -f https://api.swissbrain.ai/health || exit 1
+            echo "✅ Production rollback successful!"
+          else
+            sleep 10
+            curl -f https://api-staging.swissbrain.ai/health || exit 1
+            echo "✅ Staging rollback successful!"
+          fi
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🔄 Rollback completed for ${{ github.event.inputs.environment }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Rollback Completed* 🔄\n\n*Environment:* `${{ github.event.inputs.environment }}`\n*Revision:* `${{ github.event.inputs.revision || 'previous' }}`\n*Triggered by:* ${{ github.actor }}\n\n⚠️ Please investigate the issue that required rollback."
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

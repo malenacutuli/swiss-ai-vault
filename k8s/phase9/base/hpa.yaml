@@ -1,0 +1,110 @@
+# Phase 9: Horizontal Pod Autoscaler
+# Automatically scales API pods based on CPU and memory usage
+#
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agent-api-hpa
+  namespace: agents
+  labels:
+    app: agent-api
+    app.kubernetes.io/name: agent-api-hpa
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agent-api
+  minReplicas: 3
+  maxReplicas: 20
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes before scaling down
+      policies:
+      - type: Percent
+        value: 50                       # Scale down max 50% at a time
+        periodSeconds: 60
+      - type: Pods
+        value: 2                        # Scale down max 2 pods at a time
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0    # Scale up immediately
+      policies:
+      - type: Percent
+        value: 100                      # Scale up max 100% at a time
+        periodSeconds: 30
+      - type: Pods
+        value: 4                        # Scale up max 4 pods at a time
+        periodSeconds: 30
+      selectPolicy: Max
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70          # Target 70% CPU
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80          # Target 80% memory
+
+---
+# Worker HPA - scales based on Redis queue depth
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agent-worker-hpa
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker-hpa
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agent-worker
+  minReplicas: 2
+  maxReplicas: 10
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 10 minutes before scaling down
+      policies:
+      - type: Percent
+        value: 25                       # Scale down max 25% at a time
+        periodSeconds: 120
+      - type: Pods
+        value: 1                        # Scale down max 1 pod at a time
+        periodSeconds: 120
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85
+  # Note: Custom metrics for Redis queue depth can be added here
+  # when Prometheus adapter is configured

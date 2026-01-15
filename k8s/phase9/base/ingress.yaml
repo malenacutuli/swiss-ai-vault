@@ -1,0 +1,119 @@
+# Phase 9: Ingress Configuration
+# Production ingress with TLS, rate limiting, and proper routing
+#
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agent-api-ingress
+  namespace: agents
+  labels:
+    app: agent-api
+    app.kubernetes.io/name: agent-api-ingress
+    app.kubernetes.io/component: networking
+    app.kubernetes.io/part-of: swissbrain-platform
+  annotations:
+    # TLS Configuration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-rpm: "5000"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # CORS (if needed)
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://swiss-ai-vault.lovable.app,https://swissbrain.ai"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "Content-Length,Content-Range"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+
+    # Monitoring
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 10.0.0.0/8;
+        deny all;
+      }
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.swissbrain.ai
+    secretName: agent-api-tls
+  rules:
+  - host: api.swissbrain.ai
+    http:
+      paths:
+      # Agent execution endpoints
+      - path: /agent
+        pathType: Prefix
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+
+      # Health check endpoints
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /ready
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+
+      # API documentation
+      - path: /docs
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /redoc
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /openapi.json
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+
+      # Metrics (internal only - should be blocked by nginx config)
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
