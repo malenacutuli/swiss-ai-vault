@@ -5,10 +5,16 @@ import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useEncryptionContext } from '@/contexts/EncryptionContext';
 
-// Lazy import to avoid circular dependencies
+// Lazy import with caching to ensure singleton instance
+// This prevents module isolation issues where multiple imports get different state
+let cachedManager: typeof import('@/lib/memory/memory-manager') | null = null;
+
 const getMemoryManager = async () => {
-  const manager = await import('@/lib/memory/memory-manager');
-  return manager;
+  if (!cachedManager) {
+    cachedManager = await import('@/lib/memory/memory-manager');
+    console.log('[useMemory] Memory manager module loaded');
+  }
+  return cachedManager;
 };
 
 // ==========================================
@@ -265,7 +271,7 @@ export function useMemory(): UseMemoryReturn {
     }
   }, [getEncryptionKey, toast]);
   
-  // Search memory
+  // Search memory - propagate errors for callers to handle
   const searchMemory = useCallback(async (
     query: string,
     options?: {
@@ -280,17 +286,17 @@ export function useMemory(): UseMemoryReturn {
       return [];
     }
     
-    try {
-      const manager = await getMemoryManager();
-      if (!manager.isMemoryReady()) {
-        console.warn('[useMemory] Cannot search: embeddings not ready');
-        return [];
-      }
-      return await manager.getContext(query, key, options);
-    } catch (error) {
-      console.error('[useMemory] Search failed:', error);
+    const manager = await getMemoryManager();
+    if (!manager.isMemoryReady()) {
+      console.warn('[useMemory] Cannot search: embeddings not ready');
       return [];
     }
+    
+    // Let errors propagate so callers can show appropriate feedback
+    console.log('[useMemory] Starting search for:', query.slice(0, 50) + '...');
+    const results = await manager.getContext(query, key, options);
+    console.log('[useMemory] Search returned', results?.length ?? 0, 'results');
+    return results;
   }, [getEncryptionKey]);
   
   // Get context prompt for AI
