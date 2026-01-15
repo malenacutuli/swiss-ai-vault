@@ -349,6 +349,8 @@ export async function searchMemories(
   
   // Decrypt and filter by metadata
   const results: Array<{ item: MemoryItem; score: number }> = [];
+  let decryptionFailures = 0;
+  let decryptionSuccesses = 0;
   
   for (const { stored, score } of relevant) {
     if (results.length >= topK) break;
@@ -374,10 +376,16 @@ export async function searchMemories(
         };
         
         addToHotCache(item);
+        decryptionSuccesses++;
       } catch (error) {
-        console.warn('[MemoryStore] Failed to decrypt memory:', stored.id);
+        decryptionFailures++;
+        // Log detailed error for debugging but don't crash
+        console.warn('[MemoryStore] Failed to decrypt memory:', stored.id, 
+          error instanceof Error ? error.message : 'Unknown error');
         continue;
       }
+    } else {
+      decryptionSuccesses++;
     }
     
     // Apply metadata filters
@@ -387,7 +395,22 @@ export async function searchMemories(
     results.push({ item, score });
   }
   
-  console.log('[MemoryStore] Found', results.length, 'relevant memories');
+  // Log summary with success/failure counts
+  console.log('[MemoryStore] Search complete:', {
+    found: results.length,
+    decrypted: decryptionSuccesses,
+    failed: decryptionFailures,
+    total: relevant.length,
+  });
+  
+  // Warn if high failure rate
+  if (decryptionFailures > 0 && decryptionSuccesses === 0) {
+    console.error('[MemoryStore] ⚠️ All decryption attempts failed - possible key mismatch');
+  } else if (decryptionFailures > decryptionSuccesses) {
+    console.warn('[MemoryStore] ⚠️ High decryption failure rate:', 
+      `${decryptionFailures}/${decryptionFailures + decryptionSuccesses}`);
+  }
+  
   return results;
 }
 

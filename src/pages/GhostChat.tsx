@@ -507,19 +507,67 @@ function GhostChat() {
     context: string;
     sources: MemorySource[];
   }> => {
-    if (!memoryEnabled || !isVaultUnlocked || !memory.isInitialized) {
+    // Diagnostic logging
+    console.log('[GhostChat] Memory search conditions:', {
+      memoryEnabled,
+      isVaultUnlocked,
+      memoryInitialized: memory.isInitialized,
+      memoryLoading: memory.isLoading,
+      memoryReady: memory.isReady,
+    });
+    
+    if (!memoryEnabled) {
+      console.log('[GhostChat] Memory search skipped: memory not enabled');
       return { context: '', sources: [] };
+    }
+    
+    if (!isVaultUnlocked) {
+      console.log('[GhostChat] Memory search skipped: vault locked');
+      toast({
+        title: 'Memory Unavailable',
+        description: 'Unlock your vault to search your documents',
+      });
+      return { context: '', sources: [] };
+    }
+    
+    if (!memory.isInitialized) {
+      console.log('[GhostChat] Memory search skipped: not initialized, attempting init...');
+      // Try to initialize
+      try {
+        await memory.initialize();
+      } catch (initError) {
+        console.error('[GhostChat] Memory initialization failed:', initError);
+        toast({
+          title: 'Memory Loading',
+          description: 'Please wait for memory system to initialize',
+        });
+        return { context: '', sources: [] };
+      }
     }
     
     setMemorySearching(true);
     try {
+      console.log('[GhostChat] Searching memory for:', query.slice(0, 50) + '...');
+      
       // Search memory with query
       const results = await memory.search(query, {
         topK: 5,
       });
       
+      console.log('[GhostChat] Memory search results:', {
+        count: results?.length ?? 0,
+        hasResults: !!results && results.length > 0,
+      });
+      
       if (!results || results.length === 0) {
         setLastMemorySources([]);
+        // Only show toast in grounded mode since empty results are more problematic there
+        if (groundedMode) {
+          toast({
+            title: 'No Memory Results',
+            description: 'No relevant documents found. Try uploading documents first.',
+          });
+        }
         return { context: '', sources: [] };
       }
       
@@ -551,15 +599,33 @@ Use this context to inform your response when relevant. Cite sources by number w
       }));
       
       setLastMemorySources(sources);
+      console.log('[GhostChat] ✅ Memory context built with', sources.length, 'sources');
       return { context, sources };
     } catch (error) {
       console.error('[GhostChat] Memory search failed:', error);
       setLastMemorySources([]);
+      
+      // Provide user feedback on failure
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('decrypt') || errorMessage.includes('Decryption')) {
+        toast({
+          title: 'Memory Decryption Error',
+          description: 'Some memories could not be decrypted. Try re-uploading documents.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Memory Search Failed',
+          description: 'Could not search your documents. Please try again.',
+          variant: 'destructive',
+        });
+      }
+      
       return { context: '', sources: [] };
     } finally {
       setMemorySearching(false);
     }
-  }, [memoryEnabled, isVaultUnlocked, memory]);
+  }, [memoryEnabled, isVaultUnlocked, memory, toast, groundedMode]);
 
   // Handle using a compare response as the answer
   const handleUseCompareResponse = useCallback((response: CompareResponse) => {
@@ -1213,12 +1279,26 @@ Use this context to inform your response when relevant. Cite sources by number w
       let memorySources: MemorySource[] = [];
       
       // Grounded mode: search memory regardless, but only use grounding if enabled
-      const shouldSearchMemory = mode === 'text' && memoryEnabled && isVaultUnlocked && memory.isInitialized;
+      const shouldSearchMemory = mode === 'text' && memoryEnabled && isVaultUnlocked;
+      
+      console.log('[GhostChat] executeMessageSend - memory check:', {
+        mode,
+        memoryEnabled,
+        isVaultUnlocked,
+        memoryInitialized: memory.isInitialized,
+        shouldSearchMemory,
+        groundedMode,
+      });
       
       if (shouldSearchMemory) {
+        console.log('[GhostChat] 🔍 Searching personal memory...');
         const memoryResult = await searchPersonalMemory(messageContent);
         memoryContext = memoryResult.context;
         memorySources = memoryResult.sources;
+        console.log('[GhostChat] Memory search complete:', {
+          contextLength: memoryContext.length,
+          sourceCount: memorySources.length,
+        });
       }
       
       // Classify query for grounding requirements
@@ -1339,12 +1419,18 @@ Use this context to inform your response when relevant. Cite sources by number w
           },
         ]);
 
+        // Calculate temperature for this request
+        const requestTemperature = groundedMode ? 0.3 : (settings?.default_temperature ?? 0.7);
+        
         console.log('[Ghost] Sending message', {
           requestId,
           model: selectedModels[mode],
           historyLength: messageHistory.length,
           hasMemoryContext: !!memoryContext,
+          hasGroundingContext: !!groundingContext,
           memorySourceCount: memorySources.length,
+          groundedMode,
+          temperature: requestTemperature,
         });
 
         await streamResponse(
