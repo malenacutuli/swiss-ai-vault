@@ -355,11 +355,26 @@ export const GhostSidebar = memo(function GhostSidebar({
       setIsHovered(false);
     }, 150);
   }, []);
+
+  // Debounced hover handlers for Discover menu - longer delay for easier navigation
+  const discoverMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Cleanup hover timeout on unmount
+  const handleDiscoverMenuEnter = useCallback(() => {
+    if (discoverMenuTimeoutRef.current) clearTimeout(discoverMenuTimeoutRef.current);
+    setShowMoreMenu(true);
+  }, []);
+  
+  const handleDiscoverMenuLeave = useCallback(() => {
+    discoverMenuTimeoutRef.current = setTimeout(() => {
+      setShowMoreMenu(false);
+    }, 300); // 300ms delay gives user time to move to menu
+  }, []);
+  
+  // Cleanup hover timeouts on unmount
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      if (discoverMenuTimeoutRef.current) clearTimeout(discoverMenuTimeoutRef.current);
     };
   }, []);
 
@@ -883,8 +898,8 @@ export const GhostSidebar = memo(function GhostSidebar({
         <div className="border-t border-border/40 p-2">
           <div 
             className="relative group"
-            onMouseEnter={() => setShowMoreMenu(true)}
-            onMouseLeave={() => setShowMoreMenu(false)}
+            onMouseEnter={handleDiscoverMenuEnter}
+            onMouseLeave={handleDiscoverMenuLeave}
           >
             {/* Discovery Parent Button */}
             <Tooltip>
