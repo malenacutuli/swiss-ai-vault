@@ -53,7 +53,13 @@ import {
   type WebSource,
   type VerifiedSearchResult,
 } from '@/lib/trust/verified-search';
-import { classifyQuery } from '@/lib/trust/grounded-response';
+import {
+  classifyQuery,
+  generateGroundingPrompt,
+  processResponseForVerification,
+  generateUncertaintyResponse,
+  type SourceCitation,
+} from '@/lib/trust/grounded-response';
 import { EyeOff, Shield, AlertTriangle, FileText, Ghost, X, ToggleLeft, ToggleRight, GitCompareArrows } from '@/icons';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -1205,14 +1211,82 @@ Use this context to inform your response when relevant. Cite sources by number w
       // Search personal memory if enabled (for text mode)
       let memoryContext = '';
       let memorySources: MemorySource[] = [];
-      if (mode === 'text' && memoryEnabled && isVaultUnlocked && memory.isInitialized) {
+      
+      // Grounded mode: search memory regardless, but only use grounding if enabled
+      const shouldSearchMemory = mode === 'text' && memoryEnabled && isVaultUnlocked && memory.isInitialized;
+      
+      if (shouldSearchMemory) {
         const memoryResult = await searchPersonalMemory(messageContent);
         memoryContext = memoryResult.context;
         memorySources = memoryResult.sources;
       }
       
-      // If we have memory context, prepend it as a system message
-      if (memoryContext) {
+      // Classify query for grounding requirements
+      const queryClassification = classifyQuery(messageContent);
+      
+      // === GROUNDED MODE: Uncertainty handling ===
+      // If grounded mode is on AND query requires grounding AND no/insufficient sources, refuse to answer
+      if (groundedMode && queryClassification.requiresGrounding) {
+        // Convert MemorySource[] to SourceCitation[] for the grounding functions
+        const sourceCitations: SourceCitation[] = memorySources.map((s, idx) => ({
+          id: s.id || `source-${idx}`,
+          documentId: s.id || `doc-${idx}`,
+          documentName: s.title,
+          excerpt: s.content.slice(0, 500),
+          relevanceScore: s.score || 0.5,
+          timestamp: Date.now(),
+        }));
+        
+        const uncertaintyResponse = generateUncertaintyResponse(
+          messageContent,
+          sourceCitations,
+          queryClassification.domains
+        );
+        
+        if (uncertaintyResponse) {
+          // Show uncertainty message without calling AI
+          const assistantMessage: GhostMessageData = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: `🔒 **Grounded Mode Active**\n\n${uncertaintyResponse}\n\n**Options:**\n- Upload relevant documents to your Memory\n- Switch to Standard mode for general knowledge answers\n- Rephrase your question`,
+            timestamp: Date.now(),
+            isGrounded: true,
+            memorySources: memorySources.length > 0 ? memorySources : undefined,
+          };
+          
+          setMessages(prev => [...prev, userMessage, assistantMessage]);
+          saveMessage(convId!, 'user', displayContent);
+          saveMessage(convId!, 'assistant', assistantMessage.content);
+          
+          // Clear submission state
+          isSubmittingRef.current = false;
+          clearTimeout(recoveryTimeout);
+          return;
+        }
+      }
+      
+      // === GROUNDED MODE: Build grounding context for AI ===
+      let groundingContext = '';
+      if (groundedMode && queryClassification.requiresGrounding && memorySources.length > 0) {
+        const availableSources = memorySources.map(s => ({
+          name: s.title,
+          type: 'document',
+        }));
+        
+        groundingContext = generateGroundingPrompt(queryClassification.domains, availableSources);
+        
+        // Add source excerpts to grounding context
+        groundingContext += '\n\n=== RELEVANT SOURCES FROM YOUR DOCUMENTS ===\n';
+        for (const source of memorySources.slice(0, 5)) {
+          groundingContext += `\n[${source.title}] (relevance: ${Math.round((source.score || 0.5) * 100)}%):\n"${source.content.slice(0, 800)}"\n`;
+        }
+        groundingContext += '\n=== END SOURCES ===\n';
+      }
+      
+      // Prepend context as system message - grounding takes priority over regular memory context
+      if (groundingContext) {
+        messageHistory.unshift({ role: 'system', content: groundingContext });
+      } else if (memoryContext) {
         messageHistory.unshift({ role: 'system', content: memoryContext });
       }
       
@@ -1382,7 +1456,8 @@ Use this context to inform your response when relevant. Cite sources by number w
                     },
                     {
                       systemPrompt: settings?.system_prompt || undefined,
-                      temperature: settings?.default_temperature ?? 0.7,
+                      // GROUNDED MODE: Use lower temperature (0.3) for more deterministic, citation-focused responses
+                      temperature: groundedMode ? 0.3 : (settings?.default_temperature ?? 0.7),
                       topP: settings?.default_top_p ?? 0.9,
                     },
                     requestId
@@ -1472,7 +1547,8 @@ Use this context to inform your response when relevant. Cite sources by number w
           },
           {
             systemPrompt: settings?.system_prompt || undefined,
-            temperature: settings?.default_temperature ?? 0.7,
+            // GROUNDED MODE: Use lower temperature (0.3) for more deterministic, citation-focused responses
+            temperature: groundedMode ? 0.3 : (settings?.default_temperature ?? 0.7),
             topP: settings?.default_top_p ?? 0.9,
           },
           requestId

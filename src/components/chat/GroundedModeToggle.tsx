@@ -48,17 +48,17 @@ export function GroundedModeToggle({
         <TooltipContent side="bottom" className="max-w-xs">
           {isGrounded ? (
             <div className="space-y-1">
-              <p className="font-medium text-sm">Grounded Mode Active</p>
+              <p className="font-medium text-sm">🔒 Grounded Mode Active</p>
               <p className="text-xs text-muted-foreground">
-                AI will ONLY answer from your documents with citations. 
-                Zero hallucinations guaranteed.
+                AI uses lower temperature (0.3) and ONLY answers from your documents with citations. 
+                Will refuse to answer if sources are insufficient.
               </p>
             </div>
           ) : canEnable ? (
             <div className="space-y-1">
               <p className="font-medium text-sm">Enable Grounded Mode</p>
               <p className="text-xs text-muted-foreground">
-                Click to activate citation-backed responses from your {documentsCount} document{documentsCount !== 1 ? 's' : ''}.
+                Click for citation-backed responses. Uses your {documentsCount} document{documentsCount !== 1 ? 's' : ''} as the only source of truth.
               </p>
             </div>
           ) : (
