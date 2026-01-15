@@ -225,6 +225,9 @@ export function useGhostInference() {
           messageCount: messages.length,
           stream: true,
           isAnonymous,
+          temperature: options?.temperature ?? 0.7,
+          topP: options?.topP ?? 0.9,
+          hasSystemPrompt: !!options?.systemPrompt,
         });
 
         // Build headers
