@@ -376,7 +376,8 @@ export async function getContext(
     conversationId?: string;
   } = {}
 ): Promise<ContextSnippet[]> {
-  const { topK = 5, maxTokens = 2000, minScore = 0.3 } = options;
+  // Lower default minScore to 0.1 to catch more results for generic queries
+  const { topK = 5, maxTokens = 2000, minScore = 0.1 } = options;
   
   if (!isEmbeddingsReady()) {
     console.warn('[MemoryManager] Embeddings not ready, skipping context retrieval');
@@ -386,6 +387,14 @@ export async function getContext(
   // Generate query embedding
   const queryEmbedding = await embed(query);
   
+  // Validate query embedding
+  if (!queryEmbedding || !Array.isArray(queryEmbedding) || queryEmbedding.length === 0) {
+    console.error('[MemoryManager] Failed to generate valid query embedding');
+    return [];
+  }
+  
+  console.log('[MemoryManager] Generated query embedding, dimensions:', queryEmbedding.length);
+  
   // Search memories
   const results = await searchMemories(queryEmbedding, encryptionKey, {
     topK: topK * 2, // Get extra to account for token budget
@@ -394,11 +403,26 @@ export async function getContext(
     conversationId: options.conversationId
   });
   
-  // Apply token budget
+  // Debug: Log what searchMemories returned
+  console.log('[MemoryManager] searchMemories returned:', {
+    resultCount: results?.length ?? 'undefined',
+    isArray: Array.isArray(results),
+    firstResult: results?.[0] ? { id: results[0].item?.id, score: results[0].score } : 'none'
+  });
+  
+  // Apply token budget with content guards
   const snippets: ContextSnippet[] = [];
   let totalTokens = 0;
+  let skippedCount = 0;
   
   for (const { item, score } of results) {
+    // Guard against null/undefined items or missing content
+    if (!item || !item.content || typeof item.content !== 'string') {
+      console.warn('[MemoryManager] Skipping result with invalid content:', item?.id);
+      skippedCount++;
+      continue;
+    }
+    
     const tokens = Math.ceil(item.content.length / 4);
     
     if (totalTokens + tokens > maxTokens) {
@@ -408,12 +432,16 @@ export async function getContext(
     snippets.push({
       id: item.id,
       content: item.content,
-      source: item.metadata.source,
+      source: item.metadata?.source || 'document',
       score,
-      metadata: item.metadata
+      metadata: item.metadata || { source: 'document', createdAt: Date.now() }
     });
     
     totalTokens += tokens;
+  }
+  
+  if (skippedCount > 0) {
+    console.warn('[MemoryManager] Skipped', skippedCount, 'results with invalid content');
   }
   
   console.log(`[MemoryManager] Retrieved ${snippets.length} context snippets (${totalTokens} tokens)`);

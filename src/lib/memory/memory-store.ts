@@ -5,14 +5,34 @@
 import { encrypt, decrypt, type EncryptedData } from '@/lib/crypto/zerotrace-crypto';
 
 // Cosine similarity function - defined locally to avoid circular deps with embedding-engine
+// Guards against undefined or invalid arrays to prevent crashes
 function similarity(a: number[], b: number[]): number {
+  // Guard against undefined, null, or invalid arrays
+  if (!a || !b || !Array.isArray(a) || !Array.isArray(b) || a.length === 0 || b.length === 0) {
+    console.warn('[MemoryStore] Invalid embedding vectors for similarity calculation');
+    return 0; // Return 0 similarity instead of crashing
+  }
+  
+  // Ensure same dimensions
+  if (a.length !== b.length) {
+    console.warn('[MemoryStore] Embedding dimension mismatch:', a.length, 'vs', b.length);
+    return 0;
+  }
+  
   let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  
+  // Guard against division by zero
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  if (denom === 0) {
+    return 0;
+  }
+  
+  return dot / denom;
 }
 
 // IndexedDB Configuration - separate from key vault
@@ -333,10 +353,26 @@ export async function searchMemories(
     return [];
   }
   
-  console.log('[MemoryStore] Searching', allStored.length, 'memories');
+  // Filter out memories with invalid embeddings BEFORE similarity calculation
+  const validStored = allStored.filter(stored => {
+    if (!stored.embedding || !Array.isArray(stored.embedding) || stored.embedding.length === 0) {
+      console.warn('[MemoryStore] Skipping memory with invalid embedding:', stored.id);
+      return false;
+    }
+    return true;
+  });
   
-  // Calculate similarity scores for all memories
-  const scored = allStored.map(stored => ({
+  const invalidCount = allStored.length - validStored.length;
+  console.log('[MemoryStore] Searching', validStored.length, 'valid memories', 
+    invalidCount > 0 ? `(filtered ${invalidCount} invalid)` : '');
+  
+  if (validStored.length === 0) {
+    console.warn('[MemoryStore] No valid memories to search after filtering');
+    return [];
+  }
+  
+  // Calculate similarity scores for all valid memories
+  const scored = validStored.map(stored => ({
     stored,
     score: similarity(queryEmbedding, stored.embedding)
   }));
