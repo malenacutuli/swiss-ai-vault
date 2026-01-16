@@ -909,10 +909,14 @@ Use this context to inform your response when relevant. Cite sources by number w
         isSubmittingRef.current = false;
         isStreamingRef.current = false;
       } else {
-        // Conversation not found in storage - could be corrupted or deleted
-        console.warn(`[GhostChat] Conversation ${selectedConversation.slice(0, 8)} not found in storage`);
-        // Don't clear messages immediately - let user see what was there
-        // They can manually refresh or select another conversation
+        // Conversation not found in storage - this is normal for newly created conversations
+        // The conversation ID exists but storage hasn't persisted it yet, OR it was just created
+        console.log(`[GhostChat] Conversation ${selectedConversation.slice(0, 8)} not found in storage - likely newly created, keeping current messages`);
+        // DON'T clear messages or show error - this is expected during conversation creation
+        // The first message send will create the conversation properly
+        // Just reset the stale refs to allow interaction
+        isSubmittingRef.current = false;
+        isStreamingRef.current = false;
       }
     } else if (!selectedConversation) {
       // Only clear if explicitly no conversation selected (not during transition)
