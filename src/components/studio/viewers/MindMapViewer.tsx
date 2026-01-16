@@ -7,12 +7,17 @@ import ReactFlow, {
   Edge,
   useNodesState,
   useEdgesState,
+  Handle,
+  Position,
+  NodeProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { Download, RotateCcw } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { getLayoutedElements, deriveEdgesFromNodes, RawMindMapNode, RawMindMapEdge } from '@/lib/mindmapLayout';
+import { StylePreset, getStyleConfig } from '@/lib/stylePresets';
+import { cn } from '@/lib/utils';
 
 interface MindMapNode {
   id: string;
@@ -24,11 +29,26 @@ interface MindMapNode {
 interface MindMapViewerProps {
   nodes: MindMapNode[];
   title?: string;
+  style?: StylePreset;
 }
 
-export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) {
+// Custom node component for styled mind map
+function StyledNode({ data }: NodeProps<{ label: string; nodeType: string; styleClass: string }>) {
+  return (
+    <div className={cn('px-4 py-2 rounded-lg text-center', data.styleClass)}>
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <span className="text-sm font-medium">{data.label}</span>
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+}
+
+const nodeTypes = { styled: StyledNode };
+
+export function MindMapViewer({ nodes: inputNodes, title, style = 'corporate' }: MindMapViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [direction, setDirection] = useState<'TB' | 'LR'>('TB');
+  const styleConfig = getStyleConfig(style);
 
   const { flowNodes, flowEdges } = useMemo(() => {
     if (!inputNodes || inputNodes.length === 0) {
@@ -49,8 +69,43 @@ export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) 
     // Get layouted elements using Dagre
     const { nodes, edges } = getLayoutedElements(rawNodes, rawEdges, direction);
 
-    return { flowNodes: nodes, flowEdges: edges };
-  }, [inputNodes, direction]);
+    // Apply style-specific node styling
+    const styledNodes: Node[] = nodes.map((node, index) => {
+      const rawNode = rawNodes.find(n => n.id === node.id);
+      const nodeType = rawNode?.type || (index === 0 ? 'central' : 'topic');
+      
+      const styleClass = nodeType === 'central' 
+        ? styleConfig.mindmap.central
+        : nodeType === 'topic' 
+          ? styleConfig.mindmap.topic
+          : nodeType === 'detail'
+            ? styleConfig.mindmap.detail
+            : styleConfig.mindmap.subtopic;
+
+      return {
+        ...node,
+        type: 'styled',
+        data: {
+          ...node.data,
+          nodeType,
+          styleClass,
+        },
+      };
+    });
+
+    // Apply style-specific edge styling
+    const styledEdges: Edge[] = edges.map(edge => ({
+      ...edge,
+      style: {
+        stroke: styleConfig.mindmap.edge.stroke,
+        strokeWidth: styleConfig.mindmap.edge.strokeWidth,
+        opacity: 0.7,
+      },
+      animated: styleConfig.mindmap.edge.animated || false,
+    }));
+
+    return { flowNodes: styledNodes, flowEdges: styledEdges };
+  }, [inputNodes, direction, styleConfig]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges);
@@ -71,19 +126,19 @@ export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) 
     
     try {
       const canvas = await html2canvas(containerRef.current, {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: styleConfig.mindmap.background,
         scale: 2,
         logging: false,
       });
       
       const link = document.createElement('a');
-      link.download = `${(title || 'mindmap').replace(/\s+/g, '_')}.png`;
+      link.download = `${(title || 'mindmap').replace(/\s+/g, '_')}_${style}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (error) {
       console.error('Export failed:', error);
     }
-  }, [title]);
+  }, [title, style, styleConfig]);
 
   if (inputNodes.length === 0) {
     return (
@@ -97,7 +152,18 @@ export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) 
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <h3 className="text-lg font-medium text-foreground">{title || 'Mind Map'}</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-medium text-foreground">{title || 'Mind Map'}</h3>
+          <span 
+            className="text-xs px-2 py-0.5 rounded-full"
+            style={{ 
+              backgroundColor: styleConfig.colors.primary + '20',
+              color: styleConfig.colors.primary 
+            }}
+          >
+            {styleConfig.name}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -121,20 +187,25 @@ export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) 
       </div>
 
       {/* React Flow Canvas */}
-      <div ref={containerRef} className="h-[500px] w-full bg-muted/20">
+      <div 
+        ref={containerRef} 
+        className="h-[500px] w-full"
+        style={{ backgroundColor: styleConfig.mindmap.background }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
           fitView
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="hsl(var(--border))" gap={20} />
+          <Background color={styleConfig.mindmap.edge.stroke + '30'} gap={20} />
           <Controls className="bg-background border border-border rounded-lg" />
           <MiniMap
-            nodeColor={() => 'hsl(var(--primary))'}
-            maskColor="hsl(var(--background) / 0.9)"
+            nodeColor={() => styleConfig.colors.primary}
+            maskColor="rgba(255,255,255,0.9)"
             className="bg-background border border-border rounded-lg"
           />
         </ReactFlow>
@@ -143,7 +214,7 @@ export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) 
       {/* Help text */}
       <div className="p-3 border-t border-border text-center">
         <span className="text-xs text-muted-foreground">
-          Drag nodes to rearrange • Scroll to zoom • Drag background to pan
+          Drag nodes to rearrange • Scroll to zoom • Drag background to pan • {inputNodes.length} nodes
         </span>
       </div>
     </div>

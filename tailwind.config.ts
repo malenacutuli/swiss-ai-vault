@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from 'tailwindcss/plugin';
 
 export default {
   darkMode: ["class"],
@@ -84,6 +85,35 @@ export default {
           sapphire: "hsl(var(--midnight-sapphire))",
           burgundy: "hsl(var(--imperial-burgundy))",
           teal: "hsl(var(--sovereign-teal))",
+          dark: "#0d2830",
+          light: "#2a6577",
+          accent: "#00B4D8",
+        },
+        // Style preset colors
+        corporate: {
+          primary: "#1a365d",
+          secondary: "#2d3748",
+          accent: "#3182ce",
+        },
+        creative: {
+          primary: "#7c3aed",
+          secondary: "#ec4899",
+          accent: "#f59e0b",
+        },
+        academic: {
+          primary: "#065f46",
+          secondary: "#1e3a5f",
+          accent: "#d97706",
+        },
+        minimal: {
+          primary: "#18181b",
+          secondary: "#71717a",
+          accent: "#f4f4f5",
+        },
+        narrative: {
+          primary: "#831843",
+          secondary: "#1e1b4b",
+          accent: "#fbbf24",
         },
         // Badge colors for model status
         badge: {
@@ -103,6 +133,10 @@ export default {
         'swiss-card': '0 4px 16px rgba(0, 0, 0, 0.06)',
         'swiss-elevated': '0 8px 24px rgba(0, 0, 0, 0.08)',
         'swiss-luxury': '0 2px 16px rgba(26, 54, 93, 0.08)',
+        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+        'glow': '0 0 40px rgba(29, 78, 95, 0.3)',
+        'glow-creative': '0 0 40px rgba(124, 58, 237, 0.3)',
+        'elevated': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -130,14 +164,74 @@ export default {
           "0%": { transform: "translateX(0%)" },
           "100%": { transform: "translateX(-50%)" },
         },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { transform: "translateY(20px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        flip: {
+          "0%": { transform: "rotateY(0deg)" },
+          "100%": { transform: "rotateY(180deg)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        scaleIn: {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 2s linear infinite",
         marquee: "marquee 30s linear infinite",
+        "fade-in": "fadeIn 0.5s ease-out",
+        "slide-up": "slideUp 0.4s ease-out",
+        "flip": "flip 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+        "float": "float 6s ease-in-out infinite",
+        "scale-in": "scaleIn 0.3s ease-out",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    plugin(function({ addUtilities }) {
+      addUtilities({
+        '.glass': {
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+        },
+        '.glass-dark': {
+          background: 'rgba(0, 0, 0, 0.2)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        },
+        '.glass-light': {
+          background: 'rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+        },
+        '.text-gradient-swiss': {
+          background: 'linear-gradient(135deg, #1D4E5F 0%, #00B4D8 100%)',
+          '-webkit-background-clip': 'text',
+          '-webkit-text-fill-color': 'transparent',
+        },
+        '.text-gradient-creative': {
+          background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)',
+          '-webkit-background-clip': 'text',
+          '-webkit-text-fill-color': 'transparent',
+        },
+        '.perspective-1000': { perspective: '1000px' },
+        '.transform-style-3d': { transformStyle: 'preserve-3d' },
+        '.backface-hidden': { backfaceVisibility: 'hidden' },
+        '.rotate-y-180': { transform: 'rotateY(180deg)' },
+      })
+    })
+  ],
 } satisfies Config;
