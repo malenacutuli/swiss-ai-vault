@@ -1,3 +1,6 @@
+// supabase/functions/source-guide/index.ts
+// Updated with generate_inline action for direct content processing
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,7 +10,7 @@ const corsHeaders = {
 };
 
 interface SourceGuideRequest {
-  action: 'generate' | 'get' | 'regenerate' | 'generate_inline';
+  action: 'generate' | 'generate_inline' | 'get' | 'regenerate';
   sourceId?: string;
   content?: string;
   filename?: string;
@@ -31,21 +34,56 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const geminiKey = Deno.env.get('GEMINI_API_KEY');
+    const geminiKey = Deno.env.get('GEMINI_API_KEY')!;
+
+    if (!geminiKey) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { action, sourceId, content, filename } = await req.json() as SourceGuideRequest;
 
+    console.log(`Source Guide action: ${action}, filename: ${filename || 'N/A'}`);
+
     switch (action) {
+      // NEW: Generate guide inline without storing to database
+      // Used for immediate display after file upload
+      case 'generate_inline': {
+        if (!content) {
+          throw new Error('Missing content');
+        }
+
+        const fname = filename || 'Document';
+        console.log(`Generating inline Source Guide for: ${fname}`);
+        console.log(`Content length: ${content.length} characters`);
+
+        const guide = await generateSourceGuide(geminiKey, content, fname);
+
+        console.log(`Guide generated successfully: ${guide.title}`);
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          guide: {
+            title: guide.title,
+            summary: guide.summary,
+            key_topics: guide.keyTopics,
+            suggested_questions: guide.suggestedQuestions,
+            word_count: guide.wordCount,
+            confidence_score: guide.confidence
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       case 'generate': {
         if (!content || !sourceId) {
           throw new Error('Missing content or sourceId');
         }
 
-        console.log(`Generating Source Guide for: ${filename}`);
+        console.log(`Generating Source Guide for sourceId: ${sourceId}`);
 
-        // Generate Source Guide using Gemini
         const guide = await generateSourceGuide(geminiKey, content, filename || 'Document');
 
         // Store in database
@@ -66,18 +104,7 @@ serve(async (req) => {
 
         if (error) {
           console.error('Database error:', error);
-          // Return the guide even if DB save fails
-          return new Response(JSON.stringify({ 
-            success: true, 
-            guide: {
-              id: crypto.randomUUID(),
-              source_id: sourceId,
-              ...guide
-            },
-            db_saved: false
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+          throw error;
         }
 
         // Update source status to 'active'
@@ -86,7 +113,7 @@ serve(async (req) => {
           .update({ status: 'active', updated_at: new Date().toISOString() })
           .eq('id', sourceId);
 
-        return new Response(JSON.stringify({ success: true, guide: data, db_saved: true }), {
+        return new Response(JSON.stringify({ success: true, guide: data }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -163,31 +190,6 @@ serve(async (req) => {
         });
       }
 
-      case 'generate_inline': {
-        // Generate guide without storing to database (for immediate display)
-        if (!content || !filename) {
-          throw new Error('Missing content or filename');
-        }
-
-        console.log(`Generating inline Source Guide for: ${filename}`);
-
-        const guide = await generateSourceGuide(geminiKey, content, filename);
-
-        return new Response(JSON.stringify({ 
-          success: true, 
-          guide: {
-            title: guide.title,
-            summary: guide.summary,
-            key_topics: guide.keyTopics,
-            suggested_questions: guide.suggestedQuestions,
-            word_count: guide.wordCount,
-            confidence_score: guide.confidence
-          }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -205,12 +207,10 @@ serve(async (req) => {
 });
 
 async function generateSourceGuide(
-  apiKey: string | undefined,
+  apiKey: string,
   content: string, 
   filename: string
 ): Promise<SourceGuide> {
-  const wordCount = content.split(/\s+/).length;
-
   const systemPrompt = `You are a document analysis specialist for SwissBrAIn, a Swiss AI research platform.
 Your task is to generate a "Source Guide" for the uploaded document.
 
@@ -224,7 +224,7 @@ CRITICAL: Format your response EXACTLY as valid JSON with these fields:
     {"text": "Second suggested question to explore deeper?", "rank": 2},
     {"text": "Third question about implications or applications?", "rank": 3}
   ],
-  "wordCount": ${wordCount},
+  "wordCount": 12345,
   "confidence": 0.95
 }
 
@@ -254,102 +254,75 @@ ${content.substring(0, 30000)}
 
 Respond with valid JSON only. Do not include any markdown code blocks or explanations.`;
 
-  if (apiKey) {
-    try {
-      // Call Gemini API directly
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              { role: 'user', parts: [{ text: systemPrompt }] },
-              { role: 'model', parts: [{ text: 'I understand. I will analyze documents and return JSON-formatted Source Guides with bold markdown formatting for key terms.' }] },
-              { role: 'user', parts: [{ text: userPrompt }] }
-            ],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 2048,
-              topP: 0.8,
-              topK: 40
-            }
-          })
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API error:', errorText);
-        throw new Error(`Gemini API error: ${response.status}`);
+  try {
+    console.log(`Calling Gemini API for: ${filename}`);
+    
+    // Call Gemini API directly
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: systemPrompt }] },
+            { role: 'model', parts: [{ text: 'I understand. I will analyze documents and return JSON-formatted Source Guides with bold markdown formatting for key terms.' }] },
+            { role: 'user', parts: [{ text: userPrompt }] }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048,
+            topP: 0.8,
+            topK: 40
+          }
+        })
       }
+    );
 
-      const result = await response.json();
-      const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      
-      console.log('Gemini response preview:', responseText.substring(0, 300));
-
-      // Extract JSON from response (handle markdown code blocks)
-      let jsonStr = responseText.trim();
-      if (jsonStr.includes('```json')) {
-        jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
-      } else if (jsonStr.includes('```')) {
-        jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
-      }
-
-      const parsed = JSON.parse(jsonStr);
-      
-      return {
-        title: parsed.title || filename,
-        summary: parsed.summary || 'Summary generation failed.',
-        keyTopics: parsed.keyTopics || [],
-        suggestedQuestions: parsed.suggestedQuestions || [],
-        wordCount: parsed.wordCount || wordCount,
-        confidence: parsed.confidence || 0.8
-      };
-    } catch (error) {
-      console.error('Gemini generation error:', error);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API error:', response.status, errorText);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
+
+    const result = await response.json();
+    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    console.log('Gemini response received, length:', responseText.length);
+
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonStr = responseText.trim();
+    if (jsonStr.includes('```json')) {
+      jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+    } else if (jsonStr.includes('```')) {
+      jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
+    }
+
+    const parsed = JSON.parse(jsonStr);
+    
+    return {
+      title: parsed.title || filename,
+      summary: parsed.summary || 'Summary generation failed.',
+      keyTopics: parsed.keyTopics || [],
+      suggestedQuestions: parsed.suggestedQuestions || [],
+      wordCount: parsed.wordCount || content.split(/\s+/).length,
+      confidence: parsed.confidence || 0.8
+    };
+  } catch (error) {
+    console.error('Gemini generation error:', error);
+    
+    // Fallback response
+    return {
+      title: filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+      summary: `This document "**${filename}**" has been uploaded and processed. The document appears to contain important information that you can explore using the suggested questions below. Click on any question to start your research journey with **SwissBrAIn**.`,
+      keyTopics: ['Document Analysis', 'Research', 'Key Insights', 'Summary', 'Overview'],
+      suggestedQuestions: [
+        { text: 'What are the main points and key takeaways from this document?', rank: 1 },
+        { text: 'What conclusions or recommendations does this document provide?', rank: 2 },
+        { text: 'How can I apply the insights from this document to my work?', rank: 3 }
+      ],
+      wordCount: content.split(/\s+/).length,
+      confidence: 0.5
+    };
   }
-  
-  // Fallback response when API fails or no key
-  return generateFallbackGuide(content, filename, wordCount);
-}
-
-function generateFallbackGuide(content: string, filename: string, wordCount: number): SourceGuide {
-  // Extract potential title from first line or filename
-  const firstLine = content.split('\n').find(l => l.trim().length > 10)?.trim() || filename;
-  const title = firstLine.length > 100 ? firstLine.substring(0, 97) + '...' : firstLine;
-
-  // Extract key words (simple frequency analysis)
-  const words = content.toLowerCase().split(/\W+/).filter(w => w.length > 5);
-  const wordFreq = new Map<string, number>();
-  words.forEach(w => wordFreq.set(w, (wordFreq.get(w) || 0) + 1));
-  const topWords = [...wordFreq.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
-
-  // Generate basic summary from first paragraphs
-  const paragraphs = content.split(/\n\n/).filter(p => p.trim().length > 50);
-  let summaryText = paragraphs.slice(0, 2).join(' ').substring(0, 500);
-  
-  // Bold the top words in summary
-  topWords.slice(0, 3).forEach(word => {
-    const regex = new RegExp(`\\b(${word})\\b`, 'gi');
-    summaryText = summaryText.replace(regex, '**$1**');
-  });
-
-  return {
-    title: title.replace(/\.[^.]+$/, ''), // Remove file extension
-    summary: summaryText + (summaryText.length >= 500 ? '...' : ''),
-    keyTopics: topWords.length > 0 ? topWords : ['Document Analysis', 'Research', 'Key Insights'],
-    suggestedQuestions: [
-      { text: `What are the main themes discussed in "${filename.replace(/\.[^.]+$/, '')}"?`, rank: 1 },
-      { text: 'What are the key takeaways from this document?', rank: 2 },
-      { text: 'How does this information apply in practice?', rank: 3 },
-    ],
-    wordCount,
-    confidence: 0.5,
-  };
 }
