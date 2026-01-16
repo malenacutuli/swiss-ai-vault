@@ -810,9 +810,24 @@ async function generateArtifact(
   let result;
   try {
     result = JSON.parse(resultText);
+    
+    // Unwrap common Gemini response formats
+    // Handle array response - take first element
+    if (Array.isArray(result)) {
+      result = result[0] || {};
+    }
+    
+    // Handle object with numeric keys like {"0": {...}}
+    if (result["0"] && typeof result["0"] === 'object' && !Array.isArray(result["0"])) {
+      result = result["0"];
+    }
+    
+    console.log(`[notebooklm-proxy] Parsed ${artifactType} result:`, 
+      Object.keys(result).join(', '));
   } catch {
     // If JSON parsing fails, wrap the text
     result = { content: resultText, parseError: true };
+    console.warn(`[notebooklm-proxy] JSON parse failed for ${artifactType}, wrapping as text`);
   }
 
   // Store the artifact output

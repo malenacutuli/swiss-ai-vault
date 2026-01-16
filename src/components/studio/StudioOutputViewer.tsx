@@ -26,12 +26,44 @@ interface StudioOutputViewerProps {
   onClose?: () => void;
 }
 
-export function StudioOutputViewer({ type, data, onClose }: StudioOutputViewerProps) {
+/**
+ * Helper to unwrap data that may be wrapped in {"0": {...}} or array structure.
+ * Gemini sometimes returns JSON in unexpected formats.
+ */
+function unwrapData(data: any): any {
+  if (!data) return data;
+  
+  // Handle array response - take first element
+  if (Array.isArray(data)) {
+    return unwrapData(data[0]) || {};
+  }
+  
+  // Handle object with numeric keys like {"0": {...}}
+  if (data["0"] && typeof data["0"] === 'object' && !Array.isArray(data["0"])) {
+    return unwrapData(data["0"]);
+  }
+  
+  return data;
+}
+
+/**
+ * Helper to find parent ID from edges array for mind map nodes.
+ */
+function findParentFromEdges(nodeId: string, edges: any[]): string | undefined {
+  const edge = edges?.find((e: any) => e.target === nodeId || e.to === nodeId);
+  return edge?.source || edge?.from;
+}
+
+export function StudioOutputViewer({ type, data: rawData, onClose }: StudioOutputViewerProps) {
   const { toast } = useToast();
+  
+  // Unwrap the data to handle nested structures
+  const data = unwrapData(rawData);
 
   // Generate and download PPTX from slides data
   const handleSlidesDownload = async () => {
-    if (!data?.slides) return;
+    const slidesData = data?.slides || [];
+    if (slidesData.length === 0) return;
     
     try {
       const pptx = new PptxGenJS();
@@ -47,7 +79,7 @@ export function StudioOutputViewer({ type, data, onClose }: StudioOutputViewerPr
         ],
       });
 
-      for (const slide of data.slides) {
+      for (const slide of slidesData) {
         const pptxSlide = pptx.addSlide({ masterName: 'STUDIO_MASTER' });
         
         // Title
@@ -73,8 +105,16 @@ export function StudioOutputViewer({ type, data, onClose }: StudioOutputViewerPr
           });
         }
 
-        // Content or Bullets
-        const content = slide.bullets || (slide.content ? [slide.content] : []);
+        // Content or Bullets - handle multiple formats
+        let content: string[] = [];
+        if (Array.isArray(slide.bullets)) {
+          content = slide.bullets;
+        } else if (typeof slide.content === 'string') {
+          content = slide.content.split('\n').filter(Boolean);
+        } else if (Array.isArray(slide.content)) {
+          content = slide.content;
+        }
+        
         if (content.length > 0) {
           pptxSlide.addText(
             content.map((b: string) => ({ text: b, options: { bullet: true } })),
@@ -91,8 +131,8 @@ export function StudioOutputViewer({ type, data, onClose }: StudioOutputViewerPr
         }
 
         // Speaker notes
-        if (slide.notes) {
-          pptxSlide.addNotes(slide.notes);
+        if (slide.notes || slide.speakerNotes) {
+          pptxSlide.addNotes(slide.notes || slide.speakerNotes);
         }
       }
 
@@ -136,42 +176,81 @@ export function StudioOutputViewer({ type, data, onClose }: StudioOutputViewerPr
         );
 
       case 'quiz':
-        const quizQuestions = data?.questions?.map((q: any, i: number) => ({
+        const quizQuestions = (data?.questions || []).map((q: any, i: number) => ({
           id: q.id || `q_${i}`,
           question: q.question,
           options: q.options || q.choices || [],
-          correctIndex: q.correct_index ?? q.correctIndex ?? 0,
-          explanation: q.explanation,
-        })) || [];
+          correctIndex: q.correct_index ?? q.correctIndex ?? q.correct ?? 0,
+          explanation: q.explanation || '',
+        }));
+        
+        if (quizQuestions.length === 0) {
+          return <ReportViewer title="Quiz" content="No quiz questions found in the data." />;
+        }
         
         return <QuizViewer questions={quizQuestions} title={data?.title} />;
 
       case 'flashcards':
-        const flashcards = data?.cards?.map((c: any, i: number) => ({
+        const flashcards = (data?.cards || data?.flashcards || []).map((c: any, i: number) => ({
           id: c.id || `card_${i}`,
           front: c.front || c.question,
           back: c.back || c.answer,
-        })) || [];
+        }));
+        
+        if (flashcards.length === 0) {
+          return <ReportViewer title="Flashcards" content="No flashcards found in the data." />;
+        }
         
         return <FlashcardViewer cards={flashcards} title={data?.title} />;
 
       case 'mindmap':
-        const mindmapNodes = data?.nodes?.map((n: any) => ({
+        // Get edges for parent ID lookup
+        const edges = data?.edges || [];
+        
+        // Transform nodes with proper parentId resolution
+        const mindmapNodes = (data?.nodes || []).map((n: any) => ({
           id: n.id,
-          label: n.label || n.title || n.text,
-          parentId: n.parentId || n.parent_id,
-        })) || [];
+          label: n.label || n.title || n.text || n.name,
+          // Try parentId directly, then look up from edges
+          parentId: n.parentId || n.parent_id || n.parent || findParentFromEdges(n.id, edges),
+        }));
+        
+        if (mindmapNodes.length === 0) {
+          return <ReportViewer title="Mind Map" content="No mind map nodes found in the data." />;
+        }
+        
+        console.log('[StudioOutputViewer] Mind map nodes:', mindmapNodes.length, 'edges:', edges.length);
         
         return <MindMapViewer nodes={mindmapNodes} title={data?.title} />;
 
       case 'slides':
-        const slides = data?.slides?.map((s: any, i: number) => ({
-          id: s.id || `slide_${i}`,
-          title: s.title || `Slide ${i + 1}`,
-          content: s.content || s.bullets?.join('\n') || '',
-          notes: s.notes,
-          imageUrl: s.imageUrl || s.image_url,
-        })) || [];
+        const slides = (data?.slides || []).map((s: any, i: number) => {
+          // Handle multiple content formats
+          let content = '';
+          if (Array.isArray(s.bullets) && s.bullets.length > 0) {
+            content = '• ' + s.bullets.join('\n• ');
+          } else if (typeof s.content === 'string') {
+            content = s.content;
+          } else if (Array.isArray(s.content)) {
+            content = '• ' + s.content.join('\n• ');
+          } else if (s.subtitle) {
+            content = s.subtitle;
+          }
+          
+          return {
+            id: s.id || `slide_${i}`,
+            title: s.title || `Slide ${i + 1}`,
+            content,
+            notes: s.notes || s.speakerNotes,
+            imageUrl: s.imageUrl || s.image_url,
+          };
+        });
+        
+        if (slides.length === 0) {
+          return <ReportViewer title="Presentation" content="No slides found in the data." />;
+        }
+        
+        console.log('[StudioOutputViewer] Slides:', slides.length);
         
         return (
           <SlidesViewer 
@@ -182,34 +261,63 @@ export function StudioOutputViewer({ type, data, onClose }: StudioOutputViewerPr
         );
 
       case 'timeline':
-        const events = data?.events?.map((e: any, i: number) => ({
+        const events = (data?.events || data?.timeline || []).map((e: any, i: number) => ({
           id: e.id || `event_${i}`,
-          date: e.date || e.year || '',
-          title: e.title || e.event || '',
-          description: e.description || '',
-          details: e.details,
-        })) || [];
+          date: e.date || e.year || e.time || '',
+          title: e.title || e.event || e.name || '',
+          description: e.description || e.content || '',
+          details: e.details || e.significance,
+        }));
+        
+        if (events.length === 0) {
+          return <ReportViewer title="Timeline" content="No events found in the data." />;
+        }
         
         return <TimelineViewer events={events} title={data?.title} />;
 
       case 'faq':
-        const faqItems = (data?.questions || data?.items || []).map((q: any, i: number) => ({
+        const faqItems = (data?.questions || data?.faqs || data?.items || []).map((q: any, i: number) => ({
           id: q.id || `faq_${i}`,
-          question: q.question,
-          answer: q.answer,
+          question: q.question || q.q,
+          answer: q.answer || q.a,
         }));
+        
+        if (faqItems.length === 0) {
+          return <ReportViewer title="FAQ" content="No FAQ items found in the data." />;
+        }
         
         return <FAQViewer items={faqItems} title={data?.title} />;
 
       case 'table':
         // Transform to array of objects for DataTableViewer
-        const tableData = data?.rows?.map((row: string[], i: number) => {
-          const obj: Record<string, any> = {};
-          data?.columns?.forEach((col: string, j: number) => {
-            obj[col] = row[j];
+        let tableData: Record<string, any>[] = [];
+        
+        if (data?.rows && data?.columns) {
+          tableData = data.rows.map((row: any, i: number) => {
+            const obj: Record<string, any> = {};
+            // Handle both array rows and object rows with label/values
+            if (Array.isArray(row)) {
+              data.columns.forEach((col: string, j: number) => {
+                obj[col] = row[j];
+              });
+            } else if (row.values) {
+              obj['Label'] = row.label;
+              data.columns.forEach((col: string, j: number) => {
+                obj[col] = row.values[j];
+              });
+            } else {
+              // Object row format
+              return row;
+            }
+            return obj;
           });
-          return obj;
-        }) || data?.data || [];
+        } else if (data?.data) {
+          tableData = data.data;
+        }
+        
+        if (tableData.length === 0) {
+          return <ReportViewer title="Data Table" content="No table data found." />;
+        }
         
         return (
           <DataTableViewer 
@@ -224,14 +332,14 @@ export function StudioOutputViewer({ type, data, onClose }: StudioOutputViewerPr
         return (
           <ReportViewer
             title={data?.title}
-            content={data?.content}
+            content={data?.content || data?.report || ''}
             sections={data?.sections}
             citations={data?.citations}
           />
         );
 
       default:
-        // Fallback for unknown types
+        // Fallback for unknown types - show JSON
         return (
           <div className="bg-muted rounded-lg p-4 overflow-auto max-h-[500px]">
             <pre className="text-sm text-foreground whitespace-pre-wrap">
