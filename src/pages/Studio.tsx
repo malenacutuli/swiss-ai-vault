@@ -2,10 +2,12 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useNotebookLM } from '@/hooks/useNotebookLM';
+import { useSourceGuide } from '@/hooks/useSourceGuide';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { processDocument } from '@/lib/memory/document-processor';
 import { StudioOutputViewer } from '@/components/studio/StudioOutputViewer';
+import { SourceGuideDisplay } from '@/components/studio/SourceGuideDisplay';
 
 // Icons
 import { 
@@ -70,6 +72,9 @@ export default function Studio() {
   
   // NotebookLM hook
   const notebookLM = useNotebookLM();
+  
+  // Source Guide hook
+  const { guide: sourceGuide, loading: guideLoading, generateGuideInline } = useSourceGuide(null);
 
   // State
   const [notebookId, setNotebookId] = useState<string | null>(null);
@@ -252,8 +257,10 @@ export default function Studio() {
 
       try {
         // Extract text from file
+        console.log('🟢 Processing file:', file.name);
         const result = await processDocument(file);
         const content = result.success && result.content ? result.content : await file.text();
+        console.log('🟢 Extracted content length:', content.length);
         
         // Add to notebook
         const addedSources = await notebookLM.addSources(nbId!, [{ 
@@ -272,6 +279,16 @@ export default function Studio() {
               }
             : s
         ));
+        
+        // Generate Source Guide
+        console.log('🟢 Generating Source Guide...');
+        const generatedGuide = await generateGuideInline(content, file.name);
+        if (generatedGuide) {
+          console.log('✅ Source Guide ready:', generatedGuide.title);
+          toast({ title: 'Source analyzed', description: 'Source Guide is ready' });
+        } else {
+          console.log('🔴 Source Guide generation failed');
+        }
       } catch (err) {
         console.error('File processing error:', err);
         setSources(prev => prev.map(s => 
@@ -539,7 +556,29 @@ export default function Studio() {
             </div>
 
             <div className="flex-1 overflow-auto p-4">
-              {chatMessages.length === 0 ? (
+              {/* Loading state during guide generation */}
+              {guideLoading ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+                  <p className="text-sm text-muted-foreground font-medium">Analyzing document...</p>
+                  <p className="text-xs text-muted-foreground mt-1">Generating Source Guide</p>
+                </div>
+              ) : sourceGuide && chatMessages.length === 0 ? (
+                /* Show Source Guide when available and no messages yet */
+                <SourceGuideDisplay
+                  guide={sourceGuide}
+                  loading={false}
+                  sourceCount={readySources.length}
+                  onQuestionClick={(question) => {
+                    setChatInput(question);
+                    // Auto-send the question
+                    setTimeout(() => handleSendMessage(), 100);
+                  }}
+                  onSaveToNotes={() => {
+                    toast({ title: 'Saved to notes', description: sourceGuide.title });
+                  }}
+                />
+              ) : chatMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <MessageSquare className="w-10 h-10 text-muted-foreground/50 mb-3" />
                   <p className="text-sm text-muted-foreground">
