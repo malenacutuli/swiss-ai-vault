@@ -49,6 +49,13 @@ export function NotesPanel({
   const [editContent, setEditContent] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Persist notes to localStorage whenever they change
+  useEffect(() => {
+    if (notes.length > 0) {
+      localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+    }
+  }, [notes]);
+
   // Filter notes
   const filteredNotes = useMemo(() => {
     return notes.filter(note => {
