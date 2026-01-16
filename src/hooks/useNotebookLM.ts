@@ -87,21 +87,32 @@ export function useNotebookLM() {
     setError(null);
     
     try {
+      // Check if user is authenticated first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Please sign in to use the Studio');
+      }
+
+      console.log(`[useNotebookLM] Calling action: ${action}`, params);
+      
       const { data, error: invokeError } = await supabase.functions.invoke('notebooklm-proxy', {
         body: { action, ...params }
       });
 
+      console.log(`[useNotebookLM] Response:`, data, invokeError);
+
       if (invokeError) {
-        throw new Error(invokeError.message);
+        throw new Error(invokeError.message || 'Edge function error');
       }
 
       if (!data?.success) {
-        throw new Error(data?.error || 'Unknown error');
+        throw new Error(data?.error || 'Unknown error from API');
       }
 
       return data.data as T;
     } catch (err: any) {
       const message = err.message || 'Failed to call NotebookLM API';
+      console.error(`[useNotebookLM] Error:`, err);
       setError(message);
       toast({
         title: "Error",
