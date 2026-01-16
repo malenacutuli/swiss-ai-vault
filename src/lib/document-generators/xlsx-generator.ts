@@ -15,7 +15,7 @@ export async function generateXLSX(
   // Set workbook properties
   wb.Props = {
     Title: options.title,
-    Author: 'SwissVault AI',
+    Author: 'SwissBrAIn AI',
     CreatedDate: new Date(),
   };
 

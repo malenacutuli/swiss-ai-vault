@@ -179,7 +179,7 @@ export default function GhostPricing() {
           </Button>
           <div className="flex items-center gap-2">
             <Ghost className="h-6 w-6 text-primary" />
-            <span className="font-semibold">SwissVault.ai</span>
+            <span className="font-semibold">SwissBrAIn.ai</span>
           </div>
         </div>
       </header>

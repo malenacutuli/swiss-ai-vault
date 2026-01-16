@@ -48,7 +48,7 @@ export class MemoryErrorBoundary extends Component<Props, State> {
     try {
       // Clear IndexedDB memory store
       await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.deleteDatabase('SwissVaultMemory');
+        const request = indexedDB.deleteDatabase('SwissBrAInMemory');
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
       });

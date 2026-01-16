@@ -279,7 +279,7 @@ export default function ResearchDashboard() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `swissvault-research-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `swissbrain-research-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       

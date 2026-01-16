@@ -20,11 +20,11 @@ export async function generatePptxBlob(data: PresentationData): Promise<Blob> {
   const pptx = new PptxGenJS();
   
   // Metadata
-  pptx.author = 'SwissVault Studio';
+  pptx.author = 'SwissBrAIn Studio';
   pptx.title = data.title;
-  pptx.company = 'SwissVault';
+  pptx.company = 'SwissBrAIn';
   
-  // Master slides with SwissVault branding
+  // Master slides with SwissBrAIn branding
   pptx.defineSlideMaster({
     title: 'SWISS_TITLE',
     background: { color: 'FFFFFF' },

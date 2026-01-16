@@ -45,7 +45,7 @@ export function SyncStatusIndicator() {
     switch (provider) {
       case 'google-drive': return 'Google Drive';
       case 's3': return 'Amazon S3';
-      case 'swissvault-cloud': return 'SwissVault Cloud';
+      case 'swissvault-cloud': return 'SwissBrAIn Cloud';
       default: return t('memory.sync.localOnly', 'Local Only');
     }
   };

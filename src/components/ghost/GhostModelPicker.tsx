@@ -57,7 +57,7 @@ function groupModelsByProvider(models: GhostModel[]) {
 // Provider display names (must match provider values in ghost-models.ts exactly)
 const PROVIDER_LABELS: Record<string, string> = {
   // Text model providers
-  'SwissVault': 'SwissVault 🇨🇭',
+  'SwissVault': 'SwissBrAIn 🇨🇭',
   'Open Source': 'Open Source 🇨🇭',
   'OpenAI': 'OpenAI',
   'Anthropic': 'Anthropic',

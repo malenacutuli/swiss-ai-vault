@@ -9,7 +9,7 @@ import {
 } from '@/lib/memory/embedding-engine';
 
 // IndexedDB setup
-const DB_NAME = 'swissvault-agent-memory';
+const DB_NAME = 'swissbrain-agent-memory';
 const DB_VERSION = 2; // Bump version for embedding support
 const STORE_NAME = 'agent_memories';
 

@@ -39,7 +39,7 @@ export function UncertaintyDisplay({
           <Shield className="h-4 w-4" />
           <AlertTitle>Why am I seeing this?</AlertTitle>
           <AlertDescription>
-            For {domainLabel} questions, SwissVault requires source verification to prevent errors 
+            For {domainLabel} questions, SwissBrAIn requires source verification to prevent errors 
             that could have serious consequences. I won't make up information.
           </AlertDescription>
         </Alert>

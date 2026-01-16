@@ -277,7 +277,7 @@ export function AgentsTaskInput({ mode, onModeChange, onSubmit, isLoading }: Age
       {/* Tool Connectors */}
       <div className="flex items-center justify-center gap-2 mt-4 text-sm text-[#666666]">
         <Settings className="w-4 h-4" />
-        <span>Connect your tools to SwissVault</span>
+        <span>Connect your tools to SwissBrAIn</span>
       </div>
     </div>
   );
