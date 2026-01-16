@@ -2864,28 +2864,34 @@ export type Database = {
       }
       credit_transactions: {
         Row: {
+          artifact_id: string | null
           created_at: string
           credits_used: number
           description: string | null
           id: string
+          idempotency_key: string | null
           metadata: Json | null
           service_type: string
           user_id: string
         }
         Insert: {
+          artifact_id?: string | null
           created_at?: string
           credits_used?: number
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           metadata?: Json | null
           service_type: string
           user_id: string
         }
         Update: {
+          artifact_id?: string | null
           created_at?: string
           credits_used?: number
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           metadata?: Json | null
           service_type?: string
           user_id?: string
@@ -7508,6 +7514,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      deduct_artifact_credits: {
+        Args: {
+          p_amount: number
+          p_artifact_id: string
+          p_description: string
+          p_idempotency_key: string
+          p_user_id: string
+        }
+        Returns: {
+          error_message: string
+          new_balance: number
+          success: boolean
+          transaction_id: string
+        }[]
+      }
       deduct_credits: {
         Args: {
           p_amount: number
@@ -7738,6 +7759,15 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      refund_artifact_credits: {
+        Args: {
+          p_amount: number
+          p_artifact_id: string
+          p_description: string
+          p_user_id: string
+        }
+        Returns: number
       }
       reset_ghost_daily_limits: { Args: never; Returns: undefined }
       revoke_api_key: { Args: { p_key_id: string }; Returns: boolean }
