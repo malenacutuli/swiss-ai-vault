@@ -105,13 +105,16 @@ async function getAccessToken(): Promise<string> {
 }
 
 // Call Vertex AI Gemini
+// Available Gemini models in europe-west6
+const GEMINI_MODEL = "gemini-1.5-flash-002";
+
 async function callVertexAI(
   token: string,
   systemPrompt: string,
   userPrompt: string,
   jsonMode: boolean = false
 ): Promise<string> {
-  const geminiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/gemini-2.0-flash:generateContent`;
+  const geminiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${GEMINI_MODEL}:generateContent`;
 
   const messages = [
     {
