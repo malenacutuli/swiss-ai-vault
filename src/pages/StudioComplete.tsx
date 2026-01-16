@@ -30,6 +30,15 @@ import { AudioOverviewPanel } from '@/components/studio/AudioOverviewPanel';
 import { DeepResearchPanel } from '@/components/studio/DeepResearchPanel';
 import { MultimodalSourceInput } from '@/components/studio/MultimodalSourceInput';
 import { useSourceGuide, SourceGuide } from '@/hooks/useSourceGuide';
+import { SlideStyleSelector } from '@/components/studio/SlideStyleSelector';
+import { SlidePreview } from '@/components/studio/SlidePreview';
+
+// Slide Generation
+import { SlideContent, SlideStyleName } from '@/types/slides';
+import { parseMarkdownToSlides } from '@/lib/slide-content-analyzer';
+import { generateStyledPPTX, downloadStyledPPTX, generateHTMLSlides, downloadHTML } from '@/lib/slide-generator-service';
+import { SLIDE_STYLES } from '@/lib/slide-styles';
+import { supabase } from '@/integrations/supabase/client';
 
 // Icons
 import {
@@ -54,6 +63,7 @@ interface GeneratedArtifact {
   type: 'mindmap' | 'slides' | 'quiz' | 'flashcards' | 'podcast' | 'report';
   data: any;
   createdAt: Date;
+  slides?: SlideContent[];
 }
 
 export default function StudioComplete() {
@@ -78,6 +88,11 @@ export default function StudioComplete() {
 
   // Style state
   const [style, setStyle] = useState<StylePreset>('corporate');
+  const [slideStyle, setSlideStyle] = useState<SlideStyleName>('chromatic');
+  
+  // Slide state
+  const [generatedSlides, setGeneratedSlides] = useState<SlideContent[]>([]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -295,7 +310,53 @@ export default function StudioComplete() {
           result = await notebookLM.generateMindmap(nbId);
           break;
         case 'slides':
-          result = await notebookLM.generateSlides(nbId);
+          // Generate slides using AI
+          const sourceContent = readySources.map(s => s.content || s.name).join('\n\n');
+          
+          const { data: aiData, error: aiError } = await supabase.functions.invoke('ghost-inference', {
+            body: {
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are a presentation content architect. Create a presentation outline in markdown format.
+            
+OUTPUT FORMAT:
+## [Slide Title]
+### [Optional Subtitle]
+- Bullet point 1
+- Bullet point 2
+- Bullet point 3
+
+Rules:
+- Start with a title slide (## Title\\n### Subtitle)
+- Include 6-10 slides total
+- End with a conclusion/thank you slide
+- Max 6 bullet points per slide
+- Max 25 words per bullet point
+- Make it professional and engaging`
+                },
+                {
+                  role: 'user',
+                  content: `Create a professional presentation about the following content:\n\n${sourceContent.substring(0, 8000)}`
+                }
+              ],
+              model: 'google/gemini-3-flash-preview',
+              max_tokens: 4000,
+            },
+          });
+          
+          if (aiError) throw aiError;
+          
+          const slides = parseMarkdownToSlides(aiData.content || aiData.choices?.[0]?.message?.content || '');
+          
+          if (slides.length === 0) {
+            throw new Error('Failed to generate slide content');
+          }
+          
+          setGeneratedSlides(slides);
+          setCurrentSlideIndex(0);
+          
+          result = { slides, markdown: aiData.content };
           break;
         case 'quiz':
           result = await notebookLM.generateQuiz(nbId);
@@ -315,18 +376,67 @@ export default function StudioComplete() {
         type,
         data: result,
         createdAt: new Date(),
+        slides: type === 'slides' ? result.slides : undefined,
       };
 
       setActiveArtifact(artifact);
       setCenterView('artifact');
-      toast({ title: `${type} generated!` });
+      toast({ title: `${type} generated!`, description: type === 'slides' ? `Created ${result.slides?.length || 0} slides in ${SLIDE_STYLES[slideStyle].displayName} style.` : undefined });
     } catch (e: any) {
       toast({ title: "Generation failed", description: e.message, variant: "destructive" });
     } finally {
       setIsGenerating(false);
       setGeneratingType(null);
     }
-  }, [notebookId, sources, notebookLM, initializeNotebook, toast]);
+  }, [notebookId, sources, notebookLM, initializeNotebook, toast, slideStyle]);
+
+  // ============================================
+  // SLIDE DOWNLOAD HANDLERS
+  // ============================================
+
+  const handleDownloadPPTX = useCallback(async () => {
+    if (generatedSlides.length === 0) return;
+    
+    try {
+      const title = generatedSlides[0]?.headline || 'Presentation';
+      const blob = await generateStyledPPTX(generatedSlides, {
+        title,
+        style: slideStyle,
+        author: 'SwissBrAIn User',
+        company: 'SwissBrAIn',
+      });
+      
+      downloadStyledPPTX(blob, `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pptx`);
+      
+      toast({
+        title: 'Download Started',
+        description: 'Your presentation is being downloaded.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Download Failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  }, [generatedSlides, slideStyle, toast]);
+
+  const handleDownloadHTML = useCallback(() => {
+    if (generatedSlides.length === 0) return;
+    
+    const title = generatedSlides[0]?.headline || 'Presentation';
+    const html = generateHTMLSlides(generatedSlides, {
+      title,
+      style: slideStyle,
+    });
+    
+    downloadHTML(html, `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`);
+    
+    toast({
+      title: 'Download Started',
+      description: 'Your HTML presentation is being downloaded.',
+    });
+  }, [generatedSlides, slideStyle, toast]);
 
   // ============================================
   // FILE UPLOAD HANDLER
@@ -609,15 +719,44 @@ export default function StudioComplete() {
             )}
 
             {centerView === 'artifact' && activeArtifact && (
-              <div className="flex-1 p-4 overflow-auto">
+              <div className="flex-1 flex flex-col overflow-hidden">
                 {activeArtifact.type === 'mindmap' && activeArtifact.data?.nodes && (
-                  <ExpandableMindMap
-                    nodes={activeArtifact.data.nodes}
-                    title={activeArtifact.data.title || 'Mind Map'}
-                    style={style}
-                    onNodeClick={handleMindmapNodeClick}
-                  />
+                  <div className="flex-1 p-4 overflow-auto">
+                    <ExpandableMindMap
+                      nodes={activeArtifact.data.nodes}
+                      title={activeArtifact.data.title || 'Mind Map'}
+                      style={style}
+                      onNodeClick={handleMindmapNodeClick}
+                    />
+                  </div>
                 )}
+                
+                {activeArtifact.type === 'slides' && generatedSlides.length > 0 && (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    {/* Style Selector for Slides */}
+                    <div className="p-4 border-b border-border bg-white/50 backdrop-blur-sm">
+                      <SlideStyleSelector
+                        selected={slideStyle}
+                        onChange={setSlideStyle}
+                        disabled={isGenerating}
+                      />
+                    </div>
+                    
+                    {/* Slide Preview */}
+                    <div className="flex-1 overflow-hidden">
+                      <SlidePreview
+                        slides={generatedSlides}
+                        currentSlide={currentSlideIndex}
+                        onSlideChange={setCurrentSlideIndex}
+                        style={slideStyle}
+                        onDownloadPPTX={handleDownloadPPTX}
+                        onDownloadHTML={handleDownloadHTML}
+                        isGenerating={isGenerating}
+                      />
+                    </div>
+                  </div>
+                )}
+                
                 {/* Add other artifact renderers here */}
               </div>
             )}
