@@ -22,7 +22,9 @@ import { GroundedChat, ChatMessage, Citation } from '@/components/studio/Grounde
 import { PDFViewerWithHighlight, PDFHighlight } from '@/components/studio/PDFViewerWithHighlight';
 import { ExpandableMindMap } from '@/components/studio/ExpandableMindMap';
 import { StyleSelector } from '@/components/studio/StyleSelector';
+import { SourceGuideDisplay } from '@/components/studio/SourceGuideDisplay';
 import { StylePreset } from '@/lib/stylePresets';
+import { useSourceGuide, SourceGuide } from '@/hooks/useSourceGuide';
 
 // Icons
 import {
@@ -98,6 +100,11 @@ export default function StudioComplete() {
 
   // Selected sources state
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
+
+  // Source Guide state
+  const { guide: sourceGuide, loading: guideLoading, generateGuide } = useSourceGuide(
+    sources.length > 0 ? sources[0].id : null
+  );
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -463,13 +470,34 @@ export default function StudioComplete() {
           {/* CENTER PANEL: Chat / PDF / Artifact */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {centerView === 'chat' && (
-              <GroundedChat
-                messages={messages}
-                isLoading={isChatLoading}
-                onSendMessage={handleSendMessage}
-                onCitationClick={handleCitationClick}
-                onSaveToNotes={handleSaveToNotes}
-              />
+              <>
+                {/* Show Source Guide when there are sources but no messages */}
+                {messages.length === 0 && readySources.length > 0 ? (
+                  <SourceGuideDisplay
+                    guide={sourceGuide}
+                    loading={guideLoading}
+                    sourceCount={readySources.length}
+                    onQuestionClick={(question) => {
+                      handleSendMessage(question);
+                    }}
+                    onSaveToNotes={() => {
+                      if (sourceGuide) {
+                        handleAddNote(sourceGuide.summary, 'ai', 'Source Guide');
+                        toast({ title: 'Saved to notes' });
+                      }
+                    }}
+                  />
+                ) : (
+                  <GroundedChat
+                    messages={messages}
+                    isLoading={isChatLoading}
+                    onSendMessage={handleSendMessage}
+                    onCitationClick={handleCitationClick}
+                    onSaveToNotes={handleSaveToNotes}
+                    sourceCount={readySources.length}
+                  />
+                )}
+              </>
             )}
 
             {centerView === 'pdf' && activePdfUrl && (
