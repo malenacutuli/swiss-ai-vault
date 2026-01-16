@@ -2,8 +2,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const PROJECT_ID = Deno.env.get("GOOGLE_CLOUD_PROJECT") || "swissvault";
-const LOCATION = "europe-west6"; // Swiss region
-const BASE_URL = `https://${LOCATION}-discoveryengine.googleapis.com/v1alpha`;
+
+// Model configuration with fallback - us-central1 has best Gemini availability
+const GEMINI_MODELS = [
+  { model: "gemini-2.0-flash-001", location: "us-central1" },
+  { model: "gemini-1.5-flash-001", location: "us-central1" },
+  { model: "gemini-1.5-pro-001", location: "us-central1" },
+];
+const PRIMARY_LOCATION = "us-central1";
+const BASE_URL = `https://${PRIMARY_LOCATION}-discoveryengine.googleapis.com/v1alpha`;
 
 // Strict CORS allowlist
 const ALLOWED_ORIGINS = [
@@ -159,7 +166,7 @@ serve(async (req: Request) => {
     console.log(`[studio-notebooklm] Action: ${action}, User: ${user.id}`);
 
     const token = await getAccessToken();
-    const parent = `projects/${PROJECT_ID}/locations/${LOCATION}`;
+    const parent = `projects/${PROJECT_ID}/locations/${PRIMARY_LOCATION}`;
 
     // Check quota for heavy operations
     const heavyOps = [
@@ -446,7 +453,7 @@ function inferSourceType(source: any): string {
   return "text";
 }
 
-// Call Gemini for grounded chat
+// Call Gemini for grounded chat with fallback through multiple models
 async function callGeminiChat(
   token: string,
   notebookId: string,
@@ -474,9 +481,6 @@ async function callGeminiChat(
     ?.map((s: any) => `[${s.source_type.toUpperCase()}] ${s.title}: ${s.source_url || "uploaded file"}`)
     .join("\n");
 
-  // Call Gemini API
-  const geminiUrl = `https://europe-west6-aiplatform.googleapis.com/v1/projects/swissvault/locations/europe-west6/publishers/google/models/gemini-2.0-flash:generateContent`;
-
   const messages = [
     {
       role: "user",
@@ -490,37 +494,65 @@ async function callGeminiChat(
     },
   ];
 
-  const response = await fetch(geminiUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: messages,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    }),
-  });
+  let lastError: Error | null = null;
 
-  const data = await response.json();
+  // Try each model in order until one succeeds
+  for (const { model, location } of GEMINI_MODELS) {
+    const geminiUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${location}/publishers/google/models/${model}:generateContent`;
+    
+    console.log(`[studio-notebooklm] Trying model: ${model} in ${location}`);
 
-  if (!response.ok) {
-    throw new Error(data.error?.message || "Gemini API error");
+    try {
+      const response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: messages,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated";
+        console.log(`[studio-notebooklm] Success with model: ${model}`);
+
+        // Extract evidence from citations in the answer
+        const evidence = extractEvidence(answer, sources || []);
+
+        return {
+          answer,
+          evidence,
+          groundingMetadata: data.candidates?.[0]?.groundingMetadata,
+        };
+      }
+
+      const errorText = await response.text();
+      console.warn(`[studio-notebooklm] Model ${model} failed (${response.status}): ${errorText}`);
+      
+      // If it's a 404 (model not found), try next model
+      if (response.status === 404) {
+        lastError = new Error(`Model ${model} not found in ${location}`);
+        continue;
+      }
+      
+      // For other errors, throw immediately
+      throw new Error(`Gemini API error: ${response.status}`);
+    } catch (err) {
+      lastError = err as Error;
+      console.warn(`[studio-notebooklm] Error with model ${model}:`, err);
+      // Continue to next model
+    }
   }
 
-  const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated";
-
-  // Extract evidence from citations in the answer
-  const evidence = extractEvidence(answer, sources || []);
-
-  return {
-    answer,
-    evidence,
-    groundingMetadata: data.candidates?.[0]?.groundingMetadata,
-  };
+  // All models failed
+  throw lastError || new Error("All Gemini models failed");
 }
 
 // Extract evidence objects from answer
