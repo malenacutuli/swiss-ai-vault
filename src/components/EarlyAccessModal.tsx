@@ -57,7 +57,7 @@ export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) 
         <DialogHeader>
           <DialogTitle>Join the Waitlist</DialogTitle>
           <DialogDescription>
-            Be among the first to experience SwissVault.ai. Enter your email and we'll notify you when your access is ready.
+            Be among the first to experience Swiss BrAIn advanced features. Enter your email and we'll notify you when your access is ready.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
