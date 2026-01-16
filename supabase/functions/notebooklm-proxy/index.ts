@@ -182,7 +182,7 @@ async function callVertexAI(
   throw lastError || new Error("All Gemini models failed");
 }
 
-// Generate TTS audio using Gemini TTS
+// Generate TTS audio using Gemini TTS with rate limiting
 async function generateTTSAudio(text: string, voice: string = "Kore"): Promise<{ audio: string; mimeType: string } | null> {
   const apiKey = Deno.env.get("GOOGLE_GEMINI_API_KEY");
   if (!apiKey) {
@@ -190,49 +190,99 @@ async function generateTTSAudio(text: string, voice: string = "Kore"): Promise<{
     return null;
   }
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text }],
-          }],
-          generationConfig: {
-            responseModalities: ["AUDIO"],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: voice },
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [{ text }],
+            }],
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: voice },
+                },
               },
             },
-          },
-        }),
+          }),
+        }
+      );
+
+      if (response.status === 429) {
+        // Rate limited - wait and retry
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '10', 10);
+        const waitTime = Math.min(retryAfter * 1000, 30000) * (attempt + 1);
+        console.warn(`[notebooklm-proxy] TTS rate limited, waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[notebooklm-proxy] TTS error:", errorText);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[notebooklm-proxy] TTS error:", errorText);
+        return null;
+      }
+
+      const data = await response.json();
+      const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+      
+      if (audioData) {
+        return {
+          audio: audioData.data,
+          mimeType: audioData.mimeType || "audio/mp3",
+        };
+      }
       return null;
+    } catch (err) {
+      lastError = err as Error;
+      console.error("[notebooklm-proxy] TTS generation failed:", err);
+      if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+      }
     }
+  }
 
-    const data = await response.json();
-    const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+  console.error("[notebooklm-proxy] TTS failed after all retries:", lastError);
+  return null;
+}
+
+// Generate TTS with rate limiting for multiple segments
+async function generateTTSWithRateLimit(
+  segments: Array<{ speaker: string; text: string }>,
+  host1Voice: string,
+  host2Voice: string,
+  delayMs: number = 6500
+): Promise<Array<{ speaker: string; audio: string; mimeType: string }>> {
+  const results: Array<{ speaker: string; audio: string; mimeType: string }> = [];
+  
+  for (const segment of segments.slice(0, 10)) { // Limit to 10 segments to avoid rate limits
+    const voice = segment.speaker?.toLowerCase() === "jordan" ? host2Voice : host1Voice;
+    const audioData = await generateTTSAudio(segment.text.slice(0, 4000), voice);
     
     if (audioData) {
-      return {
-        audio: audioData.data,
-        mimeType: audioData.mimeType || "audio/mp3",
-      };
+      results.push({
+        speaker: segment.speaker,
+        audio: audioData.audio,
+        mimeType: audioData.mimeType,
+      });
     }
-    return null;
-  } catch (err) {
-    console.error("[notebooklm-proxy] TTS generation failed:", err);
-    return null;
+    
+    // Wait between requests to respect rate limit (10/min = 1 every 6 seconds)
+    if (segments.indexOf(segment) < segments.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
   }
+  
+  return results;
 }
 
 serve(async (req: Request) => {
@@ -579,21 +629,17 @@ async function generatePodcastArtifact(
   const host2Voice = params.host2_voice || "Charon";
 
   if (result.segments && Array.isArray(result.segments)) {
-    console.log(`[notebooklm-proxy] Generating TTS for ${result.segments.length} segments...`);
+    console.log(`[notebooklm-proxy] Generating TTS for ${result.segments.length} segments with rate limiting...`);
     
-    for (const segment of result.segments.slice(0, 20)) { // Limit to 20 segments
-      const voice = segment.speaker?.toLowerCase() === "jordan" ? host2Voice : host1Voice;
-      const audioData = await generateTTSAudio(segment.text.slice(0, 4000), voice);
-      
-      if (audioData) {
-        audioSegments.push({
-          speaker: segment.speaker,
-          audio: audioData.audio,
-          mimeType: audioData.mimeType,
-        });
-      }
-    }
+    // Use rate-limited TTS generation
+    const generatedAudio = await generateTTSWithRateLimit(
+      result.segments,
+      host1Voice,
+      host2Voice,
+      6500 // 6.5 seconds between requests
+    );
     
+    audioSegments.push(...generatedAudio);
     console.log(`[notebooklm-proxy] Generated ${audioSegments.length} audio segments`);
   }
 
