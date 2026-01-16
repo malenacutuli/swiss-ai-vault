@@ -1310,7 +1310,12 @@ Deno.serve(async (req: Request) => {
         userId = user.id;
         console.log(`[Ghost Inference] User ${userId!.slice(0, 8)}... authenticated`);
         
-        // Check user usage via RPC (includes admin bypass)
+        // BILLING FIX: Ghost Chat text/search uses daily limits (frontend), not credits (backend)
+        // Per architecture: Chat = daily limits, Labs/Agents = credits
+        // We skip the credit check for text inference - daily limits are enforced in useGhostUsage on frontend
+        // This prevents 402 errors for free users who have no ghost_credits record
+        
+        // Still check admin status for bypass purposes
         const { data: checkResult, error: usageError } = await supabase
           .rpc('check_user_usage', {
             p_user_id: userId,
@@ -1323,16 +1328,12 @@ Deno.serve(async (req: Request) => {
         }
         usageCheck = checkResult;
         
-        // Only block if explicitly not allowed AND not admin
+        // For text inference, only log the check but don't block
+        // Daily limits are enforced on the frontend via useGhostUsage
         if (usageCheck && usageCheck.allowed === false && !usageCheck.is_admin) {
-          console.log(`[Ghost Inference] Insufficient credits - reason: ${usageCheck.reason}`);
-          return new Response(
-            JSON.stringify({ 
-              error: usageCheck.reason || 'Insufficient credits',
-              balance: usageCheck.balance || 0,
-            }),
-            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          console.log(`[Ghost Inference] Credit check returned not allowed - reason: ${usageCheck.reason}, but proceeding as text chat uses daily limits`);
+          // DON'T return 402 for text mode - daily limits handle this on frontend
+          // Only log for diagnostics
         }
       }
     }
