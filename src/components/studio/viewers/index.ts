@@ -7,3 +7,4 @@ export { MarkdownViewer } from './MarkdownViewer';
 export { FAQViewer } from './FAQViewer';
 export { TimelineViewer } from './TimelineViewer';
 export { DataTableViewer } from './DataTableViewer';
+export { ReportViewer } from './ReportViewer';
