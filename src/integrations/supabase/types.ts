@@ -5864,6 +5864,7 @@ export type Database = {
           created_at: string | null
           discovery_engine_source_id: string | null
           file_size_bytes: number | null
+          full_text: string | null
           id: string
           ingestion_error: string | null
           ingestion_manifest: Json | null
@@ -5880,6 +5881,7 @@ export type Database = {
           created_at?: string | null
           discovery_engine_source_id?: string | null
           file_size_bytes?: number | null
+          full_text?: string | null
           id?: string
           ingestion_error?: string | null
           ingestion_manifest?: Json | null
@@ -5896,6 +5898,7 @@ export type Database = {
           created_at?: string | null
           discovery_engine_source_id?: string | null
           file_size_bytes?: number | null
+          full_text?: string | null
           id?: string
           ingestion_error?: string | null
           ingestion_manifest?: Json | null
