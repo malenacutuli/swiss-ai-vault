@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail } from "@/icons";
+import { useTranslation } from "react-i18next";
 
 interface EarlyAccessModalProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface EarlyAccessModalProps {
 export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,9 +57,9 @@ export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Join the Waitlist</DialogTitle>
+          <DialogTitle>{t('earlyAccess.title', 'Join the Waitlist')}</DialogTitle>
           <DialogDescription>
-            Be among the first to experience Swiss BrAIn advanced features. Enter your email and we'll notify you when your access is ready.
+            {t('earlyAccess.description', 'Be among the first to experience Swiss BrAIn advanced features. Enter your email and we\'ll notify you when your access is ready.')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +68,7 @@ export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) 
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('earlyAccess.emailPlaceholder', 'Enter your email')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-9"
@@ -74,11 +76,11 @@ export const EarlyAccessModal = ({ open, onOpenChange }: EarlyAccessModalProps) 
               />
             </div>
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('earlyAccess.subscribe', 'Subscribe')}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            We respect your privacy. Unsubscribe anytime.
+            {t('earlyAccess.privacyNote', 'We respect your privacy. Unsubscribe anytime.')}
           </p>
         </form>
       </DialogContent>

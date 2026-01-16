@@ -1,4 +1,11 @@
 {
+  "earlyAccess": {
+    "title": "Join the Waitlist",
+    "description": "Be among the first to experience Swiss BrAIn advanced features. Enter your email and we'll notify you when your access is ready.",
+    "emailPlaceholder": "Enter your email",
+    "subscribe": "Subscribe",
+    "privacyNote": "We respect your privacy. Unsubscribe anytime."
+  },
   "contact": {
     "title": "Get in Touch",
     "subtitle": "Have questions about Swiss BrAIn? Want to discuss enterprise deployment? We'd love to hear from you.",

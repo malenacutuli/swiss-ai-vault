@@ -1,4 +1,11 @@
 {
+  "earlyAccess": {
+    "title": "Únete a la Lista de Espera",
+    "description": "Sé de los primeros en experimentar las funciones avanzadas de Swiss BrAIn. Ingresa tu email y te notificaremos cuando tu acceso esté listo.",
+    "emailPlaceholder": "Ingresa tu email",
+    "subscribe": "Suscribirse",
+    "privacyNote": "Respetamos tu privacidad. Cancela en cualquier momento."
+  },
   "contact": {
     "title": "Contáctanos",
     "subtitle": "¿Tienes preguntas sobre Swiss BrAIn? ¿Quieres hablar sobre implementación empresarial? Nos encantaría saber de ti.",

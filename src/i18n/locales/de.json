@@ -1,4 +1,11 @@
 {
+  "earlyAccess": {
+    "title": "Warteliste beitreten",
+    "description": "Gehören Sie zu den Ersten, die die erweiterten Funktionen von Swiss BrAIn erleben. Geben Sie Ihre E-Mail ein und wir benachrichtigen Sie, wenn Ihr Zugang bereit ist.",
+    "emailPlaceholder": "E-Mail eingeben",
+    "subscribe": "Abonnieren",
+    "privacyNote": "Wir respektieren Ihre Privatsphäre. Jederzeit abmelden."
+  },
   "contact": {
     "title": "Kontaktieren Sie uns",
     "subtitle": "Haben Sie Fragen zu SwissVault? Möchten Sie über Unternehmensimplementierung sprechen? Wir freuen uns von Ihnen zu hören.",
