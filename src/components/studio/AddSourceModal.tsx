@@ -117,7 +117,7 @@ export function AddSourceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && resetAndClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg z-50 bg-background overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Add Sources</DialogTitle>
         </DialogHeader>
