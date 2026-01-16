@@ -490,6 +490,37 @@ export function useNotebookLM() {
     };
   }, [callProxy, toast]);
 
+  // Audio Overview with LRO polling support
+  const generateAudioOverview = useCallback(async (
+    notebookId: string,
+    options?: {
+      style?: 'DEEP_DIVE' | 'SUMMARY' | 'BRIEF' | 'DEBATE';
+      focus?: string;
+      language?: string;
+      onProgress?: (progress: number, stage: string) => void;
+    }
+  ): Promise<{ audioUrl?: string; transcript?: string }> => {
+    toast({ 
+      title: "Generating audio...", 
+      description: "This may take a few minutes" 
+    });
+    
+    // Use existing podcast generation which handles TTS
+    const result = await callProxy<any>('generate_podcast', {
+      notebook_id: notebookId,
+      style: options?.style || 'DEEP_DIVE',
+      focus: options?.focus,
+      language: options?.language || 'en-US'
+    });
+    
+    toast({ title: "Audio ready!", description: "Your audio overview is complete" });
+    
+    return {
+      audioUrl: result.audioUrl,
+      transcript: result.transcript || '',
+    };
+  }, [callProxy, toast]);
+
   // Legacy method for backwards compatibility
   const generateArtifact = useCallback(async (
     notebookId: string,
