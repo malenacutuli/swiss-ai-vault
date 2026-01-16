@@ -1,161 +1,66 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-// Configuration
-const PROJECT_ID = Deno.env.get("GOOGLE_CLOUD_PROJECT") || "swissvault";
-const LOCATION = "europe-west6"; // Swiss data residency - CRITICAL
-const BASE_URL = `https://${LOCATION}-discoveryengine.googleapis.com/v1alpha`;
-
 // CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Token cache for Google API
-let tokenCache: { token: string; expiry: number } | null = null;
+// Lovable AI Gateway URL
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-// Get access token from service account
-async function getAccessToken(): Promise<string> {
-  // Return cached token if still valid
-  if (tokenCache && Date.now() < tokenCache.expiry - 60000) {
-    return tokenCache.token;
+// Call Lovable AI Gateway
+async function callLovableAI(
+  systemPrompt: string,
+  userPrompt: string,
+  jsonMode: boolean = false
+): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
   }
 
-  const credJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-  if (!credJson) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON not configured");
-  }
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt }
+  ];
 
-  const creds = JSON.parse(credJson);
-
-  // Create JWT header
-  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }))
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  // Create JWT payload
-  const now = Math.floor(Date.now() / 1000);
-  const payload = btoa(
-    JSON.stringify({
-      iss: creds.client_email,
-      sub: creds.client_email,
-      aud: "https://oauth2.googleapis.com/token",
-      iat: now,
-      exp: now + 3600,
-      scope: "https://www.googleapis.com/auth/cloud-platform",
-    })
-  )
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  const signInput = `${header}.${payload}`;
-
-  // Sign JWT with private key
-  const keyData = Uint8Array.from(
-    atob(
-      creds.private_key
-        .replace("-----BEGIN PRIVATE KEY-----", "")
-        .replace("-----END PRIVATE KEY-----", "")
-        .replace(/\n/g, "")
-    ),
-    (c) => c.charCodeAt(0)
-  );
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    keyData,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    new TextEncoder().encode(signInput)
-  );
-
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  const jwt = `${signInput}.${sigB64}`;
-
-  // Exchange JWT for access token
-  const resp = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-
-  const data = await resp.json();
-  if (data.error) {
-    throw new Error(data.error_description || data.error);
-  }
-
-  // Cache the token
-  tokenCache = {
-    token: data.access_token,
-    expiry: Date.now() + data.expires_in * 1000,
+  const body: any = {
+    model: "google/gemini-3-flash-preview",
+    messages,
+    max_tokens: 8192,
   };
 
-  return tokenCache.token;
-}
+  // For JSON output, use tool calling
+  if (jsonMode) {
+    body.response_format = { type: "json_object" };
+  }
 
-// Poll long-running operation
-async function pollOperation(operationName: string, token: string): Promise<any> {
-  const maxAttempts = 120; // 10 minutes max
-  
-  for (let i = 0; i < maxAttempts; i++) {
-    const response = await fetch(
-      `https://${LOCATION}-discoveryengine.googleapis.com/v1alpha/${operationName}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const response = await fetch(LOVABLE_AI_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[notebooklm-proxy] Lovable AI error:", response.status, errorText);
     
-    const operation = await response.json();
-    console.log(`[notebooklm-proxy] Poll ${i + 1}: done=${operation.done}`);
-    
-    if (operation.done) {
-      if (operation.error) {
-        throw new Error(operation.error.message || "Operation failed");
-      }
-      return operation.response || operation.result || operation;
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again later.");
     }
-    
-    // Wait 5 seconds before next poll
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    if (response.status === 402) {
+      throw new Error("API credits exhausted. Please add credits to your Lovable workspace.");
+    }
+    throw new Error(`AI gateway error: ${response.status}`);
   }
-  
-  throw new Error("Operation timed out after 10 minutes");
-}
 
-// Format source for API
-function formatSource(source: any) {
-  if (source.pdf_url) {
-    return { uriContent: { uri: source.pdf_url } };
-  }
-  if (source.google_drive_id) {
-    return {
-      googleDriveContent: {
-        documentId: source.google_drive_id,
-        mimeType: source.mime_type || "application/pdf"
-      }
-    };
-  }
-  if (source.youtube_url) {
-    return { videoContent: { url: source.youtube_url } };
-  }
-  if (source.web_url) {
-    return { webContent: { url: source.web_url } };
-  }
-  if (source.text) {
-    return { textContent: { text: source.text } };
-  }
-  throw new Error("Unknown source type");
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
 }
 
 serve(async (req: Request) => {
@@ -164,8 +69,6 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const startTime = Date.now();
-  
   // Verify JWT from Supabase
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -197,18 +100,10 @@ serve(async (req: Request) => {
     const { action, notebook_id, ...params } = body;
     
     console.log(`[notebooklm-proxy] Action: ${action}, Notebook: ${notebook_id || 'N/A'}, User: ${user.id}`);
-    
-    const token = await getAccessToken();
-    const parent = `projects/${PROJECT_ID}/locations/${LOCATION}`;
-    
-    let endpoint: string;
-    let method = "POST";
-    let requestBody: any = null;
 
     switch (action) {
       // ==================== NOTEBOOK MANAGEMENT ====================
       case "create_notebook":
-        // Store in local DB and optionally sync to Google
         const { data: newNotebook, error: createErr } = await supabase
           .from("studio_notebooks")
           .insert({
@@ -365,31 +260,11 @@ serve(async (req: Request) => {
           `[Source ${i + 1}: ${s.title}]\n${s.full_text || s.source_url || 'Content available'}`
         ).join("\n\n") || "";
 
-        // Call Gemini for grounded chat
-        const geminiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/gemini-2.0-flash:generateContent`;
+        const systemPrompt = `You are a research assistant with access to specific sources. Answer questions based ONLY on the provided sources. Include citations in the format [Source N: title] when referencing information. If the information isn't in the sources, say so.`;
+        
+        const userPrompt = `Sources:\n\n${sourceContext}\n\nQuestion: ${params.query}`;
 
-        const chatResponse = await fetch(geminiUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{
-              role: "user",
-              parts: [{
-                text: `You are a research assistant with access to the following sources:\n\n${sourceContext}\n\nBased ONLY on these sources, answer the following question. Include citations in the format [Source N: title] when referencing information.\n\nQuestion: ${params.query}`
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 4096,
-            }
-          }),
-        });
-
-        const chatData = await chatResponse.json();
-        const answer = chatData.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
+        const answer = await callLovableAI(systemPrompt, userPrompt);
 
         // Store in messages
         const sessionId = params.session_id || crypto.randomUUID();
@@ -429,34 +304,34 @@ serve(async (req: Request) => {
 
       // ==================== ARTIFACT GENERATION ====================
       case "generate_podcast":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "podcast", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "podcast", params);
 
       case "generate_quiz":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "quiz", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "quiz", params);
 
       case "generate_flashcards":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "flashcards", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "flashcards", params);
 
       case "generate_mindmap":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "mindmap", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "mindmap", params);
 
       case "generate_slides":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "slides", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "slides", params);
 
       case "generate_report":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "report", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "report", params);
 
       case "generate_study_guide":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "study_guide", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "study_guide", params);
 
       case "generate_faq":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "faq", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "faq", params);
 
       case "generate_timeline":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "timeline", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "timeline", params);
 
       case "generate_table":
-        return await generateWithGemini(token, notebook_id, supabase, user.id, "table", params);
+        return await generateArtifact(supabase, user.id, notebook_id, "table", params);
 
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -471,12 +346,11 @@ serve(async (req: Request) => {
   }
 });
 
-// Generate artifacts using Gemini with structured output
-async function generateWithGemini(
-  token: string,
-  notebookId: string,
+// Generate artifacts using Lovable AI
+async function generateArtifact(
   supabase: any,
   userId: string,
+  notebookId: string,
   artifactType: string,
   params: any
 ): Promise<Response> {
@@ -497,245 +371,66 @@ async function generateWithGemini(
     `[Source ${i + 1}: ${s.title}]\n${s.full_text || s.source_url || 'Content available'}`
   ).join("\n\n");
 
-  let prompt: string;
-  let jsonSchema: any;
+  let systemPrompt: string;
+  let userPrompt: string;
 
   switch (artifactType) {
     case "podcast":
-      prompt = `Based on the following sources, generate a podcast script with two hosts discussing the key topics. Make it engaging, conversational, and informative.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          transcript: { type: "string", description: "Full podcast transcript with speaker labels" },
-          segments: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                speaker: { type: "string" },
-                text: { type: "string" },
-                timestamp: { type: "number" }
-              }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are a podcast script writer. Generate engaging, conversational content with two hosts (Alex and Jordan) discussing topics naturally. Return valid JSON.";
+      userPrompt = `Based on these sources, create a podcast script:\n\n${sourceContext}\n\nReturn JSON with format: { "transcript": "full transcript with speaker labels", "segments": [{ "speaker": "Alex", "text": "...", "timestamp": 0 }] }`;
       break;
 
     case "quiz":
       const quizCount = params.count || 10;
-      prompt = `Based on the following sources, generate ${quizCount} multiple-choice quiz questions. Each question should have 4 options with one correct answer. Include explanations.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          questions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                question: { type: "string" },
-                options: { type: "array", items: { type: "string" } },
-                correctIndex: { type: "number" },
-                explanation: { type: "string" },
-                difficulty: { type: "string", enum: ["easy", "medium", "hard"] }
-              }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are an educational quiz creator. Generate challenging but fair multiple-choice questions. Return valid JSON.";
+      userPrompt = `Based on these sources, create ${quizCount} quiz questions:\n\n${sourceContext}\n\nReturn JSON: { "questions": [{ "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "...", "difficulty": "medium" }] }`;
       break;
 
     case "flashcards":
       const cardCount = params.count || 20;
-      prompt = `Based on the following sources, generate ${cardCount} flashcards for study. Each card should have a question/term on the front and the answer/definition on the back.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          cards: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                front: { type: "string" },
-                back: { type: "string" }
-              }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are a study materials creator. Generate effective flashcards for learning. Return valid JSON.";
+      userPrompt = `Based on these sources, create ${cardCount} flashcards:\n\n${sourceContext}\n\nReturn JSON: { "cards": [{ "front": "Question or term", "back": "Answer or definition" }] }`;
       break;
 
     case "mindmap":
-      prompt = `Based on the following sources, generate a mind map with central topics, subtopics, and connections. Return as nodes and edges for graph visualization.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          nodes: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                id: { type: "string" },
-                label: { type: "string" },
-                type: { type: "string", enum: ["central", "topic", "subtopic", "detail"] }
-              }
-            }
-          },
-          edges: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                id: { type: "string" },
-                source: { type: "string" },
-                target: { type: "string" },
-                label: { type: "string" }
-              }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are a knowledge organizer. Create mind maps that show relationships between concepts. Return valid JSON.";
+      userPrompt = `Based on these sources, create a mind map:\n\n${sourceContext}\n\nReturn JSON: { "nodes": [{ "id": "1", "label": "Main Topic", "type": "central" }], "edges": [{ "id": "e1", "source": "1", "target": "2", "label": "relates to" }] }`;
       break;
 
     case "slides":
       const slideCount = params.count || 10;
-      prompt = `Based on the following sources, generate ${slideCount} presentation slides. Include title, bullet points, and speaker notes for each slide.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          slides: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                number: { type: "number" },
-                layout: { type: "string" },
-                title: { type: "string" },
-                subtitle: { type: "string" },
-                bullets: { type: "array", items: { type: "string" } },
-                notes: { type: "string" }
-              }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are a presentation designer. Create clear, engaging slides with key points. Return valid JSON.";
+      userPrompt = `Based on these sources, create ${slideCount} presentation slides:\n\n${sourceContext}\n\nReturn JSON: { "title": "Presentation Title", "slides": [{ "number": 1, "layout": "title", "title": "...", "subtitle": "...", "bullets": ["point 1"], "notes": "Speaker notes" }] }`;
       break;
 
     case "report":
     case "study_guide":
-      prompt = `Based on the following sources, generate a comprehensive ${artifactType === 'study_guide' ? 'study guide' : 'executive report'}. Include key sections, summaries, and action items.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          content: { type: "string" },
-          sections: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                heading: { type: "string" },
-                content: { type: "string" }
-              }
-            }
-          }
-        }
-      };
+      const docType = artifactType === 'study_guide' ? 'study guide' : 'executive report';
+      systemPrompt = `You are a ${docType} writer. Create comprehensive, well-organized documents. Return valid JSON.`;
+      userPrompt = `Based on these sources, create a ${docType}:\n\n${sourceContext}\n\nReturn JSON: { "title": "...", "content": "Executive summary", "sections": [{ "heading": "Section Title", "content": "Section content..." }] }`;
       break;
 
     case "faq":
       const faqCount = params.count || 20;
-      prompt = `Based on the following sources, generate ${faqCount} frequently asked questions with detailed answers.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          questions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                question: { type: "string" },
-                answer: { type: "string" }
-              }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are an FAQ creator. Generate helpful questions and comprehensive answers. Return valid JSON.";
+      userPrompt = `Based on these sources, create ${faqCount} FAQs:\n\n${sourceContext}\n\nReturn JSON: { "questions": [{ "question": "...", "answer": "..." }] }`;
       break;
 
     case "timeline":
-      prompt = `Based on the following sources, generate a chronological timeline of key events, dates, and milestones.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          events: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                date: { type: "string" },
-                title: { type: "string" },
-                description: { type: "string" }
-              }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are a historian. Create chronological timelines with key events. Return valid JSON.";
+      userPrompt = `Based on these sources, create a timeline:\n\n${sourceContext}\n\nReturn JSON: { "events": [{ "date": "Date or period", "title": "Event name", "description": "Details" }] }`;
       break;
 
     case "table":
-      prompt = `Based on the following sources, generate a comparative data table with relevant columns and rows.\n\nSources:\n${sourceContext}`;
-      jsonSchema = {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          columns: { type: "array", items: { type: "string" } },
-          rows: {
-            type: "array",
-            items: {
-              type: "array",
-              items: { type: "string" }
-            }
-          }
-        }
-      };
+      systemPrompt = "You are a data analyst. Create comparative tables that organize information clearly. Return valid JSON.";
+      userPrompt = `Based on these sources, create a comparison table:\n\n${sourceContext}\n\nReturn JSON: { "title": "Table Title", "columns": ["Column1", "Column2"], "rows": [["Cell1", "Cell2"]] }`;
       break;
 
     default:
       throw new Error(`Unknown artifact type: ${artifactType}`);
   }
 
-  // Call Gemini with JSON mode
-  const geminiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/gemini-2.0-flash:generateContent`;
-
-  const response = await fetch(geminiUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [{
-        role: "user",
-        parts: [{ text: prompt + "\n\nRespond with valid JSON only." }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json",
-      }
-    }),
-  });
-
-  const data = await response.json();
-  
-  if (!response.ok) {
-    console.error("[notebooklm-proxy] Gemini error:", data);
-    throw new Error(data.error?.message || "Failed to generate content");
-  }
-
-  const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+  const resultText = await callLovableAI(systemPrompt, userPrompt, true);
   
   let result;
   try {
