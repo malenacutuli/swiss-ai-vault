@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useNotebookLM } from '@/hooks/useNotebookLM';
+import { extractFileContent } from '@/utils/fileExtractor';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import { PDFViewerWithHighlight, PDFHighlight } from '@/components/studio/PDFVie
 import { ExpandableMindMap } from '@/components/studio/ExpandableMindMap';
 import { StyleSelector } from '@/components/studio/StyleSelector';
 import { SourceGuideDisplay } from '@/components/studio/SourceGuideDisplay';
+import { AddSourceModal } from '@/components/studio/AddSourceModal';
 import { StylePreset } from '@/lib/stylePresets';
 import { useSourceGuide, SourceGuide } from '@/hooks/useSourceGuide';
 
@@ -101,10 +103,17 @@ export default function StudioComplete() {
   // Selected sources state
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
 
-  // Source Guide state
-  const { guide: sourceGuide, loading: guideLoading, generateGuide } = useSourceGuide(
-    sources.length > 0 ? sources[0].id : null
-  );
+  // Add Source Modal state
+  const [showAddSourceModal, setShowAddSourceModal] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+
+  // Source Guide state - use null initially since we generate inline
+  const { 
+    guide: sourceGuide, 
+    loading: guideLoading, 
+    generateGuideInline, 
+    clearGuide 
+  } = useSourceGuide(null);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -316,6 +325,88 @@ export default function StudioComplete() {
   }, [notebookId, sources, notebookLM, initializeNotebook, toast]);
 
   // ============================================
+  // FILE UPLOAD HANDLER
+  // ============================================
+
+  const handleFilesUploaded = useCallback(async (files: File[]) => {
+    setUploadLoading(true);
+    
+    try {
+      for (const file of files) {
+        console.log('Processing file:', file.name);
+        
+        // 1. Extract text content from file
+        const content = await extractFileContent(file);
+        console.log('Extracted content length:', content.length);
+        
+        // 2. Create local source entry immediately
+        const localSource: LocalSource = {
+          id: crypto.randomUUID(),
+          name: file.name,
+          type: file.type.includes('pdf') ? 'pdf' : 'text',
+          content: content.substring(0, 5000), // Store preview
+          status: 'processing',
+        };
+        setSources(prev => [...prev, localSource]);
+        
+        // 3. Initialize notebook if needed
+        let nbId = notebookId;
+        if (!nbId) {
+          const notebook = await notebookLM.createNotebook(file.name.replace(/\.[^/.]+$/, ''));
+          nbId = notebook.id;
+          setNotebookId(nbId);
+        }
+        
+        // 4. Add source to NotebookLM
+        try {
+          const addedSources = await notebookLM.addSources(nbId, [{
+            text: content,
+            title: file.name
+          }]);
+          
+          console.log('Source added to NotebookLM:', addedSources);
+          
+          // Update source status to ready
+          setSources(prev => prev.map(s => 
+            s.id === localSource.id 
+              ? { ...s, status: 'ready' as const }
+              : s
+          ));
+        } catch (e) {
+          console.error('Failed to add to NotebookLM:', e);
+          // Still mark as ready since we can generate guide from content
+          setSources(prev => prev.map(s => 
+            s.id === localSource.id 
+              ? { ...s, status: 'ready' as const }
+              : s
+          ));
+        }
+        
+        // 5. Generate Source Guide inline (immediately visible)
+        console.log('Generating Source Guide...');
+        const generatedGuide = await generateGuideInline(content, file.name);
+        
+        if (generatedGuide) {
+          console.log('Source Guide ready:', generatedGuide.title);
+          toast({ 
+            title: 'Source analyzed', 
+            description: 'Source Guide is ready' 
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      toast({ 
+        title: 'Failed to process file', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    } finally {
+      setUploadLoading(false);
+    }
+  }, [notebookId, notebookLM, generateGuideInline, toast]);
+
+  // ============================================
   // MINDMAP NODE CLICK
   // ============================================
 
@@ -419,7 +510,7 @@ export default function StudioComplete() {
                   <Button
                     variant="outline"
                     className="w-full flex items-center gap-2"
-                    onClick={() => {/* Add source modal */}}
+                    onClick={() => setShowAddSourceModal(true)}
                   >
                     <Plus className="w-4 h-4" />
                     Add sources
@@ -609,6 +700,14 @@ export default function StudioComplete() {
           snippets={activeCitations}
           activeNodeTitle={activeNodeTitle}
           onSnippetClick={handleSnippetClick}
+        />
+
+        {/* Add Source Modal */}
+        <AddSourceModal
+          isOpen={showAddSourceModal}
+          onClose={() => setShowAddSourceModal(false)}
+          onFilesUploaded={handleFilesUploaded}
+          loading={uploadLoading}
         />
       </div>
     </>
