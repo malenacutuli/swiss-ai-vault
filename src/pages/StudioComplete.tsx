@@ -329,15 +329,16 @@ export default function StudioComplete() {
   // ============================================
 
   const handleFilesUploaded = useCallback(async (files: File[]) => {
+    console.log('🟢 handleFilesUploaded CALLED with', files.length, 'files');
     setUploadLoading(true);
     
     try {
       for (const file of files) {
-        console.log('Processing file:', file.name);
+        console.log('🟢 Processing file:', file.name, 'Type:', file.type);
         
         // 1. Extract text content from file
         const content = await extractFileContent(file);
-        console.log('Extracted content length:', content.length);
+        console.log('🟢 Extracted content length:', content.length);
         
         // 2. Create local source entry immediately
         const localSource: LocalSource = {
@@ -383,15 +384,17 @@ export default function StudioComplete() {
         }
         
         // 5. Generate Source Guide inline (immediately visible)
-        console.log('Generating Source Guide...');
+        console.log('🟢 Generating Source Guide...');
         const generatedGuide = await generateGuideInline(content, file.name);
         
         if (generatedGuide) {
-          console.log('Source Guide ready:', generatedGuide.title);
+          console.log('✅ Source Guide ready:', generatedGuide.title);
           toast({ 
             title: 'Source analyzed', 
             description: 'Source Guide is ready' 
           });
+        } else {
+          console.log('🔴 Source Guide generation failed');
         }
       }
     } catch (error: any) {
