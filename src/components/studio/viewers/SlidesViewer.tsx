@@ -51,19 +51,19 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
 
   if (slides.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-        <p className="text-white/60">No slides available.</p>
+      <div className="bg-card border border-border rounded-xl p-6 text-center">
+        <p className="text-muted-foreground">No slides available.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+      <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          {title && <h3 className="text-lg font-medium text-white">{title}</h3>}
-          <span className="text-sm text-white/40">{slides.length} slides</span>
+          {title && <h3 className="text-lg font-medium text-foreground">{title}</h3>}
+          <span className="text-sm text-muted-foreground">{slides.length} slides</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
             variant="ghost"
             size="icon"
             onClick={() => setViewMode(viewMode === 'grid' ? 'full' : 'grid')}
-            className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             {viewMode === 'grid' ? <Maximize2 className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
           </Button>
@@ -81,7 +81,7 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
               variant="ghost"
               size="icon"
               onClick={onDownload}
-              className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <Download className="w-4 h-4" />
             </Button>
@@ -97,16 +97,16 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
               key={slide.id}
               onClick={() => handleThumbnailClick(index)}
               className={cn(
-                'aspect-video bg-white/10 rounded-lg border overflow-hidden transition-all hover:scale-105',
+                'aspect-video bg-muted rounded-lg border overflow-hidden transition-all hover:scale-105',
                 index === currentIndex
-                  ? 'border-[#e63946] ring-2 ring-[#e63946]/30'
-                  : 'border-white/10 hover:border-white/30'
+                  ? 'border-primary ring-2 ring-primary/30'
+                  : 'border-border hover:border-primary/50'
               )}
             >
               <div className="p-3 h-full flex flex-col">
-                <p className="text-xs font-medium text-white truncate">{slide.title}</p>
-                <p className="text-[10px] text-white/40 mt-1 line-clamp-2">{slide.content}</p>
-                <span className="mt-auto text-[10px] text-white/30">{index + 1}</span>
+                <p className="text-xs font-medium text-foreground truncate">{slide.title}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{slide.content}</p>
+                <span className="mt-auto text-[10px] text-muted-foreground">{index + 1}</span>
               </div>
             </button>
           ))}
@@ -116,9 +116,9 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
         <div className="flex">
           <div className="flex-1">
             {/* Slide Content */}
-            <div className="aspect-video bg-gradient-to-br from-white/10 to-white/5 m-4 rounded-xl p-8 flex flex-col">
-              <h2 className="text-2xl font-semibold text-white mb-4">{currentSlide?.title}</h2>
-              <p className="text-white/80 whitespace-pre-wrap flex-1">{currentSlide?.content}</p>
+            <div className="aspect-video bg-gradient-to-br from-muted to-accent m-4 rounded-xl p-8 flex flex-col border border-border">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">{currentSlide?.title}</h2>
+              <p className="text-muted-foreground whitespace-pre-wrap flex-1">{currentSlide?.content}</p>
               {currentSlide?.imageUrl && (
                 <img
                   src={currentSlide.imageUrl}
@@ -134,13 +134,13 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
                 variant="ghost"
                 onClick={handlePrevious}
                 disabled={currentIndex === 0}
-                className="text-white/60 hover:text-white hover:bg-white/10"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
               </Button>
 
-              <span className="text-sm text-white/60">
+              <span className="text-sm text-muted-foreground">
                 {currentIndex + 1} / {slides.length}
               </span>
 
@@ -148,7 +148,7 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
                 variant="ghost"
                 onClick={handleNext}
                 disabled={currentIndex === slides.length - 1}
-                className="text-white/60 hover:text-white hover:bg-white/10"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
               >
                 Next
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -158,19 +158,19 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
 
           {/* Speaker Notes Panel */}
           {showNotes && currentSlide?.notes && (
-            <div className="w-72 border-l border-white/10 p-4 bg-white/5">
+            <div className="w-72 border-l border-border p-4 bg-muted/50">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-white/60">Speaker Notes</h4>
+                <h4 className="text-sm font-medium text-muted-foreground">Speaker Notes</h4>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowNotes(false)}
-                  className="h-6 w-6 text-white/40 hover:text-white"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-              <p className="text-sm text-white/70">{currentSlide.notes}</p>
+              <p className="text-sm text-foreground/80">{currentSlide.notes}</p>
             </div>
           )}
         </div>
@@ -183,7 +183,7 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
             variant="ghost"
             size="sm"
             onClick={() => setShowNotes(true)}
-            className="text-white/40 hover:text-white hover:bg-white/10"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <FileText className="w-4 h-4 mr-2" />
             Show Notes
