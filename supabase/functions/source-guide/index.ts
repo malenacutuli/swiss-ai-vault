@@ -51,13 +51,31 @@ serve(async (req) => {
       // NEW: Generate guide inline without storing to database
       // Used for immediate display after file upload
       case 'generate_inline': {
-        if (!content) {
-          throw new Error('Missing content');
-        }
-
         const fname = filename || 'Document';
         console.log(`Generating inline Source Guide for: ${fname}`);
-        console.log(`Content length: ${content.length} characters`);
+        console.log(`Content length: ${content?.length || 0} characters`);
+
+        // Handle empty or minimal content gracefully
+        if (!content || content.trim().length < 50) {
+          console.log('Content too short or empty, returning fallback guide');
+          return new Response(JSON.stringify({ 
+            success: true, 
+            guide: {
+              title: fname.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+              summary: `This document could not be fully processed. The content may be image-based, scanned, or in an unsupported format. Try uploading a text-based PDF or document with selectable text.`,
+              key_topics: ['Document Processing'],
+              suggested_questions: [
+                { text: 'What is the main topic of this document?', rank: 1 },
+                { text: 'Can you summarize the key points?', rank: 2 },
+                { text: 'What are the main conclusions?', rank: 3 }
+              ],
+              word_count: content?.split(/\s+/).length || 0,
+              confidence_score: 0.1
+            }
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
 
         const guide = await generateSourceGuide(geminiKey, content, fname);
 

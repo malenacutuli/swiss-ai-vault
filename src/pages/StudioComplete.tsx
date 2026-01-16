@@ -29,6 +29,7 @@ import { StylePreset } from '@/lib/stylePresets';
 import { AudioOverviewPanel } from '@/components/studio/AudioOverviewPanel';
 import { DeepResearchPanel } from '@/components/studio/DeepResearchPanel';
 import { MultimodalSourceInput } from '@/components/studio/MultimodalSourceInput';
+import { QuizViewer, FlashcardViewer } from '@/components/studio/viewers';
 import { useSourceGuide, SourceGuide } from '@/hooks/useSourceGuide';
 import { SlideStyleSelector } from '@/components/studio/SlideStyleSelector';
 import { SlidePreview } from '@/components/studio/SlidePreview';
@@ -734,7 +735,7 @@ Rules:
                 {activeArtifact.type === 'slides' && generatedSlides.length > 0 && (
                   <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Style Selector for Slides */}
-                    <div className="p-4 border-b border-border bg-white/50 backdrop-blur-sm">
+                    <div className="p-4 border-b border-border bg-background/50 backdrop-blur-sm">
                       <SlideStyleSelector
                         selected={slideStyle}
                         onChange={setSlideStyle}
@@ -756,8 +757,113 @@ Rules:
                     </div>
                   </div>
                 )}
-                
-                {/* Add other artifact renderers here */}
+
+                {/* Quiz Viewer */}
+                {activeArtifact.type === 'quiz' && activeArtifact.data?.questions && (
+                  <div className="flex-1 p-6 overflow-auto">
+                    <QuizViewer 
+                      questions={activeArtifact.data.questions.map((q: any, i: number) => ({
+                        id: q.id || `q-${i}`,
+                        question: q.question,
+                        options: q.options,
+                        correctIndex: q.correctIndex ?? 0,
+                        explanation: q.explanation
+                      }))}
+                      title="Knowledge Quiz"
+                      style={style}
+                    />
+                  </div>
+                )}
+
+                {/* Flashcards Viewer */}
+                {activeArtifact.type === 'flashcards' && activeArtifact.data?.cards && (
+                  <div className="flex-1 p-6 overflow-auto">
+                    <FlashcardViewer 
+                      cards={activeArtifact.data.cards.map((c: any, i: number) => ({
+                        id: c.id || `card-${i}`,
+                        front: c.front,
+                        back: c.back
+                      }))}
+                      title="Study Flashcards"
+                      style={style}
+                    />
+                  </div>
+                )}
+
+                {/* Podcast Viewer */}
+                {activeArtifact.type === 'podcast' && (
+                  <div className="flex-1 p-6 overflow-auto">
+                    <div className="max-w-3xl mx-auto space-y-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Mic className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold">{activeArtifact.data?.title || 'Audio Podcast'}</h3>
+                          <p className="text-sm text-muted-foreground">{activeArtifact.data?.description || 'Generated from your sources'}</p>
+                        </div>
+                      </div>
+                      
+                      {activeArtifact.data?.audioSegments?.length > 0 ? (
+                        <div className="space-y-4">
+                          {activeArtifact.data.audioSegments.map((seg: any, i: number) => (
+                            <div key={i} className="p-4 bg-muted/50 rounded-lg">
+                              <p className="text-xs font-medium text-primary mb-2">{seg.speaker}</p>
+                              <audio controls className="w-full" src={`data:${seg.mimeType};base64,${seg.audio}`} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-6 bg-muted/50 rounded-xl border border-border">
+                          <h4 className="font-medium mb-4">Transcript</h4>
+                          <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap">
+                            {activeArtifact.data?.transcript || 'No transcript available'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Report Viewer */}
+                {activeArtifact.type === 'report' && (
+                  <div className="flex-1 p-6 overflow-auto">
+                    <div className="max-w-3xl mx-auto">
+                      <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-foreground">{activeArtifact.data?.title || 'Research Report'}</h2>
+                        {activeArtifact.data?.summary && (
+                          <p className="mt-2 text-muted-foreground">{activeArtifact.data.summary}</p>
+                        )}
+                      </div>
+                      
+                      {activeArtifact.data?.sections?.map((section: any, i: number) => (
+                        <div key={i} className="mb-6">
+                          <h3 className="text-lg font-semibold text-foreground mb-2">{section.heading}</h3>
+                          <div className="prose prose-sm max-w-none text-muted-foreground">
+                            {section.content}
+                          </div>
+                          {section.keyPoints && section.keyPoints.length > 0 && (
+                            <ul className="mt-3 space-y-1">
+                              {section.keyPoints.map((point: string, j: number) => (
+                                <li key={j} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                                  {point}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {activeArtifact.data?.conclusion && (
+                        <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                          <h4 className="font-medium mb-2">Conclusion</h4>
+                          <p className="text-sm text-muted-foreground">{activeArtifact.data.conclusion}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
