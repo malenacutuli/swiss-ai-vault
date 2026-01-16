@@ -1101,25 +1101,27 @@ Use this context to inform your response when relevant. Cite sources by number w
     setShowIncognitoWarning(false);
   }, [selectedConversation, pendingAction, deleteConversation, createConversation]);
 
-  // Handle insufficient credits
+  // Handle insufficient credits - route to upgrade modal for daily-limit gated features
+  // Per billing rules: Ghost Chat uses daily limits (upgrade path), not token packs (buy credits)
   const handleInsufficientCredits = useCallback((reason: string) => {
-    setShowBuyCredits(true);
+    // For Ghost Chat, all limit hits should route to upgrade modal, not buy credits
+    // This aligns with the billing architecture: Chat = daily limits, Labs/Agents = credits
+    let upgradeReasonType: 'prompts' | 'images' | 'videos' | 'searches' = 'prompts';
     
-    let message = 'Add more credits to continue.';
-    if (reason === 'no_image_credits') {
-      message = 'You\'ve used all your image generation credits for today.';
-    } else if (reason === 'no_video_credits') {
-      message = 'You\'ve used all your video generation credits for today.';
-    } else if (reason === 'insufficient_text_credits') {
-      message = 'You\'ve run out of text generation credits.';
+    if (reason === 'no_image_credits' || reason === 'insufficient_image_credits') {
+      upgradeReasonType = 'images';
+    } else if (reason === 'no_video_credits' || reason === 'insufficient_video_credits') {
+      upgradeReasonType = 'videos';
+    } else if (reason === 'insufficient_search_credits' || reason === 'no_search_credits') {
+      upgradeReasonType = 'searches';
     }
     
-    toast({
-      title: 'Insufficient Credits',
-      description: message,
-      variant: 'destructive',
-    });
-  }, [toast]);
+    // Show upgrade modal instead of buy credits for Ghost Chat
+    setUpgradeReason(upgradeReasonType);
+    setShowUpgradeModal(true);
+    
+    console.log('[GhostChat] Routing to upgrade modal instead of buy credits:', { reason, upgradeReasonType, tier });
+  }, [tier]);
 
   // === CORE MESSAGE SEND LOGIC (called by handleSendMessage and auto-send) ===
   const executeMessageSend = useCallback(async (
@@ -1192,12 +1194,17 @@ Use this context to inform your response when relevant. Cite sources by number w
           return;
         }
 
-        // Check credits before proceeding (for authenticated users)
-        const creditType = creditTypeMap[mode] || 'text';
-        const creditCheck = await checkCredits(creditType);
-        if (!creditCheck.allowed) {
-          handleInsufficientCredits(creditCheck.reason);
-          return;
+        // BILLING FIX: Skip credit checks for text/search modes in Ghost Chat
+        // Per architecture: Ghost Chat is gated by daily limits (above), not by credits
+        // Credits are only for Vault Labs and Swiss Agents
+        // Only image/video generation might need credits if they exceed daily limits
+        if (mode === 'image' || mode === 'video') {
+          const creditType = creditTypeMap[mode] || 'text';
+          const creditCheck = await checkCredits(creditType);
+          if (!creditCheck.allowed) {
+            handleInsufficientCredits(creditCheck.reason);
+            return;
+          }
         }
       }
 
@@ -2150,13 +2157,9 @@ Use this context to inform your response when relevant. Cite sources by number w
   const triggerRegeneration = useCallback(async (convId: string, currentMessages: GhostMessageData[]) => {
     if (mode !== 'text' && mode !== 'search') return;
     
-    // Check credits before proceeding
-    const usageType = mode as 'text' | 'search';
-    const creditCheck = await checkCredits(usageType);
-    if (!creditCheck.allowed) {
-      handleInsufficientCredits(creditCheck.reason);
-      return;
-    }
+    // BILLING FIX: Skip credit checks for text/search regeneration
+    // Ghost Chat text/search uses daily limits, not credits
+    // Daily limit was already checked/consumed on the original message send
 
     // Get the last user message
     const lastUserMessage = [...currentMessages].reverse().find(m => m.role === 'user');
