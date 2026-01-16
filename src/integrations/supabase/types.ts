@@ -5553,6 +5553,139 @@ export type Database = {
         }
         Relationships: []
       }
+      source_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string | null
+          id: string
+          page_number: number | null
+          section_title: string | null
+          source_id: string | null
+          token_count: number | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string | null
+          id?: string
+          page_number?: number | null
+          section_title?: string | null
+          source_id?: string | null
+          token_count?: number | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string | null
+          id?: string
+          page_number?: number | null
+          section_title?: string | null
+          source_id?: string | null
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_chunks_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_guides: {
+        Row: {
+          confidence_score: number | null
+          generated_at: string | null
+          id: string
+          key_topics: string[] | null
+          language: string | null
+          page_count: number | null
+          source_id: string | null
+          suggested_questions: Json | null
+          summary: string | null
+          title: string | null
+          word_count: number | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          generated_at?: string | null
+          id?: string
+          key_topics?: string[] | null
+          language?: string | null
+          page_count?: number | null
+          source_id?: string | null
+          suggested_questions?: Json | null
+          summary?: string | null
+          title?: string | null
+          word_count?: number | null
+        }
+        Update: {
+          confidence_score?: number | null
+          generated_at?: string | null
+          id?: string
+          key_topics?: string[] | null
+          language?: string | null
+          page_count?: number | null
+          source_id?: string | null
+          suggested_questions?: Json | null
+          summary?: string | null
+          title?: string | null
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_guides_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: true
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sources: {
+        Row: {
+          created_at: string | null
+          file_size: number | null
+          file_type: string
+          file_url: string | null
+          filename: string
+          id: string
+          notebook_id: string | null
+          status: string | null
+          storage_path: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_size?: number | null
+          file_type: string
+          file_url?: string | null
+          filename: string
+          id?: string
+          notebook_id?: string | null
+          status?: string | null
+          storage_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_size?: number | null
+          file_type?: string
+          file_url?: string | null
+          filename?: string
+          id?: string
+          notebook_id?: string | null
+          status?: string | null
+          storage_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sso_audit_logs: {
         Row: {
           created_at: string | null
@@ -7451,6 +7584,20 @@ export type Database = {
         }[]
       }
       get_research_quota: { Args: never; Returns: Json }
+      get_source_with_guide: {
+        Args: { p_source_id: string }
+        Returns: {
+          confidence_score: number
+          file_type: string
+          filename: string
+          guide_summary: string
+          guide_title: string
+          key_topics: string[]
+          source_id: string
+          status: string
+          suggested_questions: Json
+        }[]
+      }
       get_subscription_status: { Args: { p_user_id: string }; Returns: Json }
       get_user_org_ids: { Args: never; Returns: string[] }
       get_user_organization: {
