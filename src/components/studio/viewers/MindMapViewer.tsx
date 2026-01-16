@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -10,12 +10,15 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/button';
-import { Download, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Download, RotateCcw } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { getLayoutedElements, deriveEdgesFromNodes, RawMindMapNode, RawMindMapEdge } from '@/lib/mindmapLayout';
 
 interface MindMapNode {
   id: string;
   label: string;
   parentId?: string;
+  type?: 'central' | 'topic' | 'subtopic' | 'detail';
 }
 
 interface MindMapViewerProps {
@@ -23,147 +26,102 @@ interface MindMapViewerProps {
   title?: string;
 }
 
-function calculateRadialPosition(index: number, total: number, level: number = 1): { x: number; y: number } {
-  if (index === 0) return { x: 400, y: 300 };
-  
-  const radius = 150 * level;
-  const angle = ((index - 1) / Math.max(total - 1, 1)) * 2 * Math.PI - Math.PI / 2;
-  
-  return {
-    x: 400 + radius * Math.cos(angle),
-    y: 300 + radius * Math.sin(angle),
-  };
-}
-
 export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [direction, setDirection] = useState<'TB' | 'LR'>('TB');
+
   const { flowNodes, flowEdges } = useMemo(() => {
     if (!inputNodes || inputNodes.length === 0) {
       return { flowNodes: [], flowEdges: [] };
     }
 
-    // Find root nodes (no parentId)
-    const rootNodes = inputNodes.filter((n) => !n.parentId);
-    const childNodes = inputNodes.filter((n) => n.parentId);
+    // Convert to raw format for the layout function
+    const rawNodes: RawMindMapNode[] = inputNodes.map((n, i) => ({
+      id: n.id,
+      label: n.label,
+      type: n.type || (i === 0 ? 'central' : n.parentId ? 'subtopic' : 'topic'),
+      parentId: n.parentId,
+    }));
 
-    // Group children by parent
-    const childrenByParent: Record<string, MindMapNode[]> = {};
-    childNodes.forEach((child) => {
-      if (child.parentId) {
-        if (!childrenByParent[child.parentId]) {
-          childrenByParent[child.parentId] = [];
-        }
-        childrenByParent[child.parentId].push(child);
-      }
-    });
+    // Derive edges from parentId relationships
+    const rawEdges: RawMindMapEdge[] = deriveEdgesFromNodes(rawNodes);
 
-    const nodes: Node[] = [];
-    const edges: Edge[] = [];
-
-    // Position root nodes
-    rootNodes.forEach((node, i) => {
-      const pos = calculateRadialPosition(i, rootNodes.length, 0);
-      nodes.push({
-        id: node.id,
-        data: { label: node.label },
-        position: pos,
-        style: {
-          background: '#e63946',
-          color: 'white',
-          border: 'none',
-          borderRadius: '12px',
-          padding: '12px 24px',
-          fontSize: '14px',
-          fontWeight: 500,
-          boxShadow: '0 4px 12px rgba(230, 57, 70, 0.3)',
-        },
-      });
-
-      // Position children of this root
-      const children = childrenByParent[node.id] || [];
-      children.forEach((child, ci) => {
-        const childPos = {
-          x: pos.x + Math.cos((ci / children.length) * 2 * Math.PI) * 180,
-          y: pos.y + Math.sin((ci / children.length) * 2 * Math.PI) * 180,
-        };
-
-        nodes.push({
-          id: child.id,
-          data: { label: child.label },
-          position: childPos,
-          style: {
-            background: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px',
-            padding: '10px 20px',
-            fontSize: '13px',
-          },
-        });
-
-        edges.push({
-          id: `${node.id}-${child.id}`,
-          source: node.id,
-          target: child.id,
-          style: { stroke: 'rgba(255,255,255,0.3)', strokeWidth: 2 },
-          animated: false,
-        });
-      });
-    });
-
-    // Handle orphan children (parent not in rootNodes)
-    childNodes
-      .filter((c) => !rootNodes.find((r) => r.id === c.parentId))
-      .forEach((child, i) => {
-        if (!nodes.find((n) => n.id === child.id)) {
-          const pos = calculateRadialPosition(i + rootNodes.length, childNodes.length);
-          nodes.push({
-            id: child.id,
-            data: { label: child.label },
-            position: pos,
-            style: {
-              background: 'rgba(255,255,255,0.1)',
-              color: 'white',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px',
-              padding: '10px 20px',
-              fontSize: '13px',
-            },
-          });
-
-          if (child.parentId) {
-            edges.push({
-              id: `${child.parentId}-${child.id}`,
-              source: child.parentId,
-              target: child.id,
-              style: { stroke: 'rgba(255,255,255,0.3)', strokeWidth: 2 },
-            });
-          }
-        }
-      });
+    // Get layouted elements using Dagre
+    const { nodes, edges } = getLayoutedElements(rawNodes, rawEdges, direction);
 
     return { flowNodes: nodes, flowEdges: edges };
-  }, [inputNodes]);
+  }, [inputNodes, direction]);
 
-  const [nodes, , onNodesChange] = useNodesState(flowNodes);
-  const [edges, , onEdgesChange] = useEdgesState(flowEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges);
+
+  // Update when direction or input changes
+  useMemo(() => {
+    setNodes(flowNodes);
+    setEdges(flowEdges);
+  }, [flowNodes, flowEdges, setNodes, setEdges]);
+
+  const toggleDirection = useCallback(() => {
+    setDirection(d => d === 'TB' ? 'LR' : 'TB');
+  }, []);
+
+  // Export as PNG using html2canvas
+  const handleExport = useCallback(async () => {
+    if (!containerRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(containerRef.current, {
+        backgroundColor: '#FFFFFF',
+        scale: 2,
+        logging: false,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `${(title || 'mindmap').replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  }, [title]);
 
   if (inputNodes.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-        <p className="text-white/60">No mind map data available.</p>
+      <div className="bg-card border border-border rounded-xl p-6 text-center">
+        <p className="text-muted-foreground">No mind map data available.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-      {title && (
-        <div className="p-4 border-b border-white/10">
-          <h3 className="text-lg font-medium text-white">{title}</h3>
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h3 className="text-lg font-medium text-foreground">{title || 'Mind Map'}</h3>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleDirection}
+            className="h-8 text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            {direction === 'TB' ? 'Vertical' : 'Horizontal'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExport}
+            className="h-8 text-muted-foreground hover:text-foreground"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export PNG
+          </Button>
         </div>
-      )}
+      </div>
 
-      <div className="h-[500px] w-full">
+      {/* React Flow Canvas */}
+      <div ref={containerRef} className="h-[500px] w-full bg-muted/20">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -172,16 +130,21 @@ export function MindMapViewer({ nodes: inputNodes, title }: MindMapViewerProps) 
           fitView
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="rgba(255,255,255,0.05)" gap={20} />
-          <Controls
-            className="bg-white/10 border border-white/10 rounded-lg [&>button]:bg-white/5 [&>button]:border-white/10 [&>button]:text-white [&>button:hover]:bg-white/10"
-          />
+          <Background color="hsl(var(--border))" gap={20} />
+          <Controls className="bg-background border border-border rounded-lg" />
           <MiniMap
-            nodeColor={(node) => (node.style?.background as string) || '#e63946'}
-            maskColor="rgba(0,0,0,0.8)"
-            className="bg-white/5 border border-white/10 rounded-lg"
+            nodeColor={() => 'hsl(var(--primary))'}
+            maskColor="hsl(var(--background) / 0.9)"
+            className="bg-background border border-border rounded-lg"
           />
         </ReactFlow>
+      </div>
+
+      {/* Help text */}
+      <div className="p-3 border-t border-border text-center">
+        <span className="text-xs text-muted-foreground">
+          Drag nodes to rearrange • Scroll to zoom • Drag background to pan
+        </span>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Shuffle, Check, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Shuffle, Check, BookOpen, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Flashcard {
@@ -22,6 +22,7 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
   const [studyMoreCards, setStudyMoreCards] = useState<Set<string>>(new Set());
 
   const currentCard = cards[currentIndex];
+  const progress = (knownCards.size / cards.length) * 100;
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -51,8 +52,11 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
   const handleKnowIt = () => {
     if (currentCard) {
       setKnownCards((prev) => new Set(prev).add(currentCard.id));
-      studyMoreCards.delete(currentCard.id);
-      setStudyMoreCards(new Set(studyMoreCards));
+      setStudyMoreCards((prev) => {
+        const next = new Set(prev);
+        next.delete(currentCard.id);
+        return next;
+      });
     }
     handleNext();
   };
@@ -60,10 +64,21 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
   const handleStudyMore = () => {
     if (currentCard) {
       setStudyMoreCards((prev) => new Set(prev).add(currentCard.id));
-      knownCards.delete(currentCard.id);
-      setKnownCards(new Set(knownCards));
+      setKnownCards((prev) => {
+        const next = new Set(prev);
+        next.delete(currentCard.id);
+        return next;
+      });
     }
     handleNext();
+  };
+
+  const handleReset = () => {
+    setCards(initialCards);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setKnownCards(new Set());
+    setStudyMoreCards(new Set());
   };
 
   if (cards.length === 0) {
@@ -89,36 +104,58 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
         </div>
       </div>
 
-      {/* Card */}
+      {/* Progress bar */}
+      <div className="w-full h-2 bg-muted rounded-full mb-6 overflow-hidden">
+        <div className="flex h-full">
+          <div 
+            className="bg-green-500 transition-all duration-300" 
+            style={{ width: `${progress}%` }} 
+          />
+          <div 
+            className="bg-yellow-500 transition-all duration-300" 
+            style={{ width: `${(studyMoreCards.size / cards.length) * 100}%` }} 
+          />
+        </div>
+      </div>
+
+      {/* Card with 3D flip animation */}
       <div
         onClick={handleFlip}
-        className="relative cursor-pointer mb-6 perspective-1000"
+        className="relative cursor-pointer mb-6"
+        style={{ perspective: '1000px' }}
       >
         <div
           className={cn(
-            'relative w-full min-h-[280px] transition-transform duration-500 transform-style-3d',
-            isFlipped && 'rotate-y-180'
+            'relative w-full min-h-[280px] transition-transform duration-500',
+            isFlipped && '[transform:rotateY(180deg)]'
           )}
+          style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Front */}
           <div
-            className="absolute inset-0 flex items-center justify-center p-8 bg-muted border border-border rounded-xl backface-hidden"
+            className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-muted border border-border rounded-xl"
+            style={{ backfaceVisibility: 'hidden' }}
           >
+            <span className="text-xs text-muted-foreground mb-4 uppercase tracking-wide">Question</span>
             <p className="text-xl text-foreground text-center">{currentCard?.front}</p>
           </div>
 
           {/* Back */}
           <div
-            className="absolute inset-0 flex items-center justify-center p-8 bg-primary/10 border border-primary/30 rounded-xl backface-hidden rotate-y-180"
+            className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-primary/10 border border-primary/30 rounded-xl [transform:rotateY(180deg)]"
+            style={{ backfaceVisibility: 'hidden' }}
           >
+            <span className="text-xs text-primary mb-4 uppercase tracking-wide">Answer</span>
             <p className="text-xl text-foreground text-center">{currentCard?.back}</p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-3">Click card to flip</p>
+        <p className="text-center text-xs text-muted-foreground mt-3">
+          {isFlipped ? 'Click to see question' : 'Click to reveal answer'}
+        </p>
       </div>
 
-      {/* Know It / Study More */}
+      {/* Know It / Study More buttons */}
       {isFlipped && (
         <div className="flex justify-center gap-3 mb-6">
           <Button
@@ -126,7 +163,7 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             <Check className="w-4 h-4 mr-2" />
-            Know It
+            Got It
           </Button>
           <Button
             onClick={handleStudyMore}
@@ -134,41 +171,52 @@ export function FlashcardViewer({ cards: initialCards, title }: FlashcardViewerP
             className="border-yellow-500 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10"
           >
             <BookOpen className="w-4 h-4 mr-2" />
-            Study More
+            Still Learning
           </Button>
         </div>
       )}
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handlePrevious}
-          disabled={currentIndex === 0}
-          className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+            className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNext}
+            disabled={currentIndex === cards.length - 1}
+            className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        </div>
 
-        <Button
-          variant="ghost"
-          onClick={handleShuffle}
-          className="text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          <Shuffle className="w-4 h-4 mr-2" />
-          Shuffle
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleNext}
-          disabled={currentIndex === cards.length - 1}
-          className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            onClick={handleShuffle}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <Shuffle className="w-4 h-4 mr-2" />
+            Shuffle
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleReset}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset
+          </Button>
+        </div>
       </div>
     </div>
   );
