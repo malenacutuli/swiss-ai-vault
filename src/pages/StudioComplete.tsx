@@ -77,8 +77,27 @@ export default function StudioComplete() {
   const [activeNodeTitle, setActiveNodeTitle] = useState<string | undefined>();
   const [activeHighlight, setActiveHighlight] = useState<PDFHighlight | undefined>();
 
-  // Notes state
-  const [notes, setNotes] = useState<Note[]>([]);
+  // Notes state - load from localStorage
+  const [notes, setNotes] = useState<Note[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('swissbrain-studio-notes');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.map((n: any) => ({
+            ...n,
+            timestamp: new Date(n.timestamp),
+          }));
+        } catch {
+          return [];
+        }
+      }
+    }
+    return [];
+  });
+
+  // Selected sources state
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);

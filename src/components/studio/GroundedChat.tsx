@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Quote, Loader2, Copy, Save, Check, FileText } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Send, Quote, Loader2, Copy, Save, Check, FileText, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,6 +20,7 @@ export interface ChatMessage {
   content: string;
   citations?: Citation[];
   timestamp: Date;
+  suggestedQuestion?: string;
 }
 
 interface GroundedChatProps {
@@ -28,6 +29,27 @@ interface GroundedChatProps {
   onSendMessage: (message: string) => Promise<void>;
   onCitationClick: (citation: Citation) => void;
   onSaveToNotes: (content: string, sourceQuery?: string) => void;
+  sourceCount?: number;
+}
+
+// Generate a suggested follow-up question based on the response
+function generateSuggestedQuestion(content: string): string | undefined {
+  const keywords = content
+    .split(/\s+/)
+    .filter(word => word.length > 5)
+    .slice(0, 10);
+  
+  if (keywords.length < 2) return undefined;
+  
+  const questionTemplates = [
+    `Can you explain more about how ${keywords[0]} relates to ${keywords[1]}?`,
+    `What are the implications of ${keywords[0]}?`,
+    `How does ${keywords[0]} compare to alternative approaches?`,
+    `What are the key challenges related to ${keywords[0]}?`,
+    `Can you provide examples of ${keywords[0]} in practice?`,
+  ];
+  
+  return questionTemplates[Math.floor(Math.random() * questionTemplates.length)];
 }
 
 export function GroundedChat({
@@ -36,6 +58,7 @@ export function GroundedChat({
   onSendMessage,
   onCitationClick,
   onSaveToNotes,
+  sourceCount = 0,
 }: GroundedChatProps) {
   const [input, setInput] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -43,6 +66,16 @@ export function GroundedChat({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Generate suggested questions for messages
+  const messagesWithSuggestions = useMemo(() => {
+    return messages.map((msg, idx) => {
+      if (msg.role === 'assistant' && idx === messages.length - 1 && !msg.suggestedQuestion) {
+        return { ...msg, suggestedQuestion: generateSuggestedQuestion(msg.content) };
+      }
+      return msg;
+    });
+  }, [messages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -62,6 +95,12 @@ export function GroundedChat({
     const message = input.trim();
     setInput('');
     await onSendMessage(message);
+  };
+
+  // Handle suggested question click
+  const handleSuggestedQuestion = (question: string) => {
+    setInput(question);
+    inputRef.current?.focus();
   };
 
   // Handle copy
@@ -148,7 +187,7 @@ export function GroundedChat({
       {/* Messages area */}
       <ScrollArea className="flex-1" ref={scrollRef}>
         <div className="p-4 space-y-4">
-          {messages.length === 0 ? (
+          {messagesWithSuggestions.length === 0 ? (
             <div className="text-center py-16">
               <Quote className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">
@@ -159,12 +198,12 @@ export function GroundedChat({
               </p>
             </div>
           ) : (
-            messages.map(message => (
+            messagesWithSuggestions.map(message => (
               <div
                 key={message.id}
                 className={cn(
-                  'flex',
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                  'flex flex-col',
+                  message.role === 'user' ? 'items-end' : 'items-start'
                 )}
               >
                 <div
@@ -244,6 +283,21 @@ export function GroundedChat({
                     </div>
                   )}
                 </div>
+
+                {/* Suggested follow-up question */}
+                {message.role === 'assistant' && message.suggestedQuestion && (
+                  <div className="mt-2 max-w-[85%]">
+                    <button
+                      onClick={() => handleSuggestedQuestion(message.suggestedQuestion!)}
+                      className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors text-left"
+                    >
+                      <Lightbulb className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span className="text-sm text-muted-foreground hover:text-foreground">
+                        {message.suggestedQuestion}
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -264,24 +318,37 @@ export function GroundedChat({
 
       {/* Input area */}
       <div className="p-3 border-t border-border bg-muted/30">
-        <div className="flex gap-2">
-          <Textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your sources..."
-            className="min-h-[44px] max-h-[120px] text-sm resize-none"
-            disabled={isLoading}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-          />
+        <div className="flex gap-2 items-end">
+          <div className="flex-1 relative">
+            <Textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={sourceCount === 0 ? "Add sources first..." : "Ask about your sources..."}
+              className="min-h-[44px] max-h-[120px] text-sm resize-none pr-20"
+              disabled={isLoading || sourceCount === 0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            {/* Source count badge */}
+            <div className="absolute right-2 bottom-2">
+              <span className={cn(
+                "text-xs px-2 py-1 rounded-full",
+                sourceCount > 0 
+                  ? "bg-primary/10 text-primary" 
+                  : "bg-muted text-muted-foreground"
+              )}>
+                {sourceCount} {sourceCount === 1 ? 'source' : 'sources'}
+              </span>
+            </div>
+          </div>
           <Button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || sourceCount === 0}
             className="shrink-0 h-[44px] px-4"
           >
             {isLoading ? (

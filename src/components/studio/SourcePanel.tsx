@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -19,7 +20,13 @@ import {
   FolderOpen,
   File,
   Globe,
+  Search,
+  Sparkles,
+  Zap,
+  ExternalLink,
+  Check,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Source {
   id: string;
@@ -45,6 +52,9 @@ interface SourcePanelProps {
   onRemoveSource: (id: string) => void;
   onFilesUploaded: (files: File[]) => void;
   isUploading?: boolean;
+  selectedSources?: string[];
+  onToggleSourceSelection?: (id: string) => void;
+  onSelectAllSources?: () => void;
 }
 
 const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -64,12 +74,17 @@ export function SourcePanel({
   onRemoveSource,
   onFilesUploaded,
   isUploading = false,
+  selectedSources = [],
+  onToggleSourceSelection,
+  onSelectAllSources,
 }: SourcePanelProps) {
+  const navigate = useNavigate();
   const [newNotebookTitle, setNewNotebookTitle] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [youtubeInput, setYoutubeInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
+  const [webSearchQuery, setWebSearchQuery] = useState('');
 
   const handleCreateNotebook = () => {
     if (newNotebookTitle.trim()) {
@@ -101,6 +116,15 @@ export function SourcePanel({
       setShowYoutubeInput(false);
     }
   };
+
+  const handleWebSearch = (type?: 'web' | 'quick') => {
+    if (webSearchQuery.trim()) {
+      // Navigate to research with the query
+      navigate(`/research?q=${encodeURIComponent(webSearchQuery)}&type=${type || 'web'}`);
+    }
+  };
+
+  const allSelected = sources.length > 0 && selectedSources.length === sources.length;
 
   return (
     <div className="h-full flex flex-col bg-[#0f0f23] text-white">
@@ -144,6 +168,59 @@ export function SourcePanel({
               </SelectContent>
             </Select>
           )}
+        </div>
+      </div>
+
+      {/* Deep Research Link */}
+      <div className="px-4 py-3 border-b border-white/10 bg-gradient-to-r from-[#1D4E5F]/20 to-transparent">
+        <div className="flex items-start gap-3">
+          <Sparkles className="w-5 h-5 text-[#1D4E5F] shrink-0 mt-0.5" />
+          <p className="text-sm text-white/70">
+            Try{' '}
+            <button
+              onClick={() => navigate('/research')}
+              className="text-[#1D4E5F] font-medium hover:underline inline-flex items-center gap-1"
+            >
+              Deep Research
+              <ExternalLink className="w-3 h-3" />
+            </button>
+            {' '}for detailed reports and new sources.
+          </p>
+        </div>
+      </div>
+
+      {/* Web Search Section */}
+      <div className="p-4 border-b border-white/10">
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <Input
+            value={webSearchQuery}
+            onChange={(e) => setWebSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleWebSearch()}
+            placeholder="Search for new sources on the web"
+            className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/40"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleWebSearch('web')}
+            className="flex items-center gap-1.5 text-white/60 hover:text-white hover:bg-white/10 border border-white/10"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            Web
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleWebSearch('quick')}
+            className="flex items-center gap-1.5 text-white/60 hover:text-white hover:bg-white/10 border border-white/10"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Quick Research
+          </Button>
         </div>
       </div>
 
@@ -226,6 +303,20 @@ export function SourcePanel({
         </div>
       </div>
 
+      {/* Select All Checkbox */}
+      {sources.length > 0 && onSelectAllSources && (
+        <div className="px-4 py-2 border-b border-white/10 bg-white/5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={onSelectAllSources}
+              className="border-white/40 data-[state=checked]:bg-[#1D4E5F] data-[state=checked]:border-[#1D4E5F]"
+            />
+            <span className="text-sm text-white/70">Select all sources</span>
+          </label>
+        </div>
+      )}
+
       {/* Sources List */}
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
@@ -236,11 +327,23 @@ export function SourcePanel({
           ) : (
             sources.map((source) => {
               const Icon = SOURCE_ICONS[source.type] || File;
+              const isSelected = selectedSources.includes(source.id);
               return (
                 <div
                   key={source.id}
-                  className="group flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                  className={`group flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                    isSelected 
+                      ? 'bg-[#1D4E5F]/20 border-[#1D4E5F]/50' 
+                      : 'bg-white/5 hover:bg-white/10 border-white/10'
+                  }`}
                 >
+                  {onToggleSourceSelection && (
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => onToggleSourceSelection(source.id)}
+                      className="border-white/40 data-[state=checked]:bg-[#1D4E5F] data-[state=checked]:border-[#1D4E5F]"
+                    />
+                  )}
                   <Icon className="w-5 h-5 text-white/60 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white truncate">{source.name}</p>
@@ -248,6 +351,9 @@ export function SourcePanel({
                       <p className="text-xs text-white/40">{Math.round(source.charCount / 1000)}k chars</p>
                     )}
                   </div>
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-[#1D4E5F]" />
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
