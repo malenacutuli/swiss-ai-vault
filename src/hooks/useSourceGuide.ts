@@ -69,29 +69,50 @@ export function useSourceGuide(sourceId: string | null) {
 
   // Generate guide inline (no database storage - for immediate display)
   const generateGuideInline = useCallback(async (content: string, filename: string): Promise<SourceGuide | null> => {
+    console.log('🟢 [useSourceGuide] generateGuideInline called');
+    console.log('🟢 [useSourceGuide] Filename:', filename);
+    console.log('🟢 [useSourceGuide] Content length:', content.length);
+    
     setLoading(true);
     setError(null);
+    
     try {
-      console.log('Calling source-guide edge function with action: generate_inline');
+      console.log('🟢 [useSourceGuide] Calling source-guide edge function...');
+      
       const { data, error } = await supabase.functions.invoke('source-guide', {
         body: { action: 'generate_inline', content, filename }
       });
       
+      console.log('🟢 [useSourceGuide] Edge function response:', { data, error });
+      
       if (error) {
-        console.error('source-guide invoke error:', error);
+        console.error('🔴 [useSourceGuide] Edge function error:', error);
         throw error;
       }
       
       if (data?.success && data?.guide) {
-        console.log('Source Guide generated successfully:', data.guide.title);
-        setGuide(data.guide);
-        return data.guide;
+        console.log('✅ [useSourceGuide] Guide generated successfully!');
+        console.log('✅ [useSourceGuide] Title:', data.guide.title);
+        
+        // Normalize the guide data (handle both snake_case and camelCase)
+        const normalizedGuide: SourceGuide = {
+          title: data.guide.title || filename,
+          summary: data.guide.summary || '',
+          key_topics: data.guide.key_topics || data.guide.keyTopics || [],
+          suggested_questions: data.guide.suggested_questions || data.guide.suggestedQuestions || [],
+          word_count: data.guide.word_count || data.guide.wordCount,
+          confidence_score: data.guide.confidence_score || data.guide.confidence
+        };
+        
+        setGuide(normalizedGuide);
+        return normalizedGuide;
       }
       
+      console.error('🔴 [useSourceGuide] No guide in response:', data);
       throw new Error('Failed to generate guide - no data returned');
     } catch (err: any) {
-      console.error('generateGuideInline error:', err);
-      setError(err.message);
+      console.error('🔴 [useSourceGuide] Error:', err);
+      setError(err.message || 'Failed to generate guide');
       return null;
     } finally {
       setLoading(false);
