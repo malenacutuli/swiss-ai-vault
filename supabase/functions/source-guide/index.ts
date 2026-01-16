@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface SourceGuideRequest {
-  action: 'generate' | 'get' | 'regenerate';
+  action: 'generate' | 'get' | 'regenerate' | 'generate_inline';
   sourceId?: string;
   content?: string;
   filename?: string;
@@ -159,6 +159,31 @@ serve(async (req) => {
         if (error) throw error;
 
         return new Response(JSON.stringify({ success: true, guide: data }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      case 'generate_inline': {
+        // Generate guide without storing to database (for immediate display)
+        if (!content || !filename) {
+          throw new Error('Missing content or filename');
+        }
+
+        console.log(`Generating inline Source Guide for: ${filename}`);
+
+        const guide = await generateSourceGuide(geminiKey, content, filename);
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          guide: {
+            title: guide.title,
+            summary: guide.summary,
+            key_topics: guide.keyTopics,
+            suggested_questions: guide.suggestedQuestions,
+            word_count: guide.wordCount,
+            confidence_score: guide.confidence
+          }
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
