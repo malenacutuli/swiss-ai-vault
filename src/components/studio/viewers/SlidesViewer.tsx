@@ -10,6 +10,8 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StylePreset, getStyleConfig } from '@/lib/stylePresets';
+import PptxGenJS from 'pptxgenjs';
 
 interface Slide {
   id: string;
@@ -22,14 +24,17 @@ interface Slide {
 interface SlidesViewerProps {
   slides: Slide[];
   title?: string;
+  style?: StylePreset;
   onDownload?: () => void;
 }
 
-export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
+export function SlidesViewer({ slides, title, style = 'corporate', onDownload }: SlidesViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'full'>('grid');
   const [showNotes, setShowNotes] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
+  const styleConfig = getStyleConfig(style);
   const currentSlide = slides[currentIndex];
 
   const handlePrevious = () => {
@@ -49,6 +54,73 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
     setViewMode('full');
   };
 
+  // Generate and download styled PPTX
+  const handleStyledDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const pptx = new PptxGenJS();
+      pptx.title = title || 'Presentation';
+      pptx.author = 'SwissVault Studio';
+
+      const colors = styleConfig.slides.pptxColors;
+
+      // Define master slide
+      pptx.defineSlideMaster({
+        title: 'STYLED_MASTER',
+        background: { color: colors.bg },
+        objects: [
+          { rect: { x: 0, y: 0, w: 0.15, h: '100%', fill: { color: colors.accent } } },
+        ],
+      });
+
+      slides.forEach((slide, index) => {
+        const pptxSlide = pptx.addSlide({ masterName: 'STYLED_MASTER' });
+
+        // Title
+        pptxSlide.addText(slide.title, {
+          x: 0.5,
+          y: index === 0 ? 2 : 0.5,
+          w: 9,
+          h: index === 0 ? 1.5 : 0.8,
+          fontSize: index === 0 ? 54 : 36,
+          bold: true,
+          color: colors.title,
+        });
+
+        // Content
+        if (slide.content) {
+          const lines = slide.content.split('\n').filter(Boolean);
+          const bullets = lines.map(line => ({
+            text: line.replace(/^[•\-]\s*/, ''),
+            options: { bullet: true },
+          }));
+
+          pptxSlide.addText(bullets, {
+            x: 0.5,
+            y: index === 0 ? 3.5 : 1.8,
+            w: 9,
+            h: 4,
+            fontSize: 18,
+            color: colors.body,
+            valign: 'top',
+          });
+        }
+
+        // Notes
+        if (slide.notes) {
+          pptxSlide.addNotes(slide.notes);
+        }
+      });
+
+      const fileName = `${(title || 'Presentation').replace(/\s+/g, '_')}_${style}.pptx`;
+      await pptx.writeFile({ fileName });
+    } catch (error) {
+      console.error('PPTX generation error:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (slides.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-6 text-center">
@@ -64,6 +136,15 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
         <div className="flex items-center gap-3">
           {title && <h3 className="text-lg font-medium text-foreground">{title}</h3>}
           <span className="text-sm text-muted-foreground">{slides.length} slides</span>
+          <span 
+            className="text-xs px-2 py-0.5 rounded-full"
+            style={{ 
+              backgroundColor: styleConfig.colors.primary + '20',
+              color: styleConfig.colors.primary 
+            }}
+          >
+            {styleConfig.name.split(' ')[0]}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -76,16 +157,16 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
             {viewMode === 'grid' ? <Maximize2 className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
           </Button>
 
-          {onDownload && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onDownload}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-            >
-              <Download className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleStyledDownload}
+            disabled={isDownloading}
+            className="h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {isDownloading ? 'Generating...' : 'Download .pptx'}
+          </Button>
         </div>
       </div>
 
@@ -97,16 +178,27 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
               key={slide.id}
               onClick={() => handleThumbnailClick(index)}
               className={cn(
-                'aspect-video bg-muted rounded-lg border overflow-hidden transition-all hover:scale-105',
+                'aspect-video rounded-lg border overflow-hidden transition-all hover:scale-105',
+                styleConfig.slides.bg,
                 index === currentIndex
-                  ? 'border-primary ring-2 ring-primary/30'
-                  : 'border-border hover:border-primary/50'
+                  ? 'ring-2 ring-offset-2'
+                  : 'hover:opacity-90'
               )}
+              style={{ 
+                borderColor: index === currentIndex ? styleConfig.colors.primary : 'transparent',
+                ['--tw-ring-color' as any]: styleConfig.colors.primary 
+              }}
             >
               <div className="p-3 h-full flex flex-col">
-                <p className="text-xs font-medium text-foreground truncate">{slide.title}</p>
-                <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{slide.content}</p>
-                <span className="mt-auto text-[10px] text-muted-foreground">{index + 1}</span>
+                <p className={cn('text-xs font-medium truncate', styleConfig.slides.titleClass)}>
+                  {slide.title}
+                </p>
+                <p className={cn('text-[10px] mt-1 line-clamp-2', styleConfig.slides.bulletClass)}>
+                  {slide.content}
+                </p>
+                <span className={cn('mt-auto text-[10px]', styleConfig.slides.subtitleClass)}>
+                  {index + 1}
+                </span>
               </div>
             </button>
           ))}
@@ -116,9 +208,23 @@ export function SlidesViewer({ slides, title, onDownload }: SlidesViewerProps) {
         <div className="flex">
           <div className="flex-1">
             {/* Slide Content */}
-            <div className="aspect-video bg-gradient-to-br from-muted to-accent m-4 rounded-xl p-8 flex flex-col border border-border">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">{currentSlide?.title}</h2>
-              <p className="text-muted-foreground whitespace-pre-wrap flex-1">{currentSlide?.content}</p>
+            <div 
+              className={cn(
+                'aspect-video m-4 rounded-xl p-8 flex flex-col relative overflow-hidden',
+                styleConfig.slides.bg
+              )}
+            >
+              {/* Accent bar */}
+              <div 
+                className={cn('absolute left-0 top-0 bottom-0 w-1', styleConfig.slides.accent)}
+              />
+              
+              <h2 className={cn('text-2xl font-semibold mb-4', styleConfig.slides.titleClass)}>
+                {currentSlide?.title}
+              </h2>
+              <p className={cn('whitespace-pre-wrap flex-1', styleConfig.slides.bulletClass)}>
+                {currentSlide?.content}
+              </p>
               {currentSlide?.imageUrl && (
                 <img
                   src={currentSlide.imageUrl}
