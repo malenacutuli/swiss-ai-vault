@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Link, FileText, Loader2, X, CheckCircle2 } from 'lucide-react';
+import { Upload, Link, FileText, Loader2, X, CheckCircle2, Image, Mic, Youtube } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +45,14 @@ export function AddSourceModal({
       'text/markdown': ['.md'],
       'text/csv': ['.csv'],
       'application/json': ['.json'],
+      'image/png': ['.png'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/gif': ['.gif'],
+      'image/webp': ['.webp'],
+      'audio/mpeg': ['.mp3'],
+      'audio/wav': ['.wav'],
+      'audio/ogg': ['.ogg'],
+      'audio/mp4': ['.m4a'],
     },
     maxSize: 50 * 1024 * 1024, // 50MB
   });
@@ -171,7 +179,11 @@ export function AddSourceModal({
                 <>
                   <p className="text-sm text-foreground font-medium">Drag & drop files here</p>
                   <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
-                  <p className="text-xs text-muted-foreground mt-2">PDF, DOCX, TXT, MD (max 50MB)</p>
+                  <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> PDF, DOCX</span>
+                    <span className="flex items-center gap-1"><Image className="w-3 h-3" /> Images</span>
+                    <span className="flex items-center gap-1"><Mic className="w-3 h-3" /> Audio</span>
+                  </div>
                 </>
               )}
             </div>
@@ -240,6 +252,10 @@ export function AddSourceModal({
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com or https://youtube.com/watch?v=..."
               />
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><Link className="w-3 h-3" /> Web pages</span>
+                <span className="flex items-center gap-1"><Youtube className="w-3 h-3" /> YouTube videos</span>
+              </div>
             </div>
             <Button
               onClick={handleUrlSubmit}
