@@ -7,11 +7,16 @@ import {
   Upload,
   Crown,
   Presentation,
-  Sparkles
+  Sparkles,
+  Check
 } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { SLIDE_STYLES } from '@/lib/slide-styles';
+import { SlideStyleName } from '@/types/slides';
+import { PRESENTATION_TEMPLATES } from '@/lib/integrations/nanoBanana';
 
 interface SamplePrompt {
   id: number;
@@ -42,29 +47,6 @@ const SAMPLE_PROMPTS: SamplePrompt[] = [
   }
 ];
 
-interface Template {
-  id: string;
-  name: string;
-  premium: boolean;
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-  };
-}
-
-const TEMPLATES: Template[] = [
-  { id: 'swiss-classic', name: 'Swiss Classic', premium: false, colors: { primary: '#722F37', secondary: '#1A1A1A', accent: '#E5E5E5' } },
-  { id: 'zurich', name: 'Zurich', premium: false, colors: { primary: '#1A365D', secondary: '#2D3748', accent: '#E2E8F0' } },
-  { id: 'geneva', name: 'Geneva', premium: false, colors: { primary: '#065F46', secondary: '#1A1A1A', accent: '#D1FAE5' } },
-  { id: 'alps', name: 'Alps', premium: false, colors: { primary: '#0284C7', secondary: '#0F172A', accent: '#E0F2FE' } },
-  { id: 'glacier', name: 'Glacier', premium: false, colors: { primary: '#0891B2', secondary: '#164E63', accent: '#CFFAFE' } },
-  { id: 'burgundy', name: 'Burgundy', premium: true, colors: { primary: '#9F1239', secondary: '#1A1A1A', accent: '#FFE4E6' } },
-  { id: 'navy', name: 'Navy', premium: false, colors: { primary: '#1E3A5F', secondary: '#0F172A', accent: '#E0E7FF' } },
-  { id: 'minimal', name: 'Minimal', premium: false, colors: { primary: '#1A1A1A', secondary: '#4B5563', accent: '#F9FAFB' } },
-  { id: 'modern', name: 'Modern', premium: true, colors: { primary: '#7C3AED', secondary: '#1E1B4B', accent: '#EDE9FE' } },
-];
-
 const SLIDE_COUNTS = [4, 8, 12, 16, 20];
 
 interface SlidesModeProps {
@@ -75,56 +57,53 @@ interface SlidesModeProps {
   onSlideCountChange: (count: number) => void;
 }
 
-// Template preview component (renders a mini slide preview)
-function TemplatePreview({ template }: { template: Template }) {
+// Template preview component (renders a mini slide preview using actual style colors)
+function TemplatePreview({ styleId }: { styleId: SlideStyleName }) {
+  const style = SLIDE_STYLES[styleId];
+  if (!style) return null;
+  
   return (
     <div 
       className="w-full h-full flex flex-col"
-      style={{ backgroundColor: template.colors.accent }}
+      style={{ backgroundColor: style.colors.background }}
     >
       {/* Header bar */}
       <div 
-        className="h-3 w-full"
-        style={{ backgroundColor: template.colors.primary }}
+        className="h-2 w-full"
+        style={{ backgroundColor: style.colors.primary }}
       />
       
       {/* Content area */}
-      <div className="flex-1 p-3 flex flex-col justify-between">
+      <div className="flex-1 p-2 flex flex-col justify-between">
         {/* Title placeholder */}
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <div 
-            className="h-2.5 w-3/4 rounded-sm"
-            style={{ backgroundColor: template.colors.primary }}
+            className="h-2 w-3/4 rounded-sm"
+            style={{ backgroundColor: style.colors.primary }}
           />
           <div 
-            className="h-1.5 w-1/2 rounded-sm opacity-60"
-            style={{ backgroundColor: template.colors.secondary }}
+            className="h-1 w-1/2 rounded-sm opacity-60"
+            style={{ backgroundColor: style.colors.muted }}
           />
         </div>
         
         {/* Content placeholders */}
-        <div className="space-y-1">
+        <div className="flex gap-1 flex-1 mt-2">
           <div 
-            className="h-1 w-full rounded-sm opacity-40"
-            style={{ backgroundColor: template.colors.secondary }}
+            className="flex-1 rounded-sm opacity-30"
+            style={{ backgroundColor: style.colors.secondary }}
           />
           <div 
-            className="h-1 w-5/6 rounded-sm opacity-40"
-            style={{ backgroundColor: template.colors.secondary }}
-          />
-          <div 
-            className="h-1 w-4/6 rounded-sm opacity-40"
-            style={{ backgroundColor: template.colors.secondary }}
+            className="w-1/3 rounded-sm opacity-50"
+            style={{ backgroundColor: style.colors.accent }}
           />
         </div>
         
         {/* Footer accent */}
-        <div className="flex justify-end">
-          <div 
-            className="h-2 w-8 rounded-sm"
-            style={{ backgroundColor: template.colors.primary }}
-          />
-        </div>
+        <div 
+          className="h-0.5 w-full mt-1"
+          style={{ backgroundColor: style.colors.primary }}
+        />
       </div>
     </div>
   );
@@ -137,6 +116,8 @@ export function SlidesMode({
   slideCount,
   onSlideCountChange
 }: SlidesModeProps) {
+  const [hoveredStyle, setHoveredStyle] = useState<SlideStyleName | null>(null);
+  
   const handleImportTemplate = () => {
     toast.info('Template import coming soon', {
       description: 'You will be able to import your own PowerPoint templates',
@@ -177,12 +158,14 @@ export function SlidesMode({
         </div>
       </section>
       
-      {/* Template Gallery */}
+      {/* Template Gallery - 15 Manus Professional Styles */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Presentation className="w-4 h-4 text-[#1D4E5F]" />
-            <h3 className="text-sm font-medium text-[#666666]">Choose a template</h3>
+            <h3 className="text-sm font-medium text-[#666666]">
+              Choose a style <span className="text-xs text-[#999999]">({PRESENTATION_TEMPLATES.length} styles)</span>
+            </h3>
           </div>
           <div className="flex items-center gap-3">
             {/* Slide count selector */}
@@ -212,23 +195,25 @@ export function SlidesMode({
           </div>
         </div>
         
-        {/* Template Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {TEMPLATES.map(template => (
+        {/* Template Grid - 15 Manus Styles */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          {PRESENTATION_TEMPLATES.map(template => (
             <button
               key={template.id}
               onClick={() => onTemplateSelect(template.id)}
+              onMouseEnter={() => setHoveredStyle(template.id)}
+              onMouseLeave={() => setHoveredStyle(null)}
               className={cn(
-                "relative aspect-[16/10] rounded-xl border-2 overflow-hidden transition-all hover:shadow-md group",
+                "relative aspect-[4/3] rounded-xl border-2 overflow-hidden transition-all hover:shadow-lg group",
                 selectedTemplate === template.id
                   ? "border-[#1D4E5F] shadow-lg ring-2 ring-[#1D4E5F]/20"
                   : "border-[#E5E5E5] hover:border-[#1D4E5F]/50"
               )}
             >
-              <TemplatePreview template={template} />
+              <TemplatePreview styleId={template.id} />
               
               {/* Label overlay */}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-2 pt-6">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-2 pt-4">
                 <div className="flex items-center gap-1">
                   <span className="text-white text-xs font-medium">{template.name}</span>
                   {template.premium && (
@@ -240,9 +225,7 @@ export function SlidesMode({
               {/* Selected checkmark */}
               {selectedTemplate === template.id && (
                 <div className="absolute top-2 right-2 w-5 h-5 bg-[#1D4E5F] rounded-full flex items-center justify-center shadow-md">
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Check className="w-3 h-3 text-white" />
                 </div>
               )}
               
@@ -256,13 +239,40 @@ export function SlidesMode({
           ))}
         </div>
         
-        {/* Template info */}
-        <div className="mt-4 p-3 bg-[#F8FAFB] rounded-lg border border-[#E5E5E5]">
-          <p className="text-xs text-[#666666]">
-            <span className="font-medium text-[#1A1A1A]">Selected: </span>
-            {TEMPLATES.find(t => t.id === selectedTemplate)?.name || 'Swiss Classic'} template with {slideCount} slides
-          </p>
-        </div>
+        {/* Hovered Style Description */}
+        {hoveredStyle && SLIDE_STYLES[hoveredStyle] && (
+          <div className="mt-4 p-3 bg-[#F8FAFB] rounded-xl border border-[#E5E5E5]">
+            <div className="flex items-start gap-3">
+              <div 
+                className="w-10 h-10 rounded-lg flex-shrink-0"
+                style={{ 
+                  background: `linear-gradient(135deg, ${SLIDE_STYLES[hoveredStyle].colors.primary}, ${SLIDE_STYLES[hoveredStyle].colors.secondary})` 
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-[#1A1A1A]">
+                  {SLIDE_STYLES[hoveredStyle].displayName}
+                </p>
+                <p className="text-sm text-[#666666] mt-0.5">
+                  {SLIDE_STYLES[hoveredStyle].description}
+                </p>
+                <p className="text-xs text-[#999999] mt-1">
+                  Best for: {SLIDE_STYLES[hoveredStyle].bestFor}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Selected template info (when not hovering) */}
+        {!hoveredStyle && (
+          <div className="mt-4 p-3 bg-[#F8FAFB] rounded-lg border border-[#E5E5E5]">
+            <p className="text-xs text-[#666666]">
+              <span className="font-medium text-[#1A1A1A]">Selected: </span>
+              {SLIDE_STYLES[selectedTemplate as SlideStyleName]?.displayName || 'Chromatic'} style with {slideCount} slides
+            </p>
+          </div>
+        )}
       </section>
     </div>
   );

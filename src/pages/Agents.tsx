@@ -74,8 +74,8 @@ export default function Agents() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   
-  // Slides mode specific state
-  const [selectedTemplate, setSelectedTemplate] = useState('swiss-classic');
+  // Slides mode specific state - default to 'chromatic' (modern tech style)
+  const [selectedTemplate, setSelectedTemplate] = useState('chromatic');
   const [slideCount, setSlideCount] = useState(8);
   
   // NotebookLM modes state
