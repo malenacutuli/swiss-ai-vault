@@ -54,7 +54,7 @@ interface StoredUpload {
   createdAt: number;
 }
 
-const STORAGE_KEY = 'swissvault_incomplete_uploads';
+const STORAGE_KEY = 'swissbrain_incomplete_uploads';
 
 // Get stored incomplete uploads
 const getStoredUploads = (): StoredUpload[] => {

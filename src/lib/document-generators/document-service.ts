@@ -63,7 +63,7 @@ export class DocumentGeneratorService {
     const options: PPTXOptions = {
       title: data.title || 'Presentation',
       subtitle: data.subtitle,
-      author: 'SwissVault AI',
+      author: 'SwissBrAIn AI',
       theme: 'swiss',
     };
 
@@ -99,7 +99,7 @@ export class DocumentGeneratorService {
     const options: DOCXOptions = {
       title: data.title || 'Document',
       subtitle: data.subtitle,
-      author: 'SwissVault AI',
+      author: 'SwissBrAIn AI',
     };
 
     const blob = await generateDOCX(sections, options);

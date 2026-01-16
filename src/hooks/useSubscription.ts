@@ -125,7 +125,7 @@ export function useSubscription() {
         if (fallbackData) {
           tierInfo.tier = fallbackData.tier || 'ghost_free';
           tierInfo.tier_display_name = fallbackData.tier === 'ghost_pro' ? 'Ghost Pro' : 
-            fallbackData.tier === 'premium' ? 'SwissVault Pro' : 
+            fallbackData.tier === 'premium' ? 'SwissBrAIn Pro' : 
             fallbackData.tier === 'enterprise' ? 'Enterprise' : 'Ghost Free';
         }
       } else {

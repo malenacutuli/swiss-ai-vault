@@ -12,7 +12,7 @@ const ANON_ID_KEY = 'ghost_anon_user_id_v1';
 const deriveKeyFromUserId = async (userId: string): Promise<CryptoKey> => {
   // Create a stable salt from user ID
   const encoder = new TextEncoder();
-  const salt = encoder.encode(`swissvault_ghost_${userId}_stable_salt_v1`);
+  const salt = encoder.encode(`swissbrain_ghost_${userId}_stable_salt_v1`);
 
   // Import user ID as key material
   const keyMaterial = await crypto.subtle.importKey(

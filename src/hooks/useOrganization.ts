@@ -42,7 +42,7 @@ export interface OrganizationInvitation {
   created_at: string | null;
 }
 
-const CURRENT_ORG_KEY = 'swissvault_current_org';
+const CURRENT_ORG_KEY = 'swissbrain_current_org';
 
 // Get/set current organization from localStorage and user_settings
 export function useCurrentOrganization() {

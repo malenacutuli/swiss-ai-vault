@@ -44,7 +44,7 @@ const SOURCE_COLORS: Record<string, string> = {
   perplexity: '#F59E0B',      // Amber
   grok: '#EF4444',            // Red
   copilot: '#06B6D4',         // Cyan
-  swissvault_chat: '#EC4899', // Pink
+  swissbrain_chat: '#EC4899', // Pink
   document: '#6366F1',        // Indigo
   note: '#F97316',            // Orange
   chat: '#10B981',            // Green

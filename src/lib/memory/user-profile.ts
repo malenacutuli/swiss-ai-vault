@@ -85,7 +85,7 @@ export interface UserProfile {
   };
 }
 
-const PROFILE_DB_NAME = 'SwissVaultProfile';
+const PROFILE_DB_NAME = 'SwissBrAInProfile';
 const PROFILE_STORE = 'profile';
 const PROFILE_VERSION = 1;
 

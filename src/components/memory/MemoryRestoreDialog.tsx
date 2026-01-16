@@ -45,7 +45,7 @@ export function MemoryRestoreDialog({
     switch (provider) {
       case 'google-drive': return 'Google Drive';
       case 's3': return 'Amazon S3';
-      case 'swissvault-cloud': return 'SwissVault Cloud';
+      case 'swissvault-cloud': return 'SwissBrAIn Cloud';
       default: return 'cloud storage';
     }
   };

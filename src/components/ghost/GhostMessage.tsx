@@ -118,7 +118,7 @@ function parseContent(content: string): ContentSegment[] {
 // Check if URL is external
 function isExternalUrl(href: string): boolean {
   if (!href?.startsWith('http')) return false;
-  const internalDomains = ['swissvault.ai', 'localhost', '127.0.0.1'];
+  const internalDomains = ['swissbrain.ai', 'swissvault.ai', 'localhost', '127.0.0.1'];
   try {
     const url = new URL(href);
     return !internalDomains.some(domain => url.hostname.includes(domain));

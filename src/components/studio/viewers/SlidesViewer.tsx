@@ -60,7 +60,7 @@ export function SlidesViewer({ slides, title, style = 'corporate', onDownload }:
     try {
       const pptx = new PptxGenJS();
       pptx.title = title || 'Presentation';
-      pptx.author = 'SwissVault Studio';
+      pptx.author = 'SwissBrAIn Studio';
 
       const colors = styleConfig.slides.pptxColors;
 

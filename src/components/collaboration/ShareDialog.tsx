@@ -379,7 +379,7 @@ export function ShareDialog({
           <Shield className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-medium">End-to-end encrypted</p>
-            <p>Shared content remains encrypted. Recipients must have a SwissVault account to access.</p>
+            <p>Shared content remains encrypted. Recipients must have a SwissBrAIn account to access.</p>
           </div>
         </div>
       </DialogContent>

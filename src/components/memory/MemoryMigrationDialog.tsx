@@ -90,7 +90,7 @@ export function MemoryMigrationDialog({ open, onOpenChange, onComplete }: Memory
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `swissvault-memory-migration-${Date.now()}.json`;
+      a.download = `swissbrain-memory-migration-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       
