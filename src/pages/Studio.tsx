@@ -73,7 +73,7 @@ export default function Studio() {
 
   // State
   const [notebookId, setNotebookId] = useState<string | null>(null);
-  const [notebookTitle, setNotebookTitle] = useState('Untitled notebook');
+  const [notebookTitle, setNotebookTitle] = useState('Swiss BrAIn Studio');
   const [sources, setSources] = useState<LocalSource[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
