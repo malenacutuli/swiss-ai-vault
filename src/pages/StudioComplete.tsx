@@ -26,6 +26,9 @@ import { StyleSelector } from '@/components/studio/StyleSelector';
 import { SourceGuideDisplay } from '@/components/studio/SourceGuideDisplay';
 import { AddSourceModal } from '@/components/studio/AddSourceModal';
 import { StylePreset } from '@/lib/stylePresets';
+import { AudioOverviewPanel } from '@/components/studio/AudioOverviewPanel';
+import { DeepResearchPanel } from '@/components/studio/DeepResearchPanel';
+import { MultimodalSourceInput } from '@/components/studio/MultimodalSourceInput';
 import { useSourceGuide, SourceGuide } from '@/hooks/useSourceGuide';
 
 // Icons
@@ -34,6 +37,7 @@ import {
   Plus, Loader2, Sparkles, Network, Presentation,
   BookOpen, HelpCircle, Mic, MessageSquare, X,
   FlaskConical, PanelLeftClose, PanelRightClose,
+  Search, Headphones, Wand2,
 } from 'lucide-react';
 
 // Types
@@ -619,80 +623,117 @@ export default function StudioComplete() {
             )}
           </div>
 
-          {/* RIGHT PANEL: Style & Generate */}
+          {/* RIGHT PANEL: Generate & Features */}
           <div className={cn(
             "border-l border-border flex flex-col bg-muted/30 transition-all duration-300",
             rightPanelCollapsed ? "w-0 overflow-hidden" : "w-96"
           )}>
-            <div className="p-4 border-b border-border">
-              <h3 className="font-medium text-sm mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Style & Generate
-              </h3>
-              <StyleSelector selected={style} onChange={setStyle} />
-            </div>
+            <Tabs defaultValue="generate" className="flex flex-col h-full">
+              <TabsList className="mx-3 mt-3 grid grid-cols-3">
+                <TabsTrigger value="generate" className="flex items-center gap-1.5 text-xs">
+                  <Wand2 className="w-3.5 h-3.5" />
+                  Generate
+                </TabsTrigger>
+                <TabsTrigger value="audio" className="flex items-center gap-1.5 text-xs">
+                  <Headphones className="w-3.5 h-3.5" />
+                  Audio
+                </TabsTrigger>
+                <TabsTrigger value="research" className="flex items-center gap-1.5 text-xs">
+                  <Search className="w-3.5 h-3.5" />
+                  Research
+                </TabsTrigger>
+              </TabsList>
 
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-3">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Generate Artifacts
-                </h4>
+              <TabsContent value="generate" className="flex-1 flex flex-col m-0 overflow-hidden">
+                <div className="p-4 border-b border-border">
+                  <h3 className="font-medium text-sm mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Style & Generate
+                  </h3>
+                  <StyleSelector selected={style} onChange={setStyle} />
+                </div>
 
-                <GenerateButton
-                  icon={Network}
-                  label="Mind Map"
-                  description="Visual concept connections"
-                  onClick={() => handleGenerate('mindmap')}
-                  disabled={readySources.length === 0 || isGenerating}
-                  loading={generatingType === 'mindmap'}
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Generate Artifacts
+                    </h4>
+
+                    <GenerateButton
+                      icon={Network}
+                      label="Mind Map"
+                      description="Visual concept connections"
+                      onClick={() => handleGenerate('mindmap')}
+                      disabled={readySources.length === 0 || isGenerating}
+                      loading={generatingType === 'mindmap'}
+                    />
+
+                    <GenerateButton
+                      icon={Presentation}
+                      label="Slides"
+                      description="Presentation deck with notes"
+                      onClick={() => handleGenerate('slides')}
+                      disabled={readySources.length === 0 || isGenerating}
+                      loading={generatingType === 'slides'}
+                    />
+
+                    <GenerateButton
+                      icon={HelpCircle}
+                      label="Quiz"
+                      description="Test your knowledge"
+                      onClick={() => handleGenerate('quiz')}
+                      disabled={readySources.length === 0 || isGenerating}
+                      loading={generatingType === 'quiz'}
+                    />
+
+                    <GenerateButton
+                      icon={BookOpen}
+                      label="Flashcards"
+                      description="Study cards for review"
+                      onClick={() => handleGenerate('flashcards')}
+                      disabled={readySources.length === 0 || isGenerating}
+                      loading={generatingType === 'flashcards'}
+                    />
+
+                    <GenerateButton
+                      icon={Mic}
+                      label="Podcast"
+                      description="Audio discussion"
+                      onClick={() => handleGenerate('podcast')}
+                      disabled={readySources.length === 0 || isGenerating}
+                      loading={generatingType === 'podcast'}
+                    />
+
+                    <GenerateButton
+                      icon={MessageSquare}
+                      label="Report"
+                      description="Comprehensive analysis"
+                      onClick={() => handleGenerate('report')}
+                      disabled={readySources.length === 0 || isGenerating}
+                      loading={generatingType === 'report'}
+                    />
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="audio" className="flex-1 m-0 overflow-auto">
+                <AudioOverviewPanel 
+                  notebookId={notebookId || ''} 
+                  sourcesCount={readySources.length} 
                 />
+              </TabsContent>
 
-                <GenerateButton
-                  icon={Presentation}
-                  label="Slides"
-                  description="Presentation deck with notes"
-                  onClick={() => handleGenerate('slides')}
-                  disabled={readySources.length === 0 || isGenerating}
-                  loading={generatingType === 'slides'}
+              <TabsContent value="research" className="flex-1 m-0 overflow-auto">
+                <DeepResearchPanel 
+                  notebookId={notebookId || undefined}
+                  onSourceClick={(source) => {
+                    if (source.url) {
+                      window.open(source.url, '_blank');
+                    }
+                  }}
                 />
-
-                <GenerateButton
-                  icon={HelpCircle}
-                  label="Quiz"
-                  description="Test your knowledge"
-                  onClick={() => handleGenerate('quiz')}
-                  disabled={readySources.length === 0 || isGenerating}
-                  loading={generatingType === 'quiz'}
-                />
-
-                <GenerateButton
-                  icon={BookOpen}
-                  label="Flashcards"
-                  description="Study cards for review"
-                  onClick={() => handleGenerate('flashcards')}
-                  disabled={readySources.length === 0 || isGenerating}
-                  loading={generatingType === 'flashcards'}
-                />
-
-                <GenerateButton
-                  icon={Mic}
-                  label="Podcast"
-                  description="Audio discussion"
-                  onClick={() => handleGenerate('podcast')}
-                  disabled={readySources.length === 0 || isGenerating}
-                  loading={generatingType === 'podcast'}
-                />
-
-                <GenerateButton
-                  icon={MessageSquare}
-                  label="Report"
-                  description="Comprehensive analysis"
-                  onClick={() => handleGenerate('report')}
-                  disabled={readySources.length === 0 || isGenerating}
-                  loading={generatingType === 'report'}
-                />
-              </div>
-            </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
 
