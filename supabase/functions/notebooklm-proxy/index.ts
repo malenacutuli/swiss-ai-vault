@@ -9,7 +9,13 @@ const corsHeaders = {
 
 // Google Cloud configuration
 const PROJECT_ID = Deno.env.get("GOOGLE_CLOUD_PROJECT") || "swissvault";
-const LOCATION = "europe-west6"; // Swiss region
+
+// Model configuration with fallback - us-central1 has best Gemini availability
+const GEMINI_MODELS = [
+  { model: "gemini-2.0-flash-001", location: "us-central1" },
+  { model: "gemini-1.5-flash-001", location: "us-central1" },
+  { model: "gemini-1.5-pro-001", location: "us-central1" },
+];
 
 // Token cache for Google API
 let tokenCache: { token: string; expiry: number } | null = null;
@@ -104,18 +110,13 @@ async function getAccessToken(): Promise<string> {
   return tokenCache.token;
 }
 
-// Call Vertex AI Gemini
-// Available Gemini models in europe-west6
-const GEMINI_MODEL = "gemini-1.5-flash-002";
-
+// Call Vertex AI Gemini with fallback through multiple models
 async function callVertexAI(
   token: string,
   systemPrompt: string,
   userPrompt: string,
   jsonMode: boolean = false
 ): Promise<string> {
-  const geminiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${GEMINI_MODEL}:generateContent`;
-
   const messages = [
     {
       role: "user",
@@ -132,26 +133,53 @@ async function callVertexAI(
     generationConfig.responseMimeType = "application/json";
   }
 
-  const response = await fetch(geminiUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: messages,
-      generationConfig,
-    }),
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("[notebooklm-proxy] Vertex AI error:", response.status, errorText);
-    throw new Error(`Vertex AI error: ${response.status}`);
+  // Try each model in order until one succeeds
+  for (const { model, location } of GEMINI_MODELS) {
+    const geminiUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${location}/publishers/google/models/${model}:generateContent`;
+    
+    console.log(`[notebooklm-proxy] Trying model: ${model} in ${location}`);
+
+    try {
+      const response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: messages,
+          generationConfig,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[notebooklm-proxy] Success with model: ${model}`);
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      }
+
+      const errorText = await response.text();
+      console.warn(`[notebooklm-proxy] Model ${model} failed (${response.status}): ${errorText}`);
+      
+      // If it's a 404 (model not found), try next model
+      if (response.status === 404) {
+        lastError = new Error(`Model ${model} not found in ${location}`);
+        continue;
+      }
+      
+      // For other errors (rate limit, etc.), throw immediately
+      throw new Error(`Vertex AI error: ${response.status} - ${errorText}`);
+    } catch (err) {
+      lastError = err as Error;
+      console.warn(`[notebooklm-proxy] Error with model ${model}:`, err);
+      // Continue to next model
+    }
   }
 
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  // All models failed
+  throw lastError || new Error("All Gemini models failed");
 }
 
 // Generate TTS audio using Gemini TTS
