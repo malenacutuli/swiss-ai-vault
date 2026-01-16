@@ -566,6 +566,7 @@ export function useNotebookLM() {
     generateFaq,
     generateTimeline,
     generateTable,
+    generateAudioOverview,
     // Legacy
     generateArtifact
   };
