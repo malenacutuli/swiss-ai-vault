@@ -5,6 +5,7 @@ import { useNotebookLM } from '@/hooks/useNotebookLM';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { processDocument } from '@/lib/memory/document-processor';
+import { StudioOutputViewer } from '@/components/studio/StudioOutputViewer';
 
 // Icons
 import { 
@@ -778,7 +779,7 @@ export default function Studio() {
       {/* Output Viewer Modal */}
       {activeOutput && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-background border border-border rounded-2xl w-full max-w-4xl mx-4 max-h-[80vh] flex flex-col shadow-xl">
+          <div className="bg-background border border-border rounded-2xl w-full max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h3 className="font-semibold text-foreground capitalize">
                 {activeOutput.type.replace('_', ' ')}
@@ -789,190 +790,11 @@ export default function Studio() {
             </div>
 
             <div className="flex-1 overflow-auto p-6">
-              <OutputViewer type={activeOutput.type} data={activeOutput.data} />
+              <StudioOutputViewer type={activeOutput.type} data={activeOutput.data} />
             </div>
           </div>
         </div>
       )}
     </>
   );
-}
-
-// Output viewer component
-function OutputViewer({ type, data }: { type: OutputType; data: any }) {
-  switch (type) {
-    case 'podcast':
-      return (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <h3>Podcast Transcript</h3>
-          <div className="whitespace-pre-wrap text-sm">{data.transcript}</div>
-        </div>
-      );
-
-    case 'quiz':
-      return (
-        <div className="space-y-6">
-          {data.questions?.map((q: any, i: number) => (
-            <div key={i} className="p-4 bg-muted rounded-lg">
-              <p className="font-medium mb-3">Q{i + 1}: {q.question}</p>
-              <div className="space-y-2">
-                {q.options?.map((opt: string, j: number) => (
-                  <div 
-                    key={j} 
-                    className={cn(
-                      "px-3 py-2 rounded-md text-sm",
-                      j === q.correct_index || j === q.correctIndex
-                        ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                        : "bg-background"
-                    )}
-                  >
-                    {opt}
-                  </div>
-                ))}
-              </div>
-              {q.explanation && (
-                <p className="mt-3 text-sm text-muted-foreground">{q.explanation}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'flashcards':
-      return (
-        <div className="grid grid-cols-2 gap-4">
-          {data.cards?.map((card: any, i: number) => (
-            <div key={i} className="p-4 bg-muted rounded-lg">
-              <p className="font-medium mb-2">{card.front}</p>
-              <p className="text-sm text-muted-foreground">{card.back}</p>
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'mindmap':
-      return (
-        <div className="space-y-4">
-          <h3 className="font-medium">Concept Map</h3>
-          <div className="space-y-2">
-            {data.nodes?.map((node: any) => (
-              <div 
-                key={node.id} 
-                className={cn(
-                  "px-4 py-2 rounded-lg",
-                  node.type === 'central' ? "bg-primary text-primary-foreground" :
-                  node.type === 'topic' ? "bg-primary/20" :
-                  "bg-muted"
-                )}
-              >
-                {node.label}
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-
-    case 'slides':
-      return (
-        <div className="space-y-6">
-          {data.title && <h2 className="text-xl font-bold">{data.title}</h2>}
-          {data.slides?.map((slide: any, i: number) => (
-            <div key={i} className="p-6 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2">Slide {slide.number || i + 1}</p>
-              <h3 className="font-semibold text-lg mb-2">{slide.title}</h3>
-              {slide.subtitle && <p className="text-muted-foreground mb-4">{slide.subtitle}</p>}
-              {slide.bullets && (
-                <ul className="list-disc list-inside space-y-1">
-                  {slide.bullets.map((bullet: string, j: number) => (
-                    <li key={j} className="text-sm">{bullet}</li>
-                  ))}
-                </ul>
-              )}
-              {slide.notes && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">Speaker Notes:</p>
-                  <p className="text-sm">{slide.notes}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'report':
-    case 'study_guide':
-      return (
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          {data.title && <h2>{data.title}</h2>}
-          <div className="whitespace-pre-wrap">{data.content}</div>
-          {data.sections?.map((section: any, i: number) => (
-            <div key={i}>
-              <h3>{section.heading}</h3>
-              <p>{section.content}</p>
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'faq':
-      return (
-        <div className="space-y-4">
-          {data.questions?.map((q: any, i: number) => (
-            <div key={i} className="p-4 bg-muted rounded-lg">
-              <p className="font-medium mb-2">{q.question}</p>
-              <p className="text-sm text-muted-foreground">{q.answer}</p>
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'timeline':
-      return (
-        <div className="space-y-4">
-          {data.events?.map((event: any, i: number) => (
-            <div key={i} className="flex gap-4">
-              <div className="w-24 flex-shrink-0 text-sm font-medium text-primary">
-                {event.date}
-              </div>
-              <div className="flex-1 pb-4 border-l-2 border-border pl-4">
-                <p className="font-medium">{event.title}</p>
-                <p className="text-sm text-muted-foreground">{event.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'table':
-      return (
-        <div className="overflow-x-auto">
-          {data.title && <h3 className="font-medium mb-4">{data.title}</h3>}
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                {data.columns?.map((col: string, i: number) => (
-                  <th key={i} className="px-4 py-2 text-left font-medium">{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows?.map((row: string[], i: number) => (
-                <tr key={i} className="border-b border-border">
-                  {row.map((cell: string, j: number) => (
-                    <td key={j} className="px-4 py-2">{cell}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-
-    default:
-      return (
-        <pre className="text-sm bg-muted p-4 rounded-lg overflow-auto">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      );
-  }
 }
