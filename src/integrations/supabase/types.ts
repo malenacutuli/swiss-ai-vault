@@ -2645,6 +2645,56 @@ export type Database = {
           },
         ]
       }
+      citation_claims: {
+        Row: {
+          citation_id: string | null
+          claim_text: string
+          claim_type: string | null
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          match_quality: string | null
+          position_in_output: number | null
+          run_id: string | null
+          source_excerpt: string | null
+          verification_status: string | null
+        }
+        Insert: {
+          citation_id?: string | null
+          claim_text: string
+          claim_type?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          match_quality?: string | null
+          position_in_output?: number | null
+          run_id?: string | null
+          source_excerpt?: string | null
+          verification_status?: string | null
+        }
+        Update: {
+          citation_id?: string | null
+          claim_text?: string
+          claim_type?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          match_quality?: string | null
+          position_in_output?: number | null
+          run_id?: string | null
+          source_excerpt?: string | null
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "citation_claims_citation_id_fkey"
+            columns: ["citation_id"]
+            isOneToOne: false
+            referencedRelation: "source_citations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       code_executions: {
         Row: {
           code: string
@@ -5599,6 +5649,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      source_citations: {
+        Row: {
+          access_date: string | null
+          author: string | null
+          citation_key: string
+          created_at: string | null
+          credibility_score: number | null
+          excerpt: string | null
+          id: string
+          metadata: Json | null
+          publication_date: string | null
+          relevance_score: number | null
+          run_id: string | null
+          source_domain: string | null
+          source_title: string | null
+          source_type: string | null
+          source_url: string
+          user_id: string | null
+          verification_date: string | null
+          verification_method: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          access_date?: string | null
+          author?: string | null
+          citation_key: string
+          created_at?: string | null
+          credibility_score?: number | null
+          excerpt?: string | null
+          id?: string
+          metadata?: Json | null
+          publication_date?: string | null
+          relevance_score?: number | null
+          run_id?: string | null
+          source_domain?: string | null
+          source_title?: string | null
+          source_type?: string | null
+          source_url: string
+          user_id?: string | null
+          verification_date?: string | null
+          verification_method?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          access_date?: string | null
+          author?: string | null
+          citation_key?: string
+          created_at?: string | null
+          credibility_score?: number | null
+          excerpt?: string | null
+          id?: string
+          metadata?: Json | null
+          publication_date?: string | null
+          relevance_score?: number | null
+          run_id?: string | null
+          source_domain?: string | null
+          source_title?: string | null
+          source_type?: string | null
+          source_url?: string
+          user_id?: string | null
+          verification_date?: string | null
+          verification_method?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
       }
       source_guides: {
         Row: {

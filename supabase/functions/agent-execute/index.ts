@@ -4,9 +4,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { AgentStateMachine, createStateMachine } from '../_shared/agent/state-machine.ts';
-import { executeTransition, TransitionContext } from '../_shared/agent/transitions.ts';
+import { executeTransition } from '../_shared/agent/transitions.ts';
 import { AgentPlanner } from '../_shared/agent/planner.ts';
-import { AgentSupervisor, SupervisorContext } from '../_shared/agent/supervisor.ts';
+import { AgentSupervisor } from '../_shared/agent/supervisor.ts';
 import { ToolRouter } from '../_shared/tools/router.ts';
 
 const corsHeaders = {
@@ -54,19 +54,19 @@ serve(async (req) => {
     // Route to appropriate action handler
     switch (action) {
       case 'create':
-        return await handleCreate(supabase, userId, prompt, project_id, connector_ids);
+        return await handleCreate(supabase as any, userId, prompt, project_id, connector_ids);
 
       case 'start':
-        return await handleStart(supabase, userId, run_id);
+        return await handleStart(supabase as any, userId, run_id);
 
       case 'stop':
-        return await handleStop(supabase, userId, run_id);
+        return await handleStop(supabase as any, userId, run_id);
 
       case 'retry':
-        return await handleRetry(supabase, userId, run_id);
+        return await handleRetry(supabase as any, userId, run_id);
 
       case 'resume':
-        return await handleResume(supabase, userId, run_id, body.user_input);
+        return await handleResume(supabase as any, userId, run_id, body.user_input);
 
       default:
         return new Response(
@@ -93,7 +93,7 @@ serve(async (req) => {
 
 // Create new agent run
 async function handleCreate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   prompt: string,
   projectId?: string,
@@ -114,7 +114,7 @@ async function handleCreate(
     .eq('user_id', userId)
     .single();
 
-  if (!balance || balance.available_credits <= 0) {
+  if (!balance || (balance as any).available_credits <= 0) {
     return new Response(
       JSON.stringify({ error: 'Insufficient credits' }),
       {
@@ -148,9 +148,11 @@ async function handleCreate(
     );
   }
 
+  const runData = run as any;
+
   // Store initial user message
   await supabase.from('agent_messages').insert({
-    run_id: run.id,
+    run_id: runData.id,
     role: 'user',
     content: prompt,
   });
@@ -158,8 +160,8 @@ async function handleCreate(
   // Link connectors if provided
   if (connectorIds && connectorIds.length > 0) {
     await supabase.from('agent_run_connectors').insert(
-      connectorIds.map(connectorId => ({
-        run_id: run.id,
+      connectorIds.map((connectorId: string) => ({
+        run_id: runData.id,
         connector_id: connectorId,
       }))
     );
@@ -167,8 +169,8 @@ async function handleCreate(
 
   return new Response(
     JSON.stringify({
-      run_id: run.id,
-      status: run.status,
+      run_id: runData.id,
+      status: runData.status,
       message: 'Agent run created successfully',
     }),
     {
@@ -180,7 +182,7 @@ async function handleCreate(
 
 // Start agent execution
 async function handleStart(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -206,11 +208,13 @@ async function handleStart(
     });
   }
 
+  const runData = run as any;
+
   // Check if run can be started
-  if (run.status !== 'created' && run.status !== 'queued') {
+  if (runData.status !== 'created' && runData.status !== 'queued') {
     return new Response(
       JSON.stringify({
-        error: `Cannot start run in status: ${run.status}`,
+        error: `Cannot start run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -220,33 +224,30 @@ async function handleStart(
   }
 
   // Create state machine
-  const stateMachine = await createStateMachine(supabase, runId);
-  if (!stateMachine) {
-    return new Response(JSON.stringify({ error: 'Failed to create state machine' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
-  const transCtx: TransitionContext = {
-    supabase,
-    runId,
-    userId,
-    stateMachine,
-  };
+  const stateMachine = createStateMachine(runId, runData.status);
 
   // Transition to planning
-  await executeTransition(transCtx, 'planning');
+  stateMachine.transition('planning', 'user_start');
+
+  // Update status in database
+  await supabase
+    .from('agent_runs')
+    .update({ status: 'planning', updated_at: new Date().toISOString() })
+    .eq('id', runId);
 
   // Create planner and generate plan
   const planner = new AgentPlanner(supabase, userId);
-  const { plan, error: planError } = await planner.createPlan(run.prompt);
+  const { plan, error: planError } = await planner.createPlan(runData.prompt);
 
   if (!plan || planError) {
-    await executeTransition(transCtx, 'failed', {
-      error_message: `Planning failed: ${planError}`,
-      error_code: 'PLANNING_FAILED',
-    });
+    await supabase
+      .from('agent_runs')
+      .update({
+        status: 'failed',
+        error_message: `Planning failed: ${planError}`,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', runId);
 
     return new Response(
       JSON.stringify({ error: 'Planning failed', details: planError }),
@@ -279,38 +280,45 @@ async function handleStart(
 
 // Execute agent in background
 async function executeInBackground(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string,
   plan: any,
   stateMachine: AgentStateMachine
 ) {
   try {
-    // Create supervisor context
-    const toolRouter = new ToolRouter(supabase);
+    // Update to executing
+    await supabase
+      .from('agent_runs')
+      .update({ status: 'executing', started_at: new Date().toISOString() })
+      .eq('id', runId);
 
-    const supervisorCtx: SupervisorContext = {
-      supabase,
+    // Create supervisor and run
+    const supervisor = new AgentSupervisor(supabase, {
       runId,
       userId,
       plan,
-      currentPhaseNumber: 1,
-      conversationHistory: [],
-      stateMachine,
-      toolRouter,
-    };
+      currentPhaseIndex: 0,
+      phaseResults: {},
+    });
 
-    // Create and run supervisor
-    const supervisor = new AgentSupervisor(supervisorCtx);
-    await supervisor.execute();
+    await supervisor.runToCompletion();
   } catch (error) {
     console.error('Background execution error:', error);
+    await supabase
+      .from('agent_runs')
+      .update({
+        status: 'failed',
+        error_message: error instanceof Error ? error.message : 'Execution failed',
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', runId);
   }
 }
 
 // Stop agent execution
 async function handleStop(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -336,20 +344,16 @@ async function handleStop(
     });
   }
 
+  const runData = run as any;
+
   // Create state machine
-  const stateMachine = await createStateMachine(supabase, runId);
-  if (!stateMachine) {
-    return new Response(JSON.stringify({ error: 'Failed to create state machine' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  const stateMachine = createStateMachine(runId, runData.status);
 
   // Check if can be cancelled
-  if (!stateMachine.canCancel()) {
+  if (!stateMachine.canTransition('cancelled')) {
     return new Response(
       JSON.stringify({
-        error: `Cannot cancel run in status: ${run.status}`,
+        error: `Cannot cancel run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -358,15 +362,14 @@ async function handleStop(
     );
   }
 
-  const transCtx: TransitionContext = {
-    supabase,
-    runId,
-    userId,
-    stateMachine,
-  };
-
   // Transition to cancelled
-  await executeTransition(transCtx, 'cancelled');
+  await supabase
+    .from('agent_runs')
+    .update({
+      status: 'cancelled',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', runId);
 
   return new Response(
     JSON.stringify({
@@ -383,7 +386,7 @@ async function handleStop(
 
 // Retry failed run
 async function handleRetry(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -409,11 +412,13 @@ async function handleRetry(
     });
   }
 
+  const runData = run as any;
+
   // Can only retry failed runs
-  if (run.status !== 'failed') {
+  if (runData.status !== 'failed') {
     return new Response(
       JSON.stringify({
-        error: `Cannot retry run in status: ${run.status}`,
+        error: `Cannot retry run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -423,12 +428,12 @@ async function handleRetry(
   }
 
   // Create new run with same prompt
-  return handleCreate(supabase, userId, run.prompt, run.project_id);
+  return handleCreate(supabase, userId, runData.prompt, runData.project_id);
 }
 
 // Resume paused/waiting run
 async function handleResume(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string,
   userInput?: string
@@ -455,20 +460,16 @@ async function handleResume(
     });
   }
 
+  const runData = run as any;
+
   // Create state machine
-  const stateMachine = await createStateMachine(supabase, runId);
-  if (!stateMachine) {
-    return new Response(JSON.stringify({ error: 'Failed to create state machine' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  const stateMachine = createStateMachine(runId, runData.status);
 
   // Check if can be resumed
-  if (!stateMachine.canResume()) {
+  if (!stateMachine.canTransition('executing')) {
     return new Response(
       JSON.stringify({
-        error: `Cannot resume run in status: ${run.status}`,
+        error: `Cannot resume run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -486,19 +487,18 @@ async function handleResume(
     });
   }
 
-  const transCtx: TransitionContext = {
-    supabase,
-    runId,
-    userId,
-    stateMachine,
-  };
-
   // Resume execution
-  await executeTransition(transCtx, 'executing');
+  await supabase
+    .from('agent_runs')
+    .update({ status: 'executing', updated_at: new Date().toISOString() })
+    .eq('id', runId);
 
   // Continue execution in background
-  const plan = run.execution_plan;
-  executeInBackground(supabase, userId, runId, plan, stateMachine);
+  const plan = runData.execution_plan;
+  if (plan) {
+    const sm = createStateMachine(runId, 'executing');
+    executeInBackground(supabase, userId, runId, plan, sm);
+  }
 
   return new Response(
     JSON.stringify({
