@@ -142,7 +142,7 @@ export default function VaultHealth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
-  const { isPro, isPremium, isEnterprise, loading: subLoading } = useSubscription();
+  const { isPro, isPremium, isEnterprise, isLoadingSubscription: subLoading } = useSubscription();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
