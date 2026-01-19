@@ -30,7 +30,7 @@ spec:
             value: "2"
       containers:
       - name: api
-        image: docker.io/axessvideo/agent-api:v17-healthcare
+        image: docker.io/axessvideo/agent-api:v18-cors
         imagePullPolicy: Always
         command: ["python", "-u", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
         ports:

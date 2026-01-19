@@ -51,21 +51,8 @@ class Settings(BaseSettings):
     k8s_namespace: str = "agents"
     k8s_in_cluster: bool = True
 
-    # CORS
-    cors_origins: list[str] = [
-        # SwissBrain.ai (primary)
-        "https://swissbrain.ai",
-        "https://www.swissbrain.ai",
-        "https://app.swissbrain.ai",
-        "https://api.swissbrain.ai",
-        # SwissVault.ai (legacy/alias)
-        "https://swissvault.ai",
-        "https://www.swissvault.ai",
-        "https://auth.swissvault.ai",
-        # Development
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ]
+    # CORS - Allow all origins (API is protected by auth tokens)
+    cors_origins: list[str] = ["*"]
 
     # OAuth - GitHub
     github_client_id: str | None = None
