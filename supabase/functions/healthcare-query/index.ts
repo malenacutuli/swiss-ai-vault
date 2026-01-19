@@ -134,29 +134,55 @@ serve(async (req) => {
       console.log(`[Healthcare] [${requestId}] Local auth success, user: ${localUser.id.slice(0, 8)}`);
     }
 
-    // Check subscription (Ghost Pro/Premium/Enterprise required)
-    const { data: subscription, error: subError } = await supabase
-      .from('unified_subscriptions')
+    // Check subscription from multiple sources (unified_subscriptions AND billing_customers)
+    // Also check user_settings for admin/beta access
+    const allowedTiers = ['ghost_pro', 'ghost_premium', 'ghost_enterprise', 'pro', 'premium', 'enterprise', 'vault_pro', 'team', 'beta_tester'];
+    
+    // Check unified_subscriptions first
+    const { data: subscription, error: subError } = await (supabase
+      .from('unified_subscriptions') as any)
       .select('tier, status')
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
-    console.log('[Healthcare] Subscription check:', {
-      userId: user.id,
-      tier: subscription?.tier,
-      error: subError?.message
+    // Also check billing_customers as fallback
+    const { data: billing, error: billingError } = await supabase
+      .from('billing_customers')
+      .select('tier, subscription_status')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Check user_settings for admin or beta access
+    const { data: userSettings } = await supabase
+      .from('user_settings')
+      .select('account_type, feature_access')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const subscriptionTier = subscription?.tier || billing?.tier || 'free';
+    const accountType = (userSettings as any)?.account_type;
+    const isAdmin = user.email?.includes('axessible.ai') || accountType === 'admin';
+    const isBetaTester = accountType === 'beta_tester';
+    
+    console.log('[Healthcare] Access check:', {
+      userId: user.id.slice(0, 8),
+      subscriptionTier,
+      accountType,
+      isAdmin,
+      isBetaTester,
+      billingTier: billing?.tier,
+      unifiedTier: subscription?.tier
     });
 
-    // Map allowed tiers - support both naming conventions
-    const allowedTiers = ['ghost_pro', 'ghost_premium', 'ghost_enterprise', 'pro', 'premium', 'enterprise'];
-    const hasAccess = subscription && allowedTiers.includes(subscription.tier);
+    // Allow access for: pro+ tiers, admins, beta testers
+    const hasAccess = allowedTiers.includes(subscriptionTier) || isAdmin || isBetaTester;
 
     if (!hasAccess) {
       return new Response(
         JSON.stringify({
           error: 'Healthcare features require Pro subscription or higher',
-          current_tier: subscription?.tier || 'none',
+          current_tier: subscriptionTier,
           hint: 'Upgrade to Ghost Pro at /ghost/pricing'
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
