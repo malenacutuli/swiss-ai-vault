@@ -17,15 +17,33 @@ export interface AuthResult {
 }
 
 /**
+ * Decode base64url (JWT uses URL-safe base64)
+ */
+function base64UrlDecode(str: string): string {
+  // Replace URL-safe characters back to standard base64
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  // Add padding if needed
+  const pad = base64.length % 4;
+  if (pad) {
+    base64 += '='.repeat(4 - pad);
+  }
+  return atob(base64);
+}
+
+/**
  * Decode a JWT token without verification (for cross-project auth)
  */
 function decodeJWT(token: string): { header: any; payload: any } | null {
   try {
     const parts = token.split('.');
-    if (parts.length !== 3) return null;
+    if (parts.length !== 3) {
+      console.log('[cross-project-auth] Invalid JWT format, parts:', parts.length);
+      return null;
+    }
 
-    const header = JSON.parse(atob(parts[0]));
-    const payload = JSON.parse(atob(parts[1]));
+    const header = JSON.parse(base64UrlDecode(parts[0]));
+    const payload = JSON.parse(base64UrlDecode(parts[1]));
+    console.log('[cross-project-auth] JWT decoded successfully, sub:', payload.sub);
     return { header, payload };
   } catch (e) {
     console.error('[cross-project-auth] JWT decode error:', e);
@@ -59,8 +77,15 @@ export async function authenticateToken(
   token: string,
   localSupabase: SupabaseClient
 ): Promise<AuthResult> {
+  console.log('[cross-project-auth] Starting auth, token length:', token?.length);
+
   // Try local project auth first
   const { data: localAuth, error: localError } = await localSupabase.auth.getUser(token);
+
+  console.log('[cross-project-auth] Local auth result:', {
+    hasUser: !!localAuth?.user,
+    error: localError?.message
+  });
 
   if (!localError && localAuth?.user) {
     console.log('[cross-project-auth] Authenticated via local project');
@@ -70,6 +95,8 @@ export async function authenticateToken(
       source: 'local',
     };
   }
+
+  console.log('[cross-project-auth] Local auth failed, trying JWT decode fallback');
 
   // Fallback: Decode and validate Lovable project token
   const decoded = decodeJWT(token);
