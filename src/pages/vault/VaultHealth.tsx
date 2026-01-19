@@ -563,6 +563,15 @@ export default function VaultHealth() {
         throw new Error(error.message || 'Healthcare query failed');
       }
 
+      // Debug: log the response
+      console.log('[VaultHealth] Edge function response:', data);
+
+      // Handle case where data might be empty or missing content
+      if (!data || !data.content) {
+        console.error('[VaultHealth] No content in response:', data);
+        throw new Error('No response content received from healthcare assistant');
+      }
+
       const assistantMessage: DisplayMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
