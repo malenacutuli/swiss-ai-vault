@@ -9,6 +9,7 @@ import {
   BASE_DISCLAIMER,
   executeTool
 } from '../_shared/healthcare-tools/index.ts';
+import { authenticateToken, extractToken } from '../_shared/cross-project-auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,22 +54,33 @@ serve(async (req) => {
       );
     }
 
-    // Verify user with anon key (required for proper JWT validation)
+    // Create clients
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
-
-    // Create service client for privileged operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (authError || !user) {
+    // Authenticate using cross-project auth (handles both local and Lovable tokens)
+    const token = extractToken(authHeader);
+    if (!token) {
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
+        JSON.stringify({ error: 'Invalid authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const authResult = await authenticateToken(token, authClient);
+
+    if (authResult.error || !authResult.user) {
+      console.log('[Healthcare] Auth failed:', authResult.error);
+      return new Response(
+        JSON.stringify({ error: authResult.error || 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = authResult.user;
+    console.log('[Healthcare] Authenticated via:', authResult.source, 'user:', user.id);
 
     // Check subscription (Ghost Pro/Premium/Enterprise required)
     const { data: subscription, error: subError } = await supabase
