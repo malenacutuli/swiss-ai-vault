@@ -96,6 +96,7 @@ import APIPricing from "./pages/APIPricing";
 import Agents from "./pages/Agents";
 import AgentsStudio from "./pages/AgentsStudio";
 import AgentsDev from "./pages/AgentsDev";
+import AgentBuilderPage from "./pages/AgentBuilder";
 import Studio from "./pages/Studio";
 import Upgrade from "./pages/Upgrade";
 import GhostFinance from "./pages/ghost/GhostFinance";
@@ -193,6 +194,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents/builder" element={<ProtectedRoute><ErrorBoundary><AgentBuilderPage /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/studio" element={<ProtectedRoute><ErrorBoundary><Studio /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/integrations" element={
                   <ProtectedRoute>
