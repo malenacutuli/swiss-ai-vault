@@ -173,3 +173,6 @@ verify_jwt = false
 
 [functions.infographic-generator]
 verify_jwt = false
+
+[functions.healthcare-query]
+verify_jwt = false
