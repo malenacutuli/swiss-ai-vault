@@ -437,10 +437,10 @@ export default function VaultHealth() {
         });
         return false;
       }
-      if (f.size > 10 * 1024 * 1024) { // 10MB limit
+      if (f.size > 30 * 1024 * 1024) { // 30MB limit (matches Claude Chat)
         toast({
           title: 'File too large',
-          description: `${f.name} exceeds 10MB limit`,
+          description: `${f.name} exceeds 30MB limit`,
           variant: 'destructive',
         });
         return false;
