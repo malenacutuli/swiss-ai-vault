@@ -254,9 +254,9 @@ Recent deployments (Jan 19, 2026):
 ### 10.2 Frontend Components Needed
 
 - ~~Custom agent builder UI~~ DONE (src/components/agent-builder/)
-- Workspace management UI
+- ~~Workspace management UI~~ DONE (src/components/workspace/)
 - Checkpoint history viewer
-- Activity feed component
+- ~~Activity feed component~~ DONE (included in workspace)
 
 ---
 
