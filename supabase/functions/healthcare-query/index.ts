@@ -66,19 +66,31 @@ serve(async (req) => {
       );
     }
 
-    // Check subscription (Pro/Premium/Enterprise required)
-    const { data: subscription } = await supabase
-      .from('subscriptions')
+    // Check subscription (Ghost Pro/Premium/Enterprise required)
+    const { data: subscription, error: subError } = await supabase
+      .from('unified_subscriptions')
       .select('tier, status')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .single();
 
-    const hasAccess = subscription && ['pro', 'premium', 'enterprise'].includes(subscription.tier);
+    console.log('[Healthcare] Subscription check:', {
+      userId: user.id,
+      tier: subscription?.tier,
+      error: subError?.message
+    });
+
+    // Map allowed tiers - support both naming conventions
+    const allowedTiers = ['ghost_pro', 'ghost_premium', 'ghost_enterprise', 'pro', 'premium', 'enterprise'];
+    const hasAccess = subscription && allowedTiers.includes(subscription.tier);
 
     if (!hasAccess) {
       return new Response(
-        JSON.stringify({ error: 'Healthcare features require Pro subscription or higher' }),
+        JSON.stringify({
+          error: 'Healthcare features require Pro subscription or higher',
+          current_tier: subscription?.tier || 'none',
+          hint: 'Upgrade to Ghost Pro at /ghost/pricing'
+        }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -324,7 +336,7 @@ serve(async (req) => {
     // Audit log
     await supabase.from('healthcare_audit_log').insert({
       user_id: user.id,
-      action: 'message_sent',
+      action: 'query_sent',
       task_type,
       model_used: response.model_used,
       tool_calls_count: response.tool_calls_count,
