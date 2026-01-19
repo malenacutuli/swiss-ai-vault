@@ -16,19 +16,18 @@ import type { Database } from './types';
  * Edge Functions: agent-execute, agent-status, agent-logs (Phase 2+)
  */
 
+// Direct Supabase project configuration (SwissVault.ai - ghmmdochvlrnwbruyrqk)
 const AGENTS_DEV_SUPABASE_URL = import.meta.env.VITE_AGENTS_DEV_SUPABASE_URL || 'https://ghmmdochvlrnwbruyrqk.supabase.co';
-const AGENTS_DEV_SUPABASE_KEY = import.meta.env.VITE_AGENTS_DEV_SUPABASE_ANON_KEY;
+const AGENTS_DEV_SUPABASE_KEY = import.meta.env.VITE_AGENTS_DEV_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdobW1kb2NodmxybndicnV5cnFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NTcxMzMsImV4cCI6MjA4MDQzMzEzM30.jUOFsOsCq36umtlnfxsW9tnDpPio0MNh2E11uX3SaEw';
 
-if (!AGENTS_DEV_SUPABASE_KEY) {
-  console.error('[agents-client-dev] VITE_AGENTS_DEV_SUPABASE_ANON_KEY is not set. Dev agent features will not work.');
-  console.info('[agents-client-dev] Add this to your .env.local:');
-  console.info('VITE_AGENTS_DEV_SUPABASE_URL=https://ghmmdochvlrnwbruyrqk.supabase.co');
-  console.info('VITE_AGENTS_DEV_SUPABASE_ANON_KEY=<your-direct-project-anon-key>');
+if (!import.meta.env.VITE_AGENTS_DEV_SUPABASE_ANON_KEY) {
+  console.info('[agents-client-dev] Using default anon key for SwissVault.ai project');
 }
 
 export const agentsDevSupabase = createClient<Database>(
   AGENTS_DEV_SUPABASE_URL,
-  AGENTS_DEV_SUPABASE_KEY || '',
+  AGENTS_DEV_SUPABASE_KEY,
   {
     auth: {
       // Use the same auth storage as main client for seamless user experience
