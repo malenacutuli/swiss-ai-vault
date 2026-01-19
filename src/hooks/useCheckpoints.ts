@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { checkpointManager, type Checkpoint, type CheckpointSummary, type CheckpointState } from '@/lib/agents/checkpoints';
-import { supabase } from '@/integrations/supabase/client';
+import { agentsDevSupabase } from '@/integrations/supabase/agents-client-dev';
 import { toast } from 'sonner';
 
 // Server-side checkpoint types (from checkpoint_history table)
@@ -249,7 +249,7 @@ export function useCheckpoints(options: UseCheckpointsOptions = {}): UseCheckpoi
 
     setIsCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('run-service', {
+      const { data, error } = await agentsDevSupabase.functions.invoke('run-service', {
         body: {
           action: 'checkpoint',
           run_id: runId,
@@ -296,7 +296,7 @@ export function useCheckpoints(options: UseCheckpointsOptions = {}): UseCheckpoi
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('run-service', {
+      const { data, error } = await agentsDevSupabase.functions.invoke('run-service', {
         body: {
           action: 'list_checkpoints',
           run_id: runId,
@@ -328,7 +328,7 @@ export function useCheckpoints(options: UseCheckpointsOptions = {}): UseCheckpoi
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('run-service', {
+      const { data, error } = await agentsDevSupabase.functions.invoke('run-service', {
         body: {
           action: 'restore_checkpoint',
           run_id: runId,
@@ -373,7 +373,7 @@ export function useCheckpoints(options: UseCheckpointsOptions = {}): UseCheckpoi
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('run-service', {
+      const { data, error } = await agentsDevSupabase.functions.invoke('run-service', {
         body: {
           action: 'configure_auto_checkpoint',
           run_id: runId,

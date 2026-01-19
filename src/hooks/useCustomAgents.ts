@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { agentsDevSupabase } from '@/integrations/supabase/agents-client-dev';
 import { toast } from 'sonner';
 
 // Types
@@ -157,7 +157,7 @@ export function useCustomAgents(): UseCustomAgentsReturn {
 
   // Helper to call custom-agents service
   const callService = useCallback(async (action: string, params: Record<string, any> = {}): Promise<any> => {
-    const { data, error } = await supabase.functions.invoke('custom-agents', {
+    const { data, error } = await agentsDevSupabase.functions.invoke('custom-agents', {
       body: { action, ...params },
     });
 

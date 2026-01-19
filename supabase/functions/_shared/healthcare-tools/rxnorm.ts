@@ -55,6 +55,9 @@ async function getDrugInfo(rxcui: string): Promise<DrugInfo | null> {
   }
 }
 
+// Alias for compatibility
+export const checkDrugInteractions = checkDrugInteraction;
+
 export async function checkDrugInteraction(params: {
   drugs?: string[];
   drug_name?: string;
@@ -132,6 +135,85 @@ export async function checkDrugInteraction(params: {
       source: 'RxNav',
       source_url: 'https://rxnav.nlm.nih.gov/',
       error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+// OpenFDA Drug Info Lookup
+const FDA_API = 'https://api.fda.gov/drug/label.json';
+
+export interface FDADrugInfo {
+  success: boolean;
+  data?: {
+    brand_name?: string;
+    generic_name?: string;
+    manufacturer?: string;
+    route?: string;
+    indications?: string;
+    contraindications?: string;
+    warnings?: string;
+    boxed_warning?: string;
+  };
+  error?: string;
+  source: string;
+  source_url: string;
+}
+
+export async function getDrugInfoFromFDA(params: {
+  drug_name: string;
+}): Promise<FDADrugInfo> {
+  const { drug_name } = params;
+
+  if (!drug_name) {
+    return {
+      success: false,
+      error: 'drug_name is required',
+      source: 'OpenFDA',
+      source_url: 'https://open.fda.gov/'
+    };
+  }
+
+  try {
+    const query = `openfda.brand_name:"${drug_name}"+OR+openfda.generic_name:"${drug_name}"`;
+    const url = `${FDA_API}?search=${encodeURIComponent(query)}&limit=1`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.results || data.results.length === 0) {
+      return {
+        success: false,
+        error: 'Drug not found in FDA database',
+        source: 'OpenFDA',
+        source_url: 'https://open.fda.gov/'
+      };
+    }
+
+    const drug = data.results[0];
+    const openfda = drug.openfda || {};
+
+    return {
+      success: true,
+      data: {
+        brand_name: openfda.brand_name?.[0],
+        generic_name: openfda.generic_name?.[0],
+        manufacturer: openfda.manufacturer_name?.[0],
+        route: openfda.route?.[0],
+        indications: drug.indications_and_usage?.[0]?.slice(0, 500),
+        contraindications: drug.contraindications?.[0]?.slice(0, 500),
+        warnings: drug.warnings?.[0]?.slice(0, 500),
+        boxed_warning: drug.boxed_warning?.[0]?.slice(0, 500)
+      },
+      source: 'OpenFDA Drug Labels',
+      source_url: 'https://open.fda.gov/'
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      source: 'OpenFDA',
+      source_url: 'https://open.fda.gov/'
     };
   }
 }

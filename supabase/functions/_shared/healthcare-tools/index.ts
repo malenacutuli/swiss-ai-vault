@@ -11,10 +11,11 @@ export interface ToolResult {
 
 // Re-export all tools
 export { lookupICD10 } from './icd10.ts';
+export { lookupCPT } from './cpt.ts';
 export { verifyNPI } from './npi.ts';
-export { checkDrugInteraction } from './rxnorm.ts';
+export { checkDrugInteraction, checkDrugInteractions, getDrugInfoFromFDA } from './rxnorm.ts';
 export { searchPubMed } from './pubmed.ts';
-export { executeHealthcareTool } from './executor.ts';
+export { executeHealthcareTool, executeTool } from './executor.ts';
 
 // Tool definitions for Claude
 export const HEALTHCARE_TOOL_DEFINITIONS = [
@@ -110,6 +111,20 @@ export const HEALTHCARE_TOOL_DEFINITIONS = [
         }
       },
       required: ["query"]
+    }
+  },
+  {
+    name: "get_drug_info",
+    description: "Get drug information including indications, warnings, and FDA alerts from OpenFDA.",
+    input_schema: {
+      type: "object",
+      properties: {
+        drug_name: {
+          type: "string",
+          description: "Drug name (brand or generic)"
+        }
+      },
+      required: ["drug_name"]
     }
   },
   {

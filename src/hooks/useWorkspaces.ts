@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { agentsDevSupabase } from '@/integrations/supabase/agents-client-dev';
 import { toast } from 'sonner';
 
 // Types
@@ -106,9 +106,9 @@ export function useWorkspaces(): UseWorkspacesReturn {
   const [activities, setActivities] = useState<WorkspaceActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper to call workspace-service
+  // Helper to call workspace-service (uses dev client for direct Supabase project)
   const callService = useCallback(async (action: string, params: Record<string, any> = {}): Promise<any> => {
-    const { data, error } = await supabase.functions.invoke('workspace-service', {
+    const { data, error } = await agentsDevSupabase.functions.invoke('workspace-service', {
       body: { action, ...params },
     });
 
