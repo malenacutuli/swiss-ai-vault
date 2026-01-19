@@ -15,27 +15,59 @@ export async function executeHealthcareTool(
   toolInput: Record<string, any>
 ): Promise<ToolResult> {
   switch (toolName) {
-    case 'lookup_icd10':
-      return await lookupICD10(toolInput);
+    case 'lookup_icd10': {
+      const result = await lookupICD10(toolInput as any);
+      return {
+        success: !result.error,
+        data: result,
+        error: result.error,
+        source: result.source,
+        source_url: result.source_url
+      };
+    }
 
     case 'lookup_cpt':
-      return await lookupCPT(toolInput);
+      return await lookupCPT(toolInput as any);
 
-    case 'verify_npi':
-      return await verifyNPI(toolInput);
+    case 'verify_npi': {
+      const result = await verifyNPI(toolInput as any);
+      return {
+        success: !result.error && result.verified,
+        data: result,
+        error: result.error,
+        source: result.source,
+        source_url: result.source_url
+      };
+    }
 
     case 'check_drug_interaction':
-    case 'check_drug_interactions':
-      return await checkDrugInteraction(toolInput);
+    case 'check_drug_interactions': {
+      const result = await checkDrugInteraction(toolInput as any);
+      return {
+        success: !result.error,
+        data: result,
+        error: result.error,
+        source: result.source,
+        source_url: result.source_url
+      };
+    }
 
     case 'get_drug_info':
-      return await getDrugInfoFromFDA(toolInput);
+      return await getDrugInfoFromFDA(toolInput as any);
 
-    case 'search_pubmed':
-      return await searchPubMed(toolInput);
+    case 'search_pubmed': {
+      const result = await searchPubMed(toolInput as any);
+      return {
+        success: !result.error,
+        data: result,
+        error: result.error,
+        source: result.source,
+        source_url: result.source_url
+      };
+    }
 
     case 'lookup_coverage_policy':
-      return await lookupCoveragePolicy(toolInput);
+      return await lookupCoveragePolicy(toolInput as any);
 
     default:
       return {

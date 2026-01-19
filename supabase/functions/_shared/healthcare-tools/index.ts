@@ -6,6 +6,8 @@ export interface ToolResult {
   data?: any;
   error?: string;
   source?: string;
+  source_url?: string;
+  note?: string;
   cached?: boolean;
 }
 

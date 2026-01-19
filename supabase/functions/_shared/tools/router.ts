@@ -138,7 +138,7 @@ export class ToolRouter {
     // Store message in agent_messages
     const message = input.message as string;
 
-    const { error } = await this.supabase.from('agent_messages').insert({
+    const { error } = await (this.supabase.from('agent_messages') as any).insert({
       run_id: context.runId,
       role: 'assistant',
       content: message,
@@ -306,8 +306,8 @@ export class ToolRouter {
     const params = input.params as Record<string, unknown>;
 
     // Get connector credentials
-    const { data: connector } = await this.supabase
-      .from('connector_credentials')
+    const { data: connector } = await (this.supabase
+      .from('connector_credentials') as any)
       .select('*')
       .eq('user_id', context.userId)
       .eq('connector_type', connectorType)

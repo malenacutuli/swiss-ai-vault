@@ -93,7 +93,7 @@ serve(async (req) => {
 
 // Create new agent run
 async function handleCreate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   prompt: string,
   projectId?: string,
@@ -108,13 +108,13 @@ async function handleCreate(
   }
 
   // Check credit balance
-  const { data: balance } = await supabase
-    .from('credit_balances')
+  const { data: balance } = await (supabase
+    .from('credit_balances') as any)
     .select('available_credits')
     .eq('user_id', userId)
     .single();
 
-  if (!balance || balance.available_credits <= 0) {
+  if (!balance || (balance as any).available_credits <= 0) {
     return new Response(
       JSON.stringify({ error: 'Insufficient credits' }),
       {
@@ -125,8 +125,8 @@ async function handleCreate(
   }
 
   // Create agent run record
-  const { data: run, error: runError } = await supabase
-    .from('agent_runs')
+  const { data: run, error: runError } = await (supabase
+    .from('agent_runs') as any)
     .insert({
       user_id: userId,
       project_id: projectId,
@@ -149,17 +149,17 @@ async function handleCreate(
   }
 
   // Store initial user message
-  await supabase.from('agent_messages').insert({
-    run_id: run.id,
+  await (supabase.from('agent_messages') as any).insert({
+    run_id: (run as any).id,
     role: 'user',
     content: prompt,
   });
 
   // Link connectors if provided
   if (connectorIds && connectorIds.length > 0) {
-    await supabase.from('agent_run_connectors').insert(
+    await (supabase.from('agent_run_connectors') as any).insert(
       connectorIds.map(connectorId => ({
-        run_id: run.id,
+        run_id: (run as any).id,
         connector_id: connectorId,
       }))
     );
@@ -167,8 +167,8 @@ async function handleCreate(
 
   return new Response(
     JSON.stringify({
-      run_id: run.id,
-      status: run.status,
+      run_id: (run as any).id,
+      status: (run as any).status,
       message: 'Agent run created successfully',
     }),
     {
@@ -180,7 +180,7 @@ async function handleCreate(
 
 // Start agent execution
 async function handleStart(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -192,8 +192,8 @@ async function handleStart(
   }
 
   // Get run
-  const { data: run } = await supabase
-    .from('agent_runs')
+  const { data: run } = await (supabase
+    .from('agent_runs') as any)
     .select('*')
     .eq('id', runId)
     .eq('user_id', userId)
@@ -279,7 +279,7 @@ async function handleStart(
 
 // Execute agent in background
 async function executeInBackground(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string,
   plan: any,
@@ -310,7 +310,7 @@ async function executeInBackground(
 
 // Stop agent execution
 async function handleStop(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -322,8 +322,8 @@ async function handleStop(
   }
 
   // Get run
-  const { data: run } = await supabase
-    .from('agent_runs')
+  const { data: run } = await (supabase
+    .from('agent_runs') as any)
     .select('*')
     .eq('id', runId)
     .eq('user_id', userId)
@@ -383,7 +383,7 @@ async function handleStop(
 
 // Retry failed run
 async function handleRetry(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -395,8 +395,8 @@ async function handleRetry(
   }
 
   // Get run
-  const { data: run } = await supabase
-    .from('agent_runs')
+  const { data: run } = await (supabase
+    .from('agent_runs') as any)
     .select('*')
     .eq('id', runId)
     .eq('user_id', userId)
@@ -410,10 +410,10 @@ async function handleRetry(
   }
 
   // Can only retry failed runs
-  if (run.status !== 'failed') {
+  if ((run as any).status !== 'failed') {
     return new Response(
       JSON.stringify({
-        error: `Cannot retry run in status: ${run.status}`,
+        error: `Cannot retry run in status: ${(run as any).status}`,
       }),
       {
         status: 400,
@@ -423,12 +423,12 @@ async function handleRetry(
   }
 
   // Create new run with same prompt
-  return handleCreate(supabase, userId, run.prompt, run.project_id);
+  return handleCreate(supabase, userId, (run as any).prompt, (run as any).project_id);
 }
 
 // Resume paused/waiting run
 async function handleResume(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string,
   userInput?: string
@@ -441,8 +441,8 @@ async function handleResume(
   }
 
   // Get run
-  const { data: run } = await supabase
-    .from('agent_runs')
+  const { data: run } = await (supabase
+    .from('agent_runs') as any)
     .select('*')
     .eq('id', runId)
     .eq('user_id', userId)
@@ -479,7 +479,7 @@ async function handleResume(
 
   // If user input provided, store it
   if (userInput) {
-    await supabase.from('agent_messages').insert({
+    await (supabase.from('agent_messages') as any).insert({
       run_id: runId,
       role: 'user',
       content: userInput,
