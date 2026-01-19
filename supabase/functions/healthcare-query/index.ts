@@ -54,30 +54,43 @@ serve(async (req) => {
       );
     }
 
-    // Extract token from Authorization header
-    const token = authHeader.replace('Bearer ', '');
-
-    // Create clients - don't pass auth header since we use token explicitly
-    const authClient = createClient(supabaseUrl, supabaseAnonKey);
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Authenticate using cross-project auth (handles both local and Lovable tokens)
-    const authResult = await authenticateToken(token, authClient);
-
-    console.log('[Healthcare] Auth result:', {
-      source: authResult.source,
-      userId: authResult.user?.id,
-      error: authResult.error
+    // Create auth client with Authorization header (matches ghost-inference pattern)
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
     });
 
-    if (authResult.error || !authResult.user) {
-      return new Response(
-        JSON.stringify({ error: authResult.error || 'Invalid authentication token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Service client for privileged operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const user = authResult.user;
+    // Try standard Supabase auth first (works for local tokens)
+    const { data: { user: localUser }, error: localError } = await authClient.auth.getUser();
+
+    let user = localUser;
+
+    // If local auth fails, try cross-project auth for Lovable tokens
+    if (localError || !localUser) {
+      console.log('[Healthcare] Local auth failed, trying cross-project:', localError?.message);
+
+      const token = authHeader.replace('Bearer ', '');
+      const authResult = await authenticateToken(token, authClient);
+
+      console.log('[Healthcare] Cross-project auth result:', {
+        source: authResult.source,
+        userId: authResult.user?.id,
+        error: authResult.error
+      });
+
+      if (authResult.error || !authResult.user) {
+        return new Response(
+          JSON.stringify({ error: authResult.error || 'Invalid authentication token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      user = authResult.user;
+    } else {
+      console.log('[Healthcare] Local auth success, user:', localUser.id);
+    }
 
     // Check subscription (Ghost Pro/Premium/Enterprise required)
     const { data: subscription, error: subError } = await supabase
