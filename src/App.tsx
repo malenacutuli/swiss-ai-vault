@@ -97,6 +97,7 @@ import Agents from "./pages/Agents";
 import AgentsStudio from "./pages/AgentsStudio";
 import AgentsDev from "./pages/AgentsDev";
 import AgentBuilderPage from "./pages/AgentBuilder";
+import WorkspacesPage from "./pages/Workspaces";
 import Studio from "./pages/Studio";
 import Upgrade from "./pages/Upgrade";
 import GhostFinance from "./pages/ghost/GhostFinance";
@@ -203,7 +204,8 @@ const App = () => {
                     </Suspense>
                   </ProtectedRoute>
                 } />
-                
+                <Route path="/workspaces" element={<ProtectedRoute><ErrorBoundary><WorkspacesPage /></ErrorBoundary></ProtectedRoute>} />
+
                 <Route path="/ghost/finance" element={<GhostFinance />} />
                 <Route path="/ghost/patents" element={<GhostPatents />} />
                 <Route path="/ghost/legal" element={<GhostLegal />} />
