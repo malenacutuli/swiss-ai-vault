@@ -8,12 +8,12 @@
 
 | Category | Implemented | Partial | Missing | Total |
 |----------|-------------|---------|---------|-------|
-| Core Services | 3 | 2 | 3 | 8 |
-| Agent Tools | 8 | 2 | 5 | 15 |
-| AI Features | 7 | 1 | 4 | 12 |
+| Core Services | 4 | 2 | 2 | 8 |
+| Agent Tools | 12 | 2 | 1 | 15 |
+| AI Features | 8 | 1 | 3 | 12 |
 | Infrastructure | 5 | 1 | 2 | 8 |
 
-**Overall Parity: ~75%** (Updated after implementation session)
+**Overall Parity: ~85%** (Updated after Jan 19 PM session)
 
 ---
 
@@ -81,11 +81,11 @@ Current Architecture:
 | **deep_research** | ✅ DONE | `deep-research` | Multi-source synthesis |
 | **wide_research** | ✅ DONE | `agent-wide-research` | Parallel agents |
 | **data_analysis** | ⚠️ PARTIAL | `agent-api/analysis/` | Basic charts |
-| **send_email** | ❌ MISSING | - | Gmail integration exists |
-| **calendar_action** | ❌ MISSING | - | Google Calendar API |
+| **send_email** | ✅ DONE | `email-action` | send, draft, search, reply, forward |
+| **calendar_action** | ✅ DONE | `calendar-action` | create_event, list_events, quick_add |
 | **slack_action** | ✅ DONE | `slack-action` | send_message, create_channel, search |
 | **github_action** | ✅ DONE | `github-action` | create_issue, create_pr, search_code |
-| **notion_action** | ❌ MISSING | - | OAuth exists, no actions |
+| **notion_action** | ✅ DONE | `notion-action` | create_page, search, query_database |
 
 ### 2.2 Missing Tool Implementations
 
@@ -137,7 +137,7 @@ interface EmailAction {
 |---------|--------|----------|-------|
 | **Multi-provider routing** | ✅ DONE | `ghost-inference` | Anthropic, OpenAI, Gemini, etc. |
 | **Source citations** | ✅ DONE | `_shared/citations`, `deep-research` | DB tables + verification |
-| **Follow-up questions** | ❌ MISSING | - | UX feature |
+| **Follow-up questions** | ✅ DONE | `deep-research` | AI-generated follow-ups |
 | **Agent planning** | ⚠️ PARTIAL | `agent-plan` | Needs improvement |
 | **Agent memory** | ✅ DONE | IndexedDB + Supabase | Context persistence |
 | **RAG (documents)** | ✅ DONE | `embed-document`, `search-documents` | Vector search |

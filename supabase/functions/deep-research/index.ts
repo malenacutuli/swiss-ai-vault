@@ -1,5 +1,5 @@
 // supabase/functions/deep-research/index.ts
-// Enhanced with Source Citations for Manus Parity
+// Enhanced with Source Citations + Follow-up Questions for Manus Parity
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import {
@@ -11,6 +11,22 @@ import {
   type Citation,
   type Claim,
 } from "../_shared/citations/index.ts";
+
+// Follow-up question types
+type FollowUpType =
+  | 'clarification'  // "Did you mean X or Y?"
+  | 'depth'          // "Want more details on X?"
+  | 'breadth'        // "Related topic: Y"
+  | 'application'    // "How to apply this to Z?"
+  | 'comparison'     // "How does this compare to W?"
+  | 'counterpoint';  // "What are the opposing views?"
+
+interface FollowUpQuestion {
+  type: FollowUpType;
+  question: string;
+  context: string;
+  priority: number;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +48,7 @@ interface ResearchQuery {
   search_depth?: 'quick' | 'standard' | 'deep';
   include_citations?: boolean;
   verify_citations?: boolean;
+  include_follow_ups?: boolean;
 }
 
 serve(async (req) => {
@@ -64,6 +81,7 @@ serve(async (req) => {
       synthesize = true,
       include_citations = true,
       verify_citations = false,
+      include_follow_ups = true,
     } = await req.json() as ResearchQuery & { run_id?: string; step_id?: string; synthesize?: boolean };
 
     if (!query) {
@@ -136,6 +154,17 @@ serve(async (req) => {
       bibliography = formatCitationsForDisplay(citations, 'bibliography');
     }
 
+    // Generate follow-up questions (Manus parity feature)
+    let followUpQuestions: FollowUpQuestion[] = [];
+    if (include_follow_ups && synthesis?.summary) {
+      followUpQuestions = await generateFollowUpQuestions(
+        query,
+        synthesis.summary,
+        synthesis.key_points || [],
+        rankedResults.slice(0, 5)
+      );
+    }
+
     // Store research results if run_id provided
     if (run_id && step_id) {
       await supabase.from('agent_task_outputs').insert({
@@ -179,6 +208,12 @@ serve(async (req) => {
           confidence: c.confidence_score,
         })),
         bibliography,
+        // Follow-up questions (Manus parity)
+        follow_up_questions: followUpQuestions.map(q => ({
+          type: q.type,
+          question: q.question,
+          context: q.context,
+        })),
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -408,4 +443,112 @@ Format as JSON: { "summary": "...", "key_points": ["...", "..."] }`
   }
 
   return { summary: '', key_points: [], sources_used: 0 };
+}
+
+// Generate follow-up questions based on research results
+async function generateFollowUpQuestions(
+  query: string,
+  summary: string,
+  keyPoints: string[],
+  topResults: SearchResult[]
+): Promise<FollowUpQuestion[]> {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!geminiKey) {
+    return getDefaultFollowUps(query);
+  }
+
+  try {
+    const sourceTitles = topResults.map(r => r.title).join(', ');
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Based on this research, generate 4-6 natural follow-up questions a user might ask.
+
+Original Query: ${query}
+
+Summary: ${summary}
+
+Key Points:
+${keyPoints.map(p => `- ${p}`).join('\n')}
+
+Related Sources: ${sourceTitles}
+
+For each follow-up question, provide:
+- type: one of 'clarification', 'depth', 'breadth', 'application', 'comparison', 'counterpoint'
+- question: a natural, conversational question
+- context: brief explanation of why this question is relevant
+
+Requirements:
+- Questions should feel natural and conversational
+- Include a mix of question types
+- Depth questions go deeper into topics mentioned
+- Breadth questions explore related topics
+- Application questions ask how to use this knowledge
+- Comparison questions compare to alternatives
+- Counterpoint questions explore opposing views
+
+Return as JSON array: [{"type": "...", "question": "...", "context": "..."}]`
+            }]
+          }],
+          generationConfig: { temperature: 0.7 }
+        })
+      }
+    );
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return parsed.map((q: any, i: number) => ({
+        type: q.type || 'depth',
+        question: q.question,
+        context: q.context || '',
+        priority: i + 1,
+      }));
+    }
+  } catch (e) {
+    console.error("Failed to generate follow-up questions:", e);
+  }
+
+  return getDefaultFollowUps(query);
+}
+
+// Default follow-up questions when AI generation fails
+function getDefaultFollowUps(query: string): FollowUpQuestion[] {
+  const words = query.split(/\s+/).slice(0, 3).join(' ');
+
+  return [
+    {
+      type: 'depth',
+      question: `Can you explain more about the key aspects of ${words}?`,
+      context: 'Get more detailed information',
+      priority: 1,
+    },
+    {
+      type: 'application',
+      question: `How can I apply this knowledge about ${words} in practice?`,
+      context: 'Practical applications',
+      priority: 2,
+    },
+    {
+      type: 'comparison',
+      question: `How does this compare to alternative approaches?`,
+      context: 'Compare with alternatives',
+      priority: 3,
+    },
+    {
+      type: 'breadth',
+      question: `What related topics should I also explore?`,
+      context: 'Expand knowledge',
+      priority: 4,
+    },
+  ];
 }
