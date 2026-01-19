@@ -253,7 +253,7 @@ Recent deployments (Jan 19, 2026):
 
 ### 10.2 Frontend Components Needed
 
-- Custom agent builder UI
+- ~~Custom agent builder UI~~ DONE (src/components/agent-builder/)
 - Workspace management UI
 - Checkpoint history viewer
 - Activity feed component
@@ -299,7 +299,7 @@ ot_operation_history  # Edit history
 ```
 useCheckpoints.ts      # Checkpoint management
 useWorkspaces.ts       # Workspace operations
-useCustomAgents.ts     # Agent builder (TODO)
+useCustomAgents.ts     # Agent builder DONE
 ```
 
 ---
