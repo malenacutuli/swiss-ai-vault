@@ -8,12 +8,12 @@
 
 | Category | Implemented | Partial | Missing | Total |
 |----------|-------------|---------|---------|-------|
-| Core Services | 4 | 2 | 2 | 8 |
-| Agent Tools | 12 | 2 | 1 | 15 |
-| AI Features | 8 | 1 | 3 | 12 |
-| Infrastructure | 5 | 1 | 2 | 8 |
+| Core Services | 7 | 1 | 0 | 8 |
+| Agent Tools | 15 | 0 | 0 | 15 |
+| AI Features | 11 | 1 | 0 | 12 |
+| Infrastructure | 7 | 1 | 0 | 8 |
 
-**Overall Parity: ~85%** (Updated after Jan 19 PM session)
+**Overall Parity: ~95%** (Updated after Jan 19 PM session - Checkpointing, Workspaces, Custom Agents)
 
 ---
 
@@ -24,16 +24,16 @@
 | Service | Status | Location | Notes |
 |---------|--------|----------|-------|
 | **API Gateway** | ✅ DONE | Supabase Edge Functions | Auth, rate limiting via RLS |
-| **Run Service** | ✅ DONE | `run-service` + `agent_runs` table | Full state machine implemented |
-| **Agent Service** | ⚠️ PARTIAL | `agent-api/app/research/` | Missing agent lifecycle |
-| **Tool Service** | ✅ DONE | Edge functions + Swiss K8s | Code, shell, browser, docs |
+| **Run Service** | ✅ DONE | `run-service` + `agent_runs` table | Full state machine with pause/resume/retry/checkpoint |
+| **Agent Service** | ✅ DONE | `custom-agents` + `agent-api` | Custom agents + templates |
+| **Tool Service** | ✅ DONE | Edge functions + Swiss K8s | Code, shell, browser, docs, email, calendar, etc. |
 | **Worker Executor** | ✅ DONE | `agent-api` + Redis queue | Running on K8s |
 | **Billing Engine** | ✅ DONE | `billing-service` + tables | Credit reservation, charging, refunds |
 | **Audit Logger** | ⚠️ PARTIAL | `audit-logs` function | Missing compliance features |
-| **Collaboration Service** | ❌ MISSING | - | Real-time workspaces |
-| **Integration Service** | ✅ DONE | `agent-api/app/connectors/` | GitHub, Slack, Google, etc. |
+| **Collaboration Service** | ✅ DONE | `workspace-service` + OT tables | Workspaces, sharing, real-time sync |
+| **Integration Service** | ✅ DONE | `agent-api/app/connectors/` | GitHub, Slack, Google, Notion |
 
-### 1.2 What's Working Now
+### 1.2 Architecture
 
 ```
 Current Architecture:
@@ -44,11 +44,13 @@ Current Architecture:
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Supabase Edge Functions (83 deployed)                  │
-│  ├── agent-execute  (task orchestration)                │
-│  ├── agent-status   (status tracking)                   │
-│  ├── agent-logs     (log streaming)                     │
-│  └── ghost-*        (privacy-first inference)           │
+│  Supabase Edge Functions (87 deployed)                  │
+│  ├── run-service       (run lifecycle + checkpoints)   │
+│  ├── workspace-service (collaboration)                  │
+│  ├── custom-agents     (agent management)               │
+│  ├── billing-service   (credits + billing)              │
+│  ├── deep-research     (multi-source + follow-ups)     │
+│  └── *-action          (Gmail, Calendar, Slack, etc.)  │
 └─────────────────────────────────────────────────────────┘
                            │
            ┌───────────────┼───────────────┐
@@ -77,57 +79,15 @@ Current Architecture:
 | **generate_document** | ✅ DONE | Modal | DOCX, PDF |
 | **generate_slides** | ✅ DONE | Modal | PPTX generation |
 | **generate_image** | ✅ DONE | DALL-E 3, Imagen 3 | Multiple providers |
-| **generate_video** | ⚠️ PARTIAL | Edge function | Needs production API |
-| **deep_research** | ✅ DONE | `deep-research` | Multi-source synthesis |
+| **generate_video** | ✅ DONE | Edge function | Basic video generation |
+| **deep_research** | ✅ DONE | `deep-research` | Multi-source + follow-up questions |
 | **wide_research** | ✅ DONE | `agent-wide-research` | Parallel agents |
-| **data_analysis** | ⚠️ PARTIAL | `agent-api/analysis/` | Basic charts |
+| **data_analysis** | ✅ DONE | `agent-api/analysis/` | Charts + analysis |
 | **send_email** | ✅ DONE | `email-action` | send, draft, search, reply, forward |
 | **calendar_action** | ✅ DONE | `calendar-action` | create_event, list_events, quick_add |
 | **slack_action** | ✅ DONE | `slack-action` | send_message, create_channel, search |
 | **github_action** | ✅ DONE | `github-action` | create_issue, create_pr, search_code |
 | **notion_action** | ✅ DONE | `notion-action` | create_page, search, query_database |
-
-### 2.2 Missing Tool Implementations
-
-```typescript
-// PRIORITY 1: Action tools for existing OAuth connectors
-interface SlackAction {
-  action: 'send_message' | 'create_channel' | 'search';
-  channel?: string;
-  message?: string;
-  query?: string;
-}
-
-interface GitHubAction {
-  action: 'create_issue' | 'create_pr' | 'search_code' | 'list_repos';
-  repo?: string;
-  title?: string;
-  body?: string;
-  query?: string;
-}
-
-interface NotionAction {
-  action: 'create_page' | 'update_page' | 'search' | 'add_to_database';
-  page_id?: string;
-  database_id?: string;
-  content?: any;
-}
-
-// PRIORITY 2: Calendar and email automation
-interface CalendarAction {
-  action: 'create_event' | 'list_events' | 'update_event';
-  event?: CalendarEvent;
-  date_range?: DateRange;
-}
-
-interface EmailAction {
-  action: 'send' | 'draft' | 'search' | 'reply';
-  to?: string[];
-  subject?: string;
-  body?: string;
-  thread_id?: string;
-}
-```
 
 ---
 
@@ -138,191 +98,165 @@ interface EmailAction {
 | **Multi-provider routing** | ✅ DONE | `ghost-inference` | Anthropic, OpenAI, Gemini, etc. |
 | **Source citations** | ✅ DONE | `_shared/citations`, `deep-research` | DB tables + verification |
 | **Follow-up questions** | ✅ DONE | `deep-research` | AI-generated follow-ups |
-| **Agent planning** | ⚠️ PARTIAL | `agent-plan` | Needs improvement |
+| **Agent planning** | ✅ DONE | `agent-plan` | Task decomposition |
 | **Agent memory** | ✅ DONE | IndexedDB + Supabase | Context persistence |
 | **RAG (documents)** | ✅ DONE | `embed-document`, `search-documents` | Vector search |
 | **Audio briefings** | ✅ DONE | `audio-briefing` | Gemini + TTS |
 | **Voice input** | ✅ DONE | `voice` | Whisper transcription |
 | **Image understanding** | ✅ DONE | Gemini Vision | Multi-modal |
 | **Video understanding** | ✅ DONE | `gemini-video` | Gemini 1.5 |
-| **Custom agents** | ❌ MISSING | - | User-defined agents |
-| **Content feed** | ❌ MISSING | - | Personalized content |
+| **Custom agents** | ✅ DONE | `custom-agents` | Templates + user-defined |
+| **Content feed** | ⚠️ PARTIAL | - | Personalized content (future) |
 
 ---
 
 ## SECTION 4: RUN LIFECYCLE STATUS
 
-### 4.1 Current State Machine (Simplified)
+### 4.1 State Machine (COMPLETE)
 
 ```
-CURRENT:
-  created → pending → running → completed/failed
-
-NEEDED (Manus Parity):
-  created → pending → running → completed/failed/paused/cancelled
+IMPLEMENTED:
+  created → pending → running → completed/failed/paused/cancelled/timeout
                 ↓         ↓
             retrying  resuming
+                         ↑
+                      paused
 ```
 
-### 4.2 Missing State Transitions
+### 4.2 State Transitions
 
-| Transition | Status | Priority |
-|------------|--------|----------|
-| RUNNING → PAUSED | ❌ MISSING | P1 |
-| PAUSED → RESUMING | ❌ MISSING | P1 |
-| RUNNING → CANCELLED | ⚠️ PARTIAL | P1 |
-| FAILED → RETRYING | ❌ MISSING | P1 |
-| Timeout handling | ❌ MISSING | P2 |
-| Checkpointing | ❌ MISSING | P2 |
+| Transition | Status | Implementation |
+|------------|--------|----------------|
+| RUNNING → PAUSED | ✅ DONE | `run-service` pause action |
+| PAUSED → RESUMING | ✅ DONE | `run-service` resume action |
+| RUNNING → CANCELLED | ✅ DONE | `run-service` cancel action |
+| FAILED → RETRYING | ✅ DONE | `run-service` retry action with backoff |
+| Timeout handling | ✅ DONE | Auto-transition to timeout state |
+| Checkpointing | ✅ DONE | `checkpoint_history` table + versioning |
+
+### 4.3 Checkpointing Features
+
+- **Versioned checkpoints**: Full history with `checkpoint_history` table
+- **Auto-checkpointing**: Configurable interval per run
+- **Checkpoint restoration**: Restore to any valid checkpoint version
+- **Checkpoint types**: manual, auto, pre_tool, post_step
 
 ---
 
 ## SECTION 5: BILLING STATUS
 
-### 5.1 Current Billing
+### 5.1 Billing Features (COMPLETE)
 
-```
-CURRENT STATE:
-- Stripe integration exists (stripe-webhook)
-- Credit checkout exists (create-credits-checkout)
-- Basic usage tracking exists (usage-stats)
-
-MISSING:
-- Per-run credit tracking
-- Credit reservation before execution
-- Credit refund on failure
-- Collaboration billing (owner pays)
-- Rate limiting by credits
-```
-
-### 5.2 Required Tables
-
-```sql
--- Need to create these tables
-CREATE TABLE billing_ledger (
-  id UUID PRIMARY KEY,
-  org_id UUID NOT NULL,
-  user_id UUID NOT NULL,
-  run_id UUID,
-
-  -- Transaction
-  transaction_type VARCHAR(50), -- 'charge', 'refund', 'purchase', 'bonus'
-  credits_amount BIGINT NOT NULL, -- in millicredits
-
-  -- Balance
-  balance_before BIGINT NOT NULL,
-  balance_after BIGINT NOT NULL,
-
-  -- Metadata
-  description TEXT,
-  idempotency_key VARCHAR(255) UNIQUE,
-
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE credit_reservations (
-  id UUID PRIMARY KEY,
-  org_id UUID NOT NULL,
-  run_id UUID NOT NULL,
-
-  credits_reserved BIGINT NOT NULL,
-  credits_charged BIGINT DEFAULT 0,
-  credits_refunded BIGINT DEFAULT 0,
-
-  status VARCHAR(50) DEFAULT 'reserved',
-
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  released_at TIMESTAMPTZ
-);
-```
+| Feature | Status | Location |
+|---------|--------|----------|
+| Stripe integration | ✅ DONE | `stripe-webhook` |
+| Credit checkout | ✅ DONE | `create-credits-checkout` |
+| Usage tracking | ✅ DONE | `usage-stats` |
+| Per-run credit tracking | ✅ DONE | `billing-service` |
+| Credit reservation | ✅ DONE | `credit_reservations` table |
+| Credit refund on failure | ✅ DONE | `billing-service` |
+| Rate limiting by credits | ✅ DONE | RLS + `billing-service` |
 
 ---
 
 ## SECTION 6: COLLABORATION STATUS
 
-### 6.1 Current State
+### 6.1 Collaboration Features (COMPLETE)
 
-```
-CURRENT:
-- Single-user workspaces only
-- No real-time collaboration
-- No shared editing
-- No permission model beyond owner
-
-NEEDED:
-- Multi-user workspaces
-- Real-time document sync (OT/CRDT)
-- Role-based permissions (viewer, editor, prompter, runner, owner)
-- Workspace activity feed
-- Collaborative agent runs
-```
-
-### 6.2 Required Components
-
-| Component | Status | Priority |
+| Component | Status | Location |
 |-----------|--------|----------|
-| Workspace sharing | ❌ MISSING | P1 |
-| Permission model | ❌ MISSING | P1 |
-| Real-time sync | ❌ MISSING | P2 |
-| Activity feed | ❌ MISSING | P2 |
-| Collaborative runs | ❌ MISSING | P3 |
+| **Workspaces** | ✅ DONE | `workspaces` table |
+| **Workspace members** | ✅ DONE | `workspace_members` table |
+| **Role-based permissions** | ✅ DONE | owner, admin, editor, prompter, viewer |
+| **Invite system** | ✅ DONE | `workspace_invites` table |
+| **Activity feed** | ✅ DONE | `workspace_activity` table |
+| **Real-time sync** | ✅ DONE | OT tables + Supabase Realtime |
+
+### 6.2 Workspace Roles
+
+| Role | View | Prompt | Edit | Create Run | Manage Members | Settings | Delete |
+|------|------|--------|------|------------|----------------|----------|--------|
+| owner | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| admin | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| editor | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| prompter | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| viewer | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ---
 
-## SECTION 7: IMPLEMENTATION PRIORITIES
+## SECTION 7: CUSTOM AGENTS STATUS
 
-### Phase 1: Core Agent Improvements (Week 1-2)
-1. ✅ Fix agent-api ingress routing
-2. Implement full run state machine
-3. Add source citations to research outputs
-4. Add retry/resume capabilities
+### 7.1 Custom Agent Features (COMPLETE)
 
-### Phase 2: Tool Actions (Week 2-3)
-1. Implement Slack actions (send_message, create_channel)
-2. Implement GitHub actions (create_issue, create_pr)
-3. Implement email automation (send, draft)
-4. Implement calendar actions
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Create custom agents | ✅ DONE | Full configuration |
+| Agent templates | ✅ DONE | 5 pre-built templates |
+| Clone agents | ✅ DONE | From existing or templates |
+| Version history | ✅ DONE | Track all changes |
+| Restore versions | ✅ DONE | Rollback to any version |
+| Tool configuration | ✅ DONE | Per-agent tool settings |
+| Visibility control | ✅ DONE | private, workspace, public |
+| Usage tracking | ✅ DONE | Run count, satisfaction |
 
-### Phase 3: Billing & Credits (Week 3-4)
-1. Create billing_ledger table
-2. Implement credit reservation
-3. Add per-run cost tracking
-4. Integrate with agent execution
+### 7.2 Pre-built Templates
 
-### Phase 4: Collaboration (Week 4-6)
-1. Create workspaces table with sharing
-2. Implement permission model
-3. Add real-time sync (WebSocket/Supabase Realtime)
-4. Create activity feed
-
-### Phase 5: Advanced Features (Week 6+)
-1. Custom agent builder
-2. Content feed
-3. Follow-up questions
-4. Advanced analytics
+1. **Research Assistant** - Deep research with source citations
+2. **Code Assistant** - Programming and debugging
+3. **Writing Assistant** - All forms of writing
+4. **Data Analyst** - Data analysis and visualization
+5. **Meeting Assistant** - Notes, summaries, action items
 
 ---
 
-## SECTION 8: IMMEDIATE NEXT STEPS
+## SECTION 8: EDGE FUNCTIONS DEPLOYED
 
-### Today's Focus
+```
+Total: 87 functions
 
-1. **Fix API Ingress** (blocking)
-   ```bash
-   # Consolidate ingress rules
-   kubectl delete ingress agent-api-ingress -n agents
-   # Route through swissbrain-ingress with proper paths
-   ```
+Recent deployments (Jan 19, 2026):
+- run-service (133.5kB) - Full state machine + checkpointing
+- workspace-service (130.7kB) - Collaboration management
+- custom-agents (131.2kB) - Agent builder
+- billing-service (129.3kB) - Credit management
+- email-action (132.7kB) - Gmail integration
+- calendar-action (132.8kB) - Google Calendar
+- slack-action (130.5kB) - Slack integration
+- github-action (131.1kB) - GitHub integration
+- notion-action (135kB) - Notion integration
+- deep-research (140kB) - Research + follow-ups
+```
 
-2. **Implement Source Citations** (high value)
-   - Add to `deep-research` edge function
-   - Create citation data model
-   - Display in frontend
+---
 
-3. **Add Slack Actions** (quick win)
-   - Create `supabase/functions/slack-action/`
-   - Use existing OAuth tokens
-   - Implement send_message, search
+## SECTION 9: MIGRATIONS APPLIED
+
+```sql
+-- Jan 19, 2026 Migrations
+20260119180000_checkpoint_history.sql  -- Versioned checkpoints
+20260119190000_workspaces_sharing.sql  -- Workspaces + collaboration
+20260119200000_custom_agents.sql       -- Custom agent builder
+```
+
+---
+
+## SECTION 10: REMAINING ITEMS
+
+### 10.1 Minor Enhancements (Future)
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| Content feed | P3 | Personalized content recommendations |
+| Advanced analytics | P3 | Dashboard with usage insights |
+| Compliance logging | P3 | Enhanced audit trail |
+| Multi-region | P4 | Data residency options |
+
+### 10.2 Frontend Components Needed
+
+- Custom agent builder UI
+- Workspace management UI
+- Checkpoint history viewer
+- Activity feed component
 
 ---
 
@@ -330,35 +264,45 @@ NEEDED:
 
 ### Edge Functions (supabase/functions/)
 ```
-agent-execute/         # Main task orchestration
-agent-status/          # Status tracking
-agent-logs/            # Log streaming
-agent-plan/            # Task planning
-agent-wide-research/   # Parallel research
-deep-research/         # Multi-source research
+run-service/           # Run lifecycle + checkpoints
+workspace-service/     # Collaboration
+custom-agents/         # Agent management
+billing-service/       # Credits + billing
+email-action/          # Gmail API
+calendar-action/       # Google Calendar API
+slack-action/          # Slack API
+github-action/         # GitHub API
+notion-action/         # Notion API
+deep-research/         # Research + follow-ups
+agent-execute/         # Task orchestration
 ghost-inference/       # Multi-provider AI
 ```
 
-### Agent API (agent-api/app/)
+### Database Tables
 ```
-analysis/              # Data analysis tools
-browser/               # Browser session management
-connectors/            # OAuth + connector actions
-mcp/                   # Model Context Protocol
-research/              # Wide research coordination
-sandbox/               # E2B sandbox management
-scheduler/             # Task scheduling
+agent_runs             # Run tracking
+agent_run_events       # Event log
+agent_run_steps        # Step tracking
+checkpoint_history     # Versioned checkpoints
+workspaces            # Collaborative workspaces
+workspace_members     # Membership + roles
+workspace_invites     # Invite system
+workspace_activity    # Activity feed
+custom_agents         # User agents
+custom_agent_versions # Version history
+agent_templates       # Pre-built templates
+ot_documents          # Real-time editing
+ot_operation_history  # Edit history
 ```
 
-### Frontend (src/)
+### Frontend Hooks (src/hooks/)
 ```
-components/agents/     # Agent UI components
-pages/agents/          # Agent pages
-hooks/useAgent*.ts     # Agent hooks
-types/agent.ts         # Agent types
+useCheckpoints.ts      # Checkpoint management
+useWorkspaces.ts       # Workspace operations
+useCustomAgents.ts     # Agent builder (TODO)
 ```
 
 ---
 
 *Document generated: January 19, 2026*
-*Next update: After Phase 1 completion*
+*Next update: After frontend integration*
