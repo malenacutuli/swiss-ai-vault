@@ -4223,6 +4223,164 @@ export type Database = {
         }
         Relationships: []
       }
+      healthcare_audit_log: {
+        Row: {
+          action: string
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          model_used: string | null
+          task_type: string | null
+          tool_calls_count: number | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          model_used?: string | null
+          task_type?: string | null
+          tool_calls_count?: number | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          model_used?: string | null
+          task_type?: string | null
+          tool_calls_count?: number | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      healthcare_conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          message_count: number | null
+          retention_mode: string | null
+          task_type: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          retention_mode?: string | null
+          task_type?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          retention_mode?: string | null
+          task_type?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      healthcare_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          encrypted_content: string
+          id: string
+          latency_ms: number | null
+          model_used: string | null
+          role: string
+          tool_calls: Json | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          encrypted_content: string
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          role: string
+          tool_calls?: Json | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          encrypted_content?: string
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          role?: string
+          tool_calls?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "healthcare_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "healthcare_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      healthcare_usage: {
+        Row: {
+          created_at: string | null
+          id: string
+          latency_ms: number | null
+          model_used: string | null
+          query_length: number | null
+          response_length: number | null
+          task_type: string
+          tool_calls: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          query_length?: number | null
+          response_length?: number | null
+          task_type: string
+          tool_calls?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          latency_ms?: number | null
+          model_used?: string | null
+          query_length?: number | null
+          response_length?: number | null
+          task_type?: string
+          tool_calls?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       inference_stats: {
         Row: {
           cache_tier: string | null
