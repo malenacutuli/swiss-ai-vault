@@ -41,19 +41,22 @@ const VALID_TRANSITIONS: Record<RunState, RunState[]> = {
 
 // Action types
 type RunServiceAction =
-  | 'create'      // Create a new run
-  | 'start'       // Start a created run
-  | 'pause'       // Pause a running run
-  | 'resume'      // Resume a paused run
-  | 'retry'       // Retry a failed/timeout run
-  | 'cancel'      // Cancel any non-terminal run
-  | 'complete'    // Mark run as completed
-  | 'fail'        // Mark run as failed
-  | 'checkpoint'  // Create a checkpoint
-  | 'get'         // Get run status
-  | 'list'        // List runs
-  | 'add_step'    // Add a step to the run
-  | 'update_step' // Update a step
+  | 'create'              // Create a new run
+  | 'start'               // Start a created run
+  | 'pause'               // Pause a running run
+  | 'resume'              // Resume a paused run
+  | 'retry'               // Retry a failed/timeout run
+  | 'cancel'              // Cancel any non-terminal run
+  | 'complete'            // Mark run as completed
+  | 'fail'                // Mark run as failed
+  | 'checkpoint'          // Create a checkpoint
+  | 'get'                 // Get run status
+  | 'list'                // List runs
+  | 'add_step'            // Add a step to the run
+  | 'update_step'         // Update a step
+  | 'list_checkpoints'    // List checkpoint history
+  | 'restore_checkpoint'  // Restore to a specific checkpoint
+  | 'configure_auto_checkpoint' // Configure auto-checkpointing
 
 interface RunServiceRequest {
   action: RunServiceAction;
@@ -85,6 +88,15 @@ interface RunServiceRequest {
   state_filter?: RunState[];
   limit?: number;
   offset?: number;
+  // Checkpoint params (enhanced)
+  checkpoint_type?: 'manual' | 'auto' | 'pre_tool' | 'post_step';
+  checkpoint_version?: number;
+  context_snapshot?: Record<string, any>;
+  messages_snapshot?: any[];
+  checkpoint_description?: string;
+  // Auto-checkpoint config
+  auto_checkpoint_enabled?: boolean;
+  auto_checkpoint_interval?: number;
 }
 
 interface Run {
@@ -398,23 +410,126 @@ serve(async (req) => {
         if (!params.run_id) throw new Error('run_id is required');
         if (!params.checkpoint_data) throw new Error('checkpoint_data is required');
 
-        await supabase.from('agent_runs').update({
-          checkpoint_data: params.checkpoint_data,
-          checkpoint_step: params.checkpoint_step || 0,
-          checkpoint_at: new Date().toISOString(),
-        }).eq('id', params.run_id);
-
-        await supabase.from('agent_run_events').insert({
-          run_id: params.run_id,
-          event_type: 'checkpoint',
-          triggered_by: 'system',
-          event_data: {
-            step: params.checkpoint_step,
-            data_keys: Object.keys(params.checkpoint_data),
-          },
+        // Use versioned checkpoint function for full history
+        const { data: checkpointResult, error: cpError } = await supabase.rpc('create_versioned_checkpoint', {
+          p_run_id: params.run_id,
+          p_step_number: params.checkpoint_step || 0,
+          p_checkpoint_type: params.checkpoint_type || 'manual',
+          p_state_snapshot: params.checkpoint_data,
+          p_context_snapshot: params.context_snapshot || {},
+          p_messages_snapshot: params.messages_snapshot || [],
+          p_description: params.checkpoint_description,
         });
 
-        result = { success: true, checkpoint_step: params.checkpoint_step };
+        if (cpError) {
+          console.error('[run-service] Checkpoint error:', cpError);
+          // Fallback to simple checkpoint
+          await supabase.from('agent_runs').update({
+            checkpoint_data: params.checkpoint_data,
+            checkpoint_step: params.checkpoint_step || 0,
+            checkpoint_at: new Date().toISOString(),
+          }).eq('id', params.run_id);
+
+          result = { success: true, checkpoint_step: params.checkpoint_step };
+        } else {
+          result = checkpointResult;
+        }
+        break;
+      }
+
+      // ===== LIST_CHECKPOINTS =====
+      case 'list_checkpoints': {
+        if (!params.run_id) throw new Error('run_id is required');
+
+        // Verify user owns the run
+        const { data: run } = await supabase
+          .from('agent_runs')
+          .select('id')
+          .eq('id', params.run_id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!run) throw new Error('Run not found');
+
+        const { data: history, error: histError } = await supabase.rpc('get_checkpoint_history', {
+          p_run_id: params.run_id,
+          p_limit: params.limit || 20,
+        });
+
+        if (histError) throw histError;
+
+        result = { checkpoints: history || [] };
+        break;
+      }
+
+      // ===== RESTORE_CHECKPOINT =====
+      case 'restore_checkpoint': {
+        if (!params.run_id) throw new Error('run_id is required');
+
+        // Verify user owns the run
+        const { data: run } = await supabase
+          .from('agent_runs')
+          .select('*')
+          .eq('id', params.run_id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!run) throw new Error('Run not found');
+
+        // Call restore function
+        const { data: restoreResult, error: restoreError } = await supabase.rpc('restore_from_checkpoint', {
+          p_run_id: params.run_id,
+          p_checkpoint_version: params.checkpoint_version || null,
+        });
+
+        if (restoreError) throw restoreError;
+
+        if (!restoreResult?.success) {
+          throw new Error(restoreResult?.error || 'Failed to restore checkpoint');
+        }
+
+        result = {
+          restored: true,
+          version: restoreResult.restored_version,
+          step: restoreResult.restored_step,
+          state_snapshot: restoreResult.state_snapshot,
+          context_snapshot: restoreResult.context_snapshot,
+          messages_snapshot: restoreResult.messages_snapshot,
+        };
+        break;
+      }
+
+      // ===== CONFIGURE_AUTO_CHECKPOINT =====
+      case 'configure_auto_checkpoint': {
+        if (!params.run_id) throw new Error('run_id is required');
+
+        const updates: any = {};
+        if (params.auto_checkpoint_enabled !== undefined) {
+          updates.auto_checkpoint_enabled = params.auto_checkpoint_enabled;
+        }
+        if (params.auto_checkpoint_interval !== undefined) {
+          updates.auto_checkpoint_interval = Math.max(1, params.auto_checkpoint_interval);
+        }
+
+        if (Object.keys(updates).length === 0) {
+          throw new Error('At least one of auto_checkpoint_enabled or auto_checkpoint_interval is required');
+        }
+
+        const { data: updated, error } = await supabase
+          .from('agent_runs')
+          .update(updates)
+          .eq('id', params.run_id)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        result = {
+          run_id: params.run_id,
+          auto_checkpoint_enabled: updated.auto_checkpoint_enabled,
+          auto_checkpoint_interval: updated.auto_checkpoint_interval,
+        };
         break;
       }
 
