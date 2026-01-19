@@ -12,6 +12,10 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Lovable-managed project for cross-project auth validation
+const LOVABLE_SUPABASE_URL = 'https://rljnrgscmosgkcjdvlrq.supabase.co';
+const LOVABLE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsam5yZ3NjbW9zZ2tjamR2bHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDIxNzIsImV4cCI6MjA4MDQxODE3Mn0.C_Y5OyGaIH3QPX15QTfwafe-_y7YzHvO4z6HU55Y1-A';
+
 type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'prompter' | 'viewer';
 
 type WorkspaceAction =
@@ -60,7 +64,7 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    // Authenticate
+    // Authenticate - try local project first, then Lovable project
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -70,9 +74,26 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
+    // Try local project auth first
+    let user = null;
+    const { data: localAuth, error: localError } = await supabase.auth.getUser(token);
+
+    if (!localError && localAuth?.user) {
+      user = localAuth.user;
+      console.log('[workspace-service] Authenticated via local project');
+    } else {
+      // Fallback: Try Lovable project auth (for cross-project requests)
+      const lovableClient = createClient(LOVABLE_SUPABASE_URL, LOVABLE_ANON_KEY);
+      const { data: lovableAuth, error: lovableError } = await lovableClient.auth.getUser(token);
+
+      if (!lovableError && lovableAuth?.user) {
+        user = lovableAuth.user;
+        console.log('[workspace-service] Authenticated via Lovable project');
+      }
+    }
+
+    if (!user) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

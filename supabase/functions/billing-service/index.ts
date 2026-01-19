@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { authenticateToken, extractToken } from "../_shared/cross-project-auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,24 +78,23 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    // Authenticate
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // Authenticate (supports both local and Lovable project tokens)
+    const token = extractToken(req.headers.get('Authorization'));
+    if (!token) {
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
+    const authResult = await authenticateToken(token, supabase);
+    if (!authResult.user) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid token' }),
+        JSON.stringify({ success: false, error: authResult.error || 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    const user = authResult.user;
 
     const params: BillingRequest = await req.json();
 
