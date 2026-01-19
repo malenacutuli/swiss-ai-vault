@@ -9,7 +9,7 @@ import {
   BASE_DISCLAIMER,
   executeTool
 } from '../_shared/healthcare-tools/index.ts';
-import { authenticateToken, extractToken } from '../_shared/cross-project-auth.ts';
+import { authenticateToken } from '../_shared/cross-project-auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,25 +54,23 @@ serve(async (req) => {
       );
     }
 
-    // Create clients
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Extract token from Authorization header
+    const token = authHeader.replace('Bearer ', '');
+
+    // Create clients - don't pass auth header since we use token explicitly
+    const authClient = createClient(supabaseUrl, supabaseAnonKey);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authenticate using cross-project auth (handles both local and Lovable tokens)
-    const token = extractToken(authHeader);
-    if (!token) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const authResult = await authenticateToken(token, authClient);
 
+    console.log('[Healthcare] Auth result:', {
+      source: authResult.source,
+      userId: authResult.user?.id,
+      error: authResult.error
+    });
+
     if (authResult.error || !authResult.user) {
-      console.log('[Healthcare] Auth failed:', authResult.error);
       return new Response(
         JSON.stringify({ error: authResult.error || 'Invalid authentication token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -80,7 +78,6 @@ serve(async (req) => {
     }
 
     const user = authResult.user;
-    console.log('[Healthcare] Authenticated via:', authResult.source, 'user:', user.id);
 
     // Check subscription (Ghost Pro/Premium/Enterprise required)
     const { data: subscription, error: subError } = await supabase
