@@ -13,7 +13,7 @@
 | AI Features | 11 | 1 | 0 | 12 |
 | Infrastructure | 7 | 1 | 0 | 8 |
 
-**Overall Parity: ~95%** (Updated after Jan 19 PM session - Checkpointing, Workspaces, Custom Agents)
+**Overall Parity: ~97%** (All frontend components complete - Agent Builder, Workspaces, Checkpoints)
 
 ---
 
@@ -255,7 +255,7 @@ Recent deployments (Jan 19, 2026):
 
 - ~~Custom agent builder UI~~ DONE (src/components/agent-builder/)
 - ~~Workspace management UI~~ DONE (src/components/workspace/)
-- Checkpoint history viewer
+- ~~Checkpoint history viewer~~ DONE (src/components/checkpoints/)
 - ~~Activity feed component~~ DONE (included in workspace)
 
 ---
