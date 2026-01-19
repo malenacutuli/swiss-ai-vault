@@ -173,12 +173,6 @@ export default function VaultHealth() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Get auth token from Supabase
-  const getAuthToken = async (): Promise<string> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || '';
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -196,27 +190,17 @@ export default function VaultHealth() {
     setShowTaskSelector(false);
 
     try {
-      const token = await getAuthToken();
-
-      // Call Swiss K8s Healthcare API
-      const response = await fetch('https://api.swissbrain.ai/healthcare/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      // Call Supabase Edge Function (handles auth and proxies to K8s API)
+      const { data, error } = await supabase.functions.invoke('healthcare-query', {
+        body: {
           query: userMessage.content,
           task_type: taskType,
-          // TODO: Add context_chunks from local documents
-        }),
+        },
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (error) {
+        throw new Error(error.message || 'Healthcare query failed');
       }
-
-      const data = await response.json();
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
