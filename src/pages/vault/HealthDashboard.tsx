@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FileCheck, 
-  AlertTriangle, 
-  Clock, 
+import {
+  FileCheck,
+  AlertTriangle,
+  Clock,
   TrendingUp,
   Plus,
   List,
   Calendar,
   ArrowRight,
   Activity,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SwissCard, SwissCardHeader, SwissCardTitle, SwissCardContent } from '@/components/ui/swiss/SwissCard';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface StatCardProps {
   title: string;
@@ -80,40 +83,25 @@ interface Deadline {
   patientName?: string;
 }
 
-const mockDeadlines: Deadline[] = [
-  {
-    id: '1',
-    title: 'PA Response Required',
-    type: 'prior_auth',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 2),
-    priority: 'urgent',
-    patientName: 'Patient ID: 4829'
-  },
-  {
-    id: '2',
-    title: 'Appeal Deadline',
-    type: 'appeal',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24),
-    priority: 'high',
-    patientName: 'Claim #78291'
-  },
-  {
-    id: '3',
-    title: 'Documentation Review',
-    type: 'documentation',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
-    priority: 'medium',
-    patientName: 'Patient ID: 1093'
-  },
-  {
-    id: '4',
-    title: 'Prior Auth Follow-up',
-    type: 'prior_auth',
-    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 72),
-    priority: 'low',
-    patientName: 'Patient ID: 7721'
-  }
-];
+interface DashboardStats {
+  pendingPAs: number;
+  deniedClaims: number;
+  urgentTasks: number;
+  totalPriorAuths: number;
+}
+
+interface WorkflowTask {
+  id: string;
+  title: string;
+  description?: string;
+  task_type: string;
+  priority: string;
+  due_date?: string;
+  status: string;
+  prior_auth?: { reference_number: string; payer_name: string };
+  claim?: { claim_number: string; payer_name: string };
+  appeal?: { id: string; deadline: string };
+}
 
 function formatTimeRemaining(date: Date): string {
   const now = new Date();
@@ -142,19 +130,97 @@ function getPriorityStyles(priority: Deadline['priority']) {
 
 export default function HealthDashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    pendingPAs: 12,
-    deniedClaims: 8,
-    urgentTasks: 3,
-    collectionRate: 94.2
+  const { toast } = useToast();
+  const [stats, setStats] = useState<DashboardStats>({
+    pendingPAs: 0,
+    deniedClaims: 0,
+    urgentTasks: 0,
+    totalPriorAuths: 0
   });
-  const [deadlines, setDeadlines] = useState<Deadline[]>(mockDeadlines);
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch dashboard stats
+      const { data: statsData, error: statsError } = await supabase.functions.invoke('healthcare-workflows', {
+        body: { action: 'dashboard.stats' }
+      });
+
+      if (statsError) throw statsError;
+
+      if (statsData?.stats) {
+        setStats({
+          pendingPAs: statsData.stats.pending_prior_auths || 0,
+          deniedClaims: statsData.stats.denied_claims || 0,
+          urgentTasks: statsData.stats.pending_tasks || 0,
+          totalPriorAuths: statsData.stats.total_prior_auths || 0
+        });
+      }
+
+      // Fetch pending tasks for deadlines
+      const { data: tasksData, error: tasksError } = await supabase.functions.invoke('healthcare-workflows', {
+        body: {
+          action: 'tasks.list',
+          filters: { status: 'pending', limit: 5 }
+        }
+      });
+
+      if (tasksError) throw tasksError;
+
+      if (tasksData?.tasks) {
+        const mappedDeadlines: Deadline[] = tasksData.tasks.map((task: WorkflowTask) => ({
+          id: task.id,
+          title: task.title,
+          type: mapTaskType(task.task_type),
+          dueDate: task.due_date ? new Date(task.due_date) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          priority: mapPriority(task.priority),
+          patientName: task.prior_auth?.reference_number || task.claim?.claim_number || task.description
+        }));
+        setDeadlines(mappedDeadlines);
+      }
+
+    } catch (error) {
+      console.error('Dashboard fetch error:', error);
+      // Don't show error toast on initial load if user not authenticated
+      if (!isLoading) {
+        toast({
+          title: 'Error loading dashboard',
+          description: error instanceof Error ? error.message : 'Failed to fetch dashboard data',
+          variant: 'destructive'
+        });
+      }
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  const mapTaskType = (taskType: string): Deadline['type'] => {
+    if (taskType.includes('prior_auth')) return 'prior_auth';
+    if (taskType.includes('appeal')) return 'appeal';
+    if (taskType.includes('documentation') || taskType.includes('document')) return 'documentation';
+    return 'review';
+  };
+
+  const mapPriority = (priority: string): Deadline['priority'] => {
+    switch (priority?.toLowerCase()) {
+      case 'urgent': return 'urgent';
+      case 'high': return 'high';
+      case 'normal': return 'medium';
+      case 'low': return 'low';
+      default: return 'medium';
+    }
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchDashboardData();
+  };
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
+    fetchDashboardData();
   }, []);
 
   const quickActions = [
@@ -206,13 +272,24 @@ export default function HealthDashboard() {
                 Revenue cycle management dashboard
               </p>
             </div>
-            <Button 
-              onClick={() => navigate('/vault/health')}
-              className="bg-[#1D4E5F] hover:bg-[#1D4E5F]/90"
-            >
-              <Activity className="w-4 h-4 mr-2" />
-              AI Assistant
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")} />
+                Refresh
+              </Button>
+              <Button
+                onClick={() => navigate('/vault/health')}
+                className="bg-[#1D4E5F] hover:bg-[#1D4E5F]/90"
+              >
+                <Activity className="w-4 h-4 mr-2" />
+                AI Assistant
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -229,28 +306,27 @@ export default function HealthDashboard() {
               value={stats.pendingPAs}
               description="Awaiting response"
               icon={FileCheck}
-              variant="warning"
+              variant={stats.pendingPAs > 0 ? 'warning' : 'default'}
             />
             <StatCard
               title="Denied Claims"
               value={stats.deniedClaims}
               description="Require appeal"
               icon={AlertTriangle}
-              variant="urgent"
+              variant={stats.deniedClaims > 0 ? 'urgent' : 'default'}
             />
             <StatCard
-              title="Urgent Tasks"
+              title="Pending Tasks"
               value={stats.urgentTasks}
-              description="Due within 24h"
+              description="Action required"
               icon={Clock}
-              variant={stats.urgentTasks > 0 ? 'urgent' : 'default'}
+              variant={stats.urgentTasks > 0 ? 'warning' : 'default'}
             />
             <StatCard
-              title="Collection Rate"
-              value={`${stats.collectionRate}%`}
-              description="Current month"
+              title="Total Prior Auths"
+              value={stats.totalPriorAuths}
+              description="All time"
               icon={TrendingUp}
-              trend={{ value: 2.3, isPositive: true }}
               variant="success"
             />
           </div>
@@ -272,36 +348,45 @@ export default function HealthDashboard() {
                 </div>
               </SwissCardHeader>
               <SwissCardContent>
-                <div className="space-y-3">
-                  {deadlines.map((deadline) => (
-                    <div
-                      key={deadline.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-white/50 hover:bg-white/80 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          'w-2 h-2 rounded-full',
-                          deadline.priority === 'urgent' ? 'bg-red-500' :
-                          deadline.priority === 'high' ? 'bg-amber-500' :
-                          deadline.priority === 'medium' ? 'bg-blue-500' : 'bg-gray-400'
-                        )} />
-                        <div>
-                          <p className="text-sm font-medium">{deadline.title}</p>
-                          <p className="text-xs text-muted-foreground">{deadline.patientName}</p>
+                {deadlines.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No pending tasks</p>
+                    <p className="text-xs mt-1">Tasks will appear here when created</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {deadlines.map((deadline) => (
+                      <div
+                        key={deadline.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-white/50 hover:bg-white/80 transition-colors cursor-pointer"
+                        onClick={() => navigate('/vault/health')}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            'w-2 h-2 rounded-full',
+                            deadline.priority === 'urgent' ? 'bg-red-500' :
+                            deadline.priority === 'high' ? 'bg-amber-500' :
+                            deadline.priority === 'medium' ? 'bg-blue-500' : 'bg-gray-400'
+                          )} />
+                          <div>
+                            <p className="text-sm font-medium">{deadline.title}</p>
+                            <p className="text-xs text-muted-foreground">{deadline.patientName}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={cn(
+                            'text-xs px-2 py-1 rounded-full border',
+                            getPriorityStyles(deadline.priority)
+                          )}>
+                            {formatTimeRemaining(deadline.dueDate)}
+                          </span>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={cn(
-                          'text-xs px-2 py-1 rounded-full border',
-                          getPriorityStyles(deadline.priority)
-                        )}>
-                          {formatTimeRemaining(deadline.dueDate)}
-                        </span>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </SwissCardContent>
             </SwissCard>
           </section>
