@@ -1,9 +1,15 @@
 // Healthcare Query Edge Function
-// Executes healthcare queries with Claude and medical tools
+// Agentic loop with Claude tool use for medical queries
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { executeHealthcareQuery } from '../_shared/healthcare-tools/index.ts';
+import {
+  HEALTHCARE_TOOL_DEFINITIONS,
+  HEALTHCARE_PROMPTS,
+  BASE_DISCLAIMER,
+  ToolResult
+} from '../_shared/healthcare-tools/index.ts';
+import { executeHealthcareTool } from '../_shared/healthcare-tools/executor.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,30 +17,39 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const MAX_TOOL_ITERATIONS = 5;
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: any;
+}
+
+interface ToolCall {
+  tool: string;
+  input: Record<string, any>;
+  output: any;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
-    // Get Supabase client
+    // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const authHeader = req.headers.get('Authorization');
 
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
+        JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!anthropicApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -47,7 +62,7 @@ serve(async (req) => {
 
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Invalid authentication token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -69,9 +84,13 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const body = await req.json();
-    const { query, task_type = 'general_query', context_chunks } = body;
+    // Parse request
+    const {
+      query,
+      task_type = 'general_query',
+      context_chunks = [],
+      conversation_history = []
+    } = await req.json();
 
     if (!query) {
       return new Response(
@@ -80,33 +99,247 @@ serve(async (req) => {
       );
     }
 
-    // Execute healthcare query with Claude and tools
-    const result = await executeHealthcareQuery({
-      query,
-      task_type,
-      context_chunks,
-      anthropic_api_key: anthropicApiKey,
-    });
+    // Build system prompt
+    const systemPrompt = HEALTHCARE_PROMPTS[task_type] || HEALTHCARE_PROMPTS.general_query;
+
+    // Build user content with context
+    let userContent = query;
+    if (context_chunks.length > 0) {
+      const contextText = context_chunks
+        .map((c: any) => typeof c === 'string' ? c : `[Document: ${c.filename}]\n${c.content}`)
+        .join('\n\n---\n\n');
+      userContent = `## Uploaded Documents\n\n${contextText}\n\n---\n\n## Query\n\n${query}`;
+    }
+
+    // Build messages
+    const messages: Message[] = [
+      ...conversation_history,
+      { role: 'user', content: userContent }
+    ];
+
+    // Select model based on task complexity
+    const useComplexModel = ['prior_auth_review', 'claims_appeal', 'clinical_documentation'].includes(task_type);
+
+    let response: any;
+    let modelUsed: string;
+    let usedFallback = false;
+    const allToolCalls: ToolCall[] = [];
+
+    // Try Anthropic first
+    if (anthropicApiKey) {
+      try {
+        modelUsed = useComplexModel ? 'claude-opus-4-20250514' : 'claude-sonnet-4-20250514';
+
+        let iterations = 0;
+        let currentMessages = [...messages];
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
+
+        // AGENTIC TOOL USE LOOP
+        while (iterations < MAX_TOOL_ITERATIONS) {
+          iterations++;
+
+          const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': anthropicApiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: modelUsed,
+              max_tokens: 4096,
+              system: systemPrompt,
+              tools: HEALTHCARE_TOOL_DEFINITIONS,
+              messages: currentMessages.map(m => ({
+                role: m.role,
+                content: m.content
+              }))
+            }),
+          });
+
+          if (!anthropicResponse.ok) {
+            const errorText = await anthropicResponse.text();
+            throw new Error(`Anthropic API error: ${anthropicResponse.status} - ${errorText}`);
+          }
+
+          const data = await anthropicResponse.json();
+
+          totalInputTokens += data.usage?.input_tokens || 0;
+          totalOutputTokens += data.usage?.output_tokens || 0;
+
+          // Check if Claude wants to use tools
+          if (data.stop_reason === 'tool_use') {
+            const assistantContent: any[] = [];
+            const toolResults: any[] = [];
+
+            for (const block of data.content || []) {
+              if (block.type === 'tool_use') {
+                // Execute the tool
+                const toolOutput = await executeHealthcareTool(block.name, block.input);
+
+                allToolCalls.push({
+                  tool: block.name,
+                  input: block.input,
+                  output: toolOutput.data || toolOutput.error
+                });
+
+                assistantContent.push(block);
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: block.id,
+                  content: JSON.stringify(toolOutput.data || { error: toolOutput.error })
+                });
+              } else {
+                assistantContent.push(block);
+              }
+            }
+
+            // Add to conversation for next iteration
+            currentMessages.push({ role: 'assistant', content: assistantContent });
+            currentMessages.push({ role: 'user', content: toolResults });
+
+          } else {
+            // Claude is done - extract final response
+            let content = '';
+            for (const block of data.content || []) {
+              if (block.type === 'text') {
+                content += block.text;
+              }
+            }
+
+            response = {
+              content: content + BASE_DISCLAIMER,
+              model_used: modelUsed,
+              input_tokens: totalInputTokens,
+              output_tokens: totalOutputTokens,
+              provider: 'anthropic',
+              tool_calls: allToolCalls,
+              tool_calls_count: allToolCalls.length,
+              iterations
+            };
+
+            break;
+          }
+        }
+
+        // Max iterations reached
+        if (!response) {
+          // Get final text from last iteration
+          let finalContent = "I've gathered the relevant information. Based on the tool results above, here's my analysis:\n\n";
+
+          // Summarize tool results
+          for (const tc of allToolCalls) {
+            finalContent += `**${tc.tool}**: Retrieved ${JSON.stringify(tc.output).length > 100 ? 'data' : tc.output}\n\n`;
+          }
+
+          response = {
+            content: finalContent + BASE_DISCLAIMER,
+            model_used: modelUsed,
+            input_tokens: totalInputTokens,
+            output_tokens: totalOutputTokens,
+            provider: 'anthropic',
+            tool_calls: allToolCalls,
+            tool_calls_count: allToolCalls.length,
+            iterations,
+            max_iterations_reached: true
+          };
+        }
+
+      } catch (anthropicError) {
+        console.error('Anthropic API error:', anthropicError);
+        usedFallback = true;
+      }
+    } else {
+      usedFallback = true;
+    }
+
+    // OpenAI fallback (simplified - no tool use)
+    if (usedFallback) {
+      if (!openaiApiKey) {
+        return new Response(
+          JSON.stringify({ error: 'No AI provider available' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      modelUsed = useComplexModel ? 'gpt-4o' : 'gpt-4o-mini';
+
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelUsed,
+          max_tokens: 4096,
+          temperature: 0.3,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages.map(m => ({
+              role: m.role,
+              content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+            }))
+          ]
+        }),
+      });
+
+      if (!openaiResponse.ok) {
+        const errorText = await openaiResponse.text();
+        throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+      }
+
+      const openaiData = await openaiResponse.json();
+
+      response = {
+        content: (openaiData.choices?.[0]?.message?.content || '') + BASE_DISCLAIMER,
+        model_used: modelUsed,
+        input_tokens: openaiData.usage?.prompt_tokens || 0,
+        output_tokens: openaiData.usage?.completion_tokens || 0,
+        provider: 'openai',
+        fallback: true,
+        tool_calls: [],
+        tool_calls_count: 0
+      };
+    }
+
+    const latencyMs = Date.now() - startTime;
 
     // Log usage for billing
     await supabase.from('healthcare_usage').insert({
       user_id: user.id,
       task_type,
       query_length: query.length,
-      response_length: result.content?.length || 0,
-      tool_calls: result.tool_results?.length || 0,
+      response_length: response.content?.length || 0,
+      tool_calls: response.tool_calls_count || 0,
       created_at: new Date().toISOString(),
     }).catch(err => console.error('Usage logging error:', err));
 
+    // Audit log
+    await supabase.from('healthcare_audit_log').insert({
+      user_id: user.id,
+      action: 'message_sent',
+      task_type,
+      model_used: response.model_used,
+      tool_calls_count: response.tool_calls_count,
+      ip_address: req.headers.get('x-forwarded-for'),
+      user_agent: req.headers.get('user-agent')
+    }).catch(() => {}); // Non-blocking
+
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({
+        ...response,
+        latency_ms: latencyMs,
+        task_type
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Healthcare query error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'An error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
