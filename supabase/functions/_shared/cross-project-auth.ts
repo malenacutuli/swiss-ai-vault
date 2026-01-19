@@ -79,37 +79,68 @@ export async function authenticateToken(
 ): Promise<AuthResult> {
   console.log('[cross-project-auth] Starting auth, token length:', token?.length);
 
-  // Try local project auth first
-  const { data: localAuth, error: localError } = await localSupabase.auth.getUser(token);
+  // Validate token exists
+  if (!token || token.length < 10) {
+    console.log('[cross-project-auth] Token is empty or too short');
+    return { user: null, error: 'Token is empty or invalid', source: null };
+  }
 
-  console.log('[cross-project-auth] Local auth result:', {
-    hasUser: !!localAuth?.user,
-    error: localError?.message
-  });
+  // Try local project auth first (wrapped in try-catch for safety)
+  try {
+    const { data: localAuth, error: localError } = await localSupabase.auth.getUser(token);
 
-  if (!localError && localAuth?.user) {
-    console.log('[cross-project-auth] Authenticated via local project');
-    return {
-      user: localAuth.user,
-      error: null,
-      source: 'local',
-    };
+    console.log('[cross-project-auth] Local auth result:', {
+      hasUser: !!localAuth?.user,
+      userId: localAuth?.user?.id?.slice(0, 8),
+      error: localError?.message,
+      errorCode: (localError as any)?.code
+    });
+
+    if (!localError && localAuth?.user) {
+      console.log('[cross-project-auth] Authenticated via local project, user:', localAuth.user.id.slice(0, 8));
+      return {
+        user: localAuth.user,
+        error: null,
+        source: 'local',
+      };
+    }
+  } catch (localAuthError) {
+    console.error('[cross-project-auth] Local auth threw exception:', localAuthError);
+    // Continue to JWT decode fallback
   }
 
   console.log('[cross-project-auth] Local auth failed, trying JWT decode fallback');
 
   // Fallback: Decode and validate Lovable project token
-  const decoded = decodeJWT(token);
+  let decoded;
+  try {
+    decoded = decodeJWT(token);
+  } catch (decodeError) {
+    console.error('[cross-project-auth] JWT decode threw:', decodeError);
+    return { user: null, error: 'Token decode failed', source: null };
+  }
 
   if (!decoded) {
-    console.log('[cross-project-auth] Failed to decode token');
+    console.log('[cross-project-auth] Failed to decode token - decodeJWT returned null');
     return { user: null, error: 'Invalid token format', source: null };
   }
 
   const { payload } = decoded;
 
-  // Log payload for debugging
-  console.log('[cross-project-auth] Token payload:', JSON.stringify(payload));
+  if (!payload) {
+    console.log('[cross-project-auth] Decoded token has no payload');
+    return { user: null, error: 'Token payload missing', source: null };
+  }
+
+  // Log payload keys for debugging (not full content for security)
+  console.log('[cross-project-auth] Token payload keys:', Object.keys(payload));
+  console.log('[cross-project-auth] Token payload essentials:', {
+    sub: payload.sub?.slice(0, 8),
+    iss: payload.iss,
+    role: payload.role,
+    exp: payload.exp,
+    aud: payload.aud
+  });
 
   // Extract and validate project reference from issuer URL
   // iss format: https://<project-ref>.supabase.co/auth/v1

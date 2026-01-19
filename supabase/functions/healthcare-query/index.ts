@@ -37,6 +37,9 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
+  const requestId = crypto.randomUUID().slice(0, 8);
+
+  console.log(`[Healthcare] [${requestId}] Request started - v2.1.0`);
 
   try {
     // Get environment variables
@@ -47,9 +50,20 @@ serve(async (req) => {
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const authHeader = req.headers.get('Authorization');
 
+    console.log(`[Healthcare] [${requestId}] Env check:`, {
+      hasUrl: !!supabaseUrl,
+      hasAnonKey: !!supabaseAnonKey,
+      hasServiceKey: !!supabaseServiceKey,
+      hasAnthropicKey: !!anthropicApiKey,
+      hasOpenAIKey: !!openaiApiKey,
+      hasAuthHeader: !!authHeader,
+      authHeaderLength: authHeader?.length || 0
+    });
+
     if (!authHeader) {
+      console.log(`[Healthcare] [${requestId}] No auth header provided`);
       return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
+        JSON.stringify({ error: 'Authorization required', requestId }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -63,33 +77,61 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Try standard Supabase auth first (works for local tokens)
+    console.log(`[Healthcare] [${requestId}] Attempting local auth...`);
     const { data: { user: localUser }, error: localError } = await authClient.auth.getUser();
+
+    console.log(`[Healthcare] [${requestId}] Local auth result:`, {
+      hasUser: !!localUser,
+      userId: localUser?.id?.slice(0, 8),
+      error: localError?.message,
+      errorCode: localError?.code
+    });
 
     let user = localUser;
 
     // If local auth fails, try cross-project auth for Lovable tokens
     if (localError || !localUser) {
-      console.log('[Healthcare] Local auth failed, trying cross-project:', localError?.message);
+      console.log(`[Healthcare] [${requestId}] Local auth failed, trying cross-project...`);
 
       const token = authHeader.replace('Bearer ', '');
-      const authResult = await authenticateToken(token, authClient);
+      console.log(`[Healthcare] [${requestId}] Token extracted, length: ${token.length}`);
 
-      console.log('[Healthcare] Cross-project auth result:', {
-        source: authResult.source,
-        userId: authResult.user?.id,
-        error: authResult.error
+      // Wrap in try-catch to handle any uncaught exceptions
+      let authResult;
+      try {
+        authResult = await authenticateToken(token, authClient);
+      } catch (authError) {
+        console.error(`[Healthcare] [${requestId}] authenticateToken threw:`, authError);
+        return new Response(
+          JSON.stringify({
+            error: 'Authentication processing error',
+            details: authError instanceof Error ? authError.message : String(authError),
+            requestId
+          }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[Healthcare] [${requestId}] Cross-project auth result:`, {
+        source: authResult?.source,
+        hasUser: !!authResult?.user,
+        userId: authResult?.user?.id?.slice(0, 8),
+        error: authResult?.error
       });
 
-      if (authResult.error || !authResult.user) {
+      if (!authResult || authResult.error || !authResult.user) {
+        const errorMsg = authResult?.error || 'Invalid authentication token';
+        console.log(`[Healthcare] [${requestId}] Auth failed with error: ${errorMsg}`);
         return new Response(
-          JSON.stringify({ error: authResult.error || 'Invalid authentication token' }),
+          JSON.stringify({ error: errorMsg, requestId }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       user = authResult.user;
+      console.log(`[Healthcare] [${requestId}] Cross-project auth success, user: ${user.id.slice(0, 8)}`);
     } else {
-      console.log('[Healthcare] Local auth success, user:', localUser.id);
+      console.log(`[Healthcare] [${requestId}] Local auth success, user: ${localUser.id.slice(0, 8)}`);
     }
 
     // Check subscription (Ghost Pro/Premium/Enterprise required)
