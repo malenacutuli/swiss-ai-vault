@@ -1,6 +1,16 @@
 // supabase/functions/deep-research/index.ts
+// Enhanced with Source Citations for Manus Parity
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  extractCitationsFromResults,
+  extractClaimsFromText,
+  storeCitations,
+  storeClaims,
+  formatCitationsForDisplay,
+  type Citation,
+  type Claim,
+} from "../_shared/citations/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +30,8 @@ interface ResearchQuery {
   sub_queries?: string[];
   max_results?: number;
   search_depth?: 'quick' | 'standard' | 'deep';
+  include_citations?: boolean;
+  verify_citations?: boolean;
 }
 
 serve(async (req) => {
@@ -33,6 +45,15 @@ serve(async (req) => {
   );
 
   try {
+    // Get user from auth header
+    let userId: string | undefined;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabase.auth.getUser(token);
+      userId = user?.id;
+    }
+
     const {
       query,
       sub_queries,
@@ -40,7 +61,9 @@ serve(async (req) => {
       search_depth = 'standard',
       run_id,
       step_id,
-      synthesize = true
+      synthesize = true,
+      include_citations = true,
+      verify_citations = false,
     } = await req.json() as ResearchQuery & { run_id?: string; step_id?: string; synthesize?: boolean };
 
     if (!query) {
@@ -81,6 +104,38 @@ serve(async (req) => {
       synthesis = await synthesizeResults(query, rankedResults.slice(0, 15));
     }
 
+    // Generate structured citations (Manus parity feature)
+    let citations: Citation[] = [];
+    let claims: Claim[] = [];
+    let bibliography = '';
+
+    if (include_citations && rankedResults.length > 0) {
+      // Extract citations from results
+      const citationResult = extractCitationsFromResults(
+        rankedResults.map(r => ({
+          url: r.url,
+          title: r.title,
+          snippet: r.snippet,
+          source: r.source,
+          relevance_score: r.relevance_score,
+        })),
+        run_id,
+        userId
+      );
+
+      // Store citations in database
+      citations = await storeCitations(supabase, citationResult.citations, run_id, userId);
+
+      // Extract claims from synthesis if available
+      if (synthesis?.summary) {
+        claims = extractClaimsFromText(synthesis.summary, citations);
+        await storeClaims(supabase, claims, run_id, userId);
+      }
+
+      // Format bibliography
+      bibliography = formatCitationsForDisplay(citations, 'bibliography');
+    }
+
     // Store research results if run_id provided
     if (run_id && step_id) {
       await supabase.from('agent_task_outputs').insert({
@@ -92,7 +147,9 @@ serve(async (req) => {
           sub_queries: queries,
           results_count: rankedResults.length,
           synthesis: synthesis?.summary,
-          sources: rankedResults.slice(0, 20).map(r => ({ title: r.title, url: r.url }))
+          sources: rankedResults.slice(0, 20).map(r => ({ title: r.title, url: r.url })),
+          citation_count: citations.length,
+          claim_count: claims.length,
         }
       });
     }
@@ -105,6 +162,23 @@ serve(async (req) => {
         results: rankedResults.slice(0, max_results),
         total_found: rankedResults.length,
         synthesis,
+        // Citation data (Manus parity)
+        citations: citations.map(c => ({
+          key: c.citation_key,
+          url: c.source_url,
+          title: c.source_title,
+          domain: c.source_domain,
+          type: c.source_type,
+          credibility: c.credibility_score,
+          verified: c.verified,
+        })),
+        claims: claims.map(c => ({
+          text: c.claim_text,
+          type: c.claim_type,
+          status: c.verification_status,
+          confidence: c.confidence_score,
+        })),
+        bibliography,
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
