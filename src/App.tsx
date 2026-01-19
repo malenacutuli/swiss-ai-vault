@@ -69,6 +69,7 @@ import DesignSystem from "./pages/DesignSystem";
 import Billing from "./pages/Billing";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import VaultChat from "./pages/VaultChat";
+import { VaultChatGate } from "@/components/gates";
 import VaultChatIntegrations from "./pages/VaultChatIntegrations";
 import SecureChat from "./pages/SecureChat";
 import GhostChat from "./pages/GhostChat";
@@ -152,10 +153,10 @@ const App = () => {
                 <Route path="/features/vault-labs" element={<MarketingLayout><VaultLabsFeatures /></MarketingLayout>} />
                 <Route path="/api-pricing" element={<MarketingLayout><APIPricing /></MarketingLayout>} />
 
-                {/* Vault Chat routes (simple mode) */}
+                {/* Vault Chat routes (simple mode) - Pro tier required */}
                 <Route path="/chat" element={<ProtectedRoute><ChatLayout /></ProtectedRoute>}>
-                  <Route index element={<VaultChat />} />
-                  <Route path=":conversationId" element={<VaultChat />} />
+                  <Route index element={<VaultChatGate><VaultChat /></VaultChatGate>} />
+                  <Route path=":conversationId" element={<VaultChatGate><VaultChat /></VaultChatGate>} />
                 </Route>
                 
                 {/* Ghost Chat routes - NO AUTH REQUIRED */}
