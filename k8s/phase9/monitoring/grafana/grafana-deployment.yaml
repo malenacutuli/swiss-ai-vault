@@ -1,0 +1,235 @@
+# Phase 9: Grafana Deployment
+# Visualization and dashboards for Prometheus metrics
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: agents
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
+
+      containers:
+      - name: grafana
+        image: grafana/grafana:10.2.3
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: web
+          containerPort: 3000
+
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: grafana-secrets
+              key: admin-user
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: grafana-secrets
+              key: admin-password
+        - name: GF_SERVER_ROOT_URL
+          value: "https://monitoring.swissbrain.ai"
+        - name: GF_SERVER_DOMAIN
+          value: "monitoring.swissbrain.ai"
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "false"
+        - name: GF_ANALYTICS_REPORTING_ENABLED
+          value: "false"
+        - name: GF_INSTALL_PLUGINS
+          value: "grafana-piechart-panel,grafana-clock-panel"
+
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 2Gi
+
+        volumeMounts:
+        - name: storage
+          mountPath: /var/lib/grafana
+        - name: config
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: dashboards-config
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: dashboards
+          mountPath: /var/lib/grafana/dashboards
+
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: web
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: web
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+      volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName: grafana-storage
+      - name: config
+        configMap:
+          name: grafana-datasources
+      - name: dashboards-config
+        configMap:
+          name: grafana-dashboards-config
+      - name: dashboards
+        configMap:
+          name: grafana-dashboards
+
+---
+# Grafana PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage
+  namespace: agents
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana-storage
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+# Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: agents
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  type: ClusterIP
+  ports:
+  - name: web
+    port: 3000
+    targetPort: web
+  selector:
+    app: grafana
+
+---
+# Grafana secrets (template - replace with actual values)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-secrets
+  namespace: agents
+  labels:
+    app: grafana
+type: Opaque
+stringData:
+  admin-user: "admin"
+  admin-password: "CHANGE_ME"  # Generate secure password
+
+---
+# Grafana datasources configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: agents
+  labels:
+    app: grafana
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus:9090
+      isDefault: true
+      editable: true
+      jsonData:
+        timeInterval: 15s
+        httpMethod: POST
+
+---
+# Grafana dashboards configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-config
+  namespace: agents
+  labels:
+    app: grafana
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 30
+      allowUiUpdates: true
+      options:
+        path: /var/lib/grafana/dashboards
+
+---
+# Ingress for Grafana
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: agents
+  labels:
+    app: grafana
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - monitoring.swissbrain.ai
+    secretName: grafana-tls
+  rules:
+  - host: monitoring.swissbrain.ai
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000

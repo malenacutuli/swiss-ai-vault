@@ -1,0 +1,268 @@
+# Phase 9: Production Deployment CI/CD Pipeline
+# Automated build, test, and deployment to Kubernetes
+#
+# Triggers:
+# - Push to main branch
+# - Manual workflow dispatch
+#
+# Environment: Production
+# Cluster: Exoscale Kubernetes (ch-gva-2)
+# Registry: Docker Hub (docker.io/axessvideo/agent-api)
+#
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'agent-api/**'
+      - '.github/workflows/deploy-production.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v15-phase9)'
+        required: true
+        default: 'latest'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: axessvideo/agent-api
+  K8S_NAMESPACE: agents
+
+jobs:
+  # Job 1: Run tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ./agent-api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov
+
+      - name: Run unit tests
+        working-directory: ./agent-api
+        run: |
+          pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./agent-api/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+      - name: Run linting
+        working-directory: ./agent-api
+        run: |
+          pip install ruff
+          ruff check app/
+
+  # Job 2: Build and push Docker image
+  build:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 30
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Generate version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="v15-phase9-$(date +%Y%m%d)-${GITHUB_SHA::8}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${VERSION}"
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./agent-api
+          file: ./agent-api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            VCS_REF=${GITHUB_SHA}
+            VERSION=${{ steps.version.outputs.version }}
+
+  # Job 3: Deploy to Kubernetes
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://api.swissbrain.ai
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Update API deployment
+        run: |
+          kubectl set image deployment/agent-api \
+            agent-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_version }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --record
+
+      - name: Update worker deployment
+        run: |
+          kubectl set image deployment/agent-worker \
+            worker=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_version }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --record
+
+      - name: Wait for API rollout
+        run: |
+          kubectl rollout status deployment/agent-api \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --timeout=5m
+
+      - name: Wait for worker rollout
+        run: |
+          kubectl rollout status deployment/agent-worker \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --timeout=5m
+
+      - name: Verify deployment
+        run: |
+          echo "=== API Pods ==="
+          kubectl get pods -n ${{ env.K8S_NAMESPACE }} -l app=agent-api
+          echo ""
+          echo "=== Worker Pods ==="
+          kubectl get pods -n ${{ env.K8S_NAMESPACE }} -l app=agent-worker
+          echo ""
+          echo "=== Services ==="
+          kubectl get svc -n ${{ env.K8S_NAMESPACE }}
+          echo ""
+          echo "=== Ingress ==="
+          kubectl get ingress -n ${{ env.K8S_NAMESPACE }}
+
+      - name: Health check
+        run: |
+          echo "Waiting for API to be ready..."
+          sleep 10
+          curl -f https://api.swissbrain.ai/health || exit 1
+          echo "API health check passed!"
+
+  # Job 4: Post-deployment checks
+  verify:
+    name: Post-Deployment Verification
+    runs-on: ubuntu-latest
+    needs: deploy
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against production..."
+          # Add smoke test commands here
+          curl -f https://api.swissbrain.ai/health
+          curl -f https://api.swissbrain.ai/ready
+
+      - name: Notify success
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Production deployment successful!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment Successful* ✅\n\n*Version:* `${{ needs.build.outputs.image_version }}`\n*Commit:* `${{ github.sha }}`\n*By:* ${{ github.actor }}\n\n<https://api.swissbrain.ai|View API>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ Production deployment failed!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment Failed* ❌\n\n*Version:* `${{ needs.build.outputs.image_version }}`\n*Commit:* `${{ github.sha }}`\n*By:* ${{ github.actor }}\n\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

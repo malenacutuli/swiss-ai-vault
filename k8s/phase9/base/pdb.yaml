@@ -1,0 +1,40 @@
+# Phase 9: Pod Disruption Budget
+# Ensures minimum number of pods available during voluntary disruptions
+# (node maintenance, kubectl drain, cluster upgrades, etc.)
+#
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agent-api-pdb
+  namespace: agents
+  labels:
+    app: agent-api
+    app.kubernetes.io/name: agent-api-pdb
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  minAvailable: 2               # Always keep at least 2 API pods running
+  selector:
+    matchLabels:
+      app: agent-api
+      app.kubernetes.io/name: agent-api
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agent-worker-pdb
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker-pdb
+    app.kubernetes.io/component: availability
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  minAvailable: 1               # Always keep at least 1 worker running
+  selector:
+    matchLabels:
+      app: agent-worker
+      app.kubernetes.io/name: agent-worker
+  unhealthyPodEvictionPolicy: IfHealthyBudget

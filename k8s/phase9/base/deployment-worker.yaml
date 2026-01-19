@@ -1,0 +1,243 @@
+# Phase 9: Agent Worker Deployment
+# Production-grade worker deployment with:
+# - Redis queue consumer
+# - Long-running process
+# - Graceful shutdown
+# - Resource limits
+# - Security context
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-worker
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: swissbrain-platform
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: kubectl
+    environment: production
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    description: "Swiss Agent Worker - Redis queue consumer for agent execution"
+spec:
+  replicas: 2
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: agent-worker
+      app.kubernetes.io/name: agent-worker
+  template:
+    metadata:
+      labels:
+        app: agent-worker
+        app.kubernetes.io/name: agent-worker
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/part-of: swissbrain-platform
+        app.kubernetes.io/version: "1.0.0"
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: agent-api-sa
+
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      # DNS configuration for external API calls
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - "8.8.8.8"          # Google DNS
+          - "1.1.1.1"          # Cloudflare DNS
+        searches:
+          - "agents.svc.cluster.local"
+          - "svc.cluster.local"
+          - "cluster.local"
+        options:
+          - name: ndots
+            value: "2"
+          - name: timeout
+            value: "2"
+          - name: attempts
+            value: "2"
+
+      # Termination grace period (workers need time to finish jobs)
+      terminationGracePeriodSeconds: 60
+
+      containers:
+      - name: worker
+        image: docker.io/axessvideo/agent-api:v14-phase8
+        imagePullPolicy: Always
+
+        # Worker process command
+        command: ["python", "-u", "/app/entrypoint.py"]
+
+        ports:
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        # Environment variables
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONFAULTHANDLER
+          value: "1"
+        - name: PYTHONPATH
+          value: "/app"
+        - name: HOME
+          value: "/app"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: WORKER_MODE
+          value: "true"
+
+        # Supabase configuration
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_SERVICE_ROLE_KEY
+
+        # Anthropic API
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: ANTHROPIC_API_KEY
+
+        # Redis queue
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: REDIS_URL
+
+        # E2B sandbox
+        - name: E2B_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: E2B_API_KEY
+              optional: true
+
+        # S3 storage
+        - name: S3_ENDPOINT
+          value: "https://sos-ch-gva-2.exo.io"
+        - name: S3_WORKSPACE_BUCKET
+          value: "swissbrain-workspaces"
+        - name: S3_REGION
+          value: "ch-gva-2"
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: S3_ACCESS_KEY
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: S3_SECRET_KEY
+
+        # Kubernetes configuration
+        - name: K8S_NAMESPACE
+          value: "agents"
+        - name: K8S_IN_CLUSTER
+          value: "true"
+
+        # Pod metadata
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        # Resource limits and requests
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+            ephemeral-storage: 2Gi
+          limits:
+            cpu: "4"
+            memory: 8Gi
+            ephemeral-storage: 10Gi
+
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+
+        # Volume mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /app/.cache
+        - name: workspace
+          mountPath: /workspace
+
+        # Note: Workers don't have HTTP health endpoints
+        # Health is monitored via Redis connection and job processing
+
+        # Lifecycle hooks for graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Send SIGTERM to worker process
+                  # Worker should finish current job and exit gracefully
+                  echo "Graceful shutdown initiated"
+                  sleep 30
+
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 2Gi
+      - name: cache
+        emptyDir:
+          sizeLimit: 4Gi
+      - name: workspace
+        emptyDir:
+          sizeLimit: 10Gi

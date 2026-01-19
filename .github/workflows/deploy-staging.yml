@@ -1,0 +1,197 @@
+# Phase 9: Staging Deployment CI/CD Pipeline
+# Automated build, test, and deployment to staging environment
+#
+# Triggers:
+# - Push to develop branch
+# - Pull request to main
+# - Manual workflow dispatch
+#
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+      - 'feature/**'
+    paths:
+      - 'agent-api/**'
+      - '.github/workflows/deploy-staging.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'agent-api/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: axessvideo/agent-api
+  K8S_NAMESPACE: agents-staging
+
+jobs:
+  # Job 1: Run tests (more comprehensive than production)
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ./agent-api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov pytest-timeout
+
+      - name: Run unit tests
+        working-directory: ./agent-api
+        run: |
+          pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Run integration tests
+        working-directory: ./agent-api
+        run: |
+          pytest tests/integration/ -v --timeout=300
+
+      - name: Run linting
+        working-directory: ./agent-api
+        run: |
+          pip install ruff mypy
+          ruff check app/
+          mypy app/ --ignore-missing-imports
+
+      - name: Security scan
+        working-directory: ./agent-api
+        run: |
+          pip install bandit safety
+          bandit -r app/ -ll
+          safety check
+
+  # Job 2: Build and push Docker image
+  build:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 30
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="staging-$(date +%Y%m%d)-${GITHUB_SHA::8}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${VERSION}"
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=staging-latest
+            type=ref,event=pr
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./agent-api
+          file: ./agent-api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            VCS_REF=${GITHUB_SHA}
+            VERSION=${{ steps.version.outputs.version }}
+            ENVIRONMENT=staging
+
+  # Job 3: Deploy to Kubernetes staging namespace
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 15
+    environment:
+      name: staging
+      url: https://api-staging.swissbrain.ai
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Update API deployment
+        run: |
+          kubectl set image deployment/agent-api \
+            agent-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_version }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --record
+
+      - name: Update worker deployment
+        run: |
+          kubectl set image deployment/agent-worker \
+            worker=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_version }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --record
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/agent-api -n ${{ env.K8S_NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/agent-worker -n ${{ env.K8S_NAMESPACE }} --timeout=5m
+
+      - name: Run E2E tests
+        run: |
+          echo "Running E2E tests against staging..."
+          # Add E2E test commands here
+          sleep 10
+          curl -f https://api-staging.swissbrain.ai/health || exit 1
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Staging deployment successful!\n\n**Version:** `${{ needs.build.outputs.image_version }}`\n**Environment:** https://api-staging.swissbrain.ai'
+            })

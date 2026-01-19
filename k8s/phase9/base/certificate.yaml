@@ -1,0 +1,28 @@
+# Phase 9: Certificate for api.swissbrain.ai
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: agent-api-tls
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: agent-api-tls
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  secretName: agent-api-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: api.swissbrain.ai
+  dnsNames:
+  - api.swissbrain.ai
+  duration: 2160h  # 90 days
+  renewBefore: 720h  # 30 days before expiry
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth

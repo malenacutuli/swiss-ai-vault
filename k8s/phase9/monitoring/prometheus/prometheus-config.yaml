@@ -1,0 +1,229 @@
+# Phase 9: Prometheus Configuration
+# Monitoring and alerting for Swiss Agent API
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: prometheus-config
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: swissbrain-platform
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'swissbrain-prod'
+        environment: 'production'
+
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - alertmanager:9093
+
+    # Load rules once and periodically evaluate them
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    # Scrape configurations
+    scrape_configs:
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
+        static_configs:
+        - targets: ['localhost:9090']
+
+      # Kubernetes API server
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+        - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+
+      # Kubernetes nodes
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+        - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
+      # Agent API pods
+      - job_name: 'agent-api'
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - agents
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          action: keep
+          regex: agent-api
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+
+      # Agent worker pods
+      - job_name: 'agent-worker'
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - agents
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          action: keep
+          regex: agent-worker
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+
+      # Redis exporter
+      - job_name: 'redis'
+        static_configs:
+        - targets: ['redis-exporter:9121']
+          labels:
+            service: 'redis'
+
+      # Nginx ingress controller
+      - job_name: 'nginx-ingress'
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - ingress-nginx
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+          action: keep
+          regex: ingress-nginx
+
+---
+# Prometheus alert rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: prometheus-rules
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: swissbrain-platform
+data:
+  alerts.yml: |
+    groups:
+    - name: swissbrain_alerts
+      interval: 30s
+      rules:
+      # API availability
+      - alert: APIDown
+        expr: up{job="agent-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Agent API is down"
+          description: "Agent API {{ $labels.kubernetes_pod_name }} has been down for more than 2 minutes."
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/sec on {{ $labels.kubernetes_pod_name }}"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.kubernetes_pod_name }}"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{pod=~"agent-.*"}[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "Pod {{ $labels.pod }} CPU usage is {{ $value }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: container_memory_working_set_bytes{pod=~"agent-.*"} / container_spec_memory_limit_bytes{pod=~"agent-.*"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Pod {{ $labels.pod }} memory usage is {{ $value }}"
+
+      # Redis queue backup
+      - alert: RedisQueueBackup
+        expr: redis_list_length{list="jobs:pending"} > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis queue backup"
+          description: "Redis queue has {{ $value }} pending jobs"
+
+      # Worker not processing
+      - alert: WorkerStalled
+        expr: rate(agent_jobs_processed_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Worker not processing jobs"
+          description: "Worker has not processed any jobs in the last 10 minutes"
+
+      # Certificate expiry
+      - alert: CertificateExpiringSoon
+        expr: (cert_manager_certificate_expiry_timestamp - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Certificate expiring soon"
+          description: "Certificate {{ $labels.name }} expires in {{ $value }} days"

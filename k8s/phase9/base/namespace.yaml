@@ -1,0 +1,100 @@
+# Phase 9: Production Namespace Configuration
+# Swiss Agent API Platform
+#
+# This namespace includes:
+# - Namespace definition with proper labels
+# - ResourceQuota for resource limits
+# - LimitRange for default container limits
+#
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agents
+  labels:
+    name: agents
+    environment: production
+    team: swissbrain-ai
+    cost-center: engineering
+    managed-by: phase9
+    version: v1.0.0
+
+---
+# ResourceQuota: Limits total resource consumption in the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agents-quota
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: agents-quota
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "30"        # 30 CPU cores total
+    requests.memory: 60Gi     # 60GB RAM total
+    requests.storage: 200Gi   # 200GB storage total
+    limits.cpu: "60"          # 60 CPU cores limit
+    limits.memory: 120Gi      # 120GB RAM limit
+
+    # Object counts
+    pods: "100"               # Max 100 pods
+    services: "30"            # Max 30 services
+    configmaps: "100"         # Max 100 configmaps
+    secrets: "100"            # Max 100 secrets
+    persistentvolumeclaims: "50"  # Max 50 PVCs
+
+    # Job resources
+    count/jobs.batch: "200"   # Max 200 concurrent jobs (for tool execution)
+
+---
+# LimitRange: Sets default limits and constraints for pods/containers
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: agents-limits
+  namespace: agents
+  labels:
+    app.kubernetes.io/name: agents-limits
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  limits:
+    # Container limits
+    - type: Container
+      max:
+        cpu: "8"              # Max 8 CPU per container
+        memory: 16Gi          # Max 16GB per container
+        ephemeral-storage: 20Gi
+      min:
+        cpu: 10m              # Min 10m CPU
+        memory: 64Mi          # Min 64MB
+        ephemeral-storage: 100Mi
+      default:
+        cpu: "1"              # Default 1 CPU
+        memory: 2Gi           # Default 2GB
+        ephemeral-storage: 4Gi
+      defaultRequest:
+        cpu: 250m             # Default request 250m CPU
+        memory: 512Mi         # Default request 512MB
+        ephemeral-storage: 1Gi
+      maxLimitRequestRatio:
+        cpu: "4"              # Limit can be 4x request
+        memory: "4"
+
+    # Pod limits
+    - type: Pod
+      max:
+        cpu: "16"             # Max 16 CPU per pod
+        memory: 32Gi          # Max 32GB per pod
+        ephemeral-storage: 40Gi
+      min:
+        cpu: 10m
+        memory: 64Mi
+        ephemeral-storage: 100Mi
+
+    # PVC limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: 100Gi        # Max 100GB per PVC
+      min:
+        storage: 1Gi          # Min 1GB per PVC
