@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useGhostFolders } from '@/hooks/useGhostFolders';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -67,7 +66,7 @@ export default function GhostLibrary() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [items, setItems] = useState<LibraryItem[]>([]);
-  const { folders: rawFolders, createFolder, renameFolder, deleteFolder } = useGhostFolders();
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabValue>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,15 +201,6 @@ export default function GhostLibrary() {
     }
   };
 
-  // Compute folders with item counts
-  const folders = useMemo(() => {
-    return rawFolders.map(folder => ({
-      id: folder.id,
-      name: folder.name,
-      item_count: items.filter(item => item.folder_id === folder.id).length,
-    }));
-  }, [rawFolders, items]);
-
   const totalStorageBytes = items.reduce((acc, item) => acc + (item.file_size_bytes || 0), 0);
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -270,9 +260,6 @@ export default function GhostLibrary() {
             selectedFolder={selectedFolder}
             onSelectFolder={setSelectedFolder}
             onClose={() => setShowFolderSidebar(false)}
-            onCreate={createFolder}
-            onRename={renameFolder}
-            onDelete={deleteFolder}
           />
         )}
 

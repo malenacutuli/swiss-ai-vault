@@ -8,8 +8,9 @@ pydantic-settings>=2.1.0
 supabase==2.27.1
 postgrest==2.27.1
 
-# Anthropic LLM
+# LLM Providers
 anthropic>=0.39.0
+openai>=1.30.0
 
 # E2B Code Interpreter (for tool execution)
 e2b-code-interpreter>=1.0.0
@@ -29,6 +30,7 @@ python-dotenv==1.0.0
 httpx>=0.25.0
 python-multipart==0.0.6
 croniter>=2.0.0  # Phase 8: Scheduled task cron support
+cryptography>=42.0.0  # Token encryption for OAuth
 
 # Logging
 structlog==24.1.0

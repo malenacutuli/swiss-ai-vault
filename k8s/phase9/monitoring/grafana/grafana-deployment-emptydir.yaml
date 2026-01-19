@@ -1,0 +1,121 @@
+# Phase 9: Grafana Deployment (emptyDir for initial deployment)
+# Note: Dashboards will not persist across pod restarts
+# For production persistence, configure Exoscale Block Storage CSI driver
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: agents
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
+
+      containers:
+      - name: grafana
+        image: grafana/grafana:10.2.3
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: web
+          containerPort: 3000
+
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: grafana-secrets
+              key: admin-user
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: grafana-secrets
+              key: admin-password
+        - name: GF_SERVER_ROOT_URL
+          value: "https://monitoring.swissbrain.ai"
+        - name: GF_SERVER_DOMAIN
+          value: "monitoring.swissbrain.ai"
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "false"
+        - name: GF_ANALYTICS_REPORTING_ENABLED
+          value: "false"
+        - name: GF_INSTALL_PLUGINS
+          value: "grafana-piechart-panel,grafana-clock-panel"
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+
+        volumeMounts:
+        - name: storage
+          mountPath: /var/lib/grafana
+        - name: config
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: dashboards-config
+          mountPath: /etc/grafana/provisioning/dashboards
+
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: web
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: web
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+      volumes:
+      - name: storage
+        emptyDir:
+          sizeLimit: 2Gi  # 2GB temporary storage
+      - name: config
+        configMap:
+          name: grafana-datasources
+      - name: dashboards-config
+        configMap:
+          name: grafana-dashboards-config
+
+---
+# Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: agents
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  type: ClusterIP
+  ports:
+  - name: web
+    port: 3000
+    targetPort: web
+  selector:
+    app: grafana

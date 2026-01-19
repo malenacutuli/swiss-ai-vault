@@ -1,0 +1,743 @@
+{
+  "_claude_code_instructions": {
+    "purpose": "This JSON schema provides structured data for building SwissBrain.ai",
+    "usage": [
+      "Reference this file for quick lookup of component names, dependencies, and configurations",
+      "Use technology_stack for exact package versions when running npm/pnpm install",
+      "Copy css_variables from styling_system to your index.css or globals.css",
+      "Follow project_structures for organizing your src/ directory",
+      "Use templates array to select which pre-built patterns to implement"
+    ],
+    "companion_files": [
+      "SWISSBRAIN_DESIGN_PATTERNS_GUIDE.md - Full implementation details with code examples",
+      "CLAUDE_CODE_PROMPT.md - Step-by-step implementation guide",
+      "deploy/templates/ - Source templates to copy from"
+    ],
+    "brand_colors": {
+      "primary": "#14b8a6",
+      "primary_hsl": "173 80% 40%",
+      "name": "SwissBrain Teal"
+    }
+  },
+  "version": "2.0.12",
+  "name": "SwissBrain Platform",
+  "description": "Complete implementation guide for building SwissBrain.ai - a modern AI platform with landing page, dashboard, API, and authentication",
+  "technology_stack": {
+    "frontend": {
+      "framework": "React 18.3.1",
+      "language": "TypeScript 5.6.2",
+      "build_tool": "Vite 6.0.1",
+      "styling": "Tailwind CSS 4.1.14",
+      "ui_primitives": "Radix UI",
+      "animations": "Framer Motion 12.15.0",
+      "routing": "React Router DOM",
+      "charts": "Recharts 2.12.4",
+      "forms": "React Hook Form 7.54.2",
+      "validation": "Zod 3.24.1",
+      "icons": "Lucide React 0.364.0",
+      "dates": "date-fns 4.1.0",
+      "toasts": "Sonner 1.7.2",
+      "auth": "@supabase/supabase-js"
+    },
+    "backend": {
+      "frameworks": [
+        "Next.js 15.1.4",
+        "Flask 3.1.1"
+      ],
+      "databases": [
+        "Supabase",
+        "SQLite",
+        "Cloudflare D1"
+      ],
+      "runtime": "Node.js / Python 3.13",
+      "auth_provider": "Supabase Auth"
+    },
+    "install_command": "pnpm add @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tabs @radix-ui/react-toast @radix-ui/react-tooltip class-variance-authority clsx tailwind-merge tailwindcss-animate react-router-dom react-hook-form @hookform/resolvers zod framer-motion recharts lucide-react @supabase/supabase-js sonner"
+  },
+  "templates": {
+    "recommended_for_swissbrain": {
+      "landing_page": "landing-page-template",
+      "dashboard": "bold-dashboard-template",
+      "reason": "Modern, professional design with glassmorphism effects suitable for AI platform"
+    },
+    "dashboards": [
+      {
+        "name": "dashboard-template",
+        "description": "Standard admin dashboard with stats, charts, and data tables",
+        "theme": "Neutral/White",
+        "features": [
+          "StatsCards",
+          "RevenueChart",
+          "SalesChart",
+          "DataTable",
+          "ThemeContext"
+        ]
+      },
+      {
+        "name": "bold-dashboard-template",
+        "description": "Modern professional dashboard with bold design elements - RECOMMENDED for SwissBrain",
+        "theme": "Blue (#339af0)",
+        "features": [
+          "Glassmorphism",
+          "ThemeCustomizer",
+          "CompactMode"
+        ]
+      },
+      {
+        "name": "cyber-dashboard-template",
+        "description": "Futuristic tech-focused dashboard",
+        "theme": "Dark with neon accents (oklch)",
+        "features": [
+          "NeonAccents",
+          "MonochromaticDark"
+        ]
+      },
+      {
+        "name": "dark-dashboard-template",
+        "description": "Minimalist dark mode dashboard",
+        "theme": "Purple-tinted dark",
+        "features": [
+          "DeepColorPalette",
+          "GlassmorphismEffects"
+        ]
+      }
+    ],
+    "landing_pages": [
+      {
+        "name": "landing-page-template",
+        "description": "Product landing page with 3D effects - RECOMMENDED for SwissBrain",
+        "theme": "Customizable (default red, change to SwissBrain blue #14b8a6)",
+        "features": [
+          "3DPerspective",
+          "MouseTracking",
+          "ParallaxScroll",
+          "ScrollCards",
+          "Testimonials"
+        ]
+      },
+      {
+        "name": "mobile-landing-template",
+        "description": "Mobile app product landing page",
+        "theme": "Blue gradient",
+        "features": [
+          "PhoneMockups",
+          "AppStoreButtons",
+          "LogoCarousel"
+        ]
+      },
+      {
+        "name": "professional-landing-template",
+        "description": "Corporate/B2B landing page",
+        "theme": "Professional white",
+        "features": [
+          "MarqueeText",
+          "Testimonials",
+          "GoogleFonts"
+        ]
+      },
+      {
+        "name": "tech-landing-template",
+        "description": "Technology company landing page",
+        "theme": "Modern tech",
+        "features": [
+          "StartupFocused",
+          "ModernAesthetic"
+        ]
+      }
+    ],
+    "portfolios": [
+      {
+        "name": "portfolio-template",
+        "description": "Professional portfolio with timeline and blog",
+        "theme": "Modern",
+        "features": [
+          "Navigation",
+          "HeroSection",
+          "AboutSection",
+          "ExperienceTimeline",
+          "PortfolioSection",
+          "BlogSection",
+          "ContactSection",
+          "ParticleBackground",
+          "ScrollProgress"
+        ]
+      },
+      {
+        "name": "tech-portfolio-template",
+        "description": "Technology-focused professional portfolio",
+        "theme": "Professional blue",
+        "features": [
+          "CodeFocused",
+          "TechAesthetic"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "description": "Base React + Vite + TypeScript template",
+        "features": [
+          "50+ UI Components",
+          "DarkMode",
+          "PathAliases",
+          "ESLint"
+        ]
+      },
+      {
+        "name": "next",
+        "description": "Next.js 15 with App Router",
+        "features": [
+          "ServerComponents",
+          "ServerActions",
+          "CloudflareWorkers",
+          "React19"
+        ]
+      },
+      {
+        "name": "flask",
+        "description": "Flask REST API template",
+        "features": [
+          "SQLAlchemy",
+          "RESTful CRUD",
+          "Blueprint Pattern"
+        ]
+      }
+    ]
+  },
+  "ui_components": {
+    "count": 45,
+    "copy_from": "deploy/templates/react/src/components/ui/",
+    "list": [
+      "accordion",
+      "alert-dialog",
+      "alert",
+      "aspect-ratio",
+      "avatar",
+      "badge",
+      "breadcrumb",
+      "button",
+      "calendar",
+      "card",
+      "carousel",
+      "chart",
+      "checkbox",
+      "collapsible",
+      "command",
+      "context-menu",
+      "dialog",
+      "drawer",
+      "dropdown-menu",
+      "form",
+      "hover-card",
+      "input-otp",
+      "input",
+      "label",
+      "menubar",
+      "navigation-menu",
+      "pagination",
+      "popover",
+      "progress",
+      "radio-group",
+      "resizable",
+      "scroll-area",
+      "select",
+      "separator",
+      "sheet",
+      "sidebar",
+      "skeleton",
+      "slider",
+      "sonner",
+      "switch",
+      "table",
+      "tabs",
+      "textarea",
+      "toast",
+      "toaster",
+      "toggle-group",
+      "toggle",
+      "tooltip"
+    ],
+    "essential_for_swissbrain": [
+      "button",
+      "card",
+      "dialog",
+      "dropdown-menu",
+      "form",
+      "input",
+      "label",
+      "select",
+      "sidebar",
+      "tabs",
+      "toast",
+      "tooltip"
+    ],
+    "patterns": {
+      "cva_variants": {
+        "description": "Class Variance Authority for style variants",
+        "example": "const buttonVariants = cva('base-classes', { variants: { variant: {...}, size: {...} } })"
+      },
+      "forward_ref": {
+        "description": "React.forwardRef for ref forwarding",
+        "example": "const Component = React.forwardRef<HTMLDivElement, Props>(({ className, ...props }, ref) => (...))"
+      },
+      "radix_composition": {
+        "description": "Wrapping Radix UI primitives with custom styling",
+        "example": "const Dialog = DialogPrimitive.Root"
+      },
+      "context_state": {
+        "description": "React Context for complex state management",
+        "example": "const SidebarContext = React.createContext<SidebarContextType | null>(null)"
+      }
+    }
+  },
+  "configuration_files": {
+    "vite.config.ts": {
+      "plugins": [
+        "@vitejs/plugin-react"
+      ],
+      "resolve_alias": {
+        "@": "./src"
+      }
+    },
+    "tsconfig.json": {
+      "target": "ES2020",
+      "module": "ESNext",
+      "moduleResolution": "bundler",
+      "jsx": "react-jsx",
+      "strict": true,
+      "paths": {
+        "@/*": [
+          "./src/*"
+        ]
+      }
+    },
+    "tailwind.config.js": {
+      "darkMode": [
+        "class"
+      ],
+      "content": [
+        "./index.html",
+        "./src/**/*.{ts,tsx,js,jsx}"
+      ],
+      "plugins": [
+        "tailwindcss-animate"
+      ]
+    },
+    "components.json": {
+      "style": "new-york",
+      "rsc": false,
+      "tsx": true,
+      "baseColor": "zinc",
+      "cssVariables": false,
+      "iconLibrary": "lucide"
+    },
+    "postcss.config.js": {
+      "plugins": [
+        "tailwindcss",
+        "autoprefixer"
+      ]
+    }
+  },
+  "styling_system": {
+    "swissbrain_brand": {
+      "primary": "173 80% 40%",
+      "primary_hex": "#14b8a6",
+      "usage": "Replace --primary values with SwissBrain Teal"
+    },
+    "css_variables": {
+      "light": {
+        "--background": "0 0% 100%",
+        "--foreground": "222.2 84% 4.9%",
+        "--card": "0 0% 100%",
+        "--card-foreground": "222.2 84% 4.9%",
+        "--primary": "173 80% 40%",
+        "--primary-foreground": "210 40% 98%",
+        "--secondary": "210 40% 96.1%",
+        "--secondary-foreground": "222.2 47.4% 11.2%",
+        "--muted": "210 40% 96.1%",
+        "--muted-foreground": "215.4 16.3% 46.9%",
+        "--accent": "210 40% 96.1%",
+        "--accent-foreground": "222.2 47.4% 11.2%",
+        "--destructive": "0 84.2% 60.2%",
+        "--destructive-foreground": "210 40% 98%",
+        "--border": "214.3 31.8% 91.4%",
+        "--input": "214.3 31.8% 91.4%",
+        "--ring": "173 80% 40%",
+        "--radius": "0.5rem"
+      },
+      "dark": {
+        "--background": "222.2 84% 4.9%",
+        "--foreground": "210 40% 98%",
+        "--card": "222.2 84% 4.9%",
+        "--card-foreground": "210 40% 98%",
+        "--primary": "173 80% 40%",
+        "--primary-foreground": "222.2 47.4% 11.2%",
+        "--secondary": "217.2 32.6% 17.5%",
+        "--secondary-foreground": "210 40% 98%",
+        "--muted": "217.2 32.6% 17.5%",
+        "--muted-foreground": "215 20.2% 65.1%",
+        "--accent": "217.2 32.6% 17.5%",
+        "--accent-foreground": "210 40% 98%",
+        "--destructive": "0 62.8% 30.6%",
+        "--destructive-foreground": "210 40% 98%",
+        "--border": "217.2 32.6% 17.5%",
+        "--input": "217.2 32.6% 17.5%",
+        "--ring": "173 80% 40%"
+      },
+      "chart_colors": {
+        "light": {
+          "--chart-1": "173 80% 40%",
+          "--chart-2": "173 58% 39%",
+          "--chart-3": "197 37% 24%",
+          "--chart-4": "43 74% 66%",
+          "--chart-5": "27 87% 67%"
+        },
+        "dark": {
+          "--chart-1": "173 80% 40%",
+          "--chart-2": "160 60% 45%",
+          "--chart-3": "30 80% 55%",
+          "--chart-4": "280 65% 60%",
+          "--chart-5": "340 75% 55%"
+        }
+      },
+      "sidebar": {
+        "light": {
+          "--sidebar-background": "0 0% 98%",
+          "--sidebar-foreground": "240 5.3% 26.1%",
+          "--sidebar-primary": "173 80% 40%",
+          "--sidebar-primary-foreground": "0 0% 98%",
+          "--sidebar-accent": "240 4.8% 95.9%",
+          "--sidebar-accent-foreground": "240 5.9% 10%",
+          "--sidebar-border": "220 13% 91%",
+          "--sidebar-ring": "173 80% 40%"
+        },
+        "dark": {
+          "--sidebar-background": "240 5.9% 10%",
+          "--sidebar-foreground": "240 4.8% 95.9%",
+          "--sidebar-primary": "173 80% 40%",
+          "--sidebar-primary-foreground": "0 0% 100%",
+          "--sidebar-accent": "240 3.7% 15.9%",
+          "--sidebar-accent-foreground": "240 4.8% 95.9%",
+          "--sidebar-border": "240 3.7% 15.9%",
+          "--sidebar-ring": "173 80% 40%"
+        }
+      }
+    }
+  },
+  "animations": {
+    "keyframes": {
+      "float": {
+        "description": "Vertical floating motion",
+        "duration": "6s ease-in-out infinite",
+        "css": "@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }"
+      },
+      "pulse-glow": {
+        "description": "Pulsing glow effect",
+        "duration": "3s ease-in-out infinite",
+        "css": "@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(20, 184, 166, 0.3); } 50% { box-shadow: 0 0 40px rgba(20, 184, 166, 0.6); } }"
+      },
+      "slide-up": {
+        "description": "Slide up with fade",
+        "duration": "0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "css": "@keyframes slide-up { from { opacity: 0; transform: translateY(60px); } to { opacity: 1; transform: translateY(0); } }"
+      },
+      "fade-in": {
+        "description": "Simple opacity fade",
+        "duration": "0.7s ease-out forwards",
+        "css": "@keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }"
+      },
+      "accordion-down": {
+        "description": "Accordion expand",
+        "duration": "0.2s ease-out",
+        "css": "@keyframes accordion-down { from { height: 0 } to { height: var(--radix-accordion-content-height) } }"
+      },
+      "accordion-up": {
+        "description": "Accordion collapse",
+        "duration": "0.2s ease-out",
+        "css": "@keyframes accordion-up { from { height: var(--radix-accordion-content-height) } to { height: 0 } }"
+      }
+    },
+    "framer_motion_patterns": {
+      "fade_in_on_scroll": {
+        "initial": {
+          "opacity": 0,
+          "y": 50
+        },
+        "whileInView": {
+          "opacity": 1,
+          "y": 0
+        },
+        "viewport": {
+          "once": true
+        },
+        "transition": {
+          "duration": 0.6,
+          "ease": "easeOut"
+        }
+      },
+      "stagger_children": {
+        "parent_variants": {
+          "hidden": {
+            "opacity": 0
+          },
+          "visible": {
+            "opacity": 1,
+            "transition": {
+              "staggerChildren": 0.1
+            }
+          }
+        },
+        "child_variants": {
+          "hidden": {
+            "opacity": 0,
+            "y": 20
+          },
+          "visible": {
+            "opacity": 1,
+            "y": 0
+          }
+        }
+      }
+    }
+  },
+  "hooks": {
+    "use-toast": {
+      "description": "Toast notification state management",
+      "exports": [
+        "useToast",
+        "toast"
+      ],
+      "pattern": "Reducer with pub/sub listeners"
+    },
+    "use-mobile": {
+      "description": "Responsive design hook",
+      "exports": [
+        "useIsMobile"
+      ],
+      "breakpoint": 768
+    },
+    "use-fetch-data": {
+      "description": "Data fetching with loading/error states",
+      "pattern": "Generic hook with cleanup"
+    }
+  },
+  "utilities": {
+    "cn": {
+      "description": "Class name utility combining clsx and tailwind-merge",
+      "import": "import { cn } from '@/lib/utils'",
+      "usage": "cn('base-classes', isActive && 'active-classes', className)"
+    }
+  },
+  "api_patterns": {
+    "supabase_auth": {
+      "setup": "@supabase/supabase-js",
+      "features": [
+        "signInWithPassword",
+        "signUp",
+        "signOut",
+        "onAuthStateChange"
+      ],
+      "context_pattern": "AuthContext with useAuth hook"
+    },
+    "flask_rest": {
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/api/users",
+          "description": "Fetch all users"
+        },
+        {
+          "method": "POST",
+          "path": "/api/users",
+          "description": "Create user"
+        },
+        {
+          "method": "GET",
+          "path": "/api/users/<id>",
+          "description": "Fetch single user"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/users/<id>",
+          "description": "Update user"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/users/<id>",
+          "description": "Delete user"
+        }
+      ]
+    },
+    "nextjs_server_actions": {
+      "directive": "'use server'",
+      "features": [
+        "cookies()",
+        "headers()",
+        "Direct client calls"
+      ]
+    }
+  },
+  "best_practices": {
+    "component_design": [
+      "Use CVA for style variants",
+      "Forward refs for extensibility",
+      "Compose with Radix primitives",
+      "Use Context for complex state"
+    ],
+    "performance": [
+      "useMemo for expensive computations",
+      "Lazy loading components",
+      "Intersection Observer for animations"
+    ],
+    "accessibility": [
+      "Use semantic HTML",
+      "Include ARIA labels",
+      "Keyboard navigation support",
+      "Focus management"
+    ]
+  },
+  "project_structures": {
+    "swissbrain_recommended": {
+      "src": {
+        "components": {
+          "ui": "45+ shadcn components from templates",
+          "landing": [
+            "Hero.tsx",
+            "Features.tsx",
+            "Pricing.tsx",
+            "FAQ.tsx",
+            "Footer.tsx"
+          ],
+          "dashboard": [
+            "DashboardLayout.tsx",
+            "Sidebar.tsx",
+            "StatsCard.tsx",
+            "Charts/"
+          ],
+          "auth": [
+            "LoginForm.tsx",
+            "SignupForm.tsx",
+            "AuthGuard.tsx"
+          ]
+        },
+        "contexts": [
+          "AuthContext.tsx",
+          "ThemeContext.tsx"
+        ],
+        "hooks": [
+          "use-toast.ts",
+          "use-mobile.tsx",
+          "use-auth.ts"
+        ],
+        "lib": [
+          "utils.ts",
+          "supabase.ts"
+        ],
+        "pages": {
+          "public": [
+            "Home.tsx",
+            "Pricing.tsx",
+            "About.tsx"
+          ],
+          "auth": [
+            "Login.tsx",
+            "Signup.tsx",
+            "ForgotPassword.tsx"
+          ],
+          "dashboard": [
+            "Dashboard.tsx",
+            "Settings.tsx",
+            "ApiKeys.tsx"
+          ]
+        }
+      },
+      "config_files": [
+        "package.json",
+        "tsconfig.json",
+        "vite.config.ts",
+        "tailwind.config.js",
+        "components.json",
+        ".env"
+      ]
+    },
+    "react_template": {
+      "src": {
+        "components": {
+          "ui": "45+ shadcn components"
+        },
+        "hooks": [
+          "use-toast.ts",
+          "use-mobile.tsx"
+        ],
+        "lib": [
+          "utils.ts"
+        ],
+        "pages": "Page components",
+        "contexts": "React Context providers"
+      },
+      "config_files": [
+        "package.json",
+        "tsconfig.json",
+        "vite.config.ts",
+        "tailwind.config.js",
+        "components.json"
+      ]
+    },
+    "dashboard_template": {
+      "client/src": {
+        "pages": [
+          "Home.tsx",
+          "RawData.tsx",
+          "NotFound.tsx"
+        ],
+        "components": [
+          "DashboardLayout.tsx",
+          "StatsCard.tsx",
+          "Charts"
+        ],
+        "contexts": [
+          "ThemeContext.tsx"
+        ],
+        "hooks": [
+          "useFetchData.ts"
+        ]
+      },
+      "server": [
+        "index.ts"
+      ],
+      "public/mocks": "JSON data files"
+    }
+  },
+  "quick_start": {
+    "swissbrain": {
+      "commands": [
+        "pnpm create vite swissbrain-ai --template react-ts",
+        "cd swissbrain-ai",
+        "pnpm install",
+        "pnpm add @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tabs @radix-ui/react-toast @radix-ui/react-tooltip class-variance-authority clsx tailwind-merge tailwindcss-animate react-router-dom react-hook-form @hookform/resolvers zod framer-motion recharts lucide-react @supabase/supabase-js sonner",
+        "cp -r ./deploy/templates/react/src/components/ui ./src/components/",
+        "cp -r ./deploy/templates/react/src/hooks ./src/",
+        "cp -r ./deploy/templates/react/src/lib ./src/",
+        "pnpm dev"
+      ]
+    },
+    "react": {
+      "commands": [
+        "pnpm install",
+        "pnpm dev"
+      ]
+    },
+    "nextjs": {
+      "commands": [
+        "pnpm install",
+        "pnpm dev"
+      ]
+    },
+    "flask": {
+      "commands": [
+        "pip install -r requirements.txt",
+        "python src/main.py"
+      ]
+    }
+  }
+}

@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agent-api-ingress
+  namespace: agents
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"  # 10 min for long requests
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.swissbrain.ai
+    secretName: agent-api-tls
+  rules:
+  - host: api.swissbrain.ai
+    http:
+      paths:
+      - path: /agent
+        pathType: Prefix
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /ready
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /docs
+        pathType: Exact
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80

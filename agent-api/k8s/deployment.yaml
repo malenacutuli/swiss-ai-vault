@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-api
+  namespace: agents
+  labels:
+    app: agent-api
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: agent-api
+  template:
+    metadata:
+      labels:
+        app: agent-api
+        version: v1
+    spec:
+      serviceAccountName: agent-api-sa
+      imagePullSecrets:
+      - name: regcred
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: agent-api
+        image: docker.io/axessvideo/agent-api:v11-phase4  # Phase 4: Multi-Format Document Generation
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_SERVICE_ROLE_KEY
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: ANTHROPIC_API_KEY
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: REDIS_URL
+        - name: K8S_NAMESPACE
+          value: "agents"
+        - name: K8S_IN_CLUSTER
+          value: "true"
+        - name: DEBUG
+          value: "false"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-api-sa
+  namespace: agents
+---
+# ClusterRole for spawning K8s jobs (tool execution)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-job-spawner
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create", "get", "list", "watch", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-api-job-spawner
+subjects:
+- kind: ServiceAccount
+  name: agent-api-sa
+  namespace: agents
+roleRef:
+  kind: ClusterRole
+  name: agent-job-spawner
+  apiGroup: rbac.authorization.k8s.io

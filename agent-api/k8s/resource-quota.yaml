@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agent-tool-jobs-quota
+  namespace: agents
+spec:
+  hard:
+    count/jobs.batch: "50"  # Max 50 concurrent tool execution jobs
+    requests.cpu: "25"      # Total 25 CPUs for tool jobs
+    requests.memory: "50Gi" # Total 50GB memory for tool jobs

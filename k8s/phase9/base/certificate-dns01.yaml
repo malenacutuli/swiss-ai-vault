@@ -1,0 +1,68 @@
+# Certificate Resources using DNS-01 Challenge
+# These certificates will be issued using Cloudflare DNS-01 validation
+#
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: agent-api-tls
+  namespace: agents
+  labels:
+    app: agent-api
+spec:
+  secretName: agent-api-tls
+  issuerRef:
+    name: letsencrypt-prod-dns01
+    kind: ClusterIssuer
+  dnsNames:
+  - api.swissbrain.ai
+  duration: 2160h  # 90 days
+  renewBefore: 720h  # 30 days before expiry
+  privateKey:
+    algorithm: RSA
+    size: 2048
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-tls
+  namespace: agents
+  labels:
+    app: grafana
+spec:
+  secretName: grafana-tls
+  issuerRef:
+    name: letsencrypt-prod-dns01
+    kind: ClusterIssuer
+  dnsNames:
+  - monitoring.swissbrain.ai
+  duration: 2160h  # 90 days
+  renewBefore: 720h  # 30 days before expiry
+  privateKey:
+    algorithm: RSA
+    size: 2048
+
+---
+# Optional: Wildcard certificate for all subdomains
+# Uncomment if you want *.swissbrain.ai coverage
+#
+# apiVersion: cert-manager.io/v1
+# kind: Certificate
+# metadata:
+#   name: wildcard-swissbrain-tls
+#   namespace: agents
+#   labels:
+#     app: swissbrain
+# spec:
+#   secretName: wildcard-swissbrain-tls
+#   issuerRef:
+#     name: letsencrypt-prod-dns01
+#     kind: ClusterIssuer
+#   dnsNames:
+#   - "*.swissbrain.ai"
+#   - swissbrain.ai
+#   duration: 2160h  # 90 days
+#   renewBefore: 720h  # 30 days before expiry
+#   privateKey:
+#     algorithm: RSA
+#     size: 2048

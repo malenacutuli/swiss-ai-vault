@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-worker
+  namespace: agents
+  labels:
+    app: agent-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-worker
+  template:
+    metadata:
+      labels:
+        app: agent-worker
+    spec:
+      serviceAccountName: agent-api-sa
+      # Fix DNS resolution for external API calls (E2B, Anthropic, etc.)
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - "8.8.8.8"    # Google DNS
+          - "1.1.1.1"    # Cloudflare DNS
+        searches:
+          - "agents.svc.cluster.local"
+          - "svc.cluster.local"
+          - "cluster.local"
+        options:
+          - name: ndots
+            value: "2"
+          - name: timeout
+            value: "2"
+          - name: attempts
+            value: "2"
+      containers:
+      - name: worker
+        image: docker.io/axessvideo/agent-api:v6-working
+        imagePullPolicy: Always
+        # Use entrypoint.py with explicit main() call
+        command: ["python", "-u", "/app/entrypoint.py"]
+        # Probes disabled - using file-based or alternative health check
+        # livenessProbe:
+        #   exec:
+        #     command:
+        #     - python
+        #     - -c
+        #     - "from redis import Redis; import os; r = Redis.from_url(os.environ['REDIS_URL'], ssl_cert_reqs=None); r.ping()"
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 60
+        #   timeoutSeconds: 30
+        #   failureThreshold: 3
+        # readinessProbe:
+        #   exec:
+        #     command:
+        #     - python
+        #     - -c
+        #     - "from redis import Redis; import os; r = Redis.from_url(os.environ['REDIS_URL'], ssl_cert_reqs=None); r.ping()"
+        #   initialDelaySeconds: 60
+        #   periodSeconds: 30
+        #   timeoutSeconds: 30
+        #   failureThreshold: 3
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONFAULTHANDLER
+          value: "1"
+        - name: PYTHONPATH
+          value: "/app"
+        - name: HOME
+          value: "/app"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_SERVICE_ROLE_KEY
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: ANTHROPIC_API_KEY
+        - name: E2B_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: E2B_API_KEY
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: REDIS_URL
+        - name: S3_ENDPOINT
+          value: "https://sos-ch-gva-2.exo.io"
+        - name: S3_WORKSPACE_BUCKET
+          value: "swissbrain-workspaces"
+        - name: S3_REGION
+          value: "ch-gva-2"
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: S3_ACCESS_KEY
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: S3_SECRET_KEY
+        - name: K8S_NAMESPACE
+          value: "agents"
+        - name: K8S_IN_CLUSTER
+          value: "true"
+        - name: DEBUG
+          value: "false"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"

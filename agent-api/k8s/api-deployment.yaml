@@ -1,0 +1,194 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-api
+  namespace: agents
+  labels:
+    app: agent-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-api
+  template:
+    metadata:
+      labels:
+        app: agent-api
+    spec:
+      serviceAccountName: agent-api-sa
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - "8.8.8.8"
+          - "1.1.1.1"
+        searches:
+          - "agents.svc.cluster.local"
+          - "svc.cluster.local"
+          - "cluster.local"
+        options:
+          - name: ndots
+            value: "2"
+      containers:
+      - name: api
+        image: docker.io/axessvideo/agent-api:v17-healthcare
+        imagePullPolicy: Always
+        command: ["python", "-u", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ports:
+        - containerPort: 8000
+          name: http
+        # Probes disabled for debugging
+        # livenessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: 8000
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 30
+        #   timeoutSeconds: 5
+        #   failureThreshold: 3
+        # readinessProbe:
+        #   httpGet:
+        #     path: /ready
+        #     port: 8000
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+        #   timeoutSeconds: 5
+        #   failureThreshold: 3
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONFAULTHANDLER
+          value: "1"
+        - name: PYTHONPATH
+          value: "/app"
+        - name: HOME
+          value: "/app"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SUPABASE_SERVICE_ROLE_KEY
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: ANTHROPIC_API_KEY
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: OPENAI_API_KEY
+              optional: true
+        - name: E2B_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: E2B_API_KEY
+              optional: true
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: REDIS_URL
+        - name: S3_ENDPOINT
+          value: "https://sos-ch-gva-2.exo.io"
+        - name: S3_WORKSPACE_BUCKET
+          value: "swissbrain-workspaces"
+        - name: S3_REGION
+          value: "ch-gva-2"
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: S3_ACCESS_KEY
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: S3_SECRET_KEY
+        # LLM Settings
+        - name: LLM_PRIMARY_PROVIDER
+          value: "anthropic"
+        - name: LLM_DEFAULT_MODEL
+          value: "claude-sonnet-4-20250514"
+        - name: LLM_FALLBACK_ENABLED
+          value: "true"
+        # OAuth Settings
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: GITHUB_CLIENT_ID
+              optional: true
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: GITHUB_CLIENT_SECRET
+              optional: true
+        - name: SLACK_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SLACK_CLIENT_ID
+              optional: true
+        - name: SLACK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: SLACK_CLIENT_SECRET
+              optional: true
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: GOOGLE_CLIENT_ID
+              optional: true
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: GOOGLE_CLIENT_SECRET
+              optional: true
+        - name: OAUTH_REDIRECT_BASE_URL
+          value: "https://api.swissbrain.ai"
+        - name: OAUTH_FRONTEND_CALLBACK_URL
+          value: "https://swissbrain.ai/settings/connections"
+        - name: CONNECTOR_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: CONNECTOR_ENCRYPTION_KEY
+              optional: true
+        - name: DEBUG
+          value: "false"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-api
+  namespace: agents
+  labels:
+    app: agent-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: agent-api

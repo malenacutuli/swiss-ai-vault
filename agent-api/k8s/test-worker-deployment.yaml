@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-worker-test
+  namespace: agents
+  labels:
+    app: agent-worker-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-worker-test
+  template:
+    metadata:
+      labels:
+        app: agent-worker-test
+    spec:
+      serviceAccountName: agent-api-sa
+      containers:
+      - name: worker-test
+        image: docker.io/axessvideo/agent-api:phase2b
+        command: ["python", "-u", "/app/test_minimal_worker.py"]
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONFAULTHANDLER
+          value: "1"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: agent-api-secrets
+              key: REDIS_URL
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"

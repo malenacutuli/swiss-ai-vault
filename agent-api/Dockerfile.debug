@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Print installed versions
+RUN pip list | grep -E "supabase|postgrest"
+
+CMD ["python", "-c", "from supabase import create_client; print('Supabase client works')"]

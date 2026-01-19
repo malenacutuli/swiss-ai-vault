@@ -1,0 +1,28 @@
+# Test Dockerfile - runs as root to test permissions
+FROM python:3.11-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code (as root, no chown)
+COPY app/ ./app/
+COPY test_minimal_with_import.py ./
+
+# Test imports work
+RUN python -c "from app.config import get_settings; print('✓ Config import OK')"
+
+# Run as root (no USER switch)
+CMD ["python", "-u", "/app/test_minimal_with_import.py"]

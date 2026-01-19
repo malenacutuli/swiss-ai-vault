@@ -1,0 +1,66 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: swissbrain-ingress
+  namespace: swissbrain
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.swissbrain.ai
+    secretName: swissbrain-tls
+  rules:
+  - host: api.swissbrain.ai
+    http:
+      paths:
+      # Agent API routes (in agents namespace)
+      - path: /api/connectors
+        pathType: Prefix
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /agent
+        pathType: Prefix
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /docs
+        pathType: Prefix
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      - path: /health
+        pathType: Prefix
+        backend:
+          service:
+            name: agent-api
+            port:
+              number: 80
+      # Existing sandbox routes
+      - path: /v1/sandbox
+        pathType: Prefix
+        backend:
+          service:
+            name: sandbox-api
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sandbox-executor
+            port:
+              number: 80

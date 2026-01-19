@@ -1,0 +1,22 @@
+#!/bin/bash
+# Create test jobs - run this in your terminal
+
+echo "This script will create test jobs using the same environment variables"
+echo "that you used for the previous successful run."
+echo ""
+echo "Please run in your terminal:"
+echo ""
+echo "----------------------------------------"
+echo "python3 test_tools.py"
+echo "----------------------------------------"
+echo ""
+echo "This will:"
+echo "1. Create shell execution test job"
+echo "2. Create code execution test job"
+echo "3. Enqueue both to Redis"
+echo "4. Print the Run IDs for monitoring"
+echo ""
+echo "After running it, you'll get commands like:"
+echo "  python3 check_run_results.py abc-123-def-456"
+echo ""
+echo "Just copy and run those commands (with the actual IDs, not <SHELL_RUN_ID>)"

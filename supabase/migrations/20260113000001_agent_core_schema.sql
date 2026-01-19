@@ -1,0 +1,437 @@
+-- =============================================
+-- AGENT CORE SCHEMA
+-- Matches Manus.im architecture for full parity
+-- =============================================
+
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- =============================================
+-- ENUM TYPES
+-- =============================================
+
+-- Agent run status
+DO $$ BEGIN
+  CREATE TYPE agent_run_status AS ENUM (
+    'created',
+    'queued',
+    'planning',
+    'executing',
+    'waiting_user',
+    'paused',
+    'completed',
+    'failed',
+    'cancelled',
+    'timeout'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Agent step status
+DO $$ BEGIN
+  CREATE TYPE agent_step_status AS ENUM (
+    'pending',
+    'running',
+    'completed',
+    'failed',
+    'skipped',
+    'cancelled'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Tool types
+DO $$ BEGIN
+  CREATE TYPE tool_type AS ENUM (
+    'shell',
+    'code',
+    'browser',
+    'file_read',
+    'file_write',
+    'search',
+    'message',
+    'plan',
+    'generate',
+    'slides',
+    'connector',
+    'wide_research'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Agent modes (output types)
+DO $$ BEGIN
+  CREATE TYPE agent_mode AS ENUM (
+    'chat',
+    'research',
+    'slides',
+    'website',
+    'document',
+    'spreadsheet',
+    'image',
+    'video',
+    'audio',
+    'code',
+    'data_analysis',
+    'custom'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================
+-- AGENT RUNS TABLE
+-- Main task/conversation tracking
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  tenant_id UUID, -- Optional tenant reference (FK can be added when tenants table exists)
+
+  -- Task definition
+  prompt TEXT NOT NULL,
+  mode agent_mode NOT NULL DEFAULT 'chat',
+  config JSONB DEFAULT '{}',
+
+  -- Status tracking
+  status agent_run_status NOT NULL DEFAULT 'created',
+  current_step_id UUID,
+
+  -- Planning
+  plan JSONB, -- Array of planned phases
+  plan_version INTEGER DEFAULT 1,
+
+  -- Execution metrics
+  total_steps INTEGER DEFAULT 0,
+  completed_steps INTEGER DEFAULT 0,
+  failed_steps INTEGER DEFAULT 0,
+
+  -- Cost tracking
+  total_tokens_used BIGINT DEFAULT 0,
+  total_credits_used DECIMAL(10,4) DEFAULT 0,
+  estimated_credits DECIMAL(10,4),
+
+  -- Timing
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  timeout_at TIMESTAMPTZ,
+
+  -- Error handling
+  error_message TEXT,
+  error_code TEXT,
+  retry_count INTEGER DEFAULT 0,
+  max_retries INTEGER DEFAULT 3,
+
+  -- Metadata
+  metadata JSONB DEFAULT '{}',
+  tags TEXT[] DEFAULT '{}',
+
+  -- Soft delete
+  deleted_at TIMESTAMPTZ
+);
+
+-- Indexes for agent_runs
+CREATE INDEX IF NOT EXISTS idx_agent_runs_user_id ON agent_runs(user_id);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_tenant_id ON agent_runs(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs(status);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_created_at ON agent_runs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_mode ON agent_runs(mode);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_user_status ON agent_runs(user_id, status);
+
+-- =============================================
+-- AGENT STEPS TABLE
+-- Individual execution steps within a run
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS agent_steps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id UUID NOT NULL REFERENCES agent_runs(id) ON DELETE CASCADE,
+  parent_step_id UUID REFERENCES agent_steps(id),
+
+  -- Step definition
+  step_number INTEGER NOT NULL,
+  tool_type tool_type NOT NULL,
+  tool_name TEXT NOT NULL,
+  tool_input JSONB NOT NULL DEFAULT '{}',
+
+  -- Execution
+  status agent_step_status NOT NULL DEFAULT 'pending',
+  tool_output JSONB,
+  output_text TEXT,
+
+  -- Cost tracking
+  tokens_used INTEGER DEFAULT 0,
+  credits_used DECIMAL(10,4) DEFAULT 0,
+
+  -- Timing
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  duration_ms INTEGER,
+
+  -- Error handling
+  error_message TEXT,
+  error_code TEXT,
+  retry_count INTEGER DEFAULT 0,
+
+  -- Idempotency
+  idempotency_key TEXT UNIQUE,
+
+  -- Metadata
+  metadata JSONB DEFAULT '{}'
+);
+
+-- Indexes for agent_steps
+CREATE INDEX IF NOT EXISTS idx_agent_steps_run_id ON agent_steps(run_id);
+CREATE INDEX IF NOT EXISTS idx_agent_steps_status ON agent_steps(status);
+CREATE INDEX IF NOT EXISTS idx_agent_steps_tool_type ON agent_steps(tool_type);
+CREATE INDEX IF NOT EXISTS idx_agent_steps_run_step ON agent_steps(run_id, step_number);
+CREATE INDEX IF NOT EXISTS idx_agent_steps_created_at ON agent_steps(created_at DESC);
+
+-- =============================================
+-- AGENT ARTIFACTS TABLE
+-- Files and outputs generated by agent
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS agent_artifacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id UUID NOT NULL REFERENCES agent_runs(id) ON DELETE CASCADE,
+  step_id UUID REFERENCES agent_steps(id) ON DELETE SET NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+  -- File info
+  filename TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_type TEXT NOT NULL, -- MIME type
+  file_size BIGINT NOT NULL,
+
+  -- Content addressing
+  content_hash TEXT NOT NULL,
+
+  -- Storage
+  storage_bucket TEXT NOT NULL DEFAULT 'agent-outputs',
+  storage_key TEXT NOT NULL,
+  public_url TEXT,
+  signed_url TEXT,
+  signed_url_expires_at TIMESTAMPTZ,
+
+  -- Metadata
+  metadata JSONB DEFAULT '{}',
+
+  -- Timing
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+
+  -- Soft delete
+  deleted_at TIMESTAMPTZ
+);
+
+-- Indexes for agent_artifacts
+CREATE INDEX IF NOT EXISTS idx_agent_artifacts_run_id ON agent_artifacts(run_id);
+CREATE INDEX IF NOT EXISTS idx_agent_artifacts_step_id ON agent_artifacts(step_id);
+CREATE INDEX IF NOT EXISTS idx_agent_artifacts_user_id ON agent_artifacts(user_id);
+CREATE INDEX IF NOT EXISTS idx_agent_artifacts_content_hash ON agent_artifacts(content_hash);
+CREATE INDEX IF NOT EXISTS idx_agent_artifacts_file_type ON agent_artifacts(file_type);
+
+-- =============================================
+-- AGENT MESSAGES TABLE
+-- Chat messages within a run
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS agent_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id UUID NOT NULL REFERENCES agent_runs(id) ON DELETE CASCADE,
+  step_id UUID REFERENCES agent_steps(id) ON DELETE SET NULL,
+
+  -- Message content
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'tool')),
+  content TEXT NOT NULL,
+
+  -- For tool messages
+  tool_call_id TEXT,
+  tool_name TEXT,
+
+  -- Attachments
+  attachments JSONB DEFAULT '[]',
+
+  -- Metadata
+  metadata JSONB DEFAULT '{}',
+
+  -- Timing
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for agent_messages
+CREATE INDEX IF NOT EXISTS idx_agent_messages_run_id ON agent_messages(run_id);
+CREATE INDEX IF NOT EXISTS idx_agent_messages_created_at ON agent_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_agent_messages_role ON agent_messages(role);
+
+-- =============================================
+-- AGENT MEMORY TABLE
+-- Persistent memory across runs
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS agent_memory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  run_id UUID REFERENCES agent_runs(id) ON DELETE SET NULL,
+
+  -- Memory content
+  memory_type TEXT NOT NULL CHECK (memory_type IN ('fact', 'preference', 'context', 'instruction')),
+  content TEXT NOT NULL,
+  embedding vector(1536), -- For semantic search
+
+  -- Relevance
+  importance_score DECIMAL(3,2) DEFAULT 0.5,
+  access_count INTEGER DEFAULT 0,
+  last_accessed_at TIMESTAMPTZ,
+
+  -- Timing
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+
+  -- Soft delete
+  deleted_at TIMESTAMPTZ
+);
+
+-- Indexes for agent_memory
+CREATE INDEX IF NOT EXISTS idx_agent_memory_user_id ON agent_memory(user_id);
+CREATE INDEX IF NOT EXISTS idx_agent_memory_type ON agent_memory(memory_type);
+CREATE INDEX IF NOT EXISTS idx_agent_memory_importance ON agent_memory(importance_score DESC);
+
+-- =============================================
+-- ROW LEVEL SECURITY POLICIES
+-- =============================================
+
+-- Enable RLS
+ALTER TABLE agent_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_steps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_memory ENABLE ROW LEVEL SECURITY;
+
+-- agent_runs policies
+CREATE POLICY "Users can view own runs"
+  ON agent_runs FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own runs"
+  ON agent_runs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own runs"
+  ON agent_runs FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role has full access to runs"
+  ON agent_runs FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
+
+-- agent_steps policies
+CREATE POLICY "Users can view steps of own runs"
+  ON agent_steps FOR SELECT
+  USING (run_id IN (SELECT id FROM agent_runs WHERE user_id = auth.uid()));
+
+CREATE POLICY "Service role has full access to steps"
+  ON agent_steps FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
+
+-- agent_artifacts policies
+CREATE POLICY "Users can view own artifacts"
+  ON agent_artifacts FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own artifacts"
+  ON agent_artifacts FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Service role has full access to artifacts"
+  ON agent_artifacts FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
+
+-- agent_messages policies
+CREATE POLICY "Users can view messages of own runs"
+  ON agent_messages FOR SELECT
+  USING (run_id IN (SELECT id FROM agent_runs WHERE user_id = auth.uid()));
+
+CREATE POLICY "Service role has full access to messages"
+  ON agent_messages FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
+
+-- agent_memory policies
+CREATE POLICY "Users can manage own memory"
+  ON agent_memory FOR ALL
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role has full access to memory"
+  ON agent_memory FOR ALL
+  USING (auth.jwt() ->> 'role' = 'service_role');
+
+-- =============================================
+-- FUNCTIONS
+-- =============================================
+
+-- Function to update run statistics
+CREATE OR REPLACE FUNCTION update_run_statistics()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE agent_runs
+  SET
+    total_steps = (SELECT COUNT(*) FROM agent_steps WHERE run_id = NEW.run_id),
+    completed_steps = (SELECT COUNT(*) FROM agent_steps WHERE run_id = NEW.run_id AND status = 'completed'),
+    failed_steps = (SELECT COUNT(*) FROM agent_steps WHERE run_id = NEW.run_id AND status = 'failed'),
+    total_tokens_used = (SELECT COALESCE(SUM(tokens_used), 0) FROM agent_steps WHERE run_id = NEW.run_id),
+    total_credits_used = (SELECT COALESCE(SUM(credits_used), 0) FROM agent_steps WHERE run_id = NEW.run_id)
+  WHERE id = NEW.run_id;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for run statistics
+DROP TRIGGER IF EXISTS trigger_update_run_statistics ON agent_steps;
+CREATE TRIGGER trigger_update_run_statistics
+  AFTER INSERT OR UPDATE ON agent_steps
+  FOR EACH ROW
+  EXECUTE FUNCTION update_run_statistics();
+
+-- Function to auto-complete run when all steps done
+CREATE OR REPLACE FUNCTION check_run_completion()
+RETURNS TRIGGER AS $$
+DECLARE
+  pending_count INTEGER;
+  failed_count INTEGER;
+BEGIN
+  SELECT
+    COUNT(*) FILTER (WHERE status IN ('pending', 'running')),
+    COUNT(*) FILTER (WHERE status = 'failed')
+  INTO pending_count, failed_count
+  FROM agent_steps
+  WHERE run_id = NEW.run_id;
+
+  IF pending_count = 0 AND failed_count = 0 THEN
+    UPDATE agent_runs
+    SET status = 'completed', completed_at = NOW()
+    WHERE id = NEW.run_id AND status = 'executing';
+  ELSIF pending_count = 0 AND failed_count > 0 THEN
+    UPDATE agent_runs
+    SET status = 'failed', completed_at = NOW()
+    WHERE id = NEW.run_id AND status = 'executing';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for run completion check
+DROP TRIGGER IF EXISTS trigger_check_run_completion ON agent_steps;
+CREATE TRIGGER trigger_check_run_completion
+  AFTER UPDATE OF status ON agent_steps
+  FOR EACH ROW
+  WHEN (NEW.status IN ('completed', 'failed', 'skipped', 'cancelled'))
+  EXECUTE FUNCTION check_run_completion();

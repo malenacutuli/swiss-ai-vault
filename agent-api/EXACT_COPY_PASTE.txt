@@ -1,0 +1,33 @@
+=== COPY AND PASTE THIS ENTIRE BLOCK ===
+
+# Step 1: Set Supabase URL (already known)
+export SUPABASE_URL="https://auth.swissvault.ai"
+
+# Step 2: Get and set Service Role Key
+# Run ONE of these commands to get the key:
+
+# Option A: From K8s (on a machine where kubectl works):
+export SUPABASE_SERVICE_ROLE_KEY=$(kubectl get secret agent-api-secrets -n agents -o jsonpath='{.data.SUPABASE_SERVICE_ROLE_KEY}' | base64 -d)
+
+# Option B: From Supabase Dashboard (if you have access):
+# 1. Go to: https://supabase.com/dashboard/project/ghmmdochvlrnwbruyrqk/settings/api
+# 2. Copy the service_role key
+# 3. Then run:
+# export SUPABASE_SERVICE_ROLE_KEY="paste_your_key_here"
+
+# Step 3: Run test
+python3 test_v2_direct.py
+
+=== END ===
+
+What this does:
+1. Uses the known Supabase URL (https://auth.swissvault.ai)
+2. Gets the service role key from K8s or Supabase dashboard
+3. Creates a test job directly in database
+4. Checks if v2 fix is working (conversation history populated)
+
+Expected result if v2 works:
+✓ Conversation Messages: 1+
+  USER: Check the system information and create a report file...
+✓ Agent Steps: 4+
+  - shell_execute: completed
