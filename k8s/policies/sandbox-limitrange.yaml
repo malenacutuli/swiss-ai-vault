@@ -1,0 +1,190 @@
+# Kubernetes LimitRange for Sandbox Namespace
+# Enforces default and maximum resource limits for sandbox containers
+#
+# Tier Summary:
+# - Free:       0.5 CPU, 512MB RAM, 1GB storage
+# - Standard:   1 CPU, 2GB RAM, 5GB storage (default)
+# - Pro:        2 CPU, 4GB RAM, 20GB storage
+# - Enterprise: 4 CPU, 8GB RAM, 100GB storage
+#
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: sandbox-limits
+  namespace: sandboxes
+  labels:
+    app.kubernetes.io/name: sandbox-limits
+    app.kubernetes.io/component: policy
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  limits:
+    # Container defaults (Standard tier)
+    - type: Container
+      default:
+        cpu: "1"
+        memory: "2Gi"
+        ephemeral-storage: "5Gi"
+      defaultRequest:
+        cpu: "500m"
+        memory: "512Mi"
+        ephemeral-storage: "1Gi"
+      # Max allowed (Enterprise tier)
+      max:
+        cpu: "4"
+        memory: "8Gi"
+        ephemeral-storage: "100Gi"
+      # Minimum (prevents too-small containers)
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+        ephemeral-storage: "100Mi"
+
+    # Pod limits (sum of all containers)
+    - type: Pod
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+
+    # PVC limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: "500Gi"
+      min:
+        storage: "1Gi"
+---
+# ResourceQuota for Sandbox Namespace
+# Limits total resource consumption across all sandboxes
+#
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: sandbox-quota
+  namespace: sandboxes
+  labels:
+    app.kubernetes.io/name: sandbox-quota
+    app.kubernetes.io/component: policy
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  hard:
+    # Compute resources (requests)
+    requests.cpu: "100"
+    requests.memory: "200Gi"
+
+    # Compute resources (limits)
+    limits.cpu: "200"
+    limits.memory: "400Gi"
+
+    # Storage resources
+    requests.storage: "1Ti"
+    requests.ephemeral-storage: "500Gi"
+    limits.ephemeral-storage: "1Ti"
+
+    # Object counts
+    pods: "500"
+    services: "100"
+    secrets: "500"
+    configmaps: "500"
+    persistentvolumeclaims: "200"
+    replicationcontrollers: "50"
+
+    # Scoped to specific priority classes (optional)
+    # count/pods.spec.priorityClassName.sandbox-low: "200"
+    # count/pods.spec.priorityClassName.sandbox-high: "50"
+---
+# NetworkPolicy for Sandbox Isolation
+# Restricts network access to prevent lateral movement
+#
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-network-policy
+  namespace: sandboxes
+  labels:
+    app.kubernetes.io/name: sandbox-network-policy
+    app.kubernetes.io/component: policy
+    app.kubernetes.io/part-of: swissbrain-platform
+spec:
+  podSelector:
+    matchLabels:
+      app: sandbox
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow traffic from ingress controller only
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: agents
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 5173
+        - protocol: TCP
+          port: 8080
+
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # Allow HTTPS to external services (npm, pypi, etc.)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8       # Block private networks
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.169.254/32  # Block cloud metadata
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+---
+# PriorityClass for sandboxes
+# Lower priority than system pods
+#
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: sandbox-priority
+  labels:
+    app.kubernetes.io/name: sandbox-priority
+    app.kubernetes.io/component: scheduling
+    app.kubernetes.io/part-of: swissbrain-platform
+value: 100
+globalDefault: false
+description: "Priority class for sandbox workloads. Lower than default to ensure system stability."
+preemptionPolicy: PreemptLowerPriority
+---
+# PriorityClass for high-tier sandboxes
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: sandbox-priority-high
+  labels:
+    app.kubernetes.io/name: sandbox-priority-high
+    app.kubernetes.io/component: scheduling
+    app.kubernetes.io/part-of: swissbrain-platform
+value: 500
+globalDefault: false
+description: "Priority class for Pro/Enterprise sandbox workloads."
+preemptionPolicy: PreemptLowerPriority
