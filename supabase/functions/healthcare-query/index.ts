@@ -4,12 +4,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import {
-  HEALTHCARE_TOOL_DEFINITIONS,
+  HEALTHCARE_TOOLS,
   HEALTHCARE_PROMPTS,
   BASE_DISCLAIMER,
-  ToolResult
+  executeTool
 } from '../_shared/healthcare-tools/index.ts';
-import { executeHealthcareTool } from '../_shared/healthcare-tools/executor.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,7 +16,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const MAX_TOOL_ITERATIONS = 5;
+const MAX_TOOL_ITERATIONS = 8;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -138,6 +137,7 @@ serve(async (req) => {
         // AGENTIC TOOL USE LOOP
         while (iterations < MAX_TOOL_ITERATIONS) {
           iterations++;
+          console.log(`[Healthcare] Iteration ${iterations}`);
 
           const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -150,7 +150,7 @@ serve(async (req) => {
               model: modelUsed,
               max_tokens: 4096,
               system: systemPrompt,
-              tools: HEALTHCARE_TOOL_DEFINITIONS,
+              tools: HEALTHCARE_TOOLS,
               messages: currentMessages.map(m => ({
                 role: m.role,
                 content: m.content
@@ -175,13 +175,18 @@ serve(async (req) => {
 
             for (const block of data.content || []) {
               if (block.type === 'tool_use') {
+                console.log(`[Healthcare] Tool call: ${block.name}`, JSON.stringify(block.input));
+
                 // Execute the tool
-                const toolOutput = await executeHealthcareTool(block.name, block.input);
+                const toolOutput = await executeTool(block.name, block.input);
 
                 allToolCalls.push({
                   tool: block.name,
                   input: block.input,
-                  output: toolOutput.data || toolOutput.error
+                  output: toolOutput.data || toolOutput.error,
+                  source: toolOutput.source,
+                  source_url: toolOutput.source_url,
+                  success: toolOutput.success
                 });
 
                 assistantContent.push(block);
@@ -247,7 +252,7 @@ serve(async (req) => {
         }
 
       } catch (anthropicError) {
-        console.error('Anthropic API error:', anthropicError);
+        console.error('[Healthcare] Anthropic API error:', anthropicError);
         usedFallback = true;
       }
     } else {
@@ -337,7 +342,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Healthcare query error:', error);
+    console.error('[Healthcare] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'An error occurred' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

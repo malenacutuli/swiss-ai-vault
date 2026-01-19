@@ -280,3 +280,6 @@ Be precise, thorough, and always use tools to verify information.`
 };
 
 export const BASE_DISCLAIMER = `\n\n---\n*For informational purposes only. Clinical decisions should be made by qualified healthcare providers.*`;
+
+// Alias for spec compatibility
+export const HEALTHCARE_TOOLS = HEALTHCARE_TOOL_DEFINITIONS;
