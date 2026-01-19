@@ -98,8 +98,8 @@ export class AgentStateMachine {
     }
 
     // Perform atomic update with optimistic locking
-    const { data, error } = await this.supabase
-      .from('agent_runs')
+    const { data, error } = await (this.supabase
+      .from('agent_runs') as any)
       .update(updateData)
       .eq('id', this.runId)
       .eq('status', this.currentStatus) // Optimistic lock
@@ -128,7 +128,7 @@ export class AgentStateMachine {
     toStatus: AgentRunStatus,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    await this.supabase.from('agent_task_logs').insert({
+    await (this.supabase.from('agent_task_logs') as any).insert({
       run_id: this.runId,
       log_type: 'state_transition',
       message: `State changed from ${fromStatus} to ${toStatus}`,
@@ -171,8 +171,8 @@ export async function createStateMachine(
   supabase: ReturnType<typeof createClient>,
   runId: string
 ): Promise<AgentStateMachine | null> {
-  const { data, error } = await supabase
-    .from('agent_runs')
+  const { data, error } = await (supabase
+    .from('agent_runs') as any)
     .select('status')
     .eq('id', runId)
     .single();
@@ -181,7 +181,7 @@ export async function createStateMachine(
     return null;
   }
 
-  return new AgentStateMachine(supabase, runId, data.status as AgentRunStatus);
+  return new AgentStateMachine(supabase, runId, (data as any).status as AgentRunStatus);
 }
 
 // Step state machine (simpler)
@@ -203,8 +203,8 @@ export class StepStateMachine {
   async start(): Promise<boolean> {
     if (this.currentStatus !== 'pending') return false;
 
-    const { error } = await this.supabase
-      .from('agent_steps')
+    const { error } = await (this.supabase
+      .from('agent_steps') as any)
       .update({
         status: 'running',
         started_at: new Date().toISOString(),
@@ -222,8 +222,8 @@ export class StepStateMachine {
   async complete(output: unknown): Promise<boolean> {
     if (this.currentStatus !== 'running') return false;
 
-    const { error } = await this.supabase
-      .from('agent_steps')
+    const { error } = await (this.supabase
+      .from('agent_steps') as any)
       .update({
         status: 'completed',
         tool_output: output,
@@ -243,8 +243,8 @@ export class StepStateMachine {
   async fail(error: string): Promise<boolean> {
     if (this.currentStatus !== 'running') return false;
 
-    const { error: dbError } = await this.supabase
-      .from('agent_steps')
+    const { error: dbError } = await (this.supabase
+      .from('agent_steps') as any)
       .update({
         status: 'failed',
         error_message: error,
@@ -262,14 +262,14 @@ export class StepStateMachine {
   }
 
   private async calculateDuration(): Promise<number> {
-    const { data } = await this.supabase
-      .from('agent_steps')
+    const { data } = await (this.supabase
+      .from('agent_steps') as any)
       .select('started_at')
       .eq('id', this.stepId)
       .single();
 
-    if (data?.started_at) {
-      return Date.now() - new Date(data.started_at).getTime();
+    if ((data as any)?.started_at) {
+      return Date.now() - new Date((data as any).started_at).getTime();
     }
     return 0;
   }

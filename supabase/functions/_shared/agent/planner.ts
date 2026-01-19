@@ -57,23 +57,23 @@ export class AgentPlanner {
   ): Promise<{ plan: ExecutionPlan | null; error?: string }> {
     try {
       // Get user's available credits
-      const { data: balance } = await this.supabase
-        .from('credit_balances')
+      const { data: balance } = await (this.supabase
+        .from('credit_balances') as any)
         .select('available_credits')
         .eq('user_id', this.userId)
         .single();
 
-      const maxCredits = constraints?.max_credits ?? balance?.available_credits ?? 100;
+      const maxCredits = constraints?.max_credits ?? (balance as any)?.available_credits ?? 100;
 
       // Get available capabilities from connectors
-      const { data: connectors } = await this.supabase
-        .from('connector_credentials')
+      const { data: connectors } = await (this.supabase
+        .from('connector_credentials') as any)
         .select('connector_type, status')
         .eq('user_id', this.userId)
         .eq('status', 'active');
 
       const availableCapabilities = constraints?.available_capabilities ??
-        connectors?.map(c => c.connector_type) ??
+        (connectors as any[])?.map(c => c.connector_type) ??
         ['shell', 'code', 'browser', 'search', 'message'];
 
       // Build planning prompt
@@ -139,7 +139,7 @@ export class AgentPlanner {
         return { plan: null, error: 'Failed to parse plan JSON' };
       }
 
-      const plan = planData as ExecutionPlan;
+      const plan = planData as unknown as ExecutionPlan;
 
       // Validate plan
       const validation = await this.validatePlan(plan, constraints);
@@ -241,7 +241,7 @@ Return a complete revised execution plan in JSON format.`;
         return { plan: null, error: 'Failed to parse revised plan JSON' };
       }
 
-      const revisedPlan = planData as ExecutionPlan;
+      const revisedPlan = planData as unknown as ExecutionPlan;
 
       // Validate revised plan
       const validation = await this.validatePlan(revisedPlan, constraints);
@@ -410,19 +410,19 @@ Return a JSON object with this structure:
 
   // Get plan summary for a run
   async getPlanSummary(runId: string): Promise<ExecutionPlan | null> {
-    const { data: run } = await this.supabase
-      .from('agent_runs')
+    const { data: run } = await (this.supabase
+      .from('agent_runs') as any)
       .select('execution_plan')
       .eq('id', runId)
       .single();
 
-    return run?.execution_plan as ExecutionPlan | null;
+    return (run as any)?.execution_plan as ExecutionPlan | null;
   }
 
   // Update plan in database
   async savePlan(runId: string, plan: ExecutionPlan): Promise<boolean> {
-    const { error } = await this.supabase
-      .from('agent_runs')
+    const { error } = await (this.supabase
+      .from('agent_runs') as any)
       .update({ execution_plan: plan })
       .eq('id', runId);
 
