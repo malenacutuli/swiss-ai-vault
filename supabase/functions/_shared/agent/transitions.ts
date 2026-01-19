@@ -21,8 +21,8 @@ export const transitionHandlers: Record<
 
   queued: async (ctx) => {
     // Add to BullMQ queue
-    const { data: run } = await ctx.supabase
-      .from('agent_runs')
+    const { data: run } = await (ctx.supabase
+      .from('agent_runs') as any)
       .select('*')
       .eq('id', ctx.runId)
       .single();
@@ -35,7 +35,7 @@ export const transitionHandlers: Record<
 
   planning: async (ctx) => {
     // Initialize planning phase
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'info',
       message: 'Starting task planning...',
@@ -44,7 +44,7 @@ export const transitionHandlers: Record<
 
   executing: async (ctx) => {
     // Start execution
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'info',
       message: 'Executing task...',
@@ -53,7 +53,7 @@ export const transitionHandlers: Record<
 
   waiting_user: async (ctx, metadata) => {
     // Notify user that input is needed
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'user_input_required',
       message: metadata?.message as string || 'Waiting for user input...',
@@ -65,7 +65,7 @@ export const transitionHandlers: Record<
 
   paused: async (ctx) => {
     // Log pause
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'info',
       message: 'Task paused by user',
@@ -74,7 +74,7 @@ export const transitionHandlers: Record<
 
   completed: async (ctx) => {
     // Finalize run
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'success',
       message: 'Task completed successfully',
@@ -86,7 +86,7 @@ export const transitionHandlers: Record<
 
   failed: async (ctx, metadata) => {
     // Log failure
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'error',
       message: metadata?.error_message as string || 'Task failed',
@@ -99,7 +99,7 @@ export const transitionHandlers: Record<
 
   cancelled: async (ctx) => {
     // Log cancellation
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'info',
       message: 'Task cancelled by user',
@@ -114,7 +114,7 @@ export const transitionHandlers: Record<
 
   timeout: async (ctx) => {
     // Log timeout
-    await ctx.supabase.from('agent_task_logs').insert({
+    await (ctx.supabase.from('agent_task_logs') as any).insert({
       run_id: ctx.runId,
       log_type: 'error',
       message: 'Task timed out',
@@ -130,14 +130,14 @@ export const transitionHandlers: Record<
 
 // Helper functions
 async function releaseReservedCredits(ctx: TransitionContext): Promise<void> {
-  const { data: run } = await ctx.supabase
-    .from('agent_runs')
+  const { data: run } = await (ctx.supabase
+    .from('agent_runs') as any)
     .select('total_credits_used')
     .eq('id', ctx.runId)
     .single();
 
   // Update credit balance
-  await ctx.supabase.rpc('release_credits', {
+  await (ctx.supabase.rpc as any)('release_credits', {
     p_user_id: ctx.userId,
     p_amount: 0, // All credits consumed
     p_run_id: ctx.runId,
@@ -145,24 +145,25 @@ async function releaseReservedCredits(ctx: TransitionContext): Promise<void> {
 }
 
 async function refundUnusedCredits(ctx: TransitionContext): Promise<void> {
-  const { data: balance } = await ctx.supabase
-    .from('credit_balances')
+  const { data: balance } = await (ctx.supabase
+    .from('credit_balances') as any)
     .select('reserved_credits')
     .eq('user_id', ctx.userId)
     .single();
 
-  if (balance?.reserved_credits && balance.reserved_credits > 0) {
-    await ctx.supabase.rpc('release_credits', {
+  const balanceData = balance as any;
+  if (balanceData?.reserved_credits && balanceData.reserved_credits > 0) {
+    await (ctx.supabase.rpc as any)('release_credits', {
       p_user_id: ctx.userId,
-      p_amount: balance.reserved_credits,
+      p_amount: balanceData.reserved_credits,
       p_run_id: ctx.runId,
     });
   }
 }
 
 async function cancelPendingSteps(ctx: TransitionContext): Promise<void> {
-  await ctx.supabase
-    .from('agent_steps')
+  await (ctx.supabase
+    .from('agent_steps') as any)
     .update({
       status: 'cancelled',
       completed_at: new Date().toISOString(),

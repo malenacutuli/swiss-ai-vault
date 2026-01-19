@@ -68,17 +68,17 @@ export class AgentSupervisor {
         iterations++;
 
         // Check if run has been cancelled or paused
-        const { data: run } = await this.context.supabase
-          .from('agent_runs')
+        const { data: run } = await (this.context.supabase
+          .from('agent_runs') as any)
           .select('status')
           .eq('id', this.context.runId)
           .single();
 
-        if (run?.status === 'cancelled') {
+        if ((run as any)?.status === 'cancelled') {
           return { status: 'paused' };
         }
 
-        if (run?.status === 'paused') {
+        if ((run as any)?.status === 'paused') {
           return { status: 'paused' };
         }
 
@@ -168,8 +168,8 @@ export class AgentSupervisor {
           this.context.currentPhaseNumber += 1;
 
           // Update run with new phase
-          await this.context.supabase
-            .from('agent_runs')
+          await (this.context.supabase
+            .from('agent_runs') as any)
             .update({ current_phase: this.context.currentPhaseNumber })
             .eq('id', this.context.runId);
 
@@ -293,8 +293,8 @@ export class AgentSupervisor {
         }
 
         // Create step in database
-        const { data: step, error: stepError } = await this.context.supabase
-          .from('agent_steps')
+        const { data: step, error: stepError } = await (this.context.supabase
+          .from('agent_steps') as any)
           .insert({
             run_id: this.context.runId,
             phase_number: this.context.currentPhaseNumber,
@@ -309,14 +309,16 @@ export class AgentSupervisor {
           return { success: false, error: 'Failed to create step' };
         }
 
+        const stepData = step as any;
+
         // Mark step as running
-        await this.context.supabase
-          .from('agent_steps')
+        await (this.context.supabase
+          .from('agent_steps') as any)
           .update({
             status: 'running',
             started_at: new Date().toISOString(),
           })
-          .eq('id', step.id);
+          .eq('id', stepData.id);
 
         // Execute tool via router
         const result = await this.context.toolRouter.execute(
@@ -325,7 +327,7 @@ export class AgentSupervisor {
           {
             runId: this.context.runId,
             userId: this.context.userId,
-            stepId: step.id,
+            stepId: stepData.id,
           }
         );
 
@@ -335,8 +337,8 @@ export class AgentSupervisor {
         }
 
         // Update step with result
-        await this.context.supabase
-          .from('agent_steps')
+        await (this.context.supabase
+          .from('agent_steps') as any)
           .update({
             status: result.success ? 'completed' : 'failed',
             tool_output: result.output,
@@ -344,7 +346,7 @@ export class AgentSupervisor {
             credits_used: result.creditsUsed || 0,
             completed_at: new Date().toISOString(),
           })
-          .eq('id', step.id);
+          .eq('id', stepData.id);
 
         // Handle artifacts if any
         if (result.artifacts && result.artifacts.length > 0) {
@@ -360,7 +362,7 @@ export class AgentSupervisor {
         this.context.conversationHistory.push({
           role: 'tool',
           content: JSON.stringify(result.output),
-          tool_call_id: step.id,
+          tool_call_id: stepData.id,
           tool_name: action.tool_name,
         });
 
@@ -380,8 +382,8 @@ export class AgentSupervisor {
           return { success: false, error: 'Message action missing message' };
         }
 
-        await this.context.supabase
-          .from('agent_messages')
+        await (this.context.supabase
+          .from('agent_messages') as any)
           .insert({
             run_id: this.context.runId,
             role: 'assistant',
@@ -461,15 +463,15 @@ IMPORTANT:
   // Load conversation history from database
   private async loadConversationHistory(): Promise<void> {
     // Load messages
-    const { data: messages } = await this.context.supabase
-      .from('agent_messages')
+    const { data: messages } = await (this.context.supabase
+      .from('agent_messages') as any)
       .select('role, content, created_at')
       .eq('run_id', this.context.runId)
       .order('created_at', { ascending: true });
 
     // Load steps for tool results
-    const { data: steps } = await this.context.supabase
-      .from('agent_steps')
+    const { data: steps } = await (this.context.supabase
+      .from('agent_steps') as any)
       .select('id, tool_name, tool_output, created_at')
       .eq('run_id', this.context.runId)
       .eq('status', 'completed')
@@ -478,14 +480,14 @@ IMPORTANT:
     // Merge and sort by timestamp
     const history: LLMMessage[] = [];
 
-    messages?.forEach(msg => {
+    (messages as any[])?.forEach(msg => {
       history.push({
         role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content,
       });
     });
 
-    steps?.forEach(step => {
+    (steps as any[])?.forEach(step => {
       history.push({
         role: 'tool',
         content: JSON.stringify(step.tool_output),
@@ -516,33 +518,33 @@ IMPORTANT:
 
   // Credit management
   private async checkCredits(): Promise<boolean> {
-    const { data } = await this.context.supabase
-      .from('credit_balances')
+    const { data } = await (this.context.supabase
+      .from('credit_balances') as any)
       .select('available_credits')
       .eq('user_id', this.context.userId)
       .single();
 
-    return (data?.available_credits || 0) > 0;
+    return ((data as any)?.available_credits || 0) > 0;
   }
 
   private async deductCredits(amount: number): Promise<void> {
-    await this.context.supabase.rpc('consume_credits', {
+    await (this.context.supabase.rpc as any)('consume_credits', {
       p_user_id: this.context.userId,
       p_amount: amount,
       p_run_id: this.context.runId,
     });
 
     // Update run total
-    const { data: run } = await this.context.supabase
-      .from('agent_runs')
+    const { data: run } = await (this.context.supabase
+      .from('agent_runs') as any)
       .select('total_credits_used')
       .eq('id', this.context.runId)
       .single();
 
-    const currentTotal = run?.total_credits_used || 0;
+    const currentTotal = (run as any)?.total_credits_used || 0;
 
-    await this.context.supabase
-      .from('agent_runs')
+    await (this.context.supabase
+      .from('agent_runs') as any)
       .update({ total_credits_used: currentTotal + amount })
       .eq('id', this.context.runId);
   }
@@ -555,8 +557,8 @@ IMPORTANT:
     url: string;
   }>): Promise<void> {
     for (const artifact of artifacts) {
-      await this.context.supabase
-        .from('agent_artifacts')
+      await (this.context.supabase
+        .from('agent_artifacts') as any)
         .insert({
           run_id: this.context.runId,
           artifact_type: artifact.file_type,
@@ -573,8 +575,8 @@ IMPORTANT:
     importance: number;
   }>): Promise<void> {
     for (const item of memory) {
-      await this.context.supabase
-        .from('agent_memory')
+      await (this.context.supabase
+        .from('agent_memory') as any)
         .insert({
           run_id: this.context.runId,
           user_id: this.context.userId,
@@ -587,7 +589,7 @@ IMPORTANT:
 
   // Logging helpers
   private async logInfo(message: string): Promise<void> {
-    await this.context.supabase.from('agent_task_logs').insert({
+    await (this.context.supabase.from('agent_task_logs') as any).insert({
       run_id: this.context.runId,
       log_type: 'info',
       message,
@@ -595,7 +597,7 @@ IMPORTANT:
   }
 
   private async logSuccess(message: string): Promise<void> {
-    await this.context.supabase.from('agent_task_logs').insert({
+    await (this.context.supabase.from('agent_task_logs') as any).insert({
       run_id: this.context.runId,
       log_type: 'success',
       message,
@@ -603,7 +605,7 @@ IMPORTANT:
   }
 
   private async logError(message: string): Promise<void> {
-    await this.context.supabase.from('agent_task_logs').insert({
+    await (this.context.supabase.from('agent_task_logs') as any).insert({
       run_id: this.context.runId,
       log_type: 'error',
       message,
@@ -611,7 +613,7 @@ IMPORTANT:
   }
 
   private async logToolSuccess(toolName: string, creditsUsed: number): Promise<void> {
-    await this.context.supabase.from('agent_task_logs').insert({
+    await (this.context.supabase.from('agent_task_logs') as any).insert({
       run_id: this.context.runId,
       log_type: 'tool_success',
       message: `${toolName} executed successfully`,
@@ -620,7 +622,7 @@ IMPORTANT:
   }
 
   private async logToolError(toolName: string, error: string): Promise<void> {
-    await this.context.supabase.from('agent_task_logs').insert({
+    await (this.context.supabase.from('agent_task_logs') as any).insert({
       run_id: this.context.runId,
       log_type: 'tool_error',
       message: `${toolName} failed: ${error}`,
@@ -629,7 +631,7 @@ IMPORTANT:
   }
 
   private async logPhaseAdvance(fromPhase: number, toPhase: number): Promise<void> {
-    await this.context.supabase.from('agent_task_logs').insert({
+    await (this.context.supabase.from('agent_task_logs') as any).insert({
       run_id: this.context.runId,
       log_type: 'phase_advance',
       message: `Advanced from phase ${fromPhase} to phase ${toPhase}`,
