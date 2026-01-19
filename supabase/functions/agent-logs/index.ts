@@ -1,89 +1,229 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Agent Logs Edge Function
+// Supports both polling and SSE streaming for real-time logs
+
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
-  
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  
+
   try {
-    // Parse JSON body safely
-    let task_id: string | undefined;
-    let since: string | undefined;
-    let after: number | undefined;
-    
-    try {
-      const body = await req.json();
-      task_id = body.task_id;
-      since = body.since;
-      after = body.after;
-    } catch {
-      // If body parsing fails, try URL params as fallback
-      const url = new URL(req.url);
-      task_id = url.searchParams.get("task_id") || undefined;
-      since = url.searchParams.get("since") || undefined;
-      const afterParam = url.searchParams.get("after");
-      after = afterParam ? parseInt(afterParam, 10) : undefined;
-    }
-    
-    if (!task_id) {
-      return new Response(JSON.stringify({ error: "task_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Get Supabase client with user auth
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const authHeader = req.headers.get('Authorization')!;
+
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    console.log(`[agent-logs] Fetching logs for task ${task_id}, after=${after}, since=${since}`);
-    
-    // Build query - select specific columns for consistency
-    let query = supabase
-      .from("agent_task_logs")
-      .select("id, task_id, log_type, content, timestamp, sequence_number, metadata")
-      .eq("task_id", task_id)
-      .order("sequence_number", { ascending: true });
-    
-    // Support both 'after' (sequence_number) and 'since' (timestamp)
-    if (after !== undefined && after !== null && !isNaN(after)) {
-      query = query.gt("sequence_number", after);
-    } else if (since) {
-      // Use 'timestamp' column (not 'created_at')
-      query = query.gt("timestamp", since);
+
+    const userId = user.id;
+
+    // Parse query parameters
+    const url = new URL(req.url);
+    const runId = url.searchParams.get('run_id');
+    const mode = url.searchParams.get('mode') || 'polling'; // 'polling' or 'stream'
+    const since = url.searchParams.get('since'); // ISO timestamp for cursor-based pagination
+    const limit = parseInt(url.searchParams.get('limit') || '50');
+
+    if (!runId) {
+      return new Response(JSON.stringify({ error: 'run_id is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
-    const { data: logs, error } = await query;
-    
-    if (error) {
-      console.error(`[agent-logs] Query error: ${error.message}`);
-      throw new Error(`Failed to fetch logs: ${error.message}`);
+
+    // Verify user owns this run
+    const { data: run } = await supabase
+      .from('agent_runs')
+      .select('user_id, status')
+      .eq('id', runId)
+      .single();
+
+    if (!run || run.user_id !== userId) {
+      return new Response(JSON.stringify({ error: 'Run not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
-    console.log(`[agent-logs] Returning ${logs?.length || 0} logs`);
-    
-    return new Response(JSON.stringify({
-      logs: logs || [],
-      count: logs?.length || 0,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-    
-  } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    console.error(`[agent-logs] Error: ${error.message}`);
-    return new Response(JSON.stringify({
-      error: error.message,
-      logs: [],
-    }), {
+
+    // Polling mode
+    if (mode === 'polling') {
+      return await handlePolling(supabase, runId, since, limit);
+    }
+
+    // SSE streaming mode
+    if (mode === 'stream') {
+      return await handleStreaming(supabase, runId, run.status, req);
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid mode' }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  } catch (error) {
+    console.error('Agent logs error:', error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Internal server error',
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
+
+// Handle polling mode
+async function handlePolling(
+  supabase: ReturnType<typeof createClient>,
+  runId: string,
+  since: string | null,
+  limit: number
+) {
+  // Build logs query
+  let query = supabase
+    .from('agent_task_logs')
+    .select('*')
+    .eq('run_id', runId)
+    .order('created_at', { ascending: true });
+
+  if (since) {
+    query = query.gt('created_at', since);
+  }
+
+  const { data: logs } = await query.limit(limit);
+
+  // Get the last timestamp for cursor
+  const lastLog = logs && logs.length > 0 ? logs[logs.length - 1] : null;
+  const nextCursor = lastLog ? lastLog.created_at : null;
+
+  return new Response(
+    JSON.stringify({
+      logs: logs || [],
+      count: logs?.length || 0,
+      next_cursor: nextCursor,
+      has_more: logs && logs.length === limit,
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    }
+  );
+}
+
+// Handle SSE streaming mode
+async function handleStreaming(
+  supabase: ReturnType<typeof createClient>,
+  runId: string,
+  initialStatus: string,
+  req: Request
+) {
+  const encoder = new TextEncoder();
+  let lastTimestamp = new Date(0).toISOString();
+  let intervalId: number | null = null;
+
+  const stream = new ReadableStream({
+    start(controller) {
+      // Send initial connection message
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ type: 'connected', run_id: runId })}\n\n`)
+      );
+
+      // Set up polling interval (check for new logs every 1 second)
+      intervalId = setInterval(async () => {
+        try {
+          // Fetch new logs since last timestamp
+          const { data: logs } = await supabase
+            .from('agent_task_logs')
+            .select('*')
+            .eq('run_id', runId)
+            .gt('created_at', lastTimestamp)
+            .order('created_at', { ascending: true })
+            .limit(20);
+
+          if (logs && logs.length > 0) {
+            for (const log of logs) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: 'log', data: log })}\n\n`)
+              );
+            }
+            // Update last timestamp
+            lastTimestamp = logs[logs.length - 1].created_at;
+          }
+
+          // Check if run is complete
+          const { data: run } = await supabase
+            .from('agent_runs')
+            .select('status')
+            .eq('id', runId)
+            .single();
+
+          if (
+            run &&
+            ['completed', 'failed', 'cancelled', 'timeout'].includes(run.status)
+          ) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'complete', status: run.status })}\n\n`
+              )
+            );
+            controller.close();
+            if (intervalId) {
+              clearInterval(intervalId);
+            }
+          }
+        } catch (error) {
+          console.error('SSE poll error:', error);
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'error', message: 'Polling error' })}\n\n`
+            )
+          );
+        }
+      }, 1000);
+
+      // Clean up on connection close
+      req.signal.addEventListener('abort', () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+        controller.close();
+      });
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  });
+}

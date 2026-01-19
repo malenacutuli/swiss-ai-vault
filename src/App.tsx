@@ -95,7 +95,7 @@ import APIPricing from "./pages/APIPricing";
 import Agents from "./pages/Agents";
 import AgentsStudio from "./pages/AgentsStudio";
 import AgentsDev from "./pages/AgentsDev";
-import StudioComplete from "./pages/StudioComplete";
+import Studio from "./pages/Studio";
 import Upgrade from "./pages/Upgrade";
 import GhostFinance from "./pages/ghost/GhostFinance";
 import GhostPatents from "./pages/ghost/GhostPatents";
@@ -169,7 +169,10 @@ const App = () => {
                 <Route path="/ghost/research-library" element={<ProtectedRoute><ResearchDashboard /></ProtectedRoute>} />
                 <Route path="/ghost/agents" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/ghost/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
-                
+
+                {/* Development route for testing Claude Code implementations */}
+                <Route path="/agents-dev" element={<ProtectedRoute><ErrorBoundary><AgentsDev /></ErrorBoundary></ProtectedRoute>} />
+
                 {/* Top-level convenience routes */}
                 <Route path="/settings" element={
                   <ProtectedRoute>
@@ -188,8 +191,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
-                <Route path="/agents-dev" element={<ProtectedRoute><ErrorBoundary><AgentsDev /></ErrorBoundary></ProtectedRoute>} />
-                <Route path="/studio" element={<ProtectedRoute><ErrorBoundary><StudioComplete /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/studio" element={<ProtectedRoute><ErrorBoundary><Studio /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/integrations" element={
                   <ProtectedRoute>
                     <Suspense fallback={<PageLoader />}>

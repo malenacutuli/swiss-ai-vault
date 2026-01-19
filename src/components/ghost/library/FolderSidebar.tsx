@@ -2,30 +2,81 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, FolderPlus, Folder, FolderOpen, Pencil, Trash2 } from "@/icons";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { X, FolderPlus, Folder, FolderOpen, Pencil, Trash2, Check } from "@/icons";
 
-interface Folder {
+interface FolderItem {
   id: string;
   name: string;
-  item_count: number;
+  item_count?: number;
 }
 
 interface FolderSidebarProps {
-  folders: Folder[];
+  folders: FolderItem[];
   selectedFolder: string | null;
   onSelectFolder: (id: string | null) => void;
   onClose: () => void;
+  onCreate?: (name: string) => Promise<any>;
+  onRename?: (id: string, name: string) => Promise<boolean>;
+  onDelete?: (id: string) => Promise<boolean>;
 }
 
-export function FolderSidebar({ folders, selectedFolder, onSelectFolder, onClose }: FolderSidebarProps) {
+export function FolderSidebar({
+  folders,
+  selectedFolder,
+  onSelectFolder,
+  onClose,
+  onCreate,
+  onRename,
+  onDelete,
+}: FolderSidebarProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [deletingFolder, setDeletingFolder] = useState<FolderItem | null>(null);
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
-    // TODO: Create folder in database
+    if (onCreate) {
+      await onCreate(newFolderName.trim());
+    }
     setNewFolderName("");
     setIsCreating(false);
+  };
+
+  const handleStartRename = (folder: FolderItem) => {
+    setEditingId(folder.id);
+    setEditingName(folder.name);
+  };
+
+  const handleRename = async () => {
+    if (!editingId || !editingName.trim()) return;
+    if (onRename) {
+      await onRename(editingId, editingName.trim());
+    }
+    setEditingId(null);
+    setEditingName("");
+  };
+
+  const handleDelete = async () => {
+    if (!deletingFolder) return;
+    if (onDelete) {
+      await onDelete(deletingFolder.id);
+      if (selectedFolder === deletingFolder.id) {
+        onSelectFolder(null);
+      }
+    }
+    setDeletingFolder(null);
   };
 
   return (
@@ -53,38 +104,69 @@ export function FolderSidebar({ folders, selectedFolder, onSelectFolder, onClose
           {/* Folders list */}
           {folders.map((folder) => (
             <div key={folder.id} className="group flex items-center gap-1">
-              <Button
-                variant={selectedFolder === folder.id ? "secondary" : "ghost"}
-                className="flex-1 justify-start gap-2 h-9"
-                onClick={() => onSelectFolder(folder.id)}
-              >
-                <Folder className="h-4 w-4" />
-                <span className="truncate">{folder.name}</span>
-                <span className="ml-auto text-xs text-muted-foreground">{folder.item_count}</span>
-              </Button>
+              {editingId === folder.id ? (
+                <div className="flex-1 flex items-center gap-1 px-2">
+                  <Input
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    className="h-8 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleRename();
+                      if (e.key === "Escape") {
+                        setEditingId(null);
+                        setEditingName("");
+                      }
+                    }}
+                    onBlur={handleRename}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={handleRename}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    variant={selectedFolder === folder.id ? "secondary" : "ghost"}
+                    className="flex-1 justify-start gap-2 h-9"
+                    onClick={() => onSelectFolder(folder.id)}
+                  >
+                    <Folder className="h-4 w-4" />
+                    <span className="truncate">{folder.name}</span>
+                    {folder.item_count !== undefined && (
+                      <span className="ml-auto text-xs text-muted-foreground">{folder.item_count}</span>
+                    )}
+                  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 text-foreground/50 hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // TODO: Implement rename
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 text-foreground/50 hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // TODO: Implement delete
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-foreground/50 hover:text-foreground transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartRename(folder);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-foreground/50 hover:text-destructive transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingFolder(folder);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
             </div>
           ))}
 
@@ -114,6 +196,24 @@ export function FolderSidebar({ folders, selectedFolder, onSelectFolder, onClose
           New Folder
         </Button>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deletingFolder} onOpenChange={() => setDeletingFolder(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete folder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingFolder?.name}"? Items in this folder will not be deleted but will be moved to "All Items".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

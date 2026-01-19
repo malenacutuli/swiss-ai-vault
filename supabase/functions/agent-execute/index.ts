@@ -1,328 +1,514 @@
-// supabase/functions/agent-execute/index.ts
+// Agent Execute Edge Function
+// Main entry point for agent execution (create, start, stop, retry, resume)
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { corsHeaders } from "../_shared/cors.ts";
-import { Run, RunConfig, DEFAULT_RUN_CONFIG } from "../_shared/types/run.ts";
-import { transitionRun } from "../_shared/state-machine/executor.ts";
-import { executeToolCall } from "../_shared/tool-router/executor.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { AgentStateMachine, createStateMachine } from '../_shared/agent/state-machine.ts';
+import { executeTransition, TransitionContext } from '../_shared/agent/transitions.ts';
+import { AgentPlanner } from '../_shared/agent/planner.ts';
+import { AgentSupervisor, SupervisorContext } from '../_shared/agent/supervisor.ts';
+import { ToolRouter } from '../_shared/tools/router.ts';
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY");
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-interface ExecuteRequest {
-  action: 'create' | 'start' | 'continue' | 'cancel' | 'respond';
-  task_id?: string;
-  prompt?: string;
-  config?: Partial<RunConfig>;
-  user_response?: string;
-}
-
-serve(async (req: Request) => {
-  // CORS
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Get Supabase client with user auth
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const authHeader = req.headers.get('Authorization')!;
 
-    // Get user from auth header
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const request: ExecuteRequest = await req.json();
+    const userId = user.id;
 
-    switch (request.action) {
+    // Parse request body
+    const body = await req.json();
+    const { action, run_id, prompt, project_id, connector_ids } = body;
+
+    // Route to appropriate action handler
+    switch (action) {
       case 'create':
-        return await handleCreate(supabase, user.id, request);
-      case 'start':
-        return await handleStart(supabase, user.id, request.task_id!);
-      case 'continue':
-        return await handleContinue(supabase, request.task_id!);
-      case 'cancel':
-        return await handleCancel(supabase, user.id, request.task_id!);
-      case 'respond':
-        return await handleUserResponse(supabase, request.task_id!, request.user_response!);
-      default:
-        throw new Error(`Unknown action: ${request.action}`);
-    }
+        return await handleCreate(supabase, userId, prompt, project_id, connector_ids);
 
-  } catch (error: unknown) {
-    console.error("Agent execute error:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+      case 'start':
+        return await handleStart(supabase, userId, run_id);
+
+      case 'stop':
+        return await handleStop(supabase, userId, run_id);
+
+      case 'retry':
+        return await handleRetry(supabase, userId, run_id);
+
+      case 'resume':
+        return await handleResume(supabase, userId, run_id, body.user_input);
+
+      default:
+        return new Response(
+          JSON.stringify({ error: `Unknown action: ${action}` }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+    }
+  } catch (error) {
+    console.error('Agent execute error:', error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Internal server error',
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
 
+// Create new agent run
 async function handleCreate(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   userId: string,
-  request: ExecuteRequest
-): Promise<Response> {
-  if (!request.prompt) {
-    throw new Error("Prompt is required");
+  prompt: string,
+  projectId?: string,
+  connectorIds?: string[]
+) {
+  // Validate prompt
+  if (!prompt || prompt.trim().length === 0) {
+    return new Response(JSON.stringify({ error: 'Prompt is required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
-  const config: RunConfig = {
-    ...DEFAULT_RUN_CONFIG,
-    ...request.config
-  };
+  // Check credit balance
+  const { data: balance } = await supabase
+    .from('credit_balances')
+    .select('available_credits')
+    .eq('user_id', userId)
+    .single();
 
-  // Create task record
-  const { data: task, error } = await supabase
-    .from('agent_tasks')
+  if (!balance || balance.available_credits <= 0) {
+    return new Response(
+      JSON.stringify({ error: 'Insufficient credits' }),
+      {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  // Create agent run record
+  const { data: run, error: runError } = await supabase
+    .from('agent_runs')
     .insert({
       user_id: userId,
-      prompt: request.prompt,
-      config,
-      status: 'pending',
-      step_count: 0,
-      credits_reserved: 0,
-      credits_consumed: 0,
-      retry_count: 0,
-      max_retries: 3,
-      version: 1
+      project_id: projectId,
+      prompt,
+      status: 'created',
+      current_phase: 0,
+      total_credits_used: 0,
     })
     .select()
     .single();
 
-  if (error) throw error;
-
-  return new Response(JSON.stringify({
-    success: true,
-    task_id: task.id,
-    status: 'pending'
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-}
-
-async function handleStart(
-  supabase: any,
-  userId: string,
-  taskId: string
-): Promise<Response> {
-  // 1. Reserve credits
-  const { data: reservationId, error: reserveError } = await supabase
-    .rpc('reserve_credits', {
-      p_tenant_id: userId,
-      p_run_id: taskId,
-      p_amount: 10,  // Initial reservation
-      p_max_amount: 100,
-      p_expires_in_seconds: 3600
-    });
-
-  if (reserveError) {
-    return new Response(JSON.stringify({
-      error: "Insufficient credits",
-      details: reserveError.message
-    }), {
-      status: 402,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+  if (runError || !run) {
+    return new Response(
+      JSON.stringify({ error: 'Failed to create run', details: runError }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 
-  // 2. Transition to queued
-  const { success, error } = await transitionRun(supabase, taskId, 'queued', {
-    credits_reserved: 10,
-    reservation_id: reservationId
+  // Store initial user message
+  await supabase.from('agent_messages').insert({
+    run_id: run.id,
+    role: 'user',
+    content: prompt,
   });
 
-  if (!success) {
-    // Release reservation on failure
-    await supabase.rpc('release_reservation', { p_reservation_id: reservationId });
-    throw new Error(error);
+  // Link connectors if provided
+  if (connectorIds && connectorIds.length > 0) {
+    await supabase.from('agent_run_connectors').insert(
+      connectorIds.map(connectorId => ({
+        run_id: run.id,
+        connector_id: connectorId,
+      }))
+    );
   }
 
-  // 3. Generate plan
-  const { data: task } = await supabase
-    .from('agent_tasks')
-    .select('*')
-    .eq('id', taskId)
-    .single();
-
-  await transitionRun(supabase, taskId, 'planning');
-
-  const plan = await generatePlan(task.prompt, task.config);
-
-  // 4. Save plan and transition to executing
-  await supabase
-    .from('agent_tasks')
-    .update({ plan })
-    .eq('id', taskId);
-
-  await transitionRun(supabase, taskId, 'executing', { plan });
-
-  return new Response(JSON.stringify({
-    success: true,
-    task_id: taskId,
-    status: 'executing',
-    plan
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-}
-
-async function handleContinue(
-  supabase: any,
-  taskId: string
-): Promise<Response> {
-  // This is called by the worker to execute next steps
-  // Implemented in agent-worker function
-  return new Response(JSON.stringify({
-    success: true,
-    message: "Use agent-worker for step execution"
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-}
-
-async function handleCancel(
-  supabase: any,
-  userId: string,
-  taskId: string
-): Promise<Response> {
-  // Verify ownership
-  const { data: task } = await supabase
-    .from('agent_tasks')
-    .select('user_id, reservation_id')
-    .eq('id', taskId)
-    .single();
-
-  if (task?.user_id !== userId) {
-    return new Response(JSON.stringify({ error: "Not authorized" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-  }
-
-  // Release credits
-  if (task.reservation_id) {
-    await supabase.rpc('release_reservation', {
-      p_reservation_id: task.reservation_id,
-      p_reason: 'user_cancelled'
-    });
-  }
-
-  // Transition to cancelled
-  await transitionRun(supabase, taskId, 'cancelled');
-
-  return new Response(JSON.stringify({
-    success: true,
-    status: 'cancelled'
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-}
-
-async function handleUserResponse(
-  supabase: any,
-  taskId: string,
-  response: string
-): Promise<Response> {
-  // Save user response
-  await supabase
-    .from('agent_task_steps')
-    .insert({
-      task_id: taskId,
-      type: 'user_response',
-      content: { response },
-      status: 'completed'
-    });
-
-  // Transition back to executing
-  await transitionRun(supabase, taskId, 'executing');
-
-  return new Response(JSON.stringify({
-    success: true,
-    status: 'executing'
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-}
-
-async function generatePlan(prompt: string, config: RunConfig): Promise<any> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${GEMINI_API_KEY}`,
+  return new Response(
+    JSON.stringify({
+      run_id: run.id,
+      status: run.status,
+      message: 'Agent run created successfully',
+    }),
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are an AI task planner. Create an execution plan for: "${prompt}"
-
-Return a JSON plan with this structure:
-{
-  "goal": "Brief goal statement",
-  "phases": [
-    {
-      "id": 1,
-      "title": "Phase title",
-      "description": "What this phase accomplishes",
-      "capabilities": {
-        "web_browsing": false,
-        "code_execution": false,
-        "file_operations": false,
-        "document_generation": false,
-        "web_search": false,
-        "image_generation": false
-      },
-      "estimated_steps": 3
-    }
-  ]
-}
-
-Requirements:
-- Minimum 2 phases, maximum 15
-- Last phase must be "Delivery"
-- Be specific and actionable
-
-Return ONLY valid JSON.`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 4000
-        }
-      })
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     }
   );
+}
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-  // Extract JSON from response
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error("Failed to parse plan");
+// Start agent execution
+async function handleStart(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  runId: string
+) {
+  if (!runId) {
+    return new Response(JSON.stringify({ error: 'run_id is required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
-  const plan = JSON.parse(jsonMatch[0]);
+  // Get run
+  const { data: run } = await supabase
+    .from('agent_runs')
+    .select('*')
+    .eq('id', runId)
+    .eq('user_id', userId)
+    .single();
 
-  return {
-    id: crypto.randomUUID(),
-    version: 1,
-    ...plan,
-    current_phase_id: 1,
-    created_at: Date.now(),
-    metadata: {
-      attempt: 1,
-      model: config.model
-    }
+  if (!run) {
+    return new Response(JSON.stringify({ error: 'Run not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if run can be started
+  if (run.status !== 'created' && run.status !== 'queued') {
+    return new Response(
+      JSON.stringify({
+        error: `Cannot start run in status: ${run.status}`,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  // Create state machine
+  const stateMachine = await createStateMachine(supabase, runId);
+  if (!stateMachine) {
+    return new Response(JSON.stringify({ error: 'Failed to create state machine' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const transCtx: TransitionContext = {
+    supabase,
+    runId,
+    userId,
+    stateMachine,
   };
+
+  // Transition to planning
+  await executeTransition(transCtx, 'planning');
+
+  // Create planner and generate plan
+  const planner = new AgentPlanner(supabase, userId);
+  const { plan, error: planError } = await planner.createPlan(run.prompt);
+
+  if (!plan || planError) {
+    await executeTransition(transCtx, 'failed', {
+      error_message: `Planning failed: ${planError}`,
+      error_code: 'PLANNING_FAILED',
+    });
+
+    return new Response(
+      JSON.stringify({ error: 'Planning failed', details: planError }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  // Save plan to run
+  await planner.savePlan(runId, plan);
+
+  // Start execution in background (don't wait)
+  executeInBackground(supabase, userId, runId, plan, stateMachine);
+
+  return new Response(
+    JSON.stringify({
+      run_id: runId,
+      status: 'executing',
+      plan,
+      message: 'Agent execution started',
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    }
+  );
+}
+
+// Execute agent in background
+async function executeInBackground(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  runId: string,
+  plan: any,
+  stateMachine: AgentStateMachine
+) {
+  try {
+    // Create supervisor context
+    const toolRouter = new ToolRouter(supabase);
+
+    const supervisorCtx: SupervisorContext = {
+      supabase,
+      runId,
+      userId,
+      plan,
+      currentPhaseNumber: 1,
+      conversationHistory: [],
+      stateMachine,
+      toolRouter,
+    };
+
+    // Create and run supervisor
+    const supervisor = new AgentSupervisor(supervisorCtx);
+    await supervisor.execute();
+  } catch (error) {
+    console.error('Background execution error:', error);
+  }
+}
+
+// Stop agent execution
+async function handleStop(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  runId: string
+) {
+  if (!runId) {
+    return new Response(JSON.stringify({ error: 'run_id is required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Get run
+  const { data: run } = await supabase
+    .from('agent_runs')
+    .select('*')
+    .eq('id', runId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!run) {
+    return new Response(JSON.stringify({ error: 'Run not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Create state machine
+  const stateMachine = await createStateMachine(supabase, runId);
+  if (!stateMachine) {
+    return new Response(JSON.stringify({ error: 'Failed to create state machine' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if can be cancelled
+  if (!stateMachine.canCancel()) {
+    return new Response(
+      JSON.stringify({
+        error: `Cannot cancel run in status: ${run.status}`,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  const transCtx: TransitionContext = {
+    supabase,
+    runId,
+    userId,
+    stateMachine,
+  };
+
+  // Transition to cancelled
+  await executeTransition(transCtx, 'cancelled');
+
+  return new Response(
+    JSON.stringify({
+      run_id: runId,
+      status: 'cancelled',
+      message: 'Agent execution stopped',
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    }
+  );
+}
+
+// Retry failed run
+async function handleRetry(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  runId: string
+) {
+  if (!runId) {
+    return new Response(JSON.stringify({ error: 'run_id is required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Get run
+  const { data: run } = await supabase
+    .from('agent_runs')
+    .select('*')
+    .eq('id', runId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!run) {
+    return new Response(JSON.stringify({ error: 'Run not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Can only retry failed runs
+  if (run.status !== 'failed') {
+    return new Response(
+      JSON.stringify({
+        error: `Cannot retry run in status: ${run.status}`,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  // Create new run with same prompt
+  return handleCreate(supabase, userId, run.prompt, run.project_id);
+}
+
+// Resume paused/waiting run
+async function handleResume(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  runId: string,
+  userInput?: string
+) {
+  if (!runId) {
+    return new Response(JSON.stringify({ error: 'run_id is required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Get run
+  const { data: run } = await supabase
+    .from('agent_runs')
+    .select('*')
+    .eq('id', runId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!run) {
+    return new Response(JSON.stringify({ error: 'Run not found' }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Create state machine
+  const stateMachine = await createStateMachine(supabase, runId);
+  if (!stateMachine) {
+    return new Response(JSON.stringify({ error: 'Failed to create state machine' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if can be resumed
+  if (!stateMachine.canResume()) {
+    return new Response(
+      JSON.stringify({
+        error: `Cannot resume run in status: ${run.status}`,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  // If user input provided, store it
+  if (userInput) {
+    await supabase.from('agent_messages').insert({
+      run_id: runId,
+      role: 'user',
+      content: userInput,
+    });
+  }
+
+  const transCtx: TransitionContext = {
+    supabase,
+    runId,
+    userId,
+    stateMachine,
+  };
+
+  // Resume execution
+  await executeTransition(transCtx, 'executing');
+
+  // Continue execution in background
+  const plan = run.execution_plan;
+  executeInBackground(supabase, userId, runId, plan, stateMachine);
+
+  return new Response(
+    JSON.stringify({
+      run_id: runId,
+      status: 'executing',
+      message: 'Agent execution resumed',
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    }
+  );
 }
