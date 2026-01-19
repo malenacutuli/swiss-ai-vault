@@ -40,7 +40,8 @@ serve(async (req) => {
   try {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const authHeader = req.headers.get('Authorization');
@@ -52,12 +53,15 @@ serve(async (req) => {
       );
     }
 
-    // Verify user
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    // Verify user with anon key (required for proper JWT validation)
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+
+    // Create service client for privileged operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (authError || !user) {
       return new Response(
