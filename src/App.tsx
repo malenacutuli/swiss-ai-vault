@@ -108,6 +108,7 @@ import GhostTravel from "./pages/ghost/GhostTravel";
 import GhostRealEstate from "./pages/ghost/GhostRealEstate";
 import GhostArt from "./pages/ghost/GhostArt";
 import GhostVentureCapital from "./pages/ghost/GhostVentureCapital";
+import VaultHealth from "./pages/vault/VaultHealth";
 import { OnboardingWizard } from "./components/onboarding";
 
 const queryClient = new QueryClient();
@@ -211,7 +212,10 @@ const App = () => {
                 <Route path="/ghost/realestate" element={<GhostRealEstate />} />
                 <Route path="/ghost/art" element={<GhostArt />} />
                 <Route path="/ghost/vc" element={<GhostVentureCapital />} />
-                
+
+                {/* Vault Health - Advanced Healthcare AI (Pro feature) */}
+                <Route path="/vault/health" element={<ProtectedRoute><VaultHealth /></ProtectedRoute>} />
+
                 {/* Ghost Auth routes - redirect to unified auth */}
                 <Route path="/auth/ghost-signup" element={<Navigate to="/auth?intent=ghost" replace />} />
 

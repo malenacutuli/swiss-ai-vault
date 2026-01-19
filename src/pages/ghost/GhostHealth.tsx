@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { SearchModeSelector, SourcesDropdown, type SearchMode } from '@/components/ghost/discover';
 import { useSubscription } from '@/hooks/useSubscription';
-import { 
+import {
   Heart,
   Stethoscope,
   FlaskConical,
@@ -17,7 +17,8 @@ import {
   Loader2,
   ExternalLink,
   Search,
-  Lock
+  Lock,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -301,13 +302,22 @@ export default function GhostHealth() {
               onClick={() => handleActionClick('trials')}
               className={cn(
                 "gap-2 rounded-full border-slate-200 transition-all",
-                activeAction === 'trials' 
-                  ? "bg-[#2A8C86]/10 border-[#2A8C86]/30 text-[#2A8C86]" 
+                activeAction === 'trials'
+                  ? "bg-[#2A8C86]/10 border-[#2A8C86]/30 text-[#2A8C86]"
                   : "text-slate-600 hover:text-slate-900"
               )}
             >
               <FlaskConical className="w-4 h-4" />
               {t('ghost.modules.health.actions.trials')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/vault/health${query ? `?query=${encodeURIComponent(query)}&type=${activeAction === 'conditions' ? 'icd10_lookup' : activeAction === 'treatments' ? 'drug_interaction' : 'literature_search'}` : ''}`)}
+              className="gap-2 rounded-full border-[#1D4E5F]/30 text-[#1D4E5F] hover:bg-[#1D4E5F]/10 transition-all"
+            >
+              <Zap className="w-4 h-4" />
+              {t('ghost.modules.health.deepAnalysis', 'Deep Analysis')}
             </Button>
           </div>
 
