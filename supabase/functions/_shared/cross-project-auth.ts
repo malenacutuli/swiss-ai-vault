@@ -42,6 +42,16 @@ function isTokenExpired(payload: any): boolean {
 }
 
 /**
+ * Extract project reference from Supabase issuer URL
+ * Format: https://<project-ref>.supabase.co/auth/v1
+ */
+function extractProjectRef(iss: string): string | null {
+  if (!iss) return null;
+  const match = iss.match(/https:\/\/([a-z0-9]+)\.supabase\.co\/auth\/v1/);
+  return match ? match[1] : null;
+}
+
+/**
  * Authenticate a user token against both local and Lovable projects
  * Tries local project first, falls back to decoding Lovable tokens
  */
@@ -62,7 +72,6 @@ export async function authenticateToken(
   }
 
   // Fallback: Decode and validate Lovable project token
-  // Since we can't verify the signature across projects, we decode and check claims
   const decoded = decodeJWT(token);
 
   if (!decoded) {
@@ -72,9 +81,20 @@ export async function authenticateToken(
 
   const { payload } = decoded;
 
-  // Check if token is from Lovable project
-  if (payload.iss !== 'supabase' || payload.ref !== LOVABLE_PROJECT_REF) {
-    console.log('[cross-project-auth] Token not from Lovable project:', payload.ref);
+  // Log payload for debugging
+  console.log('[cross-project-auth] Token payload:', JSON.stringify(payload));
+
+  // Extract and validate project reference from issuer URL
+  // iss format: https://<project-ref>.supabase.co/auth/v1
+  const projectRef = extractProjectRef(payload.iss);
+
+  if (!projectRef) {
+    console.log('[cross-project-auth] Could not extract project ref from iss:', payload.iss);
+    return { user: null, error: 'Invalid token issuer format', source: null };
+  }
+
+  if (projectRef !== LOVABLE_PROJECT_REF) {
+    console.log('[cross-project-auth] Token not from Lovable project. Got:', projectRef, 'Expected:', LOVABLE_PROJECT_REF);
     return { user: null, error: 'Invalid token issuer', source: null };
   }
 
@@ -90,7 +110,7 @@ export async function authenticateToken(
   const role = payload.role;
 
   if (!userId || role !== 'authenticated') {
-    console.log('[cross-project-auth] Invalid token claims');
+    console.log('[cross-project-auth] Invalid token claims - userId:', userId, 'role:', role);
     return { user: null, error: 'Invalid token claims', source: null };
   }
 
