@@ -54,27 +54,27 @@ export function useCitations(): UseCitationsResult {
     setError(null);
 
     try {
-      // Load citations
-      const { data: citationsData, error: citationsError } = await supabase
-        .from('source_citations')
+      // Load citations - cast to any to handle type generation lag
+      const { data: citationsData, error: citationsError } = await (supabase
+        .from('source_citations' as any)
         .select('*')
         .eq('run_id', runId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true }) as any);
 
       if (citationsError) throw citationsError;
 
-      setCitations(citationsData || []);
+      setCitations((citationsData || []) as Citation[]);
 
-      // Load claims
-      const { data: claimsData, error: claimsError } = await supabase
-        .from('citation_claims')
+      // Load claims - cast to any to handle type generation lag
+      const { data: claimsData, error: claimsError } = await (supabase
+        .from('citation_claims' as any)
         .select('*')
         .eq('run_id', runId)
-        .order('position_in_output', { ascending: true });
+        .order('position_in_output', { ascending: true }) as any);
 
       if (claimsError) throw claimsError;
 
-      setClaims(claimsData || []);
+      setClaims((claimsData || []) as Claim[]);
     } catch (err: any) {
       setError(err.message || 'Failed to load citations');
       console.error('[useCitations] Error:', err);
@@ -89,22 +89,22 @@ export function useCitations(): UseCitationsResult {
       if (!citation) return false;
 
       // Attempt to verify the URL
-      const response = await fetch(citation.source_url, {
+      await fetch(citation.source_url, {
         method: 'HEAD',
         mode: 'no-cors',
       });
 
       const verified = true; // no-cors mode doesn't give us status
 
-      // Update in database
-      await supabase
-        .from('source_citations')
+      // Update in database - cast to any to handle type generation lag
+      await (supabase
+        .from('source_citations' as any)
         .update({
           verified,
           verification_method: 'url_check',
           verification_date: new Date().toISOString(),
-        })
-        .eq('id', citationId);
+        } as any)
+        .eq('id', citationId) as any);
 
       // Update local state
       setCitations(prev =>
