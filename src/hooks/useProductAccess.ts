@@ -97,6 +97,33 @@ export const useProductAccess = () => {
         };
       }
 
+      // Check for admin role using existing RPC
+      const { data: isAdmin } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role_name: 'admin'
+      });
+
+      // Also check user_settings for account_type
+      const { data: userSettings } = await supabase
+        .from('user_settings')
+        .select('account_type')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Admin bypass: grant full access
+      const hasAdminAccess = isAdmin === true || 
+        userSettings?.account_type === 'admin' ||
+        user.email?.includes('axessible.ai');
+
+      if (hasAdminAccess) {
+        return {
+          subscription: { tier: "enterprise", status: "active", period_end: null },
+          access: TIER_ACCESS.enterprise,
+          credits: { usage_balance_cents: 999999999, training_balance_cents: 999999999 },
+          limits: { daily_text_limit: null, daily_image_limit: null, daily_video_limit: null, monthly_research_queries: null },
+        };
+      }
+
       // Fetch billing customer data
       const { data: billing } = await supabase
         .from("billing_customers")
