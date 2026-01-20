@@ -801,7 +801,8 @@ serve(async (req) => {
         database_id: params.database_id,
         success: true,
       },
-    }).catch(() => {}); // Non-critical
+    });
+    // Non-critical audit log - don't await or handle errors
 
     const response: NotionActionResponse = {
       success: true,

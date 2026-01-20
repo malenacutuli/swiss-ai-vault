@@ -419,7 +419,8 @@ serve(async (req) => {
         channel: params.channel,
         success: true,
       },
-    }).catch(() => {}); // Non-critical
+    });
+    // Non-critical audit log - don't await or handle errors
 
     const response: SlackActionResponse = {
       success: true,

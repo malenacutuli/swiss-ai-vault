@@ -28,6 +28,9 @@ interface ToolCall {
   tool: string;
   input: Record<string, any>;
   output: any;
+  source?: string;
+  source_url?: string;
+  success?: boolean;
 }
 
 serve(async (req) => {
@@ -128,8 +131,8 @@ serve(async (req) => {
         );
       }
 
-      user = authResult.user;
-      console.log(`[Healthcare] [${requestId}] Cross-project auth success, user: ${user.id.slice(0, 8)}`);
+      user = authResult.user as any;
+      console.log(`[Healthcare] [${requestId}] Cross-project auth success, user: ${user!.id.slice(0, 8)}`);
     } else {
       console.log(`[Healthcare] [${requestId}] Local auth success, user: ${localUser.id.slice(0, 8)}`);
     }
@@ -142,7 +145,7 @@ serve(async (req) => {
     const { data: subscription, error: subError } = await (supabase
       .from('unified_subscriptions') as any)
       .select('tier, status')
-      .eq('user_id', user.id)
+      .eq('user_id', user!.id)
       .eq('status', 'active')
       .maybeSingle();
 
@@ -150,23 +153,23 @@ serve(async (req) => {
     const { data: billing, error: billingError } = await supabase
       .from('billing_customers')
       .select('tier, subscription_status')
-      .eq('user_id', user.id)
+      .eq('user_id', user!.id)
       .maybeSingle();
 
     // Check user_settings for admin or beta access
     const { data: userSettings } = await supabase
       .from('user_settings')
       .select('account_type, feature_access')
-      .eq('user_id', user.id)
+      .eq('user_id', user!.id)
       .maybeSingle();
 
     const subscriptionTier = subscription?.tier || (billing as any)?.tier || 'free';
     const accountType = (userSettings as any)?.account_type;
-    const isAdmin = user.email?.includes('axessible.ai') || accountType === 'admin';
+    const isAdmin = user!.email?.includes('axessible.ai') || accountType === 'admin';
     const isBetaTester = accountType === 'beta_tester';
 
     console.log(`[Healthcare] [${requestId}] Access check:`, {
-      userId: user.id.slice(0, 8),
+      userId: user!.id.slice(0, 8),
       subscriptionTier,
       accountType,
       isAdmin,
@@ -417,26 +420,32 @@ serve(async (req) => {
 
     const latencyMs = Date.now() - startTime;
 
-    // Log usage for billing
-    await supabase.from('healthcare_usage').insert({
-      user_id: user.id,
-      task_type,
-      query_length: query.length,
-      response_length: response.content?.length || 0,
-      tool_calls: response.tool_calls_count || 0,
-      created_at: new Date().toISOString(),
-    }).catch(err => console.error('Usage logging error:', err));
+    // Log usage for billing (non-blocking)
+    try {
+      await supabase.from('healthcare_usage').insert({
+        user_id: user!.id,
+        task_type,
+        query_length: query.length,
+        response_length: response.content?.length || 0,
+        tool_calls: response.tool_calls_count || 0,
+        created_at: new Date().toISOString(),
+      } as Record<string, unknown>);
+    } catch (err) {
+      console.error('Usage logging error:', err);
+    }
 
-    // Audit log
-    await supabase.from('healthcare_audit_log').insert({
-      user_id: user.id,
-      action: 'query_sent',
-      task_type,
-      model_used: response.model_used,
-      tool_calls_count: response.tool_calls_count,
-      ip_address: req.headers.get('x-forwarded-for'),
-      user_agent: req.headers.get('user-agent')
-    }).catch(() => {}); // Non-blocking
+    // Audit log (non-blocking)
+    try {
+      await supabase.from('healthcare_audit_log').insert({
+        user_id: user!.id,
+        action: 'query_sent',
+        task_type,
+        model_used: response.model_used,
+        tool_calls_count: response.tool_calls_count,
+        ip_address: req.headers.get('x-forwarded-for'),
+        user_agent: req.headers.get('user-agent')
+      } as Record<string, unknown>);
+    } catch { /* Non-blocking */ }
 
     return new Response(
       JSON.stringify({
