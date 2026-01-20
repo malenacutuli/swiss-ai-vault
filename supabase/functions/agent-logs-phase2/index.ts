@@ -1,4 +1,4 @@
-// Agent Logs Edge Function
+// Agent Logs Phase 2 Edge Function
 // Supports both polling and SSE streaming for real-time logs
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -8,6 +8,22 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Type interfaces for query results
+interface AgentLog {
+  id: string;
+  run_id: string;
+  log_type: string;
+  message: string;
+  created_at: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface AgentRun {
+  id: string;
+  user_id: string;
+  status: string;
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -63,7 +79,8 @@ serve(async (req) => {
       .eq('id', runId)
       .single();
 
-    if (!run || run.user_id !== userId) {
+    const runData = run as AgentRun | null;
+    if (!runData || runData.user_id !== userId) {
       return new Response(JSON.stringify({ error: 'Run not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -72,12 +89,12 @@ serve(async (req) => {
 
     // Polling mode
     if (mode === 'polling') {
-      return await handlePolling(supabase, runId, since, limit);
+      return await handlePolling(supabase as any, runId, since, limit);
     }
 
     // SSE streaming mode
     if (mode === 'stream') {
-      return await handleStreaming(supabase, runId, run.status, req);
+      return await handleStreaming(supabase as any, runId, runData.status, req);
     }
 
     return new Response(JSON.stringify({ error: 'Invalid mode' }), {
@@ -100,7 +117,7 @@ serve(async (req) => {
 
 // Handle polling mode
 async function handlePolling(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   runId: string,
   since: string | null,
   limit: number
@@ -117,17 +134,18 @@ async function handlePolling(
   }
 
   const { data: logs } = await query.limit(limit);
+  const logsData = (logs || []) as AgentLog[];
 
   // Get the last timestamp for cursor
-  const lastLog = logs && logs.length > 0 ? logs[logs.length - 1] : null;
+  const lastLog = logsData.length > 0 ? logsData[logsData.length - 1] : null;
   const nextCursor = lastLog ? lastLog.created_at : null;
 
   return new Response(
     JSON.stringify({
-      logs: logs || [],
-      count: logs?.length || 0,
+      logs: logsData,
+      count: logsData.length,
       next_cursor: nextCursor,
-      has_more: logs && logs.length === limit,
+      has_more: logsData.length === limit,
     }),
     {
       status: 200,
@@ -138,7 +156,7 @@ async function handlePolling(
 
 // Handle SSE streaming mode
 async function handleStreaming(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   runId: string,
   initialStatus: string,
   req: Request
@@ -166,14 +184,15 @@ async function handleStreaming(
             .order('created_at', { ascending: true })
             .limit(20);
 
-          if (logs && logs.length > 0) {
-            for (const log of logs) {
+          const logsData = (logs || []) as AgentLog[];
+          if (logsData.length > 0) {
+            for (const log of logsData) {
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({ type: 'log', data: log })}\n\n`)
               );
             }
             // Update last timestamp
-            lastTimestamp = logs[logs.length - 1].created_at;
+            lastTimestamp = logsData[logsData.length - 1].created_at;
           }
 
           // Check if run is complete
@@ -183,13 +202,14 @@ async function handleStreaming(
             .eq('id', runId)
             .single();
 
+          const runStatus = run as AgentRun | null;
           if (
-            run &&
-            ['completed', 'failed', 'cancelled', 'timeout'].includes(run.status)
+            runStatus &&
+            ['completed', 'failed', 'cancelled', 'timeout'].includes(runStatus.status)
           ) {
             controller.enqueue(
               encoder.encode(
-                `data: ${JSON.stringify({ type: 'complete', status: run.status })}\n\n`
+                `data: ${JSON.stringify({ type: 'complete', status: runStatus.status })}\n\n`
               )
             );
             controller.close();
