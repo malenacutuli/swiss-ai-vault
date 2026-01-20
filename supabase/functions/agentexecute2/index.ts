@@ -1,4 +1,4 @@
-// Agent Execute Edge Function
+// Agent Execute 2 Edge Function
 // Main entry point for agent execution (create, start, stop, retry, resume)
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -13,6 +13,21 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Type interfaces
+interface CreditBalance {
+  user_id: string;
+  available_credits: number;
+}
+
+interface AgentRun {
+  id: string;
+  user_id: string;
+  status: string;
+  prompt: string;
+  project_id?: string;
+  execution_plan?: unknown;
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -54,19 +69,19 @@ serve(async (req) => {
     // Route to appropriate action handler
     switch (action) {
       case 'create':
-        return await handleCreate(supabase, userId, prompt, project_id, connector_ids);
+        return await handleCreate(supabase as any, userId, prompt, project_id, connector_ids);
 
       case 'start':
-        return await handleStart(supabase, userId, run_id);
+        return await handleStart(supabase as any, userId, run_id);
 
       case 'stop':
-        return await handleStop(supabase, userId, run_id);
+        return await handleStop(supabase as any, userId, run_id);
 
       case 'retry':
-        return await handleRetry(supabase, userId, run_id);
+        return await handleRetry(supabase as any, userId, run_id);
 
       case 'resume':
-        return await handleResume(supabase, userId, run_id, body.user_input);
+        return await handleResume(supabase as any, userId, run_id, body.user_input);
 
       default:
         return new Response(
@@ -93,7 +108,7 @@ serve(async (req) => {
 
 // Create new agent run
 async function handleCreate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   prompt: string,
   projectId?: string,
@@ -114,7 +129,8 @@ async function handleCreate(
     .eq('user_id', userId)
     .single();
 
-  if (!balance || balance.available_credits <= 0) {
+  const balanceData = balance as CreditBalance | null;
+  if (!balanceData || balanceData.available_credits <= 0) {
     return new Response(
       JSON.stringify({ error: 'Insufficient credits' }),
       {
@@ -148,9 +164,11 @@ async function handleCreate(
     );
   }
 
+  const runData = run as AgentRun;
+
   // Store initial user message
   await supabase.from('agent_messages').insert({
-    run_id: run.id,
+    run_id: runData.id,
     role: 'user',
     content: prompt,
   });
@@ -158,8 +176,8 @@ async function handleCreate(
   // Link connectors if provided
   if (connectorIds && connectorIds.length > 0) {
     await supabase.from('agent_run_connectors').insert(
-      connectorIds.map(connectorId => ({
-        run_id: run.id,
+      connectorIds.map((connectorId: string) => ({
+        run_id: runData.id,
         connector_id: connectorId,
       }))
     );
@@ -167,8 +185,8 @@ async function handleCreate(
 
   return new Response(
     JSON.stringify({
-      run_id: run.id,
-      status: run.status,
+      run_id: runData.id,
+      status: runData.status,
       message: 'Agent run created successfully',
     }),
     {
@@ -180,7 +198,7 @@ async function handleCreate(
 
 // Start agent execution
 async function handleStart(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -199,7 +217,8 @@ async function handleStart(
     .eq('user_id', userId)
     .single();
 
-  if (!run) {
+  const runData = run as AgentRun | null;
+  if (!runData) {
     return new Response(JSON.stringify({ error: 'Run not found' }), {
       status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -207,10 +226,10 @@ async function handleStart(
   }
 
   // Check if run can be started
-  if (run.status !== 'created' && run.status !== 'queued') {
+  if (runData.status !== 'created' && runData.status !== 'queued') {
     return new Response(
       JSON.stringify({
-        error: `Cannot start run in status: ${run.status}`,
+        error: `Cannot start run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -240,7 +259,7 @@ async function handleStart(
 
   // Create planner and generate plan
   const planner = new AgentPlanner(supabase, userId);
-  const { plan, error: planError } = await planner.createPlan(run.prompt);
+  const { plan, error: planError } = await planner.createPlan(runData.prompt);
 
   if (!plan || planError) {
     await executeTransition(transCtx, 'failed', {
@@ -279,7 +298,7 @@ async function handleStart(
 
 // Execute agent in background
 async function executeInBackground(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string,
   plan: any,
@@ -310,7 +329,7 @@ async function executeInBackground(
 
 // Stop agent execution
 async function handleStop(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -329,7 +348,8 @@ async function handleStop(
     .eq('user_id', userId)
     .single();
 
-  if (!run) {
+  const runData = run as AgentRun | null;
+  if (!runData) {
     return new Response(JSON.stringify({ error: 'Run not found' }), {
       status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -349,7 +369,7 @@ async function handleStop(
   if (!stateMachine.canCancel()) {
     return new Response(
       JSON.stringify({
-        error: `Cannot cancel run in status: ${run.status}`,
+        error: `Cannot cancel run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -383,7 +403,7 @@ async function handleStop(
 
 // Retry failed run
 async function handleRetry(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string
 ) {
@@ -402,7 +422,8 @@ async function handleRetry(
     .eq('user_id', userId)
     .single();
 
-  if (!run) {
+  const runData = run as AgentRun | null;
+  if (!runData) {
     return new Response(JSON.stringify({ error: 'Run not found' }), {
       status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -410,10 +431,10 @@ async function handleRetry(
   }
 
   // Can only retry failed runs
-  if (run.status !== 'failed') {
+  if (runData.status !== 'failed') {
     return new Response(
       JSON.stringify({
-        error: `Cannot retry run in status: ${run.status}`,
+        error: `Cannot retry run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -423,12 +444,12 @@ async function handleRetry(
   }
 
   // Create new run with same prompt
-  return handleCreate(supabase, userId, run.prompt, run.project_id);
+  return handleCreate(supabase, userId, runData.prompt, runData.project_id);
 }
 
 // Resume paused/waiting run
 async function handleResume(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   runId: string,
   userInput?: string
@@ -448,7 +469,8 @@ async function handleResume(
     .eq('user_id', userId)
     .single();
 
-  if (!run) {
+  const runData = run as AgentRun | null;
+  if (!runData) {
     return new Response(JSON.stringify({ error: 'Run not found' }), {
       status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -468,7 +490,7 @@ async function handleResume(
   if (!stateMachine.canResume()) {
     return new Response(
       JSON.stringify({
-        error: `Cannot resume run in status: ${run.status}`,
+        error: `Cannot resume run in status: ${runData.status}`,
       }),
       {
         status: 400,
@@ -497,8 +519,10 @@ async function handleResume(
   await executeTransition(transCtx, 'executing');
 
   // Continue execution in background
-  const plan = run.execution_plan;
-  executeInBackground(supabase, userId, runId, plan, stateMachine);
+  const plan = runData.execution_plan;
+  if (plan) {
+    executeInBackground(supabase, userId, runId, plan, stateMachine);
+  }
 
   return new Response(
     JSON.stringify({
