@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { agentsDevSupabase } from '@/integrations/supabase/agents-client-dev';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Types
@@ -106,16 +106,36 @@ export function useWorkspaces(): UseWorkspacesReturn {
   const [activities, setActivities] = useState<WorkspaceActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper to call workspace-service (uses dev client for direct Supabase project)
+  // Helper to call workspace-service on Direct project
+  // Uses raw fetch() to ensure the Lovable auth token is sent correctly
   const callService = useCallback(async (action: string, params: Record<string, any> = {}): Promise<any> => {
-    const { data, error } = await agentsDevSupabase.functions.invoke('workspace-service', {
-      body: { action, ...params },
+    // Get the session from the MAIN Supabase client where user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      console.error('[useWorkspaces] No session found on main Supabase client');
+      throw new Error('Not authenticated');
+    }
+
+    console.log('[useWorkspaces] Calling workspace-service with user token, action:', action);
+
+    // Use raw fetch to ensure our auth header isn't overridden by the Supabase client
+    const response = await fetch('https://ghmmdochvlrnwbruyrqk.supabase.co/functions/v1/workspace-service', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action, ...params }),
     });
 
-    if (error) {
-      console.error(`[useWorkspaces] ${action} error:`, error);
-      throw new Error(error.message);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error(`[useWorkspaces] ${action} error:`, errorData);
+      throw new Error(errorData.error || `HTTP ${response.status}`);
     }
+
+    const data = await response.json();
 
     if (!data?.success) {
       throw new Error(data?.error || 'Unknown error');
