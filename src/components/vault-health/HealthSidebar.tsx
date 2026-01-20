@@ -57,7 +57,10 @@ import {
   File,
   FileImage,
   FileSpreadsheet,
+  FolderOpen,
+  BookOpen,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { RetentionMode } from '@/lib/health/health-storage';
 import { ConversationSummary } from '@/hooks/useHealthStorage';
 
@@ -243,6 +246,44 @@ export const HealthSidebar = memo(function HealthSidebar({
                 <Plus className="w-4 h-4 mr-2" />
                 New Conversation
               </Button>
+            </div>
+
+            {/* Quick Navigation Links */}
+            <div className="p-3 border-b border-border/40">
+              <div className="px-1 mb-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Quick Access
+                </span>
+              </div>
+              <div className="space-y-1">
+                <Link to="/ghost/projects">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-8 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    Projects
+                  </Button>
+                </Link>
+                <Link to="/ghost/memory">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-8 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    Memory
+                  </Button>
+                </Link>
+                <Link to="/ghost/research-library">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-8 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Research Library
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Settings Panel */}
