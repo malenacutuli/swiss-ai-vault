@@ -683,7 +683,6 @@ export default function VaultHealth() {
             </Button>
             <Stethoscope className="w-6 h-6 text-[#1D4E5F]" />
             <h1 className="text-xl font-semibold text-[#1D4E5F]">Vault Health</h1>
-            <Badge variant="outline" className="text-xs">Claude-Powered</Badge>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)}>
             <Settings className="w-5 h-5 text-muted-foreground" />

@@ -90,6 +90,11 @@ interface AttachedDoc {
   size: number;
 }
 
+interface HealthFolder {
+  id: string;
+  name: string;
+}
+
 interface HealthSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
@@ -107,6 +112,15 @@ interface HealthSidebarProps {
   onRetentionModeChange: (mode: RetentionMode) => void;
   memoryEnabled: boolean;
   onMemoryEnabledChange: (enabled: boolean) => void;
+
+  // Folders
+  folders?: HealthFolder[];
+  selectedFolder?: string | null;
+  onSelectFolder?: (id: string | null) => void;
+  onCreateFolder?: () => void;
+  onRenameFolder?: (id: string, name: string) => void;
+  onDeleteFolder?: (id: string) => void;
+  onMoveToFolder?: (conversationId: string, folderId: string | null) => void;
 
   // Attached documents for current conversation
   attachedDocuments?: AttachedDoc[];
