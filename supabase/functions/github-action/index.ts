@@ -651,7 +651,8 @@ serve(async (req) => {
         repo: params.repo ? `${params.owner}/${params.repo}` : undefined,
         success: true,
       },
-    }).catch(() => {}); // Non-critical
+    });
+    // Non-critical audit log - don't await or handle errors
 
     const response: GitHubActionResponse = {
       success: true,

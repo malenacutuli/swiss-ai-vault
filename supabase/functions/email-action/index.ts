@@ -571,7 +571,8 @@ serve(async (req) => {
         subject: params.subject,
         success: true,
       },
-    }).catch(() => {}); // Non-critical
+    });
+    // Non-critical audit log - don't await or handle errors
 
     const response: EmailActionResponse = {
       success: true,

@@ -81,9 +81,12 @@ async function decrypt(encryptedText: string): Promise<string> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabaseClient = any;
+
 // Log audit event for HIPAA compliance
 async function logAudit(
-  serviceClient: ReturnType<typeof createClient>,
+  serviceClient: AnySupabaseClient,
   userId: string,
   patientId: string | null,
   action: string,
@@ -93,18 +96,22 @@ async function logAudit(
   request: Request,
   details: Record<string, unknown> = {}
 ) {
-  await serviceClient.from('healthcare_audit_logs').insert({
-    user_id: userId,
-    patient_id: patientId,
-    action,
-    resource_type: resourceType,
-    resource_id: resourceId,
-    access_reason: accessReason,
-    ip_address: request.headers.get('x-forwarded-for')?.split(',')[0] || null,
-    user_agent: request.headers.get('user-agent'),
-    request_id: request.headers.get('x-request-id'),
-    details
-  });
+  try {
+    await serviceClient.from('healthcare_audit_logs').insert({
+      user_id: userId,
+      patient_id: patientId,
+      action,
+      resource_type: resourceType,
+      resource_id: resourceId,
+      access_reason: accessReason,
+      ip_address: request.headers.get('x-forwarded-for')?.split(',')[0] || null,
+      user_agent: request.headers.get('user-agent'),
+      request_id: request.headers.get('x-request-id'),
+      details
+    } as Record<string, unknown>);
+  } catch (err) {
+    console.error('[Audit] Failed to log:', err);
+  }
 }
 
 serve(async (req) => {
