@@ -59,10 +59,23 @@ import {
   FileSpreadsheet,
   FolderOpen,
   BookOpen,
+  Folder,
+  FolderPlus,
+  ChevronDown,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { RetentionMode } from '@/lib/health/health-storage';
-import { ConversationSummary } from '@/hooks/useHealthStorage';
+
+// Extended conversation summary with folder support
+interface ConversationSummary {
+  id: string;
+  title: string;
+  messageCount: number;
+  documentCount: number;
+  updatedAt: number;
+  folderId?: string | null;
+}
 
 // Task type options for healthcare
 const TASK_TYPES = [
@@ -156,6 +169,97 @@ function formatTimeAgo(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString();
 }
 
+// Conversation item component
+interface ConversationItemProps {
+  conv: ConversationSummary;
+  isSelected: boolean;
+  isEditing: boolean;
+  editingTitle: string;
+  onSelect: () => void;
+  onStartEdit: () => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onEditTitleChange: (title: string) => void;
+  onDelete: () => void;
+  folders: HealthFolder[];
+  onMoveToFolder?: (conversationId: string, folderId: string | null) => void;
+}
+
+function ConversationItem({
+  conv, isSelected, isEditing, editingTitle, onSelect, onStartEdit,
+  onSaveEdit, onCancelEdit, onEditTitleChange, onDelete, folders, onMoveToFolder
+}: ConversationItemProps) {
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors',
+        isSelected ? 'bg-[#1D4E5F]/10 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+      )}
+      onClick={onSelect}
+    >
+      <MessageSquare className="w-4 h-4 shrink-0" />
+      {isEditing ? (
+        <div className="flex items-center gap-1 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+          <Input
+            value={editingTitle}
+            onChange={(e) => onEditTitleChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSaveEdit();
+              if (e.key === 'Escape') onCancelEdit();
+            }}
+            autoFocus
+            className="h-6 text-xs px-2 flex-1"
+          />
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onSaveEdit}><Check className="w-3 h-3" /></Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onCancelEdit}><X className="w-3 h-3" /></Button>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs truncate font-medium">{conv.title}</p>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <span>{conv.messageCount} msgs</span>
+              {conv.documentCount > 0 && <span className="flex items-center gap-0.5"><FileText className="w-3 h-3" />{conv.documentCount}</span>}
+              <span>{formatTimeAgo(conv.updatedAt)}</span>
+            </div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                <MoreVertical className="w-3.5 h-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStartEdit(); }}>
+                <Edit3 className="w-4 h-4 mr-2" />Rename
+              </DropdownMenuItem>
+              {folders.length > 0 && onMoveToFolder && (
+                <>
+                  <DropdownMenuSeparator />
+                  {folders.map(f => (
+                    <DropdownMenuItem key={f.id} onClick={(e) => { e.stopPropagation(); onMoveToFolder(conv.id, f.id); }}>
+                      <Folder className="w-4 h-4 mr-2" />Move to {f.name}
+                    </DropdownMenuItem>
+                  ))}
+                  {conv.folderId && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMoveToFolder(conv.id, null); }}>
+                      <FolderOpen className="w-4 h-4 mr-2" />Remove from folder
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+                <Trash2 className="w-4 h-4 mr-2" />Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
+    </div>
+  );
+}
+
 export const HealthSidebar = memo(function HealthSidebar({
   isOpen,
   onToggle,
@@ -171,6 +275,13 @@ export const HealthSidebar = memo(function HealthSidebar({
   onRetentionModeChange,
   memoryEnabled,
   onMemoryEnabledChange,
+  folders = [],
+  selectedFolder = null,
+  onSelectFolder,
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onMoveToFolder,
   attachedDocuments = [],
   onRemoveDocument,
   onOpenSettings,
@@ -179,6 +290,9 @@ export const HealthSidebar = memo(function HealthSidebar({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState('');
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   // Filter conversations by search
   const filteredConversations = useMemo(() => {
@@ -417,118 +531,180 @@ export const HealthSidebar = memo(function HealthSidebar({
               </div>
             </div>
 
-            {/* Conversations List */}
+            {/* Folders & Conversations List */}
             <ScrollArea className="flex-1">
               <div className="p-2 space-y-1">
-                <div className="px-2 py-1 mb-1">
+                {/* Folders Section */}
+                {folders.length > 0 && (
+                  <>
+                    <div className="px-2 py-1 mb-1 flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                        Folders
+                      </span>
+                    </div>
+                    {folders.map(folder => {
+                      const isExpanded = expandedFolders.has(folder.id);
+                      const folderConvs = filteredConversations.filter(c => c.folderId === folder.id);
+                      
+                      return (
+                        <Collapsible
+                          key={folder.id}
+                          open={isExpanded}
+                          onOpenChange={(open) => {
+                            setExpandedFolders(prev => {
+                              const next = new Set(prev);
+                              if (open) next.add(folder.id);
+                              else next.delete(folder.id);
+                              return next;
+                            });
+                          }}
+                        >
+                          <div className="group flex items-center gap-1">
+                            <CollapsibleTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                className={cn(
+                                  'flex-1 justify-start h-8 px-2 text-xs gap-2',
+                                  selectedFolder === folder.id ? 'bg-[#1D4E5F]/10' : ''
+                                )}
+                                onClick={() => onSelectFolder?.(folder.id)}
+                              >
+                                <ChevronDown className={cn(
+                                  'w-3 h-3 transition-transform',
+                                  !isExpanded && '-rotate-90'
+                                )} />
+                                <Folder className="w-4 h-4" />
+                                {editingFolderId === folder.id ? (
+                                  <Input
+                                    value={editingFolderName}
+                                    onChange={(e) => setEditingFolderName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        onRenameFolder?.(folder.id, editingFolderName);
+                                        setEditingFolderId(null);
+                                      }
+                                      if (e.key === 'Escape') setEditingFolderId(null);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    autoFocus
+                                    className="h-5 text-xs px-1 flex-1"
+                                  />
+                                ) : (
+                                  <span className="truncate">{folder.name}</span>
+                                )}
+                                <span className="ml-auto text-[10px] text-muted-foreground">
+                                  {folderConvs.length}
+                                </span>
+                              </Button>
+                            </CollapsibleTrigger>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-32">
+                                <DropdownMenuItem onClick={() => {
+                                  setEditingFolderId(folder.id);
+                                  setEditingFolderName(folder.name);
+                                }}>
+                                  <Edit3 className="w-3 h-3 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => onDeleteFolder?.(folder.id)}
+                                >
+                                  <Trash2 className="w-3 h-3 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          <CollapsibleContent>
+                            <div className="ml-4 pl-2 border-l border-border/40 space-y-1 mt-1">
+                              {folderConvs.map(conv => (
+                                <ConversationItem
+                                  key={conv.id}
+                                  conv={conv}
+                                  isSelected={selectedConversation === conv.id}
+                                  isEditing={editingId === conv.id}
+                                  editingTitle={editingTitle}
+                                  onSelect={() => onSelectConversation(conv.id)}
+                                  onStartEdit={() => {
+                                    setEditingId(conv.id);
+                                    setEditingTitle(conv.title);
+                                  }}
+                                  onSaveEdit={() => handleSaveTitle(conv.id)}
+                                  onCancelEdit={() => setEditingId(null)}
+                                  onEditTitleChange={setEditingTitle}
+                                  onDelete={() => setDeleteConfirmId(conv.id)}
+                                  folders={folders}
+                                  onMoveToFolder={onMoveToFolder}
+                                />
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* Create Folder Button */}
+                {onCreateFolder && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start h-8 px-2 text-xs text-muted-foreground"
+                    onClick={onCreateFolder}
+                  >
+                    <FolderPlus className="w-4 h-4 mr-2" />
+                    New Folder
+                  </Button>
+                )}
+
+                {/* Unfiled Conversations */}
+                <div className="px-2 py-1 mt-2 mb-1">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                    Conversations
+                    {folders.length > 0 ? 'Unfiled' : 'Conversations'}
                   </span>
                 </div>
 
-                {filteredConversations.length === 0 ? (
-                  <p className="px-2 py-4 text-xs text-muted-foreground text-center">
-                    {searchQuery ? 'No matching conversations' : 'No conversations yet'}
-                  </p>
-                ) : (
-                  filteredConversations.map(conv => (
-                    <div
+                {(() => {
+                  const unfiledConvs = filteredConversations.filter(c => !c.folderId);
+                  if (unfiledConvs.length === 0) {
+                    return (
+                      <p className="px-2 py-4 text-xs text-muted-foreground text-center">
+                        {searchQuery ? 'No matching conversations' : 'No conversations yet'}
+                      </p>
+                    );
+                  }
+                  return unfiledConvs.map(conv => (
+                    <ConversationItem
                       key={conv.id}
-                      className={cn(
-                        'group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors',
-                        selectedConversation === conv.id
-                          ? 'bg-[#1D4E5F]/10 text-foreground'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                      )}
-                      onClick={() => onSelectConversation(conv.id)}
-                    >
-                      <MessageSquare className="w-4 h-4 shrink-0" />
-
-                      {editingId === conv.id ? (
-                        <div className="flex items-center gap-1 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
-                          <Input
-                            value={editingTitle}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveTitle(conv.id);
-                              if (e.key === 'Escape') setEditingId(null);
-                            }}
-                            autoFocus
-                            className="h-6 text-xs px-2 flex-1"
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 shrink-0"
-                            onClick={() => handleSaveTitle(conv.id)}
-                          >
-                            <Check className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 shrink-0"
-                            onClick={() => setEditingId(null)}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs truncate font-medium">{conv.title}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <span>{conv.messageCount} msgs</span>
-                              {conv.documentCount > 0 && (
-                                <span className="flex items-center gap-0.5">
-                                  <FileText className="w-3 h-3" />
-                                  {conv.documentCount}
-                                </span>
-                              )}
-                              <span>{formatTimeAgo(conv.updatedAt)}</span>
-                            </div>
-                          </div>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="w-3.5 h-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingId(conv.id);
-                                  setEditingTitle(conv.title);
-                                }}
-                              >
-                                <Edit3 className="w-4 h-4 mr-2" />
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteConfirmId(conv.id);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </>
-                      )}
-                    </div>
-                  ))
-                )}
+                      conv={conv}
+                      isSelected={selectedConversation === conv.id}
+                      isEditing={editingId === conv.id}
+                      editingTitle={editingTitle}
+                      onSelect={() => onSelectConversation(conv.id)}
+                      onStartEdit={() => {
+                        setEditingId(conv.id);
+                        setEditingTitle(conv.title);
+                      }}
+                      onSaveEdit={() => handleSaveTitle(conv.id)}
+                      onCancelEdit={() => setEditingId(null)}
+                      onEditTitleChange={setEditingTitle}
+                      onDelete={() => setDeleteConfirmId(conv.id)}
+                      folders={folders}
+                      onMoveToFolder={onMoveToFolder}
+                    />
+                  ));
+                })()}
               </div>
             </ScrollArea>
 
