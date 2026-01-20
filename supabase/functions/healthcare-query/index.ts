@@ -137,7 +137,7 @@ serve(async (req) => {
     // Check subscription from multiple sources (unified_subscriptions AND billing_customers)
     // Also check user_settings for admin/beta access
     const allowedTiers = ['ghost_pro', 'ghost_premium', 'ghost_enterprise', 'pro', 'premium', 'enterprise', 'vault_pro', 'team', 'beta_tester'];
-    
+
     // Check unified_subscriptions first
     const { data: subscription, error: subError } = await (supabase
       .from('unified_subscriptions') as any)
@@ -160,18 +160,18 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    const subscriptionTier = subscription?.tier || billing?.tier || 'free';
+    const subscriptionTier = subscription?.tier || (billing as any)?.tier || 'free';
     const accountType = (userSettings as any)?.account_type;
     const isAdmin = user.email?.includes('axessible.ai') || accountType === 'admin';
     const isBetaTester = accountType === 'beta_tester';
-    
-    console.log('[Healthcare] Access check:', {
+
+    console.log(`[Healthcare] [${requestId}] Access check:`, {
       userId: user.id.slice(0, 8),
       subscriptionTier,
       accountType,
       isAdmin,
       isBetaTester,
-      billingTier: billing?.tier,
+      billingTier: (billing as any)?.tier,
       unifiedTier: subscription?.tier
     });
 
