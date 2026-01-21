@@ -230,7 +230,7 @@ export class AgentSupervisor {
       // Call LLM to decide action
       const response = await invokeLLM({
         messages,
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         temperature: 0.7,
         max_tokens: 2048,
         response_format: {

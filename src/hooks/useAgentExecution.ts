@@ -132,7 +132,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ task_id: taskId }),
+          body: JSON.stringify({ run_id: taskId }),
         });
 
         if (!response.ok) {

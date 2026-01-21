@@ -819,6 +819,7 @@ export default function Agents() {
                     task={execution.task}
                     steps={execution.steps}
                     outputs={execution.outputs}
+                    logs={execution.logs}
                     onSendMessage={(msg) => {
                       console.log('[Agents] Send message:', msg);
                       toast.info('Message sent to agent');

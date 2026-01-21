@@ -1,6 +1,7 @@
 // Tool Router for executing different tool types
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getGoogleAIClient } from '../google-ai/index.ts';
 
 export interface ToolResult {
   output: unknown;
@@ -58,6 +59,14 @@ export class ToolRouter {
         return this.fileList(input, context);
       case 'connector':
         return this.connectorAccess(input, context);
+      case 'image_generate':
+        return this.generateImage(input, context);
+      case 'image_analyze':
+        return this.analyzeImage(input, context);
+      case 'podcast_generate':
+        return this.generatePodcast(input, context);
+      case 'gemini_text':
+        return this.geminiText(input, context);
       default:
         return {
           output: null,
@@ -65,6 +74,220 @@ export class ToolRouter {
           error: `Unknown tool: ${toolName}`,
         };
     }
+  }
+
+  // Google AI Tools
+  private async generateImage(
+    input: Record<string, unknown>,
+    context: ToolContext
+  ): Promise<ToolResult> {
+    const prompt = input.prompt as string;
+    const model = input.model as 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview' | undefined;
+    const aspectRatio = input.aspect_ratio as '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | undefined;
+    const imageSize = input.image_size as '1K' | '2K' | '4K' | undefined;
+
+    if (!prompt) {
+      return { success: false, output: null, error: 'Prompt is required for image generation' };
+    }
+
+    console.log('[Tool:image_generate] Generating image:', prompt.slice(0, 50));
+
+    const googleAI = getGoogleAIClient();
+    const result = await googleAI.generateImages({
+      prompt,
+      model,
+      aspectRatio,
+      imageSize,
+    });
+
+    if (!result.success || !result.images) {
+      return {
+        success: false,
+        output: null,
+        error: result.error || 'Image generation failed',
+        creditsUsed: 5,
+      };
+    }
+
+    // Save images to storage
+    const artifacts: Array<{ id: string; filename: string; file_type: string; url: string }> = [];
+
+    for (let i = 0; i < result.images.length; i++) {
+      const image = result.images[i];
+      const imageId = crypto.randomUUID();
+      const filename = `generated_${Date.now()}_${i}.png`;
+      const storagePath = `${context.userId}/${context.runId}/${filename}`;
+
+      // Convert base64 to Uint8Array
+      const imageData = Uint8Array.from(atob(image.base64), c => c.charCodeAt(0));
+
+      // Upload to storage
+      const { error: uploadError } = await this.supabase.storage
+        .from('agent-outputs')
+        .upload(storagePath, imageData, {
+          contentType: image.mimeType,
+        });
+
+      if (!uploadError) {
+        const { data: { publicUrl } } = this.supabase.storage
+          .from('agent-outputs')
+          .getPublicUrl(storagePath);
+
+        artifacts.push({
+          id: imageId,
+          filename,
+          file_type: 'image',
+          url: publicUrl,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      output: {
+        message: `Generated ${result.images.length} image(s)`,
+        images: artifacts.map(a => a.url),
+      },
+      artifacts,
+      creditsUsed: 10,
+    };
+  }
+
+  private async analyzeImage(
+    input: Record<string, unknown>,
+    context: ToolContext
+  ): Promise<ToolResult> {
+    const imageBase64 = input.image_base64 as string;
+    const imageUrl = input.image_url as string;
+    const prompt = input.prompt as string || 'Describe this image in detail.';
+
+    if (!imageBase64 && !imageUrl) {
+      return { success: false, output: null, error: 'Either image_base64 or image_url is required' };
+    }
+
+    console.log('[Tool:image_analyze] Analyzing image');
+
+    let base64Data = imageBase64;
+
+    // If URL provided, fetch and convert to base64
+    if (imageUrl && !imageBase64) {
+      try {
+        const response = await fetch(imageUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      } catch (err) {
+        return { success: false, output: null, error: 'Failed to fetch image from URL' };
+      }
+    }
+
+    const googleAI = getGoogleAIClient();
+    const result = await googleAI.analyzeImage(base64Data, prompt);
+
+    if (!result.success) {
+      return {
+        success: false,
+        output: null,
+        error: result.error || 'Image analysis failed',
+        creditsUsed: 3,
+      };
+    }
+
+    return {
+      success: true,
+      output: {
+        analysis: result.text,
+      },
+      creditsUsed: 5,
+    };
+  }
+
+  private async generatePodcast(
+    input: Record<string, unknown>,
+    context: ToolContext
+  ): Promise<ToolResult> {
+    const sources = input.sources as Array<{ type: string; content: string; title?: string }>;
+    const style = input.style as 'conversational' | 'educational' | 'news' | undefined;
+    const duration = input.duration as 'short' | 'medium' | 'long' | undefined;
+
+    if (!sources || sources.length === 0) {
+      return { success: false, output: null, error: 'At least one source is required' };
+    }
+
+    console.log('[Tool:podcast_generate] Generating podcast from', sources.length, 'sources');
+
+    const googleAI = getGoogleAIClient();
+    const result = await googleAI.generatePodcast({
+      sources: sources.map(s => ({
+        type: s.type as 'text' | 'url' | 'document',
+        content: s.content,
+        title: s.title,
+      })),
+      style,
+      duration,
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        output: null,
+        error: result.error || 'Podcast generation failed',
+        creditsUsed: 10,
+      };
+    }
+
+    return {
+      success: true,
+      output: {
+        audioUrl: result.audioUrl,
+        transcript: result.transcript,
+        duration: result.duration,
+      },
+      creditsUsed: 20,
+    };
+  }
+
+  private async geminiText(
+    input: Record<string, unknown>,
+    context: ToolContext
+  ): Promise<ToolResult> {
+    const prompt = input.prompt as string;
+    const model = input.model as string | undefined;
+    const systemInstruction = input.system_instruction as string | undefined;
+    const maxTokens = input.max_tokens as number | undefined;
+    const temperature = input.temperature as number | undefined;
+
+    if (!prompt) {
+      return { success: false, output: null, error: 'Prompt is required' };
+    }
+
+    console.log('[Tool:gemini_text] Generating text with Gemini');
+
+    const googleAI = getGoogleAIClient();
+    const result = await googleAI.generateText({
+      prompt,
+      model,
+      systemInstruction,
+      maxTokens,
+      temperature,
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        output: null,
+        error: result.error || 'Text generation failed',
+        creditsUsed: 2,
+      };
+    }
+
+    return {
+      success: true,
+      output: {
+        text: result.text,
+        usage: result.usage,
+      },
+      creditsUsed: 5,
+    };
   }
 
   private async executeShell(

@@ -3,6 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { authenticateToken, extractToken } from '../_shared/cross-project-auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,36 +17,42 @@ serve(async (req) => {
   }
 
   try {
-    // Get Supabase client with user auth
+    // Get Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const authHeader = req.headers.get('Authorization')!;
 
     const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: { Authorization: authHeader },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
       },
     });
 
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // Authenticate using cross-project auth (supports Lovable project tokens)
+    const token = extractToken(req.headers.get('Authorization'));
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized - no token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userId = user.id;
+    const authResult = await authenticateToken(token, supabase);
+    if (!authResult.user) {
+      return new Response(JSON.stringify({ error: authResult.error || 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = authResult.user.id;
 
     // Parse request body
     const body = await req.json();
     const {
       run_id,
+      task_id, // Accept both run_id and task_id for compatibility
       include_steps = true,
       include_messages = true,
       include_artifacts = true,
@@ -56,8 +63,13 @@ serve(async (req) => {
       logs_limit = 50,
     } = body;
 
-    if (!run_id) {
-      return new Response(JSON.stringify({ error: 'run_id is required' }), {
+    // Accept either run_id or task_id
+    const runId = run_id || task_id;
+
+    console.log('[agent-status] Received body:', JSON.stringify(body));
+
+    if (!runId) {
+      return new Response(JSON.stringify({ error: 'run_id is required', received: body }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -67,7 +79,7 @@ serve(async (req) => {
     const { data: run, error: runError } = await supabase
       .from('agent_runs')
       .select('*')
-      .eq('id', run_id)
+      .eq('id', runId)
       .eq('user_id', userId)
       .single();
 
@@ -78,9 +90,10 @@ serve(async (req) => {
       });
     }
 
-    // Build response
+    // Build response (use 'task' key for frontend compatibility)
     const response: Record<string, unknown> = {
-      run,
+      task: run,
+      run, // Also include as 'run' for backwards compatibility
       progress: calculateProgress(run),
     };
 
@@ -89,7 +102,7 @@ serve(async (req) => {
       const { data: steps } = await supabase
         .from('agent_steps')
         .select('*')
-        .eq('run_id', run_id)
+        .eq('run_id', runId)
         .order('phase_number', { ascending: true })
         .order('created_at', { ascending: true })
         .limit(steps_limit);
@@ -102,7 +115,7 @@ serve(async (req) => {
       const { data: messages } = await supabase
         .from('agent_messages')
         .select('*')
-        .eq('run_id', run_id)
+        .eq('run_id', runId)
         .order('created_at', { ascending: true })
         .limit(messages_limit);
 
@@ -114,7 +127,7 @@ serve(async (req) => {
       const { data: artifacts } = await supabase
         .from('agent_artifacts')
         .select('*')
-        .eq('run_id', run_id)
+        .eq('run_id', runId)
         .order('created_at', { ascending: true })
         .limit(artifacts_limit);
 
@@ -126,7 +139,7 @@ serve(async (req) => {
       const { data: logs } = await supabase
         .from('agent_task_logs')
         .select('*')
-        .eq('run_id', run_id)
+        .eq('run_id', runId)
         .order('created_at', { ascending: true })
         .limit(logs_limit);
 

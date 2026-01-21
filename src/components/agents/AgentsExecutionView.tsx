@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Send, 
-  Paperclip, 
-  Mic, 
-  Pause, 
-  Play, 
-  Square, 
-  ChevronDown, 
-  ChevronUp, 
-  Check, 
-  Circle, 
-  Loader2, 
-  FileText, 
+import {
+  Send,
+  Paperclip,
+  Mic,
+  Pause,
+  Play,
+  Square,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Circle,
+  Loader2,
+  FileText,
   Code,
   Monitor,
   Terminal,
@@ -23,13 +23,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useTaskLogs } from '@/hooks/useTaskLogs';
 import type { ExecutionTask, ExecutionStep, TaskOutput } from '@/hooks/useAgentExecution';
+
+// Log entry type for terminal display
+interface LogEntry {
+  id: string;
+  content: string;
+  log_type: string | null;
+}
 
 interface AgentsExecutionViewProps {
   task: ExecutionTask;
   steps: ExecutionStep[];
   outputs: TaskOutput[];
+  logs?: LogEntry[];  // Logs now passed from parent (from agent-status)
   onSendMessage: (message: string) => void;
   onCancel: () => void;
   onPause?: () => void;
@@ -46,11 +53,12 @@ const TASK_CONFIG: Record<string, { label: string; icon: React.ReactNode }> = {
   default: { label: 'Task', icon: <FileText className="w-4 h-4" /> },
 };
 
-export function AgentsExecutionView({ 
-  task, 
+export function AgentsExecutionView({
+  task,
   steps,
   outputs,
-  onSendMessage, 
+  logs = [],  // Default to empty array - logs come from agent-status
+  onSendMessage,
   onCancel,
   onPause,
   onNewTask
@@ -58,9 +66,11 @@ export function AgentsExecutionView({
   const [rightPanel, setRightPanel] = useState<'terminal' | 'preview'>('terminal');
   const [message, setMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const { logs, isLive } = useTaskLogs(task.id);
   const terminalRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+
+  // Determine if task is "live" (still executing)
+  const isLive = ['executing', 'running', 'planning'].includes(task?.status || '');
 
   const taskConfig = TASK_CONFIG[task.task_type || 'default'] || TASK_CONFIG.default;
 

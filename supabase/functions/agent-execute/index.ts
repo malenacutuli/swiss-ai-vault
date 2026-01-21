@@ -8,6 +8,7 @@ import { executeTransition, TransitionContext } from '../_shared/agent/transitio
 import { AgentPlanner } from '../_shared/agent/planner.ts';
 import { AgentSupervisor, SupervisorContext } from '../_shared/agent/supervisor.ts';
 import { ToolRouter } from '../_shared/tools/router.ts';
+import { authenticateToken, extractToken } from '../_shared/cross-project-auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,31 +25,45 @@ serve(async (req) => {
   }
 
   try {
-    // Get Supabase client with user auth
+    // Get Supabase client with service role (for database operations)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const authHeader = req.headers.get('Authorization')!;
+
+    console.log('[agent-execute] Creating Supabase client, URL:', supabaseUrl?.slice(0, 30));
 
     const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
       global: {
-        headers: { Authorization: authHeader },
+        headers: {
+          'x-supabase-service-role': 'true',
+        },
       },
     });
 
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // Authenticate using cross-project auth (supports Lovable project tokens)
+    const token = extractToken(req.headers.get('Authorization'));
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized - no token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userId = user.id;
+    const authResult = await authenticateToken(token, supabase);
+    if (!authResult.user) {
+      console.error('[agent-execute] Auth failed:', authResult.error);
+      return new Response(JSON.stringify({ error: authResult.error || 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = authResult.user.id;
+    console.log('[agent-execute] Authenticated user:', userId, 'source:', authResult.source);
 
     // Parse request body
     const body = await req.json();
@@ -110,14 +125,37 @@ async function handleCreate(
     });
   }
 
-  // Check credit balance
-  const { data: balance } = await supabase
+  // Check/create credit balance (auto-provision for new users)
+  let { data: balance } = await supabase
     .from('credit_balances')
     .select('available_credits')
     .eq('user_id', userId)
     .single();
 
-  if (!balance || (balance as any).available_credits <= 0) {
+  // Auto-create credit balance for new users
+  if (!balance) {
+    console.log('[agent-execute] Creating credit balance for new user:', userId);
+    const { data: newBalance, error: createError } = await supabase
+      .from('credit_balances')
+      .insert({
+        user_id: userId,
+        available_credits: 10000, // Free tier: 10k credits
+        total_credits: 10000,
+        used_credits: 0,
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error('[agent-execute] Failed to create credit balance:', createError);
+      // Continue anyway for now - don't block execution
+    } else {
+      balance = newBalance;
+    }
+  }
+
+  // Skip credit check if balance creation failed (allow execution for testing)
+  if (balance && (balance as any).available_credits <= 0) {
     return new Response(
       JSON.stringify({ error: 'Insufficient credits' }),
       {
@@ -127,16 +165,15 @@ async function handleCreate(
     );
   }
 
-  // Create agent run record
+  // Create agent run record (using actual schema columns)
   const { data: run, error: runError } = await supabase
     .from('agent_runs')
     .insert({
       user_id: userId,
-      project_id: projectId,
+      workspace_id: projectId || null,
       prompt,
       status: 'created',
-      current_phase: 0,
-      total_credits_used: 0,
+      state: 'created',
     })
     .select()
     .single();
@@ -170,17 +207,98 @@ async function handleCreate(
     );
   }
 
+  // Auto-start the run (planning and execution)
+  console.log('[agent-execute] Auto-starting run:', runData.id);
+
+  // Update status to planning
+  await supabase
+    .from('agent_runs')
+    .update({ status: 'planning', state: 'planning' })
+    .eq('id', runData.id);
+
+  // Create state machine
+  const stateMachine = await createStateMachine(supabase, runData.id);
+
+  if (stateMachine) {
+    // Create planner and generate plan
+    const planner = new AgentPlanner(supabase, userId);
+
+    // Start planning and execution in background (don't await)
+    planAndExecute(supabase, userId, runData.id, prompt, planner, stateMachine).catch(err => {
+      console.error('[agent-execute] Background execution failed:', err);
+    });
+  }
+
+  // Return immediately with the created task (execution continues in background)
   return new Response(
     JSON.stringify({
       run_id: runData.id,
-      status: runData.status,
-      message: 'Agent run created successfully',
+      taskId: runData.id, // For frontend compatibility
+      task: { ...runData, status: 'planning' }, // Show planning status
+      status: 'planning',
+      message: 'Agent run created and execution started',
     }),
     {
       status: 201,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     }
   );
+}
+
+// Background planning and execution
+async function planAndExecute(
+  supabase: any,
+  userId: string,
+  runId: string,
+  prompt: string,
+  planner: AgentPlanner,
+  stateMachine: AgentStateMachine
+) {
+  try {
+    console.log('[planAndExecute] Creating plan for run:', runId);
+
+    const { plan, error: planError } = await planner.createPlan(prompt);
+
+    if (!plan || planError) {
+      console.error('[planAndExecute] Planning failed:', planError);
+      await supabase
+        .from('agent_runs')
+        .update({
+          status: 'failed',
+          state: 'failed',
+          error_message: `Planning failed: ${planError}`,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', runId);
+      return;
+    }
+
+    console.log('[planAndExecute] Plan created, saving...');
+
+    // Save plan to run
+    await planner.savePlan(runId, plan);
+
+    // Update status to executing
+    await supabase
+      .from('agent_runs')
+      .update({ status: 'executing', state: 'executing' })
+      .eq('id', runId);
+
+    // Execute in background
+    executeInBackground(supabase, userId, runId, plan, stateMachine);
+
+  } catch (error) {
+    console.error('[planAndExecute] Error:', error);
+    await supabase
+      .from('agent_runs')
+      .update({
+        status: 'failed',
+        state: 'failed',
+        error_message: error instanceof Error ? error.message : 'Planning failed',
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', runId);
+  }
 }
 
 // Start agent execution

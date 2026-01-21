@@ -115,7 +115,7 @@ export class AgentPlanner {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         temperature: 0.7,
         max_tokens: 4096,
         response_format: {
@@ -218,7 +218,7 @@ Return a complete revised execution plan in JSON format.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         temperature: 0.7,
         max_tokens: 4096,
         response_format: {

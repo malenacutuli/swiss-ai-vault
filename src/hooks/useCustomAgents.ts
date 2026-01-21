@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
-import { agentsDevSupabase } from '@/integrations/supabase/agents-client-dev';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// Direct project URL for edge functions
+const DIRECT_PROJECT_URL = 'https://ghmmdochvlrnwbruyrqk.supabase.co/functions/v1';
 
 // Types
 export type AgentVisibility = 'private' | 'workspace' | 'public';
@@ -156,15 +159,30 @@ export function useCustomAgents(): UseCustomAgentsReturn {
   const [isLoading, setIsLoading] = useState(false);
 
   // Helper to call custom-agents service
+  // Uses raw fetch to ensure the Lovable auth token is forwarded correctly
   const callService = useCallback(async (action: string, params: Record<string, any> = {}): Promise<any> => {
-    const { data, error } = await agentsDevSupabase.functions.invoke('custom-agents', {
-      body: { action, ...params },
+    // Get token from main Supabase client (Lovable project)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(`${DIRECT_PROJECT_URL}/custom-agents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action, ...params }),
     });
 
-    if (error) {
-      console.error(`[useCustomAgents] ${action} error:`, error);
-      throw new Error(error.message);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`[useCustomAgents] ${action} error:`, errorData);
+      throw new Error(errorData.error || `HTTP ${response.status}`);
     }
+
+    const data = await response.json();
 
     if (!data?.success) {
       throw new Error(data?.error || 'Unknown error');

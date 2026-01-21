@@ -61,7 +61,8 @@ export async function invokeLLM(options: LLMOptions): Promise<LLMResponse> {
     throw new Error('ANTHROPIC_API_KEY environment variable not set');
   }
 
-  const model = options.model || 'claude-3-5-sonnet-20241022';
+  // Use current Claude model (claude-sonnet-4-20250514 is the latest as of 2025)
+  const model = options.model || 'claude-sonnet-4-20250514';
 
   // Convert to Anthropic format
   const messages = options.messages.map(msg => ({

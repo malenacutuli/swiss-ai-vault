@@ -141,7 +141,9 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
 
     pollingRef.current = setInterval(async () => {
       try {
-        // Get token from main Supabase client
+        console.log('[DEV] Polling task status:', taskId);
+
+        // Get token from main Supabase client (Lovable project)
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
           console.error('[DEV pollTaskStatus] No session');
@@ -154,7 +156,7 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ task_id: taskId }),
+          body: JSON.stringify({ run_id: taskId }),
         });
 
         if (!response.ok) {
@@ -203,13 +205,15 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
     setShowExecutionView(true);
 
     try {
+      console.log('[DEV] Executing task on agents backend:', params);
+
       // Get token from main Supabase client (Lovable project)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error('Not authenticated');
       }
 
-      console.log('[DEV executeTask] Calling agent-execute with user token');
+      console.log('[DEV] Calling agent-execute with user token');
 
       const response = await fetch(`${DIRECT_PROJECT_URL}/agent-execute`, {
         method: 'POST',
@@ -251,6 +255,7 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
       }
 
       if (!taskId) {
+        console.error('[DEV] Response data:', data);
         throw new Error('No task ID returned');
       }
 

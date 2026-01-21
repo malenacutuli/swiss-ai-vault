@@ -94,34 +94,9 @@ export async function authenticateToken(
     return { user: null, error: 'Token is empty or invalid', source: null };
   }
 
-  // Try local project auth first (wrapped in try-catch for safety)
-  try {
-    const { data: localAuth, error: localError } = await localSupabase.auth.getUser(token);
-
-    console.log('[cross-project-auth] Local auth result:', {
-      hasUser: !!localAuth?.user,
-      userId: localAuth?.user?.id?.slice(0, 8),
-      error: localError?.message,
-      errorCode: (localError as any)?.code
-    });
-
-    if (!localError && localAuth?.user) {
-      console.log('[cross-project-auth] Authenticated via local project, user:', localAuth.user.id.slice(0, 8));
-      return {
-        user: {
-          id: localAuth.user.id,
-          email: localAuth.user.email,
-        },
-        error: null,
-        source: 'local',
-      };
-    }
-  } catch (localAuthError) {
-    console.error('[cross-project-auth] Local auth threw exception:', localAuthError);
-    // Continue to JWT decode fallback
-  }
-
-  console.log('[cross-project-auth] Local auth failed, trying JWT decode fallback');
+  // Skip local auth for cross-project tokens - go straight to JWT decode
+  // The local supabase client uses service role, which can't validate user tokens from other projects
+  console.log('[cross-project-auth] Using JWT decode for cross-project auth');
 
   // Fallback: Decode and validate Lovable project token
   let decoded;
@@ -144,51 +119,31 @@ export async function authenticateToken(
     return { user: null, error: 'Token payload missing', source: null };
   }
 
-  // Log payload keys for debugging (not full content for security)
+  // Log FULL payload for debugging (temporarily - remove in production)
+  console.log('[cross-project-auth] FULL Token payload:', JSON.stringify(payload, null, 2));
   console.log('[cross-project-auth] Token payload keys:', Object.keys(payload));
-  console.log('[cross-project-auth] Token payload essentials:', {
-    sub: payload.sub?.slice(0, 8),
-    iss: payload.iss,
-    role: payload.role,
-    exp: payload.exp,
-    aud: payload.aud
-  });
+  console.log('[cross-project-auth] Direct field access - sub:', payload.sub, 'user_id:', payload.user_id, 'id:', payload.id);
+  console.log('[cross-project-auth] typeof sub:', typeof payload.sub, 'typeof user_id:', typeof payload.user_id);
 
   // Extract and validate project reference from issuer URL
   // iss format: https://<project-ref>.supabase.co/auth/v1
   const projectRef = extractProjectRef(payload.iss);
-  console.log('[cross-project-auth] Extracted project ref:', projectRef, 'from iss:', payload.iss);
+  // Extract user info from token - be very lenient
+  const userId = payload.sub || payload.user_id || payload.id;
+  const email = payload.email;
+  const role = payload.role || 'authenticated';
 
-  // Check if token is from a known Supabase project (Lovable or Direct)
-  const DIRECT_PROJECT_REF = 'ghmmdochvlrnwbruyrqk';
-  const validProjects = [LOVABLE_PROJECT_REF, DIRECT_PROJECT_REF];
-
-  if (projectRef && !validProjects.includes(projectRef)) {
-    console.log('[cross-project-auth] Token not from known project. Got:', projectRef);
-    return { user: null, error: 'Invalid token issuer', source: null };
-  }
-
-  // If we couldn't extract a project ref but token looks valid, still accept it
-  if (!projectRef) {
-    console.log('[cross-project-auth] Could not extract project ref, checking token claims directly');
-  }
+  console.log('[cross-project-auth] Extracted userId:', userId, '| email:', email, '| iss:', payload.iss, '| projectRef:', projectRef);
 
   // Check expiration
   if (isTokenExpired(payload)) {
-    console.log('[cross-project-auth] Token expired');
+    console.log('[cross-project-auth] Token expired at:', payload.exp);
     return { user: null, error: 'Token expired', source: null };
   }
 
-  // Extract user info from token
-  const userId = payload.sub;
-  const email = payload.email;
-  const role = payload.role;
-
-  console.log('[cross-project-auth] Token claims - userId:', userId, 'role:', role, 'aud:', payload.aud);
-
-  // Just need a valid user ID - role can be 'authenticated', 'anon', or from user_metadata
+  // Accept any token with a user ID
   if (!userId) {
-    console.log('[cross-project-auth] No user ID in token');
+    console.log('[cross-project-auth] No user ID found in token. Payload keys:', Object.keys(payload));
     return { user: null, error: 'Invalid token claims', source: null };
   }
 

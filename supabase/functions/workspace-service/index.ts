@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { authenticateToken, extractToken } from "../_shared/cross-project-auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,10 +12,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-// Lovable-managed project for cross-project auth validation
-const LOVABLE_SUPABASE_URL = 'https://rljnrgscmosgkcjdvlrq.supabase.co';
-const LOVABLE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsam5yZ3NjbW9zZ2tjamR2bHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDIxNzIsImV4cCI6MjA4MDQxODE3Mn0.C_Y5OyGaIH3QPX15QTfwafe-_y7YzHvO4z6HU55Y1-A';
 
 type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'prompter' | 'viewer';
 
@@ -61,44 +58,34 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
 
   try {
-    // Authenticate - try local project first, then Lovable project
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // Authenticate using cross-project auth (supports both local and Lovable tokens)
+    const token = extractToken(req.headers.get('Authorization'));
+    if (!token) {
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-
-    // Try local project auth first
-    let user = null;
-    const { data: localAuth, error: localError } = await supabase.auth.getUser(token);
-
-    if (!localError && localAuth?.user) {
-      user = localAuth.user;
-      console.log('[workspace-service] Authenticated via local project');
-    } else {
-      // Fallback: Try Lovable project auth (for cross-project requests)
-      const lovableClient = createClient(LOVABLE_SUPABASE_URL, LOVABLE_ANON_KEY);
-      const { data: lovableAuth, error: lovableError } = await lovableClient.auth.getUser(token);
-
-      if (!lovableError && lovableAuth?.user) {
-        user = lovableAuth.user;
-        console.log('[workspace-service] Authenticated via Lovable project');
-      }
-    }
-
-    if (!user) {
+    const authResult = await authenticateToken(token, supabase);
+    if (!authResult.user) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid token' }),
+        JSON.stringify({ success: false, error: authResult.error || 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const user = authResult.user;
+    console.log(`[workspace-service] Authenticated via ${authResult.source}`);
 
     const params: WorkspaceRequest = await req.json();
 
@@ -120,24 +107,35 @@ serve(async (req) => {
           throw new Error('name is required');
         }
 
-        // Use stored procedure
-        const { data: createResult, error } = await supabase.rpc('create_workspace', {
-          p_name: params.name,
-          p_description: params.description || null,
-          p_visibility: params.visibility || 'private',
+        // Direct insert (more reliable with cross-project auth)
+        const { data: workspace, error: createError } = await supabase
+          .from('workspaces')
+          .insert({
+            owner_id: user.id,
+            name: params.name,
+            description: params.description || null,
+            visibility: params.visibility || 'private',
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+
+        // Add owner as member
+        await supabase.from('workspace_members').insert({
+          workspace_id: workspace.id,
+          user_id: user.id,
+          role: 'owner',
+          status: 'active',
+          accepted_at: new Date().toISOString(),
         });
 
-        if (error) throw error;
-        if (!createResult?.success) {
-          throw new Error(createResult?.error || 'Failed to create workspace');
-        }
-
-        // Get full workspace
-        const { data: workspace } = await supabase
-          .from('workspaces')
-          .select('*')
-          .eq('id', createResult.workspace_id)
-          .single();
+        // Log activity
+        await supabase.from('workspace_activity').insert({
+          workspace_id: workspace.id,
+          user_id: user.id,
+          activity_type: 'workspace_created',
+        });
 
         result = { workspace };
         break;
@@ -267,21 +265,47 @@ serve(async (req) => {
         if (!params.workspace_id) throw new Error('workspace_id is required');
         if (!params.email) throw new Error('email is required');
 
-        const { data: inviteResult, error } = await supabase.rpc('invite_workspace_member', {
-          p_workspace_id: params.workspace_id,
-          p_email: params.email,
-          p_role: params.role || 'viewer',
-          p_message: params.message || null,
-        });
+        // Check user has permission
+        const { data: userMembership } = await supabase
+          .from('workspace_members')
+          .select('role')
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single();
 
-        if (error) throw error;
-        if (!inviteResult?.success) {
-          throw new Error(inviteResult?.error || 'Failed to send invite');
+        if (!userMembership || !['owner', 'admin'].includes(userMembership.role)) {
+          throw new Error('Permission denied');
         }
 
+        // Create invite with unique token
+        const inviteToken = generateToken() + generateToken();
+        const { data: invite, error: inviteError } = await supabase
+          .from('workspace_invites')
+          .insert({
+            workspace_id: params.workspace_id,
+            email: params.email,
+            role: params.role || 'viewer',
+            created_by: user.id,
+            message: params.message || null,
+            invite_token: inviteToken,
+          })
+          .select()
+          .single();
+
+        if (inviteError) throw inviteError;
+
+        // Log activity
+        await supabase.from('workspace_activity').insert({
+          workspace_id: params.workspace_id,
+          user_id: user.id,
+          activity_type: 'member_invited',
+          data: { email: params.email, role: params.role || 'viewer' },
+        });
+
         result = {
-          invite_id: inviteResult.invite_id,
-          invite_token: inviteResult.invite_token,
+          invite_id: invite.id,
+          invite_token: invite.invite_token,
         };
         break;
       }
@@ -290,20 +314,62 @@ serve(async (req) => {
       case 'accept_invite': {
         if (!params.invite_token) throw new Error('invite_token is required');
 
-        const { data: acceptResult, error } = await supabase.rpc('accept_workspace_invite', {
-          p_invite_token: params.invite_token,
-        });
+        // Get invite
+        const { data: invite, error: inviteError } = await supabase
+          .from('workspace_invites')
+          .select('*')
+          .eq('invite_token', params.invite_token)
+          .eq('status', 'pending')
+          .gt('expires_at', new Date().toISOString())
+          .single();
 
-        if (error) throw error;
-        if (!acceptResult?.success) {
-          throw new Error(acceptResult?.error || 'Failed to accept invite');
+        if (inviteError || !invite) {
+          throw new Error('Invalid or expired invite');
         }
+
+        // Update invite status
+        await supabase
+          .from('workspace_invites')
+          .update({ status: 'accepted', accepted_by: user.id, accepted_at: new Date().toISOString() })
+          .eq('id', invite.id);
+
+        // Add member (upsert)
+        await supabase
+          .from('workspace_members')
+          .upsert({
+            workspace_id: invite.workspace_id,
+            user_id: user.id,
+            role: invite.role,
+            invited_by: invite.created_by,
+            status: 'active',
+            accepted_at: new Date().toISOString(),
+          }, { onConflict: 'workspace_id,user_id' });
+
+        // Update member count
+        const { count } = await supabase
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', invite.workspace_id)
+          .eq('status', 'active');
+
+        await supabase
+          .from('workspaces')
+          .update({ member_count: count || 1 })
+          .eq('id', invite.workspace_id);
+
+        // Log activity
+        await supabase.from('workspace_activity').insert({
+          workspace_id: invite.workspace_id,
+          user_id: user.id,
+          activity_type: 'member_joined',
+          data: { role: invite.role },
+        });
 
         // Get workspace
         const { data: workspace } = await supabase
           .from('workspaces')
           .select('*')
-          .eq('id', acceptResult.workspace_id)
+          .eq('id', invite.workspace_id)
           .single();
 
         result = { workspace };
@@ -316,16 +382,55 @@ serve(async (req) => {
         if (!params.member_user_id) throw new Error('member_user_id is required');
         if (!params.role) throw new Error('role is required');
 
-        const { data: updateResult, error } = await supabase.rpc('update_workspace_member_role', {
-          p_workspace_id: params.workspace_id,
-          p_member_user_id: params.member_user_id,
-          p_new_role: params.role,
-        });
+        // Check user has permission
+        const { data: callerMember } = await supabase
+          .from('workspace_members')
+          .select('role')
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single();
 
-        if (error) throw error;
-        if (!updateResult?.success) {
-          throw new Error(updateResult?.error || 'Failed to update role');
+        if (!callerMember || !['owner', 'admin'].includes(callerMember.role)) {
+          throw new Error('Permission denied');
         }
+
+        // Get target member's current role
+        const { data: targetMember } = await supabase
+          .from('workspace_members')
+          .select('role')
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', params.member_user_id)
+          .single();
+
+        if (!targetMember) {
+          throw new Error('Member not found');
+        }
+
+        if (targetMember.role === 'owner') {
+          throw new Error('Cannot change owner role');
+        }
+
+        if (callerMember.role === 'admin' && params.role === 'owner') {
+          throw new Error('Only owner can transfer ownership');
+        }
+
+        // Update role
+        await supabase
+          .from('workspace_members')
+          .update({ role: params.role, updated_at: new Date().toISOString() })
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', params.member_user_id);
+
+        // Log activity
+        await supabase.from('workspace_activity').insert({
+          workspace_id: params.workspace_id,
+          user_id: user.id,
+          activity_type: 'member_role_changed',
+          target_type: 'member',
+          target_id: params.member_user_id,
+          data: { from_role: targetMember.role, to_role: params.role },
+        });
 
         result = { updated: true };
         break;
@@ -336,15 +441,58 @@ serve(async (req) => {
         if (!params.workspace_id) throw new Error('workspace_id is required');
         if (!params.member_user_id) throw new Error('member_user_id is required');
 
-        const { data: removeResult, error } = await supabase.rpc('remove_workspace_member', {
-          p_workspace_id: params.workspace_id,
-          p_member_user_id: params.member_user_id,
-        });
+        // Check user has permission (or is removing themselves)
+        const { data: callerMember } = await supabase
+          .from('workspace_members')
+          .select('role')
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single();
 
-        if (error) throw error;
-        if (!removeResult?.success) {
-          throw new Error(removeResult?.error || 'Failed to remove member');
+        if (user.id !== params.member_user_id && (!callerMember || !['owner', 'admin'].includes(callerMember.role))) {
+          throw new Error('Permission denied');
         }
+
+        // Can't remove owner
+        const { data: targetMember } = await supabase
+          .from('workspace_members')
+          .select('role')
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', params.member_user_id)
+          .single();
+
+        if (targetMember?.role === 'owner') {
+          throw new Error('Cannot remove workspace owner');
+        }
+
+        // Remove member
+        await supabase
+          .from('workspace_members')
+          .update({ status: 'removed', updated_at: new Date().toISOString() })
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', params.member_user_id);
+
+        // Update member count
+        const { count } = await supabase
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', params.workspace_id)
+          .eq('status', 'active');
+
+        await supabase
+          .from('workspaces')
+          .update({ member_count: count || 0 })
+          .eq('id', params.workspace_id);
+
+        // Log activity
+        await supabase.from('workspace_activity').insert({
+          workspace_id: params.workspace_id,
+          user_id: user.id,
+          activity_type: user.id === params.member_user_id ? 'member_left' : 'member_removed',
+          target_type: 'member',
+          target_id: params.member_user_id,
+        });
 
         result = { removed: true };
         break;
@@ -354,15 +502,45 @@ serve(async (req) => {
       case 'leave': {
         if (!params.workspace_id) throw new Error('workspace_id is required');
 
-        const { data: leaveResult, error } = await supabase.rpc('remove_workspace_member', {
-          p_workspace_id: params.workspace_id,
-          p_member_user_id: user.id,
-        });
+        // Can't leave if owner
+        const { data: memberData } = await supabase
+          .from('workspace_members')
+          .select('role')
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', user.id)
+          .single();
 
-        if (error) throw error;
-        if (!leaveResult?.success) {
-          throw new Error(leaveResult?.error || 'Failed to leave workspace');
+        if (memberData?.role === 'owner') {
+          throw new Error('Owner cannot leave workspace. Transfer ownership first.');
         }
+
+        // Remove self
+        await supabase
+          .from('workspace_members')
+          .update({ status: 'removed', updated_at: new Date().toISOString() })
+          .eq('workspace_id', params.workspace_id)
+          .eq('user_id', user.id);
+
+        // Update member count
+        const { count } = await supabase
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', params.workspace_id)
+          .eq('status', 'active');
+
+        await supabase
+          .from('workspaces')
+          .update({ member_count: count || 0 })
+          .eq('id', params.workspace_id);
+
+        // Log activity
+        await supabase.from('workspace_activity').insert({
+          workspace_id: params.workspace_id,
+          user_id: user.id,
+          activity_type: 'member_left',
+          target_type: 'member',
+          target_id: user.id,
+        });
 
         result = { left: true };
         break;
@@ -380,12 +558,7 @@ serve(async (req) => {
 
         const { data: members, error } = await supabase
           .from('workspace_members')
-          .select(`
-            id, user_id, role, status, last_active_at, created_at,
-            user:auth.users (
-              id, email, raw_user_meta_data
-            )
-          `)
+          .select('id, user_id, role, status, last_active_at, created_at')
           .eq('workspace_id', params.workspace_id)
           .in('status', ['active', 'pending'])
           .order('created_at', { ascending: true });
@@ -412,11 +585,15 @@ serve(async (req) => {
           throw new Error('Access denied');
         }
 
-        const { data: activities, error } = await supabase.rpc('get_workspace_activity', {
-          p_workspace_id: params.workspace_id,
-          p_limit: params.limit || 50,
-          p_offset: params.offset || 0,
-        });
+        const limit = Math.min(params.limit || 50, 100);
+        const offset = params.offset || 0;
+
+        const { data: activities, error } = await supabase
+          .from('workspace_activity')
+          .select('id, activity_type, user_id, target_type, target_id, data, created_at')
+          .eq('workspace_id', params.workspace_id)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
 
         if (error) throw error;
 
@@ -492,11 +669,34 @@ async function checkPermission(
   userId: string,
   permission: string
 ): Promise<boolean> {
-  const { data } = await supabase.rpc('check_workspace_permission', {
-    p_workspace_id: workspaceId,
-    p_permission: permission,
-  });
-  return data === true;
+  const { data: member } = await supabase
+    .from('workspace_members')
+    .select('role')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .single();
+
+  if (!member) return false;
+
+  const role = member.role;
+
+  switch (permission) {
+    case 'view':
+      return true;
+    case 'prompt':
+      return ['owner', 'admin', 'editor', 'prompter'].includes(role);
+    case 'edit':
+    case 'create_run':
+      return ['owner', 'admin', 'editor'].includes(role);
+    case 'manage_members':
+    case 'manage_settings':
+      return ['owner', 'admin'].includes(role);
+    case 'delete':
+      return role === 'owner';
+    default:
+      return false;
+  }
 }
 
 // Helper: Log activity
