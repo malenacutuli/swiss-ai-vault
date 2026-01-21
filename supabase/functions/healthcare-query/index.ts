@@ -1,4 +1,4 @@
-// Healthcare Query Edge Function
+// Healthcare Query Edge Function v2.2.0
 // Agentic loop with Claude tool use for medical queries
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
