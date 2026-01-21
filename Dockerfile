@@ -72,9 +72,9 @@ RUN apk add --no-cache \
     busybox-extras \
     && rm -rf /var/cache/apk/*
 
-# Create non-root user and group
-RUN addgroup -g 1000 -S worker && \
-    adduser -u 1000 -S worker -G worker -h /home/worker -s /bin/sh
+# Create non-root user and group (use different IDs to avoid conflicts)
+RUN addgroup -g 1001 -S worker && \
+    adduser -u 1001 -S worker -G worker -h /home/worker -s /bin/sh
 
 # Create required directories with correct ownership
 RUN mkdir -p /app /home/worker/.cache /tmp/worker && \
