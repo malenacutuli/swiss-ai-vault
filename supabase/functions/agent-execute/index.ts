@@ -216,26 +216,115 @@ async function handleCreate(
     .update({ status: 'planning', state: 'planning' })
     .eq('id', runData.id);
 
-  // Create state machine
+  // Create planner and generate plan (MUST await - Edge Functions kill unawaited promises)
+  const planner = new AgentPlanner(supabase, userId);
+
+  console.log('[agent-execute] Creating plan...');
+  const { plan, error: planError } = await planner.createPlan(prompt);
+
+  if (!plan || planError) {
+    console.error('[agent-execute] Planning failed:', planError);
+    await supabase
+      .from('agent_runs')
+      .update({
+        status: 'failed',
+        state: 'failed',
+        error_message: `Planning failed: ${planError}`,
+      })
+      .eq('id', runData.id);
+
+    return new Response(
+      JSON.stringify({
+        run_id: runData.id,
+        taskId: runData.id,
+        task: { ...runData, status: 'failed', error_message: planError },
+        status: 'failed',
+        error: planError,
+        message: 'Planning failed',
+      }),
+      {
+        status: 200, // Return 200 so client can show error
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  console.log('[agent-execute] Plan created successfully, saving...');
+
+  // Save plan to run
+  await planner.savePlan(runData.id, plan);
+
+  // Update to executing status
+  await supabase
+    .from('agent_runs')
+    .update({ status: 'executing', state: 'executing' })
+    .eq('id', runData.id);
+
+  // Log plan created
+  await supabase.from('agent_task_logs').insert({
+    run_id: runData.id,
+    log_type: 'plan_created',
+    content: `Plan created with ${plan.phases.length} phases`,
+    metadata: { phases: plan.phases.map((p: any) => p.name) },
+  });
+
+  // Create state machine for execution
   const stateMachine = await createStateMachine(supabase, runData.id);
 
   if (stateMachine) {
-    // Create planner and generate plan
-    const planner = new AgentPlanner(supabase, userId);
+    // Start first phase of execution (supervisor loop)
+    // We'll do one iteration here, then let polling continue
+    console.log('[agent-execute] Starting execution...');
 
-    // Start planning and execution in background (don't await)
-    planAndExecute(supabase, userId, runData.id, prompt, planner, stateMachine).catch(err => {
-      console.error('[agent-execute] Background execution failed:', err);
-    });
+    try {
+      const toolRouter = new ToolRouter(supabase);
+      const supervisorCtx: SupervisorContext = {
+        supabase,
+        runId: runData.id,
+        userId,
+        plan,
+        currentPhaseNumber: 1,
+        conversationHistory: [],
+        stateMachine,
+        toolRouter,
+      };
+
+      const supervisor = new AgentSupervisor(supervisorCtx);
+
+      // Execute the full agent loop (with timeout protection)
+      const result = await Promise.race([
+        supervisor.execute(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Execution timeout')), 50000) // 50s timeout
+        ),
+      ]);
+
+      console.log('[agent-execute] Execution result:', result);
+    } catch (execError) {
+      console.error('[agent-execute] Execution error:', execError);
+      // Don't fail the whole run - let status polling show partial progress
+      await supabase.from('agent_task_logs').insert({
+        run_id: runData.id,
+        log_type: 'execution_error',
+        content: execError instanceof Error ? execError.message : 'Execution error',
+      });
+    }
   }
 
-  // Return immediately with the created task (execution continues in background)
+  // Return with current status
+  const { data: updatedRun } = await supabase
+    .from('agent_runs')
+    .select('*')
+    .eq('id', runData.id)
+    .single();
+
   return new Response(
     JSON.stringify({
       run_id: runData.id,
-      taskId: runData.id, // For frontend compatibility
-      task: { ...runData, status: 'planning' }, // Show planning status
-      status: 'planning',
+      taskId: runData.id,
+      task: updatedRun || { ...runData, status: 'executing' },
+      status: updatedRun?.status || 'executing',
+      plan,
       message: 'Agent run created and execution started',
     }),
     {
