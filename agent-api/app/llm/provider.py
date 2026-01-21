@@ -24,7 +24,9 @@ from app.llm.models import (
     calculate_cost,
     ANTHROPIC_MODELS,
     OPENAI_MODELS,
+    MANUS_MODELS,
 )
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,8 @@ class LLMProvider:
         self,
         anthropic_api_key: Optional[str] = None,
         openai_api_key: Optional[str] = None,
+        manus_api_key: Optional[str] = None,
+        manus_api_url: Optional[str] = None,
         primary_provider: str = "anthropic",
         default_model: Optional[str] = None,
         fallback_enabled: bool = True,
@@ -99,6 +103,12 @@ class LLMProvider:
         if openai_api_key:
             self.openai = AsyncOpenAI(api_key=openai_api_key)
             logger.info("✓ OpenAI provider initialized")
+
+        # Initialize Manus API client (fallback orchestrator)
+        self.manus_api_key = manus_api_key
+        self.manus_api_url = manus_api_url or "https://api.manus.im/v1"
+        if manus_api_key:
+            logger.info("✓ Manus API provider initialized (fallback orchestrator)")
 
         # Set default model
         if default_model:
@@ -204,6 +214,10 @@ class LLMProvider:
             try:
                 if provider == "anthropic":
                     return await self._complete_anthropic(
+                        messages, model, system, max_tokens, temperature, tools, tool_choice
+                    )
+                elif provider == "manus":
+                    return await self._complete_manus(
                         messages, model, system, max_tokens, temperature, tools, tool_choice
                     )
                 else:
@@ -418,6 +432,96 @@ class LLMProvider:
             })
         return openai_tools
 
+    async def _complete_manus(
+        self,
+        messages: List[LLMMessage],
+        model: str,
+        system: Optional[str],
+        max_tokens: int,
+        temperature: float,
+        tools: Optional[List[Dict]],
+        tool_choice: Optional[str],
+    ) -> LLMResponse:
+        """
+        Execute Manus API completion (fallback orchestrator).
+        
+        Manus API uses OpenAI-compatible format.
+        """
+        if not self.manus_api_key:
+            raise ValueError("Manus API key not configured")
+
+        start_time = time.time()
+
+        # Convert messages to OpenAI-compatible format
+        manus_messages = []
+        if system:
+            manus_messages.append({"role": "system", "content": system})
+        for msg in messages:
+            manus_messages.append({"role": msg.role, "content": msg.content})
+
+        # Build request payload
+        payload = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": manus_messages,
+        }
+
+        if tools:
+            payload["tools"] = self._convert_tools_to_openai(tools)
+            if tool_choice:
+                payload["tool_choice"] = tool_choice
+
+        # Execute request to Manus API
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.manus_api_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.manus_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=120.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        latency_ms = int((time.time() - start_time) * 1000)
+
+        # Extract content
+        message = data["choices"][0]["message"]
+        content = message.get("content", "")
+        tool_calls = []
+
+        if message.get("tool_calls"):
+            import json
+            for tc in message["tool_calls"]:
+                tool_calls.append(ToolCall(
+                    id=tc["id"],
+                    name=tc["function"]["name"],
+                    arguments=json.loads(tc["function"]["arguments"]),
+                ))
+
+        # Calculate cost
+        usage = data.get("usage", {})
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        cost = calculate_cost(model, input_tokens, output_tokens)
+
+        return LLMResponse(
+            content=content,
+            model=model,
+            provider="manus",
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=input_tokens + output_tokens,
+            cost_usd=cost,
+            latency_ms=latency_ms,
+            stop_reason=data["choices"][0].get("finish_reason"),
+            tool_calls=tool_calls,
+            raw_response=data,
+        )
+
     async def stream_complete(
         self,
         messages: List[LLMMessage],
@@ -516,6 +620,8 @@ class LLMProvider:
 def create_llm_provider(
     anthropic_api_key: Optional[str] = None,
     openai_api_key: Optional[str] = None,
+    manus_api_key: Optional[str] = None,
+    manus_api_url: Optional[str] = None,
     primary_provider: str = "anthropic",
     default_model: Optional[str] = None,
     fallback_enabled: bool = True,
@@ -524,6 +630,8 @@ def create_llm_provider(
     return LLMProvider(
         anthropic_api_key=anthropic_api_key,
         openai_api_key=openai_api_key,
+        manus_api_key=manus_api_key,
+        manus_api_url=manus_api_url,
         primary_provider=primary_provider,
         default_model=default_model,
         fallback_enabled=fallback_enabled,

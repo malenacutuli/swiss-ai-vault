@@ -106,8 +106,32 @@ OPENAI_MODELS: Dict[str, ModelInfo] = {
     ),
 }
 
+# Manus API Models (fallback orchestrator)
+MANUS_MODELS: Dict[str, ModelInfo] = {
+    "manus-1.6-max": ModelInfo(
+        id="manus-1.6-max",
+        provider="manus",
+        context_window=200000,
+        max_output_tokens=16384,
+        input_price_per_1k=0.003,  # Estimated pricing
+        output_price_per_1k=0.015,
+        supports_vision=True,
+        supports_tools=True,
+    ),
+    "manus-1.6-standard": ModelInfo(
+        id="manus-1.6-standard",
+        provider="manus",
+        context_window=128000,
+        max_output_tokens=8192,
+        input_price_per_1k=0.001,
+        output_price_per_1k=0.005,
+        supports_vision=True,
+        supports_tools=True,
+    ),
+}
+
 # Combined model registry
-ALL_MODELS: Dict[str, ModelInfo] = {**ANTHROPIC_MODELS, **OPENAI_MODELS}
+ALL_MODELS: Dict[str, ModelInfo] = {**ANTHROPIC_MODELS, **OPENAI_MODELS, **MANUS_MODELS}
 
 
 def get_model_info(model_id: str) -> Optional[ModelInfo]:
@@ -143,6 +167,16 @@ def get_fallback_model(model_id: str) -> Optional[str]:
         "gpt-4o-mini": "claude-3-haiku-20240307",
         "gpt-3.5-turbo": "claude-3-haiku-20240307",
     }
+
+    # Manus as ultimate fallback
+    manus_fallbacks = {
+        "manus-1.6-max": "claude-sonnet-4-20250514",
+        "manus-1.6-standard": "gpt-4o-mini",
+    }
+
+    # Check Manus fallbacks first
+    if model_id in manus_fallbacks:
+        return manus_fallbacks.get(model_id)
 
     model = get_model_info(model_id)
     if not model:

@@ -99,6 +99,8 @@ import AgentsDev from "./pages/AgentsDev";
 import AgentWorkspace from "./pages/AgentWorkspace";
 import AgentBuilderPage from "./pages/AgentBuilder";
 import SwissBrAInAgents from "./pages/SwissBrAInAgents";
+import ManusHome from "./pages/ManusHome";
+import ManusTaskExecution from "./pages/ManusTaskExecution";
 import WorkspacesPage from "./pages/Workspaces";
 import Studio from "./pages/Studio";
 import Upgrade from "./pages/Upgrade";
@@ -190,8 +192,10 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/upgrade" element={<Upgrade />} />
-                <Route path="/agents" element={<ProtectedRoute><ErrorBoundary><SwissBrAInAgents /></ErrorBoundary></ProtectedRoute>} />
-                <Route path="/agents/legacy" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents" element={<ProtectedRoute><ErrorBoundary><ManusHome /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/task/:taskId" element={<ProtectedRoute><ErrorBoundary><ManusTaskExecution /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents/legacy" element={<ProtectedRoute><ErrorBoundary><SwissBrAInAgents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents/old" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/agents/dashboard" element={
                   <ProtectedRoute>
                     <Suspense fallback={<PageLoader />}>
