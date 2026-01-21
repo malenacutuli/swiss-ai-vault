@@ -175,7 +175,8 @@ const App = () => {
                 <Route path="/ghost/projects" element={<ProtectedRoute><MemoryProjectsPage /></ProtectedRoute>} />
                 <Route path="/ghost/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
                 <Route path="/ghost/research-library" element={<ProtectedRoute><ResearchDashboard /></ProtectedRoute>} />
-                <Route path="/ghost/agents" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/ghost/agents" element={<ProtectedRoute><ErrorBoundary><ManusHome /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/ghost/agents/task/:taskId" element={<ProtectedRoute><ErrorBoundary><AgentWorkspace /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/ghost/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
 
                 {/* Development route for testing Claude Code implementations */}

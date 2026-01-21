@@ -1,13 +1,23 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ManusLayout } from "@/components/manus/ManusLayout";
 import { ManusInputBox } from "@/components/manus/ManusInputBox";
 import { ManusFeatureCards } from "@/components/manus/ManusFeatureCards";
 import { ManusTemplateGallery } from "@/components/manus/ManusTemplateGallery";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAgentExecution } from "@/hooks/useAgentExecution";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+// Agent API endpoint
+const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'https://api.swissbrain.ai';
+
+interface Task {
+  id: string;
+  title?: string;
+  prompt?: string;
+  status: string;
+  created_at?: string;
+}
 
 export function ManusHome() {
   const navigate = useNavigate();
@@ -16,21 +26,55 @@ export function ManusHome() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [connectedTools, setConnectedTools] = useState<string[]>([]);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
 
-  // Use the existing agent execution hook
-  const {
-    tasks,
-    isLoadingTasks,
-    createTask,
-  } = useAgentExecution();
+  // Fetch tasks from agent_runs table
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!user) {
+        setTasks([]);
+        setIsLoadingTasks(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('agent_runs')
+          .select('id, prompt, status, created_at, metadata')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) {
+          console.error('Error fetching tasks:', error);
+          setTasks([]);
+        } else {
+          setTasks(data?.map(run => ({
+            id: run.id,
+            title: run.prompt?.slice(0, 50) || 'Untitled Task',
+            prompt: run.prompt,
+            status: run.status,
+            created_at: run.created_at,
+          })) || []);
+        }
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+      } finally {
+        setIsLoadingTasks(false);
+      }
+    };
+
+    fetchTasks();
+  }, [user]);
 
   // Map tasks to the format expected by ManusLayout
-  const mappedTasks = tasks?.map((task) => ({
+  const mappedTasks = tasks.map((task) => ({
     id: task.id,
     title: task.title || task.prompt?.slice(0, 50) || "Untitled Task",
     status: task.status as any,
     icon: undefined,
-  })) || [];
+  }));
 
   const handleSubmit = async (value: string, mode?: string) => {
     if (!value.trim() && mode !== "chat") return;
@@ -47,19 +91,41 @@ export function ManusHome() {
 
     setIsCreatingTask(true);
     try {
-      const task = await createTask({
-        prompt: value,
-        mode: mode || "task",
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      // Call FastAPI backend to create task
+      const response = await fetch(`${AGENT_API_URL}/agent/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'create',
+          prompt: value.trim(),
+        }),
       });
 
-      if (task) {
-        navigate(`/task/${task.id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to create task');
       }
-    } catch (error) {
+
+      const data = await response.json();
+
+      if (data.run_id) {
+        // Navigate to task execution view
+        navigate(`/ghost/agents/task/${data.run_id}`);
+      }
+    } catch (error: any) {
       console.error("Failed to create task:", error);
       toast({
         title: "Failed to create task",
-        description: "Please try again",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -105,14 +171,14 @@ export function ManusHome() {
   };
 
   const handleTaskSelect = (taskId: string) => {
-    navigate(`/task/${taskId}`);
+    navigate(`/ghost/agents/task/${taskId}`);
   };
 
   return (
     <ManusLayout
       tasks={mappedTasks}
       selectedTaskId={null}
-      onNewTask={() => navigate("/")}
+      onNewTask={() => navigate("/ghost/agents")}
       onTaskSelect={handleTaskSelect}
     >
       {/* Hidden file input */}
