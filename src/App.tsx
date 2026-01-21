@@ -96,6 +96,7 @@ import APIPricing from "./pages/APIPricing";
 import Agents from "./pages/Agents";
 import AgentsStudio from "./pages/AgentsStudio";
 import AgentsDev from "./pages/AgentsDev";
+import AgentWorkspace from "./pages/AgentWorkspace";
 import AgentBuilderPage from "./pages/AgentBuilder";
 import WorkspacesPage from "./pages/Workspaces";
 import Studio from "./pages/Studio";
@@ -176,6 +177,8 @@ const App = () => {
 
                 {/* Development route for testing Claude Code implementations */}
                 <Route path="/agents-dev" element={<ProtectedRoute><ErrorBoundary><AgentsDev /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/workspace/:taskId" element={<ProtectedRoute><ErrorBoundary><AgentWorkspace /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/workspace" element={<ProtectedRoute><ErrorBoundary><AgentWorkspace /></ErrorBoundary></ProtectedRoute>} />
 
                 {/* Top-level convenience routes */}
                 <Route path="/settings" element={
