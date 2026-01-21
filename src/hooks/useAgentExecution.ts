@@ -5,6 +5,9 @@ import { useToast } from '@/hooks/use-toast';
 // Direct project URL for edge functions
 const DIRECT_PROJECT_URL = 'https://ghmmdochvlrnwbruyrqk.supabase.co/functions/v1';
 
+// Use v2 endpoint that forwards to Agent API
+const USE_V2_ENDPOINT = true;
+
 export interface ExecutionTask {
   id: string;
   prompt?: string;
@@ -109,6 +112,121 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, []);
 
+  // SSE streaming for real-time updates
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  const stopStreaming = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  }, []);
+
+  const startStreaming = useCallback(async (taskId: string) => {
+    if (!taskId || taskId === 'undefined') {
+      console.error('[startStreaming] Invalid taskId');
+      return;
+    }
+
+    stopStreaming();
+    stopPolling();
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('[startStreaming] No session, falling back to polling');
+        pollTaskStatus(taskId);
+        return;
+      }
+
+      // Create EventSource with auth
+      const streamUrl = `${DIRECT_PROJECT_URL}/agent-stream?run_id=${taskId}`;
+      
+      // Note: EventSource doesn't support custom headers, so we use fetch for SSE
+      const response = await fetch(streamUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/event-stream',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok || !response.body) {
+        console.error('[startStreaming] Stream not available, falling back to polling');
+        pollTaskStatus(taskId);
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      const processStream = async () => {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              const eventType = line.slice(6).trim();
+              continue;
+            }
+            if (line.startsWith('data:')) {
+              try {
+                const data = JSON.parse(line.slice(5).trim());
+                handleStreamEvent(data);
+              } catch (e) {
+                // Ignore parse errors
+              }
+            }
+          }
+        }
+      };
+
+      processStream().catch(err => {
+        console.error('[startStreaming] Stream error:', err);
+        pollTaskStatus(taskId);
+      });
+
+    } catch (err) {
+      console.error('[startStreaming] Error:', err);
+      pollTaskStatus(taskId);
+    }
+  }, [stopStreaming, stopPolling, pollTaskStatus]);
+
+  const handleStreamEvent = useCallback((data: any) => {
+    if (data.status) {
+      setStatus(data.status);
+      if (data.progress) {
+        setTask(prev => prev ? { ...prev, progress: data.progress } : null);
+      }
+    }
+    if (data.step) {
+      setSteps(prev => [...prev, data.step]);
+    }
+    if (data.log) {
+      setLogs(prev => [...prev, data.log]);
+    }
+    if (data.output) {
+      setOutputs(prev => [...prev, data.output]);
+    }
+    if (data.task) {
+      setTask(data.task);
+    }
+    if (['completed', 'failed', 'cancelled'].includes(data.status)) {
+      stopStreaming();
+      if (data.status === 'completed') {
+        optionsRef.current.onComplete?.(data.task || { id: taskIdRef.current || '' });
+      } else if (data.status === 'failed') {
+        optionsRef.current.onError?.(data.error || 'Task failed');
+      }
+    }
+  }, [stopStreaming]);
+
   const pollTaskStatus = useCallback(async (taskId: string) => {
     if (!taskId || taskId === 'undefined') {
       console.error('[pollTaskStatus] Invalid taskId');
@@ -189,7 +307,8 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
       console.log('[executeTask] Calling agent-execute with user token');
 
-      const response = await fetch(`${DIRECT_PROJECT_URL}/agent-execute`, {
+      const endpoint = USE_V2_ENDPOINT ? 'agent-execute-v2' : 'agent-execute';
+      const response = await fetch(`${DIRECT_PROJECT_URL}/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,7 +356,12 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       // Small delay before polling
       await new Promise(r => setTimeout(r, 500));
 
-      pollTaskStatus(taskId);
+      // Try SSE streaming first, fallback to polling
+      if (USE_V2_ENDPOINT) {
+        startStreaming(taskId);
+      } else {
+        pollTaskStatus(taskId);
+      }
 
       toast({
         title: 'Task started',
