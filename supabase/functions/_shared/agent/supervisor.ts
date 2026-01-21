@@ -518,13 +518,39 @@ IMPORTANT:
 
   // Credit management
   private async checkCredits(): Promise<boolean> {
-    const { data } = await (this.context.supabase
-      .from('credit_balances') as any)
-      .select('available_credits')
-      .eq('user_id', this.context.userId)
-      .single();
+    try {
+      const { data, error } = await (this.context.supabase
+        .from('credit_balances') as any)
+        .select('available_credits')
+        .eq('user_id', this.context.userId)
+        .single();
 
-    return ((data as any)?.available_credits || 0) > 0;
+      // If no record exists, create one with free credits
+      if (error || !data) {
+        console.log('[Supervisor] No credit balance found, creating one for user:', this.context.userId);
+        const { error: insertError } = await (this.context.supabase
+          .from('credit_balances') as any)
+          .insert({
+            user_id: this.context.userId,
+            available_credits: 10000,
+            total_credits: 10000,
+            used_credits: 0,
+          });
+
+        if (insertError) {
+          console.error('[Supervisor] Failed to create credits:', insertError);
+          // Still allow execution for now (don't block on credit issues)
+          return true;
+        }
+        return true;
+      }
+
+      return ((data as any)?.available_credits || 0) > 0;
+    } catch (err) {
+      console.error('[Supervisor] Credit check error:', err);
+      // Allow execution if credit check fails (don't block on errors)
+      return true;
+    }
   }
 
   private async deductCredits(amount: number): Promise<void> {
