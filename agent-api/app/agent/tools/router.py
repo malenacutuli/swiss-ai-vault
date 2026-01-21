@@ -6,6 +6,7 @@ from supabase import Client
 
 from app.agent.models.types import ToolResult, ToolContext
 from app.agent.tools.e2b_executor import E2BSandboxExecutor
+from app.agent.tools.webdev import get_webdev_tools
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,12 @@ class ToolRouter:
                 "generate_document": self._generate_document,
                 "generate_slides": self._generate_slides,
                 "generate_spreadsheet": self._generate_spreadsheet,
+                # WebDev tools
+                "webdev_init_project": self._webdev_init_project,
+                "webdev_check_status": self._webdev_check_status,
+                "webdev_save_checkpoint": self._webdev_save_checkpoint,
+                "webdev_restart_server": self._webdev_restart_server,
+                "webdev_add_feature": self._webdev_add_feature,
             }
 
             handler = handlers.get(tool_name)
@@ -899,3 +906,32 @@ class ToolRouter:
                 error=str(e),
                 credits_used=0,
             )
+
+    # =========================================================================
+    # WebDev Tools
+    # =========================================================================
+
+    async def _webdev_init_project(self, input_data: Dict[str, Any], context: ToolContext) -> ToolResult:
+        """Initialize a new web development project from template"""
+        webdev = get_webdev_tools()
+        return await webdev.init_project(input_data, context)
+
+    async def _webdev_check_status(self, input_data: Dict[str, Any], context: ToolContext) -> ToolResult:
+        """Check the status of the current project"""
+        webdev = get_webdev_tools()
+        return await webdev.check_status(input_data, context)
+
+    async def _webdev_save_checkpoint(self, input_data: Dict[str, Any], context: ToolContext) -> ToolResult:
+        """Save a checkpoint (git commit) of the current project state"""
+        webdev = get_webdev_tools()
+        return await webdev.save_checkpoint(input_data, context)
+
+    async def _webdev_restart_server(self, input_data: Dict[str, Any], context: ToolContext) -> ToolResult:
+        """Restart the development server"""
+        webdev = get_webdev_tools()
+        return await webdev.restart_server(input_data, context)
+
+    async def _webdev_add_feature(self, input_data: Dict[str, Any], context: ToolContext) -> ToolResult:
+        """Add a feature to the project (db, auth, stripe)"""
+        webdev = get_webdev_tools()
+        return await webdev.add_feature(input_data, context)

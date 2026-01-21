@@ -10,7 +10,7 @@ import asyncio
 from typing import Optional
 
 from app.config import get_settings
-from app.routes import execute, status, logs, debug, sandbox, documents, prompts, connectors
+from app.routes import execute, status, logs, debug, sandbox, documents, prompts, connectors, stream
 from app.healthcare import healthcare_router
 
 # Configure structured logging
@@ -126,6 +126,7 @@ app.include_router(prompts.router, tags=["Prompt Management"])
 app.include_router(debug.router, tags=["Debug"])
 app.include_router(connectors.router, tags=["Connectors"])
 app.include_router(healthcare_router, tags=["Healthcare"])
+app.include_router(stream.router, prefix="/agent", tags=["Agent Streaming"])
 
 
 # Global exception handler
