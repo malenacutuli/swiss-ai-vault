@@ -196,6 +196,10 @@ spec:
       terminationGracePeriodSeconds: 300
       serviceAccountName: bullmq-worker
       
+      # Image Pull Secrets for GHCR
+      imagePullSecrets:
+        - name: ghcr-secret
+      
       # Security Context
       securityContext:
         runAsUser: 1000
@@ -228,7 +232,7 @@ spec:
         # BullMQ Worker Container
         # -----------------------------
         - name: worker
-          image: your-registry.io/bullmq-worker:latest
+          image: ghcr.io/malenacutuli/swiss-ai-vault:latest
           imagePullPolicy: Always
           
           # Environment Variables
