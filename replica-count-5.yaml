@@ -1,0 +1,23 @@
+# =============================================================================
+# Replica Count Patch - Set to 5 Replicas
+# =============================================================================
+# This patch sets the initial replica count to 5 for the BullMQ worker.
+#
+# Usage with kubectl:
+#   kubectl patch deployment bullmq-worker -n workers --patch-file patches/replica-count-5.yaml
+#
+# Usage with Kustomize (add to kustomization.yaml):
+#   patches:
+#     - path: patches/replica-count-5.yaml
+#       target:
+#         kind: Deployment
+#         name: bullmq-worker
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bullmq-worker
+  namespace: workers
+spec:
+  replicas: 5

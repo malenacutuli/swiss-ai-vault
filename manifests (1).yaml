@@ -1,0 +1,908 @@
+# =============================================================================
+# BullMQ Worker Service - Complete Kubernetes Manifests
+# =============================================================================
+# Author: Manus AI
+# Date: January 21, 2026
+# Version: 1.0
+# Status: Production-Ready
+#
+# Prerequisites:
+#   - Redis Cluster deployed (REDIS_CLUSTER_KUBERNETES_MANIFESTS.yaml)
+#   - Container registry with bullmq-worker image
+#   - Prometheus operator (for ServiceMonitor)
+#
+# Deployment Order:
+#   1. kubectl apply -f manifests.yaml
+#   2. kubectl rollout status deployment/bullmq-worker -n workers
+#   3. kubectl logs -f deployment/bullmq-worker -n workers
+# =============================================================================
+
+---
+# =============================================================================
+# 00-namespace.yaml - Namespace
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workers
+  labels:
+    name: workers
+    app.kubernetes.io/name: bullmq-workers
+    app.kubernetes.io/component: worker
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+
+---
+# =============================================================================
+# 01-serviceaccount.yaml - Service Account
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bullmq-worker
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+automountServiceAccountToken: false
+
+---
+# =============================================================================
+# 02-secrets.yaml - Worker Secrets
+# =============================================================================
+# IMPORTANT: Replace placeholder values before deploying to production.
+# For production, use External Secrets Operator or Sealed Secrets.
+#
+# To encode secrets: echo -n 'your-secret-value' | base64
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bullmq-worker-secrets
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+type: Opaque
+stringData:
+  # Redis worker password (must match ACL in Redis cluster)
+  redis-password: "REPLACE_WITH_REDIS_PASSWORD"
+  
+  # PostgreSQL database connection string
+  # Format: postgresql://user:password@host:5432/database?sslmode=require
+  database-url: "postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
+  
+  # LLM API Key (OpenAI/Anthropic)
+  llm-api-key: "sk-REPLACE_WITH_YOUR_API_KEY"
+  
+  # S3-compatible storage credentials
+  s3-access-key: "REPLACE_WITH_S3_ACCESS_KEY"
+  s3-secret-key: "REPLACE_WITH_S3_SECRET_KEY"
+  
+  # E2B Sandbox API Key (optional)
+  e2b-api-key: "e2b_REPLACE_WITH_E2B_API_KEY"
+
+---
+# =============================================================================
+# 03-configmap.yaml - Worker Configuration
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bullmq-worker-config
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+data:
+  # Worker configuration
+  WORKER_CONCURRENCY: "10"
+  WORKER_MAX_JOBS_PER_WORKER: "100"
+  WORKER_STALLED_INTERVAL: "30000"
+  WORKER_LOCK_DURATION: "60000"
+  WORKER_LOCK_RENEW_TIME: "15000"
+  
+  # Queue configuration
+  QUEUE_PREFIX: "bull"
+  QUEUE_NAMES: "tasks,slides,websites,research,documents"
+  QUEUE_DEFAULT_JOB_OPTIONS: |
+    {
+      "attempts": 3,
+      "backoff": {
+        "type": "exponential",
+        "delay": 1000
+      },
+      "removeOnComplete": {
+        "age": 604800,
+        "count": 10000
+      },
+      "removeOnFail": {
+        "age": 2592000,
+        "count": 50000
+      }
+    }
+  
+  # Redis configuration
+  REDIS_HOST: "redis-cluster.redis.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_USERNAME: "worker"
+  REDIS_DB: "0"
+  REDIS_TLS_ENABLED: "true"
+  REDIS_TLS_REJECT_UNAUTHORIZED: "true"
+  REDIS_CLUSTER_ENABLED: "true"
+  REDIS_MAX_RETRIES_PER_REQUEST: "3"
+  REDIS_CONNECT_TIMEOUT: "10000"
+  REDIS_COMMAND_TIMEOUT: "5000"
+  
+  # TLS certificate paths
+  REDIS_TLS_CA_PATH: "/etc/redis-tls/ca.crt"
+  REDIS_TLS_CERT_PATH: "/etc/redis-tls/tls.crt"
+  REDIS_TLS_KEY_PATH: "/etc/redis-tls/tls.key"
+  
+  # Sandbox configuration
+  SANDBOX_POOL_SIZE: "5"
+  SANDBOX_IDLE_TIMEOUT: "300000"
+  SANDBOX_MAX_EXECUTION_TIME: "3600000"
+  SANDBOX_PROVIDER: "e2b"
+  
+  # LLM configuration
+  LLM_PROVIDER: "openai"
+  LLM_MODEL: "gpt-4-turbo"
+  LLM_MAX_TOKENS: "4096"
+  LLM_TEMPERATURE: "0.7"
+  
+  # S3 configuration
+  S3_BUCKET: "swissbrain-artifacts"
+  S3_REGION: "eu-central-1"
+  S3_ENDPOINT: ""
+  
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  
+  # Metrics
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  METRICS_PATH: "/metrics"
+  
+  # Health
+  HEALTH_PORT: "8080"
+  
+  # Shutdown
+  SHUTDOWN_TIMEOUT: "300"
+  SHUTDOWN_DRAIN_DELAY: "10"
+
+---
+# =============================================================================
+# 04-secret-tls.yaml - Redis TLS Certificates
+# =============================================================================
+# IMPORTANT: Replace placeholder certificates with actual values.
+# Copy from Redis cluster or use cert-manager.
+#
+# To encode: cat certificate.pem | base64 -w0
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-tls-client
+  namespace: workers
+  labels:
+    app: bullmq-worker
+type: kubernetes.io/tls
+stringData:
+  # CA certificate for verifying Redis server
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    REPLACE_WITH_YOUR_CA_CERTIFICATE
+    -----END CERTIFICATE-----
+  
+  # Client certificate for mTLS authentication
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    REPLACE_WITH_YOUR_CLIENT_CERTIFICATE
+    -----END CERTIFICATE-----
+  
+  # Client private key
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    REPLACE_WITH_YOUR_CLIENT_PRIVATE_KEY
+    -----END PRIVATE KEY-----
+
+---
+# =============================================================================
+# 05-deployment.yaml - BullMQ Worker Deployment
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bullmq-worker
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: bullmq-worker
+  template:
+    metadata:
+      labels:
+        app: bullmq-worker
+        app.kubernetes.io/name: bullmq-worker
+        app.kubernetes.io/component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Termination grace period (5 minutes for job completion)
+      terminationGracePeriodSeconds: 300
+      
+      # Service account
+      serviceAccountName: bullmq-worker
+      
+      # Pod-level security context
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Pod anti-affinity for HA - spread across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: bullmq-worker
+                topologyKey: kubernetes.io/hostname
+      
+      # Topology spread - distribute across zones
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: bullmq-worker
+      
+      containers:
+        - name: worker
+          image: docker.io/swissbrain/bullmq-worker:1.0.0
+          imagePullPolicy: IfNotPresent
+          
+          # Container-level security context
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          # Environment variables from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: bullmq-worker-config
+          
+          # Environment variables from Secrets and field refs
+          env:
+            # Redis credentials
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bullmq-worker-secrets
+                  key: redis-password
+            
+            # Database credentials
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: bullmq-worker-secrets
+                  key: database-url
+            
+            # LLM API Key
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bullmq-worker-secrets
+                  key: llm-api-key
+            
+            # S3 credentials
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bullmq-worker-secrets
+                  key: s3-access-key
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bullmq-worker-secrets
+                  key: s3-secret-key
+            
+            # E2B API Key
+            - name: E2B_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bullmq-worker-secrets
+                  key: e2b-api-key
+                  optional: true
+            
+            # Pod metadata for logging/tracing
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          
+          # Ports
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: health
+              containerPort: 8080
+              protocol: TCP
+          
+          # Resource limits
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "8Gi"
+          
+          # Volume mounts
+          volumeMounts:
+            # Redis TLS certificates
+            - name: redis-tls
+              mountPath: /etc/redis-tls
+              readOnly: true
+            # Writable temp directory
+            - name: tmp
+              mountPath: /tmp/worker
+            # Writable cache directory
+            - name: cache
+              mountPath: /home/worker/.cache
+          
+          # Startup probe - allows 150 seconds for startup
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+            successThreshold: 1
+          
+          # Liveness probe - is the process running?
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: health
+            initialDelaySeconds: 0
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          
+          # Readiness probe - can we accept new jobs?
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: health
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1
+          
+          # Lifecycle hooks for graceful shutdown
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /usr/local/bin/shutdown-handler.sh
+      
+      # Volumes
+      volumes:
+        # Redis TLS certificates
+        - name: redis-tls
+          secret:
+            secretName: redis-tls-client
+            defaultMode: 0400
+        # Writable temp directory (emptyDir)
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        # Writable cache directory (emptyDir)
+        - name: cache
+          emptyDir:
+            sizeLimit: 500Mi
+
+---
+# =============================================================================
+# 06-service.yaml - Worker Service (for metrics and health)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: bullmq-worker
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  # Headless service for direct pod access
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      protocol: TCP
+    - name: health
+      port: 8080
+      targetPort: health
+      protocol: TCP
+  selector:
+    app: bullmq-worker
+
+---
+# =============================================================================
+# 07-hpa.yaml - Horizontal Pod Autoscaler
+# =============================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bullmq-worker-hpa
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bullmq-worker
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    # Scale based on CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Scale based on memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    # Scale based on queue depth (requires Prometheus adapter)
+    - type: External
+      external:
+        metric:
+          name: bullmq_queue_waiting_total
+          selector:
+            matchLabels:
+              queue: tasks
+        target:
+          type: AverageValue
+          averageValue: "100"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+      selectPolicy: Min
+
+---
+# =============================================================================
+# 08-pdb.yaml - Pod Disruption Budget
+# =============================================================================
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bullmq-worker-pdb
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: bullmq-worker
+
+---
+# =============================================================================
+# 09-servicemonitor.yaml - Prometheus ServiceMonitor
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: bullmq-worker
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: bullmq-worker
+  namespaceSelector:
+    matchNames:
+      - workers
+  endpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      path: /metrics
+      honorLabels: true
+
+---
+# =============================================================================
+# 10-prometheusrule.yaml - Prometheus Alert Rules
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: bullmq-worker-alerts
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+    release: prometheus
+spec:
+  groups:
+    - name: bullmq-worker.rules
+      rules:
+        # No workers running
+        - alert: BullMQWorkerDown
+          expr: |
+            sum(bullmq_worker_status) == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "No BullMQ workers are running"
+            description: "All BullMQ workers are down. Task processing is halted."
+        
+        # High queue depth (warning)
+        - alert: BullMQHighQueueDepth
+          expr: |
+            sum(bullmq_queue_waiting_total{namespace="workers"}) > 1000
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High BullMQ queue depth"
+            description: "Queue depth is {{ $value }} jobs, exceeding threshold of 1000."
+        
+        # Critical queue depth
+        - alert: BullMQCriticalQueueDepth
+          expr: |
+            sum(bullmq_queue_waiting_total{namespace="workers"}) > 5000
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Critical BullMQ queue depth"
+            description: "Queue depth is {{ $value }} jobs, exceeding critical threshold of 5000."
+        
+        # High job failure rate
+        - alert: BullMQHighFailureRate
+          expr: |
+            sum(rate(bullmq_jobs_processed_total{status="failed"}[5m])) 
+            / 
+            sum(rate(bullmq_jobs_processed_total[5m])) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High BullMQ job failure rate"
+            description: "Job failure rate is {{ $value | humanizePercentage }}."
+        
+        # Stalled jobs
+        - alert: BullMQStalledJobs
+          expr: |
+            sum(bullmq_queue_stalled_total{namespace="workers"}) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Stalled BullMQ jobs detected"
+            description: "{{ $value }} jobs are stalled."
+        
+        # High job latency (P95 > 5 minutes)
+        - alert: BullMQHighJobLatency
+          expr: |
+            histogram_quantile(0.95, 
+              sum by (le) (rate(bullmq_job_duration_seconds_bucket{namespace="workers"}[5m]))
+            ) > 300
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High BullMQ job latency"
+            description: "P95 job duration is {{ $value | humanizeDuration }}."
+        
+        # Redis connection errors
+        - alert: BullMQRedisConnectionErrors
+          expr: |
+            sum(rate(bullmq_redis_connection_errors_total{namespace="workers"}[5m])) > 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "BullMQ Redis connection errors"
+            description: "Redis connection error rate is {{ $value }}/s."
+        
+        # Workers not ready
+        - alert: BullMQWorkersNotReady
+          expr: |
+            kube_deployment_status_replicas_ready{deployment="bullmq-worker", namespace="workers"} 
+            < 
+            kube_deployment_spec_replicas{deployment="bullmq-worker", namespace="workers"}
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "BullMQ workers not fully ready"
+            description: "Not all BullMQ worker replicas are ready."
+        
+        # High memory usage
+        - alert: BullMQWorkerHighMemory
+          expr: |
+            container_memory_working_set_bytes{container="worker", namespace="workers"} 
+            / 
+            container_spec_memory_limit_bytes{container="worker", namespace="workers"} > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "BullMQ worker high memory usage"
+            description: "Worker {{ $labels.pod }} is using more than 90% of memory limit."
+
+---
+# =============================================================================
+# 11-networkpolicy.yaml - Network Policy
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bullmq-worker-network-policy
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+spec:
+  podSelector:
+    matchLabels:
+      app: bullmq-worker
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    # Allow Prometheus scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+    
+    # Allow health checks from anywhere in cluster
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+  
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow Redis cluster access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 16379
+    
+    # Allow database access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: database
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow external HTTPS (OpenAI API, E2B, S3, etc.)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+
+---
+# =============================================================================
+# 12-role.yaml - RBAC Role
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bullmq-worker-role
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+rules:
+  # Read ConfigMaps
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  # Read Secrets (for dynamic config)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  # List pods (for leader election if needed)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+---
+# =============================================================================
+# 13-rolebinding.yaml - RBAC RoleBinding
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bullmq-worker-rolebinding
+  namespace: workers
+  labels:
+    app: bullmq-worker
+    app.kubernetes.io/name: bullmq-worker
+    app.kubernetes.io/component: worker
+subjects:
+  - kind: ServiceAccount
+    name: bullmq-worker
+    namespace: workers
+roleRef:
+  kind: Role
+  name: bullmq-worker-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# =============================================================================
+# 14-resourcequota.yaml - Namespace Resource Quota
+# =============================================================================
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: bullmq-worker-quota
+  namespace: workers
+  labels:
+    app: bullmq-worker
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: "40Gi"
+    limits.cpu: "80"
+    limits.memory: "160Gi"
+    pods: "25"
+    persistentvolumeclaims: "5"
+
+---
+# =============================================================================
+# 15-limitrange.yaml - Default Resource Limits
+# =============================================================================
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: bullmq-worker-limits
+  namespace: workers
+  labels:
+    app: bullmq-worker
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "1000m"
+        memory: "4Gi"
+      defaultRequest:
+        cpu: "250m"
+        memory: "512Mi"
+      max:
+        cpu: "4000m"
+        memory: "16Gi"
+      min:
+        cpu: "100m"
+        memory: "128Mi"

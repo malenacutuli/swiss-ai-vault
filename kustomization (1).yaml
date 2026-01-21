@@ -1,0 +1,53 @@
+# =============================================================================
+# BullMQ Worker - Base Kustomization
+# =============================================================================
+# This is the base configuration for all environments.
+# Use overlays to customize for specific environments.
+#
+# Usage:
+#   kubectl apply -k k8s/base/                    # Apply base directly
+#   kubectl apply -k k8s/overlays/production/     # Apply with production overlay
+#
+# Preview:
+#   kubectl kustomize k8s/base/
+#   kubectl kustomize k8s/overlays/production/
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: bullmq-worker-base
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: bullmq-worker
+  app.kubernetes.io/component: worker
+  app.kubernetes.io/part-of: swissbrain
+  app.kubernetes.io/managed-by: kustomize
+
+# Common annotations
+commonAnnotations:
+  app.kubernetes.io/version: "1.0.0"
+
+# Resources to include
+resources:
+  - manifests.yaml
+
+# Images - can be overridden in overlays
+images:
+  - name: your-registry.io/bullmq-worker
+    newName: docker.io/swissbrain/bullmq-worker
+    newTag: "1.0.0"
+
+# ConfigMap generator for additional configuration
+configMapGenerator:
+  - name: bullmq-worker-extra-config
+    namespace: workers
+    literals:
+      - ENVIRONMENT=base
+      - FEATURE_FLAGS={}
+
+# Configurations for label and annotation transformers
+configurations:
+  - commonlabels.yaml

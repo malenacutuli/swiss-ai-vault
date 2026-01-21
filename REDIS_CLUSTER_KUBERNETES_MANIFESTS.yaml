@@ -1,0 +1,938 @@
+# =============================================================================
+# Redis Cluster for BullMQ Workers - Complete Kubernetes Manifests
+# =============================================================================
+# Author: Manus AI
+# Date: January 21, 2026
+# Version: 1.0
+# Status: Production-Ready
+#
+# Deployment Order:
+#   1. kubectl apply -f 00-namespace.yaml
+#   2. kubectl apply -f 01-secrets.yaml
+#   3. kubectl apply -f 02-configmap.yaml
+#   4. kubectl apply -f 03-pdb.yaml
+#   5. kubectl apply -f 04-statefulset.yaml
+#   6. kubectl apply -f 05-services.yaml
+#   7. kubectl apply -f 06-cluster-init-job.yaml
+#   8. kubectl apply -f 07-exporter.yaml
+#
+# Or deploy all at once:
+#   kubectl apply -f REDIS_CLUSTER_KUBERNETES_MANIFESTS.yaml
+# =============================================================================
+
+---
+# =============================================================================
+# 00-namespace.yaml - Namespace
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redis
+  labels:
+    name: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: database
+
+---
+# =============================================================================
+# 01-secrets.yaml - Secrets (Base64 encoded)
+# =============================================================================
+# NOTE: In production, use external secrets manager (Vault, AWS Secrets Manager)
+# These are placeholder values - MUST be replaced before deployment
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secrets
+  namespace: redis
+type: Opaque
+data:
+  # Base64 encoded passwords - REPLACE THESE IN PRODUCTION
+  # echo -n 'your-password' | base64
+  password: cmVkaXMtc3VwZXItc2VjcmV0LXBhc3N3b3JkLTEyMzQ1Ng==
+  admin-password: YWRtaW4tc3VwZXItc2VjcmV0LXBhc3N3b3JkLTc4OTAxMg==
+  worker-password: d29ya2VyLXN1cGVyLXNlY3JldC1wYXNzd29yZC0zNDU2Nzg=
+  api-password: YXBpLXN1cGVyLXNlY3JldC1wYXNzd29yZC05MDEyMzQ=
+  metrics-password: bWV0cmljcy1zdXBlci1zZWNyZXQtcGFzc3dvcmQtNTY3ODkw
+
+---
+# =============================================================================
+# 01-secrets-tls.yaml - TLS Certificates
+# =============================================================================
+# NOTE: In production, use cert-manager or external CA
+# These are placeholder values - MUST be replaced with real certificates
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-tls
+  namespace: redis
+type: kubernetes.io/tls
+data:
+  # Replace with real certificates
+  # cat redis.crt | base64 -w0
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwVENDQW8yZ0F3SUJBZ0lVYkxGbHZGbHZGbHZGbHZGbHZGbHZGbHZGbHYwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1lqRUxNQWtHQTFVRUJoTUNWVk14Q3pBSkJnTlZCQWdNQWtOQk1SSXdFQVlEVlFRSERBbFRZVzRnU205egpaVEVOTUFzR0ExVUVDZ3dFVkdWemRERU5NQXNHQTFVRUN3d0VWR1Z6ZERFVU1CSUdBMVVFQXd3TGNtVmthWE10ClkyeDFjM1JsY2pBZUZ3MHlOREF4TWpFeE1qQXdNREJhRncweU5UQXhNakF4TWpBd01EQmFNR0l4Q3pBSkJnTlYKQkFZVEFsVlRNUXN3Q1FZRFZRUUlEQUpEUVRFU01CQUdBMVVFQnd3SlUyRnVJRXB2YzJVeERUQUxCZ05WQkFvTQpCRlJsYzNReERUQUxCZ05WQkFzTUJGUmxjM1F4RkRBU0JnTlZCQU1NQzNKbFpHbHpMV05zZFhOMFpYSXdnZ0VpCk1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLQW9JQkFRREZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEYKbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsCkZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmwKRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbApGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsCkZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmwKRmxGbEZsRmxGbEZsQWdNQkFBR2pVekJSTUIwR0ExVWREZ1FXQkJRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQURBZgpCZ05WSFNNRUdEQVdnQlFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBREFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTBHCkNTcUdTSWIzRFFFQkN3VUFBNElCQVFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQQpBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBCkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRREZsRmxGbEZsRmxGbEYKbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsCkZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmwKRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbApGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsCkZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmxGbEZsRmwKRmxGbEZsRmxGbEZsQWdNQkFBRUNnZ0VBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQQpBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBCkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQQpBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBCkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQQpBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBCkFBQUFBQUFBQUFBQUFBQUFBUUtCZ1FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=
+  ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURwVENDQW8yZ0F3SUJBZ0lVYkxGbHZGbHZGbHZGbHZGbHZGbHZGbHZGbHYwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1lqRUxNQWtHQTFVRUJoTUNWVk14Q3pBSkJnTlZCQWdNQWtOQk1SSXdFQVlEVlFRSERBbFRZVzRnU205egpaVEVOTUFzR0ExVUVDZ3dFVkdWemRERU5NQXNHQTFVRUN3d0VWR1Z6ZERFVU1CSUdBMVVFQXd3TGNtVmthWE10ClkyRXdIaGNOTWpRd01USXhNVEl3TURBd1doY05Namt3TVRJd01USXdNREF3V2pCaU1Rc3dDUVlEVlFRR0V3SlYKVXpFTE1Ba0dBMVVFQ0F3Q1EwRXhFakFRQmdOVkJBY01DVk5oYmlCS2IzTmxNUTB3Q3dZRFZRUUtEQVJVWlhOMApNUTB3Q3dZRFZRUUxEQVJVWlhOME1SUXdFZ1lEVlFRRERBdHlaV1JwY3kxallUQ0NBU0l3RFFZSktvWklodmNOCkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFNV1VXVVdVV1VXVVdVV1VXVVdVV1VXVVdVV1VXVVdVV1VXVVdVV1UKVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVUKVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVUKVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVUKVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVUKVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVVXVVUKVVVXVVVXVVVXVVVXQWDNQUFHZ1v6QlJNQjBHQTFVZERnUVdCQlFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBREFmCkJnTlZIU01FR0RBV2dCUUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFEQVBCZ05WSFJNQkFmOEVCVEFEQVFIL01BMEcKQ1NxR1NJYjNEUUVCQ3dVQUE0SUFBUUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+
+---
+# =============================================================================
+# 02-configmap.yaml - Redis Configuration
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: redis
+data:
+  redis.conf: |
+    # ==========================================================================
+    # Redis Cluster Configuration for BullMQ Workers
+    # ==========================================================================
+    
+    # -----------------------------
+    # Network
+    # -----------------------------
+    bind 0.0.0.0
+    port 0
+    tls-port 6379
+    
+    # TLS Configuration
+    tls-cert-file /etc/redis/tls/tls.crt
+    tls-key-file /etc/redis/tls/tls.key
+    tls-ca-cert-file /etc/redis/tls/ca.crt
+    tls-auth-clients yes
+    tls-protocols "TLSv1.2 TLSv1.3"
+    tls-ciphersuites TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+    tls-ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+    tls-prefer-server-ciphers yes
+    tls-replication yes
+    tls-cluster yes
+    
+    # TCP settings
+    tcp-backlog 511
+    tcp-keepalive 300
+    timeout 0
+    
+    # -----------------------------
+    # General
+    # -----------------------------
+    daemonize no
+    pidfile /var/run/redis/redis.pid
+    loglevel notice
+    logfile ""
+    databases 16
+    always-show-logo no
+    
+    # -----------------------------
+    # Cluster
+    # -----------------------------
+    cluster-enabled yes
+    cluster-config-file /data/nodes.conf
+    cluster-node-timeout 5000
+    cluster-replica-validity-factor 10
+    cluster-migration-barrier 1
+    cluster-require-full-coverage no
+    cluster-replica-no-failover no
+    
+    # -----------------------------
+    # Memory
+    # -----------------------------
+    maxmemory 28gb
+    maxmemory-policy noeviction
+    maxmemory-samples 10
+    
+    # Active defragmentation
+    activedefrag yes
+    active-defrag-ignore-bytes 100mb
+    active-defrag-threshold-lower 10
+    active-defrag-threshold-upper 100
+    active-defrag-cycle-min 1
+    active-defrag-cycle-max 25
+    
+    # Data structure optimization
+    hash-max-listpack-entries 512
+    hash-max-listpack-value 64
+    list-max-listpack-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    set-max-listpack-entries 128
+    set-max-listpack-value 64
+    zset-max-listpack-entries 128
+    zset-max-listpack-value 64
+    
+    # -----------------------------
+    # Persistence - RDB
+    # -----------------------------
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    rdb-del-sync-files no
+    
+    # -----------------------------
+    # Persistence - AOF
+    # -----------------------------
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appenddirname "appendonlydir"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+    aof-timestamp-enabled no
+    
+    # -----------------------------
+    # Replication
+    # -----------------------------
+    min-replicas-to-write 1
+    min-replicas-max-lag 10
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync yes
+    repl-diskless-sync-delay 5
+    repl-diskless-sync-max-replicas 0
+    repl-diskless-load disabled
+    repl-ping-replica-period 10
+    repl-timeout 60
+    repl-disable-tcp-nodelay no
+    repl-backlog-size 1mb
+    repl-backlog-ttl 3600
+    
+    # -----------------------------
+    # Security
+    # -----------------------------
+    # Password set via command line argument
+    protected-mode yes
+    
+    # -----------------------------
+    # Clients
+    # -----------------------------
+    maxclients 10000
+    
+    # Client output buffer limits
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    
+    # -----------------------------
+    # Slow Log
+    # -----------------------------
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    
+    # -----------------------------
+    # Latency Monitor
+    # -----------------------------
+    latency-monitor-threshold 100
+    
+    # -----------------------------
+    # Event Notification
+    # -----------------------------
+    notify-keyspace-events ""
+    
+  # ACL configuration
+  users.acl: |
+    # Admin user (full access)
+    user admin on >admin-super-secret-password-789012 ~* &* +@all
+    
+    # Worker user (queue operations only)
+    user worker on >worker-super-secret-password-345678 ~bull:* &bull:* +@read +@write +@list +@set +@sortedset +@hash +@pubsub +ping +info +client -@admin -@dangerous
+    
+    # API user (enqueue only)
+    user api on >api-super-secret-password-901234 ~bull:* &bull:* +@read +@write +@list +lpush +rpush +lrange +llen +@pubsub +ping +info +client -@admin -@dangerous
+    
+    # Metrics user (read only)
+    user metrics on >metrics-super-secret-password-567890 ~* &* +@read +info +dbsize +slowlog +client +ping -@admin -@dangerous
+    
+    # Default user (disabled)
+    user default off
+
+---
+# =============================================================================
+# 03-pdb.yaml - Pod Disruption Budget
+# =============================================================================
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: redis
+spec:
+  minAvailable: 4
+  selector:
+    matchLabels:
+      app: redis
+
+---
+# =============================================================================
+# 04-statefulset.yaml - Redis StatefulSet
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: redis
+  labels:
+    app: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: database
+spec:
+  serviceName: redis
+  replicas: 6
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60
+      
+      # Service Account
+      serviceAccountName: redis
+      
+      # Security Context
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      
+      # Anti-affinity for HA
+      affinity:
+        podAntiAffinity:
+          # Hard: Require different availability zones
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: redis
+              topologyKey: topology.kubernetes.io/zone
+          # Soft: Prefer different nodes
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: redis
+                topologyKey: kubernetes.io/hostname
+      
+      # Topology Spread Constraints
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: redis
+      
+      # Init Container - Set permissions
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              chown -R 1000:1000 /data
+              chmod 755 /data
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+      
+      containers:
+        # -----------------------------
+        # Redis Container
+        # -----------------------------
+        - name: redis
+          image: redis:7.2-alpine
+          imagePullPolicy: IfNotPresent
+          
+          command:
+            - redis-server
+            - /etc/redis/redis.conf
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --masterauth
+            - $(REDIS_PASSWORD)
+            - --aclfile
+            - /etc/redis/users.acl
+          
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: password
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          
+          ports:
+            - containerPort: 6379
+              name: redis
+              protocol: TCP
+            - containerPort: 16379
+              name: cluster-bus
+              protocol: TCP
+          
+          resources:
+            requests:
+              cpu: "2"
+              memory: 28Gi
+            limits:
+              cpu: "4"
+              memory: 32Gi
+          
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/redis/redis.conf
+              subPath: redis.conf
+            - name: config
+              mountPath: /etc/redis/users.acl
+              subPath: users.acl
+            - name: tls
+              mountPath: /etc/redis/tls
+              readOnly: true
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          
+          # Liveness Probe
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  redis-cli \
+                    --tls \
+                    --cert /etc/redis/tls/tls.crt \
+                    --key /etc/redis/tls/tls.key \
+                    --cacert /etc/redis/tls/ca.crt \
+                    -a $REDIS_PASSWORD \
+                    ping | grep -q PONG
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          
+          # Readiness Probe
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  redis-cli \
+                    --tls \
+                    --cert /etc/redis/tls/tls.crt \
+                    --key /etc/redis/tls/tls.key \
+                    --cacert /etc/redis/tls/ca.crt \
+                    -a $REDIS_PASSWORD \
+                    cluster info | grep -q "cluster_state:ok"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          
+          # Startup Probe
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  redis-cli \
+                    --tls \
+                    --cert /etc/redis/tls/tls.crt \
+                    --key /etc/redis/tls/tls.key \
+                    --cacert /etc/redis/tls/ca.crt \
+                    -a $REDIS_PASSWORD \
+                    ping | grep -q PONG
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+            successThreshold: 1
+        
+        # -----------------------------
+        # Redis Exporter Sidecar
+        # -----------------------------
+        - name: redis-exporter
+          image: oliver006/redis_exporter:v1.55.0
+          imagePullPolicy: IfNotPresent
+          
+          args:
+            - --redis.addr=rediss://localhost:6379
+            - --redis.password=$(REDIS_PASSWORD)
+            - --tls-client-cert-file=/etc/redis/tls/tls.crt
+            - --tls-client-key-file=/etc/redis/tls/tls.key
+            - --tls-ca-cert-file=/etc/redis/tls/ca.crt
+            - --web.listen-address=:9121
+            - --web.telemetry-path=/metrics
+            - --include-system-metrics
+            - --is-cluster
+          
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: password
+          
+          ports:
+            - containerPort: 9121
+              name: metrics
+              protocol: TCP
+          
+          resources:
+            requests:
+              cpu: "100m"
+              memory: 128Mi
+            limits:
+              cpu: "200m"
+              memory: 256Mi
+          
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/redis/tls
+              readOnly: true
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9121
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9121
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      
+      volumes:
+        - name: config
+          configMap:
+            name: redis-config
+        - name: tls
+          secret:
+            secretName: redis-tls
+  
+  # Volume Claim Templates
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app: redis
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 100Gi
+
+---
+# =============================================================================
+# 04-serviceaccount.yaml - Service Account
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: redis
+  namespace: redis
+  labels:
+    app: redis
+
+---
+# =============================================================================
+# 05-services.yaml - Services
+# =============================================================================
+# Headless Service for StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: redis
+  labels:
+    app: redis
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+      protocol: TCP
+    - port: 16379
+      targetPort: 16379
+      name: cluster-bus
+      protocol: TCP
+  selector:
+    app: redis
+
+---
+# ClusterIP Service for client access
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  namespace: redis
+  labels:
+    app: redis
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+      protocol: TCP
+  selector:
+    app: redis
+
+---
+# Metrics Service for Prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-metrics
+  namespace: redis
+  labels:
+    app: redis
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9121"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9121
+      targetPort: 9121
+      name: metrics
+      protocol: TCP
+  selector:
+    app: redis
+
+---
+# =============================================================================
+# 06-cluster-init-job.yaml - Cluster Initialization Job
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redis-cluster-init
+  namespace: redis
+  labels:
+    app: redis
+    component: cluster-init
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: redis
+        component: cluster-init
+    spec:
+      restartPolicy: OnFailure
+      
+      containers:
+        - name: cluster-init
+          image: redis:7.2-alpine
+          imagePullPolicy: IfNotPresent
+          
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: password
+          
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              
+              echo "=== Redis Cluster Initialization ==="
+              echo "Waiting for all Redis pods to be ready..."
+              
+              # TLS options
+              TLS_OPTS="--tls --cert /etc/redis/tls/tls.crt --key /etc/redis/tls/tls.key --cacert /etc/redis/tls/ca.crt"
+              
+              # Wait for all 6 pods to be ready
+              for i in 0 1 2 3 4 5; do
+                HOST="redis-$i.redis.redis.svc.cluster.local"
+                echo "Waiting for $HOST..."
+                
+                until redis-cli -h $HOST $TLS_OPTS -a $REDIS_PASSWORD ping 2>/dev/null | grep -q PONG; do
+                  echo "  $HOST not ready, waiting..."
+                  sleep 5
+                done
+                
+                echo "  $HOST is ready!"
+              done
+              
+              echo ""
+              echo "All Redis pods are ready!"
+              echo ""
+              
+              # Check if cluster is already initialized
+              CLUSTER_INFO=$(redis-cli -h redis-0.redis.redis.svc.cluster.local $TLS_OPTS -a $REDIS_PASSWORD cluster info 2>/dev/null || echo "")
+              
+              if echo "$CLUSTER_INFO" | grep -q "cluster_state:ok"; then
+                echo "Cluster is already initialized!"
+                echo ""
+                redis-cli -h redis-0.redis.redis.svc.cluster.local $TLS_OPTS -a $REDIS_PASSWORD cluster nodes
+                exit 0
+              fi
+              
+              echo "Initializing Redis Cluster..."
+              echo ""
+              
+              # Create cluster with 3 primaries and 3 replicas
+              redis-cli --cluster create \
+                redis-0.redis.redis.svc.cluster.local:6379 \
+                redis-1.redis.redis.svc.cluster.local:6379 \
+                redis-2.redis.redis.svc.cluster.local:6379 \
+                redis-3.redis.redis.svc.cluster.local:6379 \
+                redis-4.redis.redis.svc.cluster.local:6379 \
+                redis-5.redis.redis.svc.cluster.local:6379 \
+                --cluster-replicas 1 \
+                $TLS_OPTS \
+                -a $REDIS_PASSWORD \
+                --cluster-yes
+              
+              echo ""
+              echo "=== Cluster Creation Complete ==="
+              echo ""
+              
+              # Verify cluster
+              echo "Verifying cluster..."
+              redis-cli --cluster check \
+                redis-0.redis.redis.svc.cluster.local:6379 \
+                $TLS_OPTS \
+                -a $REDIS_PASSWORD
+              
+              echo ""
+              echo "=== Cluster Nodes ==="
+              redis-cli -h redis-0.redis.redis.svc.cluster.local $TLS_OPTS -a $REDIS_PASSWORD cluster nodes
+              
+              echo ""
+              echo "=== Cluster Info ==="
+              redis-cli -h redis-0.redis.redis.svc.cluster.local $TLS_OPTS -a $REDIS_PASSWORD cluster info
+              
+              echo ""
+              echo "=== Slot Distribution ==="
+              redis-cli -h redis-0.redis.redis.svc.cluster.local $TLS_OPTS -a $REDIS_PASSWORD cluster slots
+              
+              echo ""
+              echo "Redis Cluster initialization complete!"
+          
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/redis/tls
+              readOnly: true
+          
+          resources:
+            requests:
+              cpu: "100m"
+              memory: 128Mi
+            limits:
+              cpu: "500m"
+              memory: 256Mi
+      
+      volumes:
+        - name: tls
+          secret:
+            secretName: redis-tls
+
+---
+# =============================================================================
+# 07-servicemonitor.yaml - Prometheus ServiceMonitor
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: redis
+  labels:
+    app: redis
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  namespaceSelector:
+    matchNames:
+      - redis
+  endpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      path: /metrics
+
+---
+# =============================================================================
+# 08-networkpolicy.yaml - Network Policy
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-network-policy
+  namespace: redis
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    # Allow from worker pods
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: workers
+          podSelector:
+            matchLabels:
+              app: bullmq-worker
+      ports:
+        - protocol: TCP
+          port: 6379
+    
+    # Allow from API pods
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: api
+          podSelector:
+            matchLabels:
+              app: api-server
+      ports:
+        - protocol: TCP
+          port: 6379
+    
+    # Allow cluster communication between Redis pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 16379
+    
+    # Allow Prometheus scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+          podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9121
+  
+  egress:
+    # Allow cluster communication between Redis pods
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 16379
+    
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# =============================================================================
+# 09-storageclass.yaml - Storage Class (if not exists)
+# =============================================================================
+# Uncomment if you need to create the storage class
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: fast-ssd
+# provisioner: kubernetes.io/gce-pd  # Change for your cloud provider
+# parameters:
+#   type: pd-ssd
+# reclaimPolicy: Retain
+# allowVolumeExpansion: true
+# volumeBindingMode: WaitForFirstConsumer
+
+---
+# =============================================================================
+# 10-hpa.yaml - Horizontal Pod Autoscaler (Optional)
+# =============================================================================
+# Note: Redis Cluster doesn't typically use HPA since adding nodes
+# requires manual resharding. This is included for reference only.
+# apiVersion: autoscaling/v2
+# kind: HorizontalPodAutoscaler
+# metadata:
+#   name: redis-hpa
+#   namespace: redis
+# spec:
+#   scaleTargetRef:
+#     apiVersion: apps/v1
+#     kind: StatefulSet
+#     name: redis
+#   minReplicas: 6
+#   maxReplicas: 12
+#   metrics:
+#     - type: Resource
+#       resource:
+#         name: memory
+#         target:
+#           type: Utilization
+#           averageUtilization: 80

@@ -1,0 +1,138 @@
+# =============================================================================
+# BullMQ Worker - Production Overlay
+# =============================================================================
+# Production environment configuration with:
+#   - 5 initial replicas (scaled up from base 3)
+#   - Production-grade resource limits
+#   - Production secrets reference
+#   - Enhanced monitoring
+#
+# Usage:
+#   kubectl apply -k k8s/overlays/production/
+#
+# Preview:
+#   kubectl kustomize k8s/overlays/production/
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: bullmq-worker-production
+
+# Namespace override (optional - uses base namespace if not set)
+# namespace: swissbrain-workers-prod
+
+# Reference to base configuration
+resources:
+  - ../../base
+
+# Common labels for production
+commonLabels:
+  environment: production
+  tier: backend
+
+# Common annotations for production
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+
+# Image configuration for production
+images:
+  - name: docker.io/swissbrain/bullmq-worker
+    newTag: "1.0.0-prod"
+
+# Replica count patch - set to 5 replicas
+replicas:
+  - name: bullmq-worker
+    count: 5
+
+# Strategic merge patches
+patches:
+  # Patch 1: Increase replicas and adjust HPA
+  - target:
+      kind: Deployment
+      name: bullmq-worker
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: bullmq-worker
+      spec:
+        replicas: 5
+        template:
+          metadata:
+            annotations:
+              cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+          spec:
+            containers:
+              - name: worker
+                resources:
+                  requests:
+                    cpu: "1000m"
+                    memory: "2Gi"
+                  limits:
+                    cpu: "4000m"
+                    memory: "16Gi"
+
+  # Patch 2: Update HPA for production scale
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: bullmq-worker-hpa
+    patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: bullmq-worker-hpa
+      spec:
+        minReplicas: 5
+        maxReplicas: 50
+        metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 60
+
+  # Patch 3: Update PDB for higher availability
+  - target:
+      kind: PodDisruptionBudget
+      name: bullmq-worker-pdb
+    patch: |-
+      apiVersion: policy/v1
+      kind: PodDisruptionBudget
+      metadata:
+        name: bullmq-worker-pdb
+      spec:
+        minAvailable: 3
+
+  # Patch 4: Production ConfigMap values
+  - target:
+      kind: ConfigMap
+      name: bullmq-worker-config
+    patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: bullmq-worker-config
+      data:
+        WORKER_CONCURRENCY: "15"
+        LOG_LEVEL: "warn"
+        METRICS_ENABLED: "true"
+
+# ConfigMap generator for production-specific config
+configMapGenerator:
+  - name: bullmq-worker-extra-config
+    namespace: workers
+    behavior: merge
+    literals:
+      - ENVIRONMENT=production
+      - FEATURE_FLAGS={"enhanced_logging":true,"rate_limiting":true}
+      - SENTRY_ENABLED=true
+
+# Secret generator placeholder (use external-secrets in production)
+# secretGenerator:
+#   - name: bullmq-worker-prod-secrets
+#     namespace: workers
+#     envs:
+#       - secrets.env
