@@ -6,8 +6,12 @@
  * agent implementations without affecting production.
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { getAgentsClient, isAgentsClientConfigured, getAgentsProjectUrl } from '@/integrations/supabase/agents-client';
+import { isAgentsClientConfigured, getAgentsProjectUrl, getAgentsClient } from '@/integrations/supabase/agents-client';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Direct project URL for edge functions
+const DIRECT_PROJECT_URL = 'https://ghmmdochvlrnwbruyrqk.supabase.co/functions/v1';
 
 export interface ExecutionTask {
   id: string;
@@ -137,19 +141,28 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
 
     pollingRef.current = setInterval(async () => {
       try {
-        console.log('[DEV] Polling task status:', taskId);
-        
-        const client = getAgentsClient();
-        if (!client) return;
-        
-        const { data, error: statusError } = await client.functions.invoke('agent-status', {
-          body: { task_id: taskId },
-        });
-
-        if (statusError) {
-          console.error('[DEV pollTaskStatus] Error:', statusError);
+        // Get token from main Supabase client
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          console.error('[DEV pollTaskStatus] No session');
           return;
         }
+
+        const response = await fetch(`${DIRECT_PROJECT_URL}/agent-status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ task_id: taskId }),
+        });
+
+        if (!response.ok) {
+          console.error('[DEV pollTaskStatus] HTTP error:', response.status);
+          return;
+        }
+
+        const data = await response.json();
 
         // Handle null task (race condition)
         if (!data?.task) {
@@ -181,15 +194,6 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
   }, [stopPolling]);
 
   const executeTask = useCallback(async (params: ExecuteTaskParams) => {
-    if (!isAgentsClientConfigured()) {
-      toast({
-        title: 'Agents backend not configured',
-        description: 'Set VITE_AGENTS_SUPABASE_URL and VITE_AGENTS_SUPABASE_KEY environment variables',
-        variant: 'destructive',
-      });
-      return null;
-    }
-
     setStatus('executing');
     setError(null);
     setTask(null);
@@ -199,34 +203,47 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
     setShowExecutionView(true);
 
     try {
-      console.log('[DEV] Executing task on agents backend:', params);
-      
-      const client = getAgentsClient();
-      if (!client) {
-        throw new Error('Agents client not configured');
+      // Get token from main Supabase client (Lovable project)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
       }
-      
-      const { data, error: executeError } = await client.functions.invoke('agent-execute', {
-        body: {
+
+      console.log('[DEV executeTask] Calling agent-execute with user token');
+
+      const response = await fetch(`${DIRECT_PROJECT_URL}/agent-execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'create',
           prompt: params.prompt,
           task_type: params.task_type,
           mode: params.mode || params.task_type,
           params: params.params || {},
           memory_context: params.memory_context || null,
-        },
+        }),
       });
 
-      if (executeError) {
-        throw new Error(executeError.message || 'Failed to execute task');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
+
+      const data = await response.json();
 
       // Extract task from response
       let taskId: string | null = null;
-      
+
       if (data?.task?.id) {
         taskId = data.task.id;
         setTask(data.task);
         setStatus(data.task.status || 'executing');
+        taskIdRef.current = taskId;
+      } else if (data?.run_id) {
+        taskId = data.run_id;
         taskIdRef.current = taskId;
       } else if (data?.taskId) {
         taskId = data.taskId;
@@ -262,7 +279,7 @@ export function useAgentExecutionDev(options: UseAgentExecutionDevOptions = {}) 
         description: err.message,
         variant: 'destructive',
       });
-      
+
       return null;
     }
   }, [pollTaskStatus, toast]);
