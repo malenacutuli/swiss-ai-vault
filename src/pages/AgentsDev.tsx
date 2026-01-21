@@ -270,6 +270,28 @@ export default function AgentsDev() {
                   </div>
                 )}
 
+                {/* Logs / Terminal */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Logs ({execution.logs?.length || 0})
+                  </h4>
+                  <div className="bg-black text-green-400 font-mono text-xs p-3 rounded max-h-64 overflow-y-auto">
+                    {(!execution.logs || execution.logs.length === 0) ? (
+                      <div className="text-gray-500">
+                        $ Waiting for logs...
+                        <span className="animate-pulse">_</span>
+                      </div>
+                    ) : (
+                      execution.logs.map((log: any, i: number) => (
+                        <div key={log.id || i} className="py-0.5">
+                          <span className="text-gray-500">[{log.log_type || 'info'}]</span>{' '}
+                          {log.content || log.message || JSON.stringify(log)}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
                   <Button
