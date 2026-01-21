@@ -2,6 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Direct project URL for edge functions
+const DIRECT_PROJECT_URL = 'https://ghmmdochvlrnwbruyrqk.supabase.co/functions/v1';
+
 export interface ExecutionTask {
   id: string;
   prompt?: string;
@@ -116,14 +119,28 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
     pollingRef.current = setInterval(async () => {
       try {
-        const { data, error: statusError } = await supabase.functions.invoke('agent-status', {
-          body: { task_id: taskId },
-        });
-
-        if (statusError) {
-          console.error('[pollTaskStatus] Error:', statusError);
+        // Get token from main Supabase client
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          console.error('[pollTaskStatus] No session');
           return;
         }
+
+        const response = await fetch(`${DIRECT_PROJECT_URL}/agent-status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ task_id: taskId }),
+        });
+
+        if (!response.ok) {
+          console.error('[pollTaskStatus] HTTP error:', response.status);
+          return;
+        }
+
+        const data = await response.json();
 
         // Handle null task (race condition)
         if (!data?.task) {
@@ -164,27 +181,47 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     setShowExecutionView(true);
 
     try {
-      const { data, error: executeError } = await supabase.functions.invoke('agent-execute', {
-        body: {
+      // Get token from main Supabase client (Lovable project)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      console.log('[executeTask] Calling agent-execute with user token');
+
+      const response = await fetch(`${DIRECT_PROJECT_URL}/agent-execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'create',
           prompt: params.prompt,
           task_type: params.task_type,
           mode: params.mode || params.task_type,
           params: params.params || {},
           memory_context: params.memory_context || null,
-        },
+        }),
       });
 
-      if (executeError) {
-        throw new Error(executeError.message || 'Failed to execute task');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
+
+      const data = await response.json();
 
       // Extract task from response
       let taskId: string | null = null;
-      
+
       if (data?.task?.id) {
         taskId = data.task.id;
         setTask(data.task);
         setStatus(data.task.status || 'executing');
+        taskIdRef.current = taskId;
+      } else if (data?.run_id) {
+        taskId = data.run_id;
         taskIdRef.current = taskId;
       } else if (data?.taskId) {
         taskId = data.taskId;
@@ -220,7 +257,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         description: err.message,
         variant: 'destructive',
       });
-      
+
       return null;
     }
   }, [pollTaskStatus, toast]);
