@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
   "name": "swissbrain-ai",
   "framework": "vite",
   "buildCommand": "npm run build",
@@ -7,19 +8,11 @@
   "installCommand": "npm install",
   "functions": {
     "api/**/*.ts": {
-      "runtime": "@vercel/node@3.0.0",
+      "memory": 1024,
       "maxDuration": 60
     }
   },
   "rewrites": [
-    {
-      "source": "/api/health",
-      "destination": "/api/health"
-    },
-    {
-      "source": "/api/agent/:path*",
-      "destination": "/api/agent/:path*"
-    },
     {
       "source": "/((?!api|assets|favicon).*)",
       "destination": "/index.html"
@@ -31,7 +24,8 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With" },
+        { "key": "Access-Control-Max-Age", "value": "86400" }
       ]
     }
   ]
