@@ -171,7 +171,7 @@ function calculateProgress(run: any): {
   total_phases: number;
   status: string;
 } {
-  const plan = run.execution_plan;
+  const plan = run.plan;
   const totalPhases = plan?.phases?.length || 0;
   const currentPhase = run.current_phase || 0;
 

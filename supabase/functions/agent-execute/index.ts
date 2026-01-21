@@ -636,7 +636,7 @@ async function handleResume(
   await executeTransition(transCtx, 'executing');
 
   // Continue execution in background
-  const plan = runData.execution_plan;
+  const plan = runData.plan;
   if (plan) {
     executeInBackground(supabase, userId, runId, plan, stateMachine);
   }

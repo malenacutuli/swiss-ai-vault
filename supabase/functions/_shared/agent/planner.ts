@@ -412,18 +412,18 @@ Return a JSON object with this structure:
   async getPlanSummary(runId: string): Promise<ExecutionPlan | null> {
     const { data: run } = await (this.supabase
       .from('agent_runs') as any)
-      .select('execution_plan')
+      .select('plan')
       .eq('id', runId)
       .single();
 
-    return (run as any)?.execution_plan as ExecutionPlan | null;
+    return (run as any)?.plan as ExecutionPlan | null;
   }
 
   // Update plan in database
   async savePlan(runId: string, plan: ExecutionPlan): Promise<boolean> {
     const { error } = await (this.supabase
       .from('agent_runs') as any)
-      .update({ execution_plan: plan })
+      .update({ plan: plan })
       .eq('id', runId);
 
     return !error;
