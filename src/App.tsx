@@ -98,6 +98,7 @@ import AgentsStudio from "./pages/AgentsStudio";
 import AgentsDev from "./pages/AgentsDev";
 import AgentWorkspace from "./pages/AgentWorkspace";
 import AgentBuilderPage from "./pages/AgentBuilder";
+import SwissBrAInAgents from "./pages/SwissBrAInAgents";
 import WorkspacesPage from "./pages/Workspaces";
 import Studio from "./pages/Studio";
 import Upgrade from "./pages/Upgrade";
@@ -189,7 +190,8 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/upgrade" element={<Upgrade />} />
-                <Route path="/agents" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents" element={<ProtectedRoute><ErrorBoundary><SwissBrAInAgents /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents/legacy" element={<ProtectedRoute><ErrorBoundary><Agents /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/agents/dashboard" element={
                   <ProtectedRoute>
                     <Suspense fallback={<PageLoader />}>
