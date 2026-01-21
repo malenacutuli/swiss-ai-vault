@@ -307,7 +307,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       }
 
       // Try SSE streaming first
-      const streamUrl = `${AGENT_API_URL}/agent/stream/${taskId}`;
+      const streamUrl = `${AGENT_API_URL}/agent/run/${taskId}/stream`;
       
       const response = await fetch(streamUrl, {
         method: 'GET',
