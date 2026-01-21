@@ -1,20 +1,16 @@
 # =============================================================================
-# BullMQ Worker Dockerfile
+# Swiss AI Vault - Frontend Dockerfile
 # =============================================================================
 # Author: Manus AI
 # Date: January 21, 2026
-# Version: 1.0
+# Version: 2.0
 # Status: Production-Ready
 #
 # Build:
-#   docker build -t bullmq-worker:latest .
+#   docker build -t swiss-ai-vault:latest .
 #
 # Run locally:
-#   docker run --rm -it \
-#     -e REDIS_HOST=localhost \
-#     -e REDIS_PORT=6379 \
-#     -e REDIS_PASSWORD=secret \
-#     bullmq-worker:latest
+#   docker run --rm -p 3000:3000 swiss-ai-vault:latest
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -38,94 +34,68 @@ COPY package.json package-lock.json ./
 # Install all dependencies (including devDependencies for build)
 RUN npm ci --include=dev
 
-# Copy source code
-COPY tsconfig.json ./
+# Copy all source files needed for Vite build
+COPY tsconfig.json tsconfig.app.json tsconfig.node.json ./
+COPY vite.config.ts tailwind.config.ts postcss.config.js ./
+COPY index.html ./
 COPY src/ ./src/
+COPY public/ ./public/
 
-# Build TypeScript
+# Build the Vite React application
 RUN npm run build
 
-# Prune devDependencies
-RUN npm prune --production
-
 # -----------------------------------------------------------------------------
-# Stage 2: Production Stage
+# Stage 2: Production Stage (Nginx)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS production
+FROM nginx:alpine AS production
 
 # Labels
 LABEL maintainer="Manus AI <engineering@manus.ai>"
-LABEL description="BullMQ Worker for task queue processing"
-LABEL version="1.0"
+LABEL description="Swiss AI Vault - AI Agent Platform Frontend"
+LABEL version="2.0"
 
-# Install runtime dependencies only
+# Install runtime dependencies
 RUN apk add --no-cache \
-    # For health checks
     curl \
-    # For TLS certificate handling
     ca-certificates \
-    # For timezone support
-    tzdata \
-    # For signal handling
-    tini \
-    # For debugging (optional, remove in hardened builds)
-    busybox-extras \
-    && rm -rf /var/cache/apk/*
+    tzdata
 
-# Create non-root user and group (use different IDs to avoid conflicts)
-RUN addgroup -g 1001 -S worker && \
-    adduser -u 1001 -S worker -G worker -h /home/worker -s /bin/sh
+# Copy built assets from builder stage
+COPY --from=builder /build/dist /usr/share/nginx/html
 
-# Create required directories with correct ownership
-RUN mkdir -p /app /home/worker/.cache /tmp/worker && \
-    chown -R worker:worker /app /home/worker /tmp/worker
-
-# Set working directory
-WORKDIR /app
-
-# Copy built application from builder stage
-COPY --from=builder --chown=worker:worker /build/dist ./dist
-COPY --from=builder --chown=worker:worker /build/node_modules ./node_modules
-COPY --from=builder --chown=worker:worker /build/package.json ./
-
-# Copy entrypoint and health check scripts
-COPY --chown=worker:worker scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY --chown=worker:worker scripts/healthcheck.sh /usr/local/bin/healthcheck.sh
-COPY --chown=worker:worker scripts/shutdown-handler.sh /usr/local/bin/shutdown-handler.sh
-
-# Make scripts executable
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-    /usr/local/bin/healthcheck.sh \
-    /usr/local/bin/shutdown-handler.sh
+# Copy custom nginx configuration for SPA routing
+RUN echo 'server { \
+    listen 80; \
+    listen [::]:80; \
+    server_name localhost; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+    location /api { \
+        proxy_pass http://agent-api:8000; \
+        proxy_http_version 1.1; \
+        proxy_set_header Upgrade $http_upgrade; \
+        proxy_set_header Connection "upgrade"; \
+        proxy_set_header Host $host; \
+        proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
+    } \
+    gzip on; \
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript; \
+}' > /etc/nginx/conf.d/default.conf
 
 # Set environment variables
-ENV NODE_ENV=production \
-    # Disable npm update check
-    NPM_CONFIG_UPDATE_NOTIFIER=false \
-    # Node.js settings
-    NODE_OPTIONS="--max-old-space-size=6144 --enable-source-maps" \
-    # Timezone
-    TZ=UTC \
-    # Application paths (writable directories)
-    TMPDIR=/tmp/worker \
-    HOME=/home/worker \
-    # Health check port
-    HEALTH_PORT=8080 \
-    # Metrics port
-    METRICS_PORT=9090
+ENV TZ=UTC
 
-# Switch to non-root user
-USER worker
-
-# Expose ports
-EXPOSE 8080 9090
+# Expose port
+EXPOSE 80
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD /usr/local/bin/healthcheck.sh
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
 
-# Use tini as init system for proper signal handling
-ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/entrypoint.sh"]
-
-# Default command
-CMD ["node", "dist/index.js"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
