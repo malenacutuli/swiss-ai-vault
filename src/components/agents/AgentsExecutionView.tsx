@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { ExecutionTask, ExecutionStep, TaskOutput } from '@/hooks/useAgentExecution';
+import type { ExecutionTask, ExecutionStep, TaskOutput, ChatMessage } from '@/hooks/useAgentExecution';
 
 // Log entry type for terminal display
 interface LogEntry {
@@ -36,6 +36,7 @@ interface AgentsExecutionViewProps {
   task: ExecutionTask;
   steps: ExecutionStep[];
   outputs: TaskOutput[];
+  messages?: ChatMessage[];  // Chat messages from agent
   logs?: LogEntry[];  // Logs now passed from parent (from agent-status)
   onSendMessage: (message: string) => void;
   onCancel: () => void;
@@ -57,6 +58,7 @@ export function AgentsExecutionView({
   task,
   steps,
   outputs,
+  messages = [],  // Chat messages from agent
   logs = [],  // Default to empty array - logs come from agent-status
   onSendMessage,
   onCancel,
@@ -132,7 +134,7 @@ export function AgentsExecutionView({
 
         {/* Chat Area */}
         <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* User Message */}
+          {/* Initial User Message */}
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-[#722F37] flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
               U
@@ -142,7 +144,7 @@ export function AgentsExecutionView({
             </div>
           </div>
 
-          {/* Agent Response */}
+          {/* Agent Response with Plan Summary */}
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#722F37] to-[#1A365D] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
               S
@@ -154,7 +156,7 @@ export function AgentsExecutionView({
                 <span className="text-xs bg-[#722F37] text-white px-1.5 py-0.5 rounded">Pro</span>
               </div>
 
-              {/* Initial response */}
+              {/* Plan summary */}
               {task.plan_summary && (
                 <div className="bg-[#FAFAF8] rounded-xl p-4 border border-[#E5E5E5]">
                   <p className="text-sm text-[#4A4A4A]">{task.plan_summary}</p>
@@ -172,13 +174,67 @@ export function AgentsExecutionView({
                   />
                 ))}
               </div>
+            </div>
+          </div>
 
-              {/* Show result when task is completed */}
-              {task?.status === 'completed' && task?.result && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+          {/* Chat Messages (agent questions and user responses) */}
+          {messages.map((msg) => (
+            <div key={msg.id} className="flex gap-3">
+              {msg.role === 'user' ? (
+                <>
+                  <div className="w-8 h-8 rounded-full bg-[#722F37] flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                    U
+                  </div>
+                  <div className="flex-1 bg-[#FAFAF8] rounded-xl p-4 border border-[#E5E5E5]">
+                    <p className="text-sm text-[#1A1A1A]">{msg.content}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#722F37] to-[#1A365D] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    S
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-medium text-[#722F37]">swiss</span>
+                      <span className="text-xs bg-[#722F37] text-white px-1.5 py-0.5 rounded">Pro</span>
+                    </div>
+                    <div className="bg-[#FAFAF8] rounded-xl p-4 border border-[#E5E5E5]">
+                      <p className="text-sm text-[#4A4A4A] whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))
+          }
+
+          {/* Waiting for user input indicator */}
+          {task?.status === 'waiting_user' && (
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#722F37] to-[#1A365D] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                S
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm text-[#666666] bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                  <span className="text-amber-700">Waiting for your response...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Show result when task is completed */}
+          {task?.status === 'completed' && task?.result && (
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#722F37] to-[#1A365D] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                S
+              </div>
+              <div className="flex-1">
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-900 mb-2 flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    Result
+                    Task Completed
                   </h4>
                   <div className="prose prose-sm max-w-none">
                     {typeof task.result === 'object' && task.result.content ? (
@@ -192,28 +248,42 @@ export function AgentsExecutionView({
                     )}
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
+          )}
 
-              {/* Show error when task failed */}
-              {task?.status === 'failed' && task?.error_message && (
-                <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+          {/* Show error when task failed */}
+          {task?.status === 'failed' && task?.error_message && (
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#722F37] to-[#1A365D] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                S
+              </div>
+              <div className="flex-1">
+                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
                   <h4 className="font-medium text-red-900 mb-2 flex items-center gap-2">
                     <XCircle className="w-5 h-5 text-red-500" />
                     Error
                   </h4>
                   <p className="text-red-700">{task.error_message}</p>
                 </div>
-              )}
+              </div>
+            </div>
+          )}
 
-              {/* Current action indicator */}
-              {currentStep && isLive && (
+          {/* Current action indicator */}
+          {currentStep && isLive && (
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#722F37] to-[#1A365D] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                S
+              </div>
+              <div className="flex-1">
                 <div className="flex items-center gap-2 text-sm text-[#666666]">
                   <Loader2 className="w-4 h-4 animate-spin text-[#722F37]" />
                   <span>{currentStep.description || 'Processing...'}</span>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Input Area */}

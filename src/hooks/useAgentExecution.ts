@@ -93,6 +93,15 @@ export interface TaskOutput {
   metadata?: Record<string, unknown>;
 }
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at?: string;
+  message_type?: 'text' | 'request_input' | 'tool_call' | 'tool_result';
+  metadata?: Record<string, unknown>;
+}
+
 interface ExecuteTaskParams {
   prompt: string;
   task_type: string;
@@ -116,6 +125,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
   const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<string>('idle');
   const [error, setError] = useState<string | null>(null);
   const [showExecutionView, setShowExecutionView] = useState(false);
@@ -380,7 +390,13 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       try {
         const response = await apiRequest('/agent/status', {
           method: 'POST',
-          body: JSON.stringify({ run_id: taskId }),
+          body: JSON.stringify({ 
+            run_id: taskId,
+            include_steps: true,
+            include_messages: true,
+            include_logs: true,
+            include_artifacts: true,
+          }),
         });
 
         if (!response.ok) {
@@ -390,18 +406,21 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
         const data = await response.json();
 
-        // Handle null task (race condition)
-        if (!data?.task) {
-          console.log('[pollTaskStatus] Task not ready, waiting...');
+        // Handle null run (race condition) - backend returns 'run' not 'task'
+        const runData = data?.run || data?.task;
+        if (!runData) {
+          console.log('[pollTaskStatus] Run not ready, waiting...');
           return;
         }
 
         // Update state
-        setTask(data.task);
-        setStatus(data.task.status || 'executing');
+        setTask(runData);
+        setStatus(runData.status || 'executing');
         if (data.steps?.length > 0) setSteps(data.steps);
         if (data.logs?.length > 0) setLogs(data.logs);
-        if (data.outputs?.length > 0) setOutputs(data.outputs);
+        if (data.outputs?.length > 0 || data.artifacts?.length > 0) {
+          setOutputs(data.outputs || data.artifacts || []);
+        }
         if (data.terminal?.length > 0) {
           setTerminalLines(data.terminal.map((t: any, i: number) => ({
             id: `poll-${i}`,
@@ -412,14 +431,25 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         }
         if (data.files?.length > 0) setFiles(data.files);
         if (data.preview_url) setPreviewUrl(data.preview_url);
+        
+        // Update messages from backend
+        if (data.messages?.length > 0) {
+          setMessages(data.messages.map((msg: any) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            created_at: msg.created_at,
+            message_type: msg.message_type || 'text',
+          })));
+        }
 
-        // Stop on terminal states
-        if (['completed', 'failed', 'cancelled'].includes(data.task.status)) {
+        // Stop on terminal states (also handle waiting_user)
+        if (['completed', 'failed', 'cancelled'].includes(runData.status)) {
           stopPolling();
-          if (data.task.status === 'completed') {
-            optionsRef.current.onComplete?.(data.task);
-          } else if (data.task.status === 'failed') {
-            optionsRef.current.onError?.(data.task.error_message || 'Task failed');
+          if (runData.status === 'completed') {
+            optionsRef.current.onComplete?.(runData);
+          } else if (runData.status === 'failed') {
+            optionsRef.current.onError?.(runData.error_message || 'Task failed');
           }
         }
 
@@ -442,6 +472,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     setTerminalLines([]);
     setFiles([]);
     setOutputs([]);
+    setMessages([]);
     setPreviewUrl(null);
     setThinking('');
     setCurrentPhase('Planning');
@@ -622,6 +653,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     setTerminalLines([]);
     setFiles([]);
     setOutputs([]);
+    setMessages([]);
     setStatus('idle');
     setError(null);
     setShowExecutionView(false);
@@ -631,6 +663,80 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     taskIdRef.current = null;
   }, [stopExecution]);
 
+  /**
+   * Send a message to the agent (for user responses during waiting_user state)
+   */
+  const sendMessage = useCallback(async (content: string) => {
+    if (!taskIdRef.current) {
+      console.error('[sendMessage] No active task');
+      return;
+    }
+
+    try {
+      // Add user message to local state immediately
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content,
+        created_at: new Date().toISOString(),
+        message_type: 'text',
+      };
+      setMessages(prev => [...prev, userMessage]);
+
+      // Send to backend to resume task
+      const response = await apiRequest('/agent/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'resume',
+          run_id: taskIdRef.current,
+          user_input: content,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.detail || `HTTP ${response.status}`);
+      }
+
+      // Update status back to executing
+      setStatus('executing');
+
+      // Restart streaming/polling
+      await startStreaming(taskIdRef.current);
+
+    } catch (err: any) {
+      console.error('[sendMessage] Error:', err);
+      toast({
+        title: 'Failed to send message',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  }, [apiRequest, startStreaming, toast]);
+
+  /**
+   * Stop/pause task
+   */
+  const stopTask = useCallback(async () => {
+    await cancelTask();
+  }, [cancelTask]);
+
+  const pauseTask = useCallback(async () => {
+    if (!taskIdRef.current) return;
+    try {
+      await apiRequest('/agent/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'stop',
+          run_id: taskIdRef.current,
+        }),
+      });
+      setStatus('paused');
+    } catch (err) {
+      console.error('[pauseTask] Error:', err);
+    }
+  }, [apiRequest]);
+
   return {
     // State
     task,
@@ -639,6 +745,7 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     terminalLines,
     files,
     outputs,
+    messages,
     status,
     error,
     showExecutionView,
@@ -662,6 +769,9 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     cancelTask,
     retryTask,
     reset,
+    sendMessage,
+    stopTask,
+    pauseTask,
     setShowExecutionView,
   };
 }
