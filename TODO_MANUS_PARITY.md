@@ -19,7 +19,10 @@
 ---
 
 ## Phase 1: Backend Connectivity
-- [ ] Fix agent execution API endpoint
+- [x] Fix agent execution API endpoint (K8s ingress fixed)
+- [x] Verify Agent API health (api.swissbrain.ai working)
+- [x] Verify Redis connection (queue stats available)
+- [x] Verify worker status (2 workers running)
 - [ ] Connect SSE streaming to frontend
 - [ ] Ensure tasks actually start executing
 - [ ] Add error handling and retry logic

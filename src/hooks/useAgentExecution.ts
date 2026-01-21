@@ -2,14 +2,28 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// Direct project URL for edge functions
-const DIRECT_PROJECT_URL = 'https://ghmmdochvlrnwbruyrqk.supabase.co/functions/v1';
+/**
+ * SwissBrain Agent Execution Hook
+ * 
+ * This hook connects directly to the K8s Agent API at api.swissbrain.ai
+ * for agent execution, with Supabase used only for authentication.
+ * 
+ * Architecture:
+ * Frontend -> Agent API (K8s) -> Redis/BullMQ -> Worker -> E2B Sandbox
+ */
 
-// Use v2 endpoint that forwards to Agent API
-const USE_V2_ENDPOINT = true;
+// Agent API endpoint (K8s backend) - can be overridden via env
+const AGENT_API_URL = import.meta.env.VITE_AGENT_API_URL || 'https://api.swissbrain.ai';
+
+// Supabase Edge Functions URL (for fallback/legacy)
+const SUPABASE_FUNCTIONS_URL = 'https://ghmmdochvlrnwbruyrqk.supabase.co/functions/v1';
+
+// Feature flag: use direct Agent API (true) or Supabase Edge Functions (false)
+const USE_DIRECT_API = true;
 
 export interface ExecutionTask {
   id: string;
+  run_id?: string;
   prompt?: string;
   title?: string;
   task_type?: string;
@@ -29,6 +43,9 @@ export interface ExecutionTask {
   duration_ms?: number;
   credits_used?: number;
   tokens_used?: number;
+  // Sandbox info
+  sandbox_id?: string;
+  preview_url?: string;
 }
 
 export interface ExecutionStep {
@@ -39,10 +56,28 @@ export interface ExecutionStep {
   description?: string;
   status: string;
   tool_name?: string;
+  tool_input?: any;
+  tool_output?: any;
   started_at?: string;
   completed_at?: string;
   duration_ms?: number;
   error_message?: string;
+}
+
+export interface TerminalLine {
+  id: string;
+  type: 'stdout' | 'stderr' | 'system' | 'command';
+  content: string;
+  timestamp: string;
+}
+
+export interface FileNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size?: number;
+  modified?: string;
+  children?: FileNode[];
 }
 
 export interface TaskOutput {
@@ -69,27 +104,35 @@ interface ExecuteTaskParams {
 interface UseAgentExecutionOptions {
   onComplete?: (task: ExecutionTask) => void;
   onError?: (error: string) => void;
+  onStepComplete?: (step: ExecutionStep) => void;
+  onTerminalOutput?: (line: TerminalLine) => void;
 }
 
 export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
-  // ALL HOOKS AT TOP - UNCONDITIONAL
+  // Core state
   const [task, setTask] = useState<ExecutionTask | null>(null);
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
+  const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
+  const [files, setFiles] = useState<FileNode[]>([]);
   const [outputs, setOutputs] = useState<TaskOutput[]>([]);
   const [status, setStatus] = useState<string>('idle');
   const [error, setError] = useState<string | null>(null);
   const [showExecutionView, setShowExecutionView] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [currentPhase, setCurrentPhase] = useState<string>('');
+  const [thinking, setThinking] = useState<string>('');
 
   const { toast } = useToast();
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const taskIdRef = useRef<string | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
   // Derived state
   const isIdle = status === 'idle';
-  const isExecuting = status === 'executing' || status === 'planning';
+  const isExecuting = status === 'executing' || status === 'planning' || status === 'running';
   const isPlanning = status === 'planning';
   const isAwaitingApproval = status === 'awaiting_approval';
   const isPaused = status === 'paused';
@@ -102,6 +145,9 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
@@ -112,43 +158,164 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     }
   }, []);
 
-  // SSE streaming for real-time updates
-  const eventSourceRef = useRef<EventSource | null>(null);
-
-  const stopStreaming = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+  const stopExecution = useCallback(() => {
+    stopPolling();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
+  }, [stopPolling]);
+
+  /**
+   * Get auth token from Supabase
+   */
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
   }, []);
 
+  /**
+   * Make authenticated request to Agent API
+   */
+  const apiRequest = useCallback(async (
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<Response> => {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const baseUrl = USE_DIRECT_API ? AGENT_API_URL : SUPABASE_FUNCTIONS_URL;
+    const url = `${baseUrl}${endpoint}`;
+
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+  }, [getAuthToken]);
+
+  /**
+   * Handle SSE stream events
+   */
+  const handleStreamEvent = useCallback((data: any) => {
+    const eventType = data.type || data.event;
+
+    switch (eventType) {
+      case 'status':
+        setStatus(data.status);
+        if (data.phase) setCurrentPhase(data.phase);
+        if (data.progress) {
+          setTask(prev => prev ? { ...prev, progress: data.progress } : null);
+        }
+        break;
+
+      case 'thinking':
+        setThinking(data.content || data.thinking || '');
+        break;
+
+      case 'step':
+        setSteps(prev => {
+          const existing = prev.find(s => s.id === data.step?.id);
+          if (existing) {
+            return prev.map(s => s.id === data.step.id ? { ...s, ...data.step } : s);
+          }
+          return data.step ? [...prev, data.step] : prev;
+        });
+        if (data.step) {
+          optionsRef.current.onStepComplete?.(data.step);
+        }
+        break;
+
+      case 'terminal':
+      case 'output':
+        if (data.stream || data.type === 'terminal') {
+          const line: TerminalLine = {
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: data.stream || 'stdout',
+            content: data.content || data.output || data.data || '',
+            timestamp: new Date().toISOString(),
+          };
+          setTerminalLines(prev => [...prev, line]);
+          optionsRef.current.onTerminalOutput?.(line);
+        }
+        break;
+
+      case 'files':
+        setFiles(data.files || []);
+        break;
+
+      case 'preview':
+        setPreviewUrl(data.url);
+        break;
+
+      case 'artifact':
+      case 'file':
+        if (data.output || data.artifact) {
+          setOutputs(prev => [...prev, data.output || data.artifact]);
+        }
+        break;
+
+      case 'task':
+        setTask(prev => ({ ...prev, ...data.task }));
+        break;
+
+      case 'log':
+        setLogs(prev => [...prev, data.log || data]);
+        break;
+
+      case 'complete':
+      case 'completed':
+        setStatus('completed');
+        setTask(prev => prev ? { ...prev, status: 'completed', ...data.task } : data.task);
+        stopExecution();
+        optionsRef.current.onComplete?.(data.task || task);
+        break;
+
+      case 'error':
+      case 'failed':
+        setStatus('failed');
+        setError(data.error || data.message || 'Task failed');
+        stopExecution();
+        optionsRef.current.onError?.(data.error || data.message || 'Task failed');
+        break;
+    }
+  }, [task, stopExecution]);
+
+  /**
+   * Start SSE streaming for real-time updates
+   */
   const startStreaming = useCallback(async (taskId: string) => {
     if (!taskId || taskId === 'undefined') {
       console.error('[startStreaming] Invalid taskId');
       return;
     }
 
-    stopStreaming();
-    stopPolling();
+    stopExecution();
+    abortControllerRef.current = new AbortController();
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const token = await getAuthToken();
+      if (!token) {
         console.error('[startStreaming] No session, falling back to polling');
         pollTaskStatus(taskId);
         return;
       }
 
-      // Create EventSource with auth
-      const streamUrl = `${DIRECT_PROJECT_URL}/agent-stream?run_id=${taskId}`;
+      // Try SSE streaming first
+      const streamUrl = `${AGENT_API_URL}/agent/stream/${taskId}`;
       
-      // Note: EventSource doesn't support custom headers, so we use fetch for SSE
       const response = await fetch(streamUrl, {
         method: 'GET',
         headers: {
           'Accept': 'text/event-stream',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${token}`,
         },
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok || !response.body) {
@@ -171,16 +338,12 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('event:')) {
-              const eventType = line.slice(6).trim();
-              continue;
-            }
             if (line.startsWith('data:')) {
               try {
                 const data = JSON.parse(line.slice(5).trim());
                 handleStreamEvent(data);
               } catch (e) {
-                // Ignore parse errors
+                // Ignore parse errors for non-JSON lines
               }
             }
           }
@@ -188,45 +351,23 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       };
 
       processStream().catch(err => {
-        console.error('[startStreaming] Stream error:', err);
-        pollTaskStatus(taskId);
+        if (err.name !== 'AbortError') {
+          console.error('[startStreaming] Stream error:', err);
+          pollTaskStatus(taskId);
+        }
       });
 
-    } catch (err) {
-      console.error('[startStreaming] Error:', err);
-      pollTaskStatus(taskId);
-    }
-  }, [stopStreaming, stopPolling, pollTaskStatus]);
-
-  const handleStreamEvent = useCallback((data: any) => {
-    if (data.status) {
-      setStatus(data.status);
-      if (data.progress) {
-        setTask(prev => prev ? { ...prev, progress: data.progress } : null);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('[startStreaming] Error:', err);
+        pollTaskStatus(taskId);
       }
     }
-    if (data.step) {
-      setSteps(prev => [...prev, data.step]);
-    }
-    if (data.log) {
-      setLogs(prev => [...prev, data.log]);
-    }
-    if (data.output) {
-      setOutputs(prev => [...prev, data.output]);
-    }
-    if (data.task) {
-      setTask(data.task);
-    }
-    if (['completed', 'failed', 'cancelled'].includes(data.status)) {
-      stopStreaming();
-      if (data.status === 'completed') {
-        optionsRef.current.onComplete?.(data.task || { id: taskIdRef.current || '' });
-      } else if (data.status === 'failed') {
-        optionsRef.current.onError?.(data.error || 'Task failed');
-      }
-    }
-  }, [stopStreaming]);
+  }, [stopExecution, getAuthToken, handleStreamEvent]);
 
+  /**
+   * Poll task status (fallback when streaming unavailable)
+   */
   const pollTaskStatus = useCallback(async (taskId: string) => {
     if (!taskId || taskId === 'undefined') {
       console.error('[pollTaskStatus] Invalid taskId');
@@ -237,19 +378,8 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
     pollingRef.current = setInterval(async () => {
       try {
-        // Get token from main Supabase client
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          console.error('[pollTaskStatus] No session');
-          return;
-        }
-
-        const response = await fetch(`${DIRECT_PROJECT_URL}/agent-status`, {
+        const response = await apiRequest('/agent/status', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
           body: JSON.stringify({ run_id: taskId }),
         });
 
@@ -272,6 +402,16 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         if (data.steps?.length > 0) setSteps(data.steps);
         if (data.logs?.length > 0) setLogs(data.logs);
         if (data.outputs?.length > 0) setOutputs(data.outputs);
+        if (data.terminal?.length > 0) {
+          setTerminalLines(data.terminal.map((t: any, i: number) => ({
+            id: `poll-${i}`,
+            type: t.type || 'stdout',
+            content: t.content,
+            timestamp: t.timestamp || new Date().toISOString(),
+          })));
+        }
+        if (data.files?.length > 0) setFiles(data.files);
+        if (data.preview_url) setPreviewUrl(data.preview_url);
 
         // Stop on terminal states
         if (['completed', 'failed', 'cancelled'].includes(data.task.status)) {
@@ -287,33 +427,31 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
         console.error('[pollTaskStatus] Exception:', err);
       }
     }, 2000);
-  }, [stopPolling]);
+  }, [stopPolling, apiRequest]);
 
+  /**
+   * Execute a new agent task
+   */
   const executeTask = useCallback(async (params: ExecuteTaskParams) => {
-    setStatus('executing');
+    // Reset state
+    setStatus('planning');
     setError(null);
     setTask(null);
     setSteps([]);
     setLogs([]);
+    setTerminalLines([]);
+    setFiles([]);
     setOutputs([]);
+    setPreviewUrl(null);
+    setThinking('');
+    setCurrentPhase('Planning');
     setShowExecutionView(true);
 
     try {
-      // Get token from main Supabase client (Lovable project)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('Not authenticated');
-      }
+      console.log('[executeTask] Calling Agent API at', AGENT_API_URL);
 
-      console.log('[executeTask] Calling agent-execute with user token');
-
-      const endpoint = USE_V2_ENDPOINT ? 'agent-execute-v2' : 'agent-execute';
-      const response = await fetch(`${DIRECT_PROJECT_URL}/${endpoint}`, {
+      const response = await apiRequest('/agent/execute', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
         body: JSON.stringify({
           action: 'create',
           prompt: params.prompt,
@@ -326,67 +464,108 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        throw new Error(errorData.error || errorData.detail || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
 
-      // Extract task from response
-      let taskId: string | null = null;
+      // Extract task/run ID from response
+      const runId = data.run_id || data.task?.id || data.task?.run_id || data.id;
 
-      if (data?.task?.id) {
-        taskId = data.task.id;
-        setTask(data.task);
-        setStatus(data.task.status || 'executing');
-        taskIdRef.current = taskId;
-      } else if (data?.run_id) {
-        taskId = data.run_id;
-        taskIdRef.current = taskId;
-      } else if (data?.taskId) {
-        taskId = data.taskId;
-        taskIdRef.current = taskId;
+      if (!runId) {
+        throw new Error('No run_id returned from API');
       }
 
-      if (!taskId) {
-        throw new Error('No task ID returned');
-      }
-
-      console.log('[executeTask] Task created:', taskId);
-
-      // Small delay before polling
-      await new Promise(r => setTimeout(r, 500));
-
-      // Try SSE streaming first, fallback to polling
-      if (USE_V2_ENDPOINT) {
-        startStreaming(taskId);
-      } else {
-        pollTaskStatus(taskId);
-      }
-
-      toast({
-        title: 'Task started',
-        description: 'Your request is being processed.',
+      taskIdRef.current = runId;
+      setTask({
+        id: runId,
+        run_id: runId,
+        prompt: params.prompt,
+        task_type: params.task_type,
+        status: 'executing',
+        ...data.task,
       });
+      setStatus('executing');
 
-      return data?.task || { id: taskId };
+      // Add initial terminal line
+      setTerminalLines([{
+        id: 'init',
+        type: 'system',
+        content: `Task started: ${runId}`,
+        timestamp: new Date().toISOString(),
+      }]);
+
+      // Start streaming/polling
+      await startStreaming(runId);
+
+      return runId;
 
     } catch (err: any) {
       console.error('[executeTask] Error:', err);
-      setError(err.message || 'An error occurred');
       setStatus('failed');
-      setShowExecutionView(false);
-
+      setError(err.message);
+      optionsRef.current.onError?.(err.message);
       toast({
-        title: 'Failed to start task',
+        title: 'Execution Failed',
         description: err.message,
         variant: 'destructive',
       });
-
-      return null;
+      throw err;
     }
-  }, [pollTaskStatus, toast]);
+  }, [apiRequest, startStreaming, toast]);
 
-  // Create task (alias for executeTask with different signature)
+  /**
+   * Cancel running task
+   */
+  const cancelTask = useCallback(async () => {
+    if (!taskIdRef.current) return;
+
+    stopExecution();
+
+    try {
+      await apiRequest('/agent/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ run_id: taskIdRef.current }),
+      });
+    } catch (err) {
+      console.error('[cancelTask] Error:', err);
+    }
+
+    setStatus('cancelled');
+  }, [stopExecution, apiRequest]);
+
+  /**
+   * Retry failed task
+   */
+  const retryTask = useCallback(async () => {
+    if (!taskIdRef.current) return;
+
+    setStatus('executing');
+    setError(null);
+
+    try {
+      const response = await apiRequest('/agent/execute', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'retry',
+          run_id: taskIdRef.current,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Retry failed');
+      }
+
+      await startStreaming(taskIdRef.current);
+    } catch (err: any) {
+      setStatus('failed');
+      setError(err.message);
+    }
+  }, [apiRequest, startStreaming]);
+
+  /**
+   * Create task (convenience wrapper for executeTask)
+   */
   const createTask = useCallback(async (
     prompt: string,
     taskOptions: {
@@ -397,18 +576,22 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
       connectedTools?: string[];
     } = {}
   ) => {
-    setStatus('planning');
-    
     return executeTask({
       prompt,
       task_type: taskOptions.taskType || 'general',
-      mode: taskOptions.taskType,
+      mode: taskOptions.taskType || 'general',
+      params: {
+        privacy_tier: taskOptions.privacyTier,
+        attachments: taskOptions.attachments,
+        connected_tools: taskOptions.connectedTools,
+      },
       memory_context: taskOptions.memoryContext,
-      params: { attachments: taskOptions.attachments },
     });
   }, [executeTask]);
 
-  // Load existing task
+  /**
+   * Load existing task by ID
+   */
   const loadTask = useCallback(async (taskId: string) => {
     if (!taskId || taskId === 'undefined') return;
     
@@ -416,134 +599,53 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     setShowExecutionView(true);
     setStatus('executing');
     
-    pollTaskStatus(taskId);
-  }, [pollTaskStatus]);
-
-  // Retry task
-  const retryTask = useCallback(async () => {
-    if (!task?.prompt) return;
+    // Add initial terminal line
+    setTerminalLines([{
+      id: 'load',
+      type: 'system',
+      content: `Loading task: ${taskId}`,
+      timestamp: new Date().toISOString(),
+    }]);
     
-    return createTask(task.prompt, {
-      taskType: task.task_type || 'general',
-    });
-  }, [task, createTask]);
+    // Start streaming/polling for the existing task
+    await startStreaming(taskId);
+  }, [startStreaming]);
 
-  // Approve and start (for approval flow - currently auto-approves)
-  const approveAndStart = useCallback(async () => {
-    console.log('[approveAndStart] Auto-approved');
-  }, []);
-
-  // Pause task
-  const pauseTask = useCallback(async () => {
-    if (!task?.id) return;
-    
-    try {
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'paused' })
-        .eq('id', task.id);
-      
-      setStatus('paused');
-      stopPolling();
-    } catch (err) {
-      console.error('[pauseTask] Error:', err);
-    }
-  }, [task, stopPolling]);
-
-  // Resume task
-  const resumeTask = useCallback(async () => {
-    if (!task?.id) return;
-    
-    try {
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'executing' })
-        .eq('id', task.id);
-      
-      setStatus('executing');
-      pollTaskStatus(task.id);
-    } catch (err) {
-      console.error('[resumeTask] Error:', err);
-    }
-  }, [task, pollTaskStatus]);
-
-  // Stop/cancel task
-  const stopTask = useCallback(async () => {
-    if (!task?.id) return;
-    
-    try {
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'cancelled' })
-        .eq('id', task.id);
-      
-      setStatus('failed');
-      stopPolling();
-    } catch (err) {
-      console.error('[stopTask] Error:', err);
-    }
-  }, [task, stopPolling]);
-
-  // Get signed URL for secure downloads
-  const getSignedUrl = useCallback(async (storageKey: string): Promise<string | null> => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('agent-outputs')
-        .createSignedUrl(storageKey, 3600); // 1 hour expiry
-
-      if (error) throw error;
-      return data.signedUrl;
-    } catch (err) {
-      console.error('[getSignedUrl] Error:', err);
-      return null;
-    }
-  }, []);
-
-  // Download output with signed URL
-  const downloadOutput = useCallback(async (output: TaskOutput) => {
-    // First try file_path for signed URL
-    if (output.download_url?.includes('/storage/v1/')) {
-      // Extract path from public URL and create signed URL
-      const pathMatch = output.download_url.match(/\/agent-outputs\/(.+)$/);
-      if (pathMatch) {
-        const signedUrl = await getSignedUrl(pathMatch[1]);
-        if (signedUrl) {
-          window.open(signedUrl, '_blank');
-          return;
-        }
-      }
-    }
-    
-    // Fallback to direct URL
-    if (output.download_url) {
-      window.open(output.download_url, '_blank');
-    }
-  }, [getSignedUrl]);
-
-  // Reset
+  /**
+   * Reset state
+   */
   const reset = useCallback(() => {
-    stopPolling();
+    stopExecution();
     setTask(null);
     setSteps([]);
     setLogs([]);
+    setTerminalLines([]);
+    setFiles([]);
     setOutputs([]);
     setStatus('idle');
     setError(null);
     setShowExecutionView(false);
+    setPreviewUrl(null);
+    setThinking('');
+    setCurrentPhase('');
     taskIdRef.current = null;
-  }, [stopPolling]);
+  }, [stopExecution]);
 
   return {
     // State
     task,
     steps,
     logs,
+    terminalLines,
+    files,
     outputs,
     status,
     error,
     showExecutionView,
-    setShowExecutionView,
-    
+    previewUrl,
+    currentPhase,
+    thinking,
+
     // Derived state
     isIdle,
     isExecuting,
@@ -552,20 +654,14 @@ export function useAgentExecution(options: UseAgentExecutionOptions = {}) {
     isPaused,
     isCompleted,
     isFailed,
-    
+
     // Actions
     executeTask,
     createTask,
     loadTask,
+    cancelTask,
     retryTask,
-    approveAndStart,
-    pauseTask,
-    resumeTask,
-    stopTask,
-    downloadOutput,
-    getSignedUrl,
-    pollTaskStatus,
     reset,
-    stopPolling,
+    setShowExecutionView,
   };
 }
