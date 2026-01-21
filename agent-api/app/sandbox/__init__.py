@@ -40,6 +40,14 @@ from app.sandbox.dev_server import (
     stop_dev_server,
     detect_framework,
 )
+from app.sandbox.pool_manager import (
+    SandboxPoolManager,
+    PooledSandbox,
+    SandboxState,
+    get_sandbox_pool_manager,
+    init_sandbox_pool_manager,
+    shutdown_sandbox_pool_manager,
+)
 
 __all__ = [
     # Original manager (backward compatibility)
@@ -82,4 +90,11 @@ __all__ = [
     "start_dev_server",
     "stop_dev_server",
     "detect_framework",
+    # Sandbox pool management
+    "SandboxPoolManager",
+    "PooledSandbox",
+    "SandboxState",
+    "get_sandbox_pool_manager",
+    "init_sandbox_pool_manager",
+    "shutdown_sandbox_pool_manager",
 ]
