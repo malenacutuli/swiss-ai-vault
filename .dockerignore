@@ -76,8 +76,12 @@ Thumbs.db
 
 # K8s and deployment files
 k8s
-scripts
 docker-compose*.yml
+
+# Include required scripts for Docker
+!scripts/entrypoint.sh
+!scripts/healthcheck.sh
+!scripts/shutdown-handler.sh
 
 # Supabase local development
 supabase/.temp
