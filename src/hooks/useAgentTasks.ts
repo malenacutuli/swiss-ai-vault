@@ -75,7 +75,17 @@ export function useAgentTasks() {
         .in('status', ['queued', 'planning', 'executing'])
         .order('created_at', { ascending: false });
 
-      if (activeError) throw activeError;
+      // Handle table not existing gracefully
+      if (activeError) {
+        if (activeError.code === '42P01' || activeError.message?.includes('does not exist')) {
+          console.warn('[useAgentTasks] agent_tasks table not found, using empty state');
+          setActiveTasks([]);
+          setRecentTasks([]);
+          setIsLoading(false);
+          return;
+        }
+        throw activeError;
+      }
 
       // Fetch recent completed/failed tasks
       const { data: recent, error: recentError } = await supabase
@@ -86,14 +96,21 @@ export function useAgentTasks() {
         .order('completed_at', { ascending: false })
         .limit(10);
 
-      if (recentError) throw recentError;
+      if (recentError && recentError.code !== '42P01') throw recentError;
 
       setActiveTasks(active || []);
       setRecentTasks(recent || []);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching agent tasks:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch tasks'));
+      // Don't show error toast for table not existing
+      if (err?.code !== '42P01' && !err?.message?.includes('does not exist')) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch tasks'));
+      } else {
+        // Table doesn't exist - use empty state
+        setActiveTasks([]);
+        setRecentTasks([]);
+      }
     } finally {
       setIsLoading(false);
     }

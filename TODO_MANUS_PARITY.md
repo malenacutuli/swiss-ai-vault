@@ -23,6 +23,9 @@
 - [x] Verify Agent API health (api.swissbrain.ai working)
 - [x] Verify Redis connection (queue stats available)
 - [x] Verify worker status (2 workers running)
+- [x] Update useAgentExecution hook to call K8s API directly
+- [ ] Add VITE_AGENT_API_URL to Vercel environment
+- [ ] Fix "Failed to fetch" error on /ghost/agents
 - [ ] Connect SSE streaming to frontend
 - [ ] Ensure tasks actually start executing
 - [ ] Add error handling and retry logic
