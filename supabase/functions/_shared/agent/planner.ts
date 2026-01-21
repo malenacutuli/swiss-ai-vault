@@ -314,23 +314,23 @@ Return a complete revised execution plan in JSON format.`;
         }
       }
 
-      // Check phase has positive credits
-      if (phase.estimated_credits <= 0) {
+      // Ensure phase has non-negative credits (0 is allowed for free operations like messaging)
+      if (phase.estimated_credits < 0) {
         return {
           valid: false,
-          error: `Phase ${phase.phase_number} has invalid credit estimate: ${phase.estimated_credits}`,
+          error: `Phase ${phase.phase_number} has negative credit estimate: ${phase.estimated_credits}`,
         };
+      }
+      // Set minimum credit of 1 if 0 (ensures progress tracking works)
+      if (phase.estimated_credits === 0) {
+        phase.estimated_credits = 1;
       }
     }
 
-    // Check total credits matches sum of phases
+    // Recalculate total after adjustments
     const phaseCreditsSum = plan.phases.reduce((sum, p) => sum + p.estimated_credits, 0);
-    if (Math.abs(phaseCreditsSum - plan.total_estimated_credits) > 0.01) {
-      return {
-        valid: false,
-        error: `Total credits (${plan.total_estimated_credits}) doesn't match sum of phase credits (${phaseCreditsSum})`,
-      };
-    }
+    // Update total to match sum (allow LLM estimation differences)
+    plan.total_estimated_credits = phaseCreditsSum;
 
     return { valid: true };
   }
