@@ -179,3 +179,6 @@ verify_jwt = false
 
 [functions.hume-access-token]
 verify_jwt = false
+
+[functions.hume-health-tool]
+verify_jwt = false
