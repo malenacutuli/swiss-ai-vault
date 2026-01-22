@@ -65,9 +65,12 @@ async def get_current_user(
 
     try:
         # Verify token with Supabase
+        logger.info("verifying_token", token_prefix=token[:20] if len(token) > 20 else token)
         user_response = supabase.auth.get_user(token)
+        logger.info("supabase_response", response_type=type(user_response).__name__, has_user=bool(user_response.user))
 
         if not user_response.user:
+            logger.warning("no_user_in_response")
             raise HTTPException(
                 status_code=401,
                 detail="Invalid or expired token",
@@ -83,10 +86,10 @@ async def get_current_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("authentication_failed", error=str(e))
+        logger.error("authentication_failed", error=str(e), error_type=type(e).__name__)
         raise HTTPException(
             status_code=401,
-            detail="Authentication failed",
+            detail=f"Authentication failed: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"}
         )
 

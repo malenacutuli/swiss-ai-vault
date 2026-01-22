@@ -124,8 +124,8 @@ export function ManusTaskExecution() {
     prompt: currentTask.prompt || '',
     status: currentTask.status as Task['status'],
     plan_summary: currentTask.plan_summary,
-    current_phase: currentTask.current_phase,
-    total_phases: currentTask.total_phases,
+    current_phase: currentTask.current_step,
+    total_phases: currentTask.total_steps,
     credits_used: currentTask.credits_used,
   } : null;
 
@@ -144,7 +144,7 @@ export function ManusTaskExecution() {
             messages={messages}
             logs={logs}
             steps={steps}
-            terminalLines={terminalLines}
+            terminalLines={terminalLines?.map((t: any) => t.content || String(t)) || []}
             thinking={thinking}
             isExecuting={isExecuting}
             onSendMessage={handleSendMessage}

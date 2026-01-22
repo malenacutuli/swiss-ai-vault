@@ -12,16 +12,16 @@ import { toast } from 'sonner';
 
 interface SidebarTask {
   id: string;
-  title: string;
+  prompt: string;
   status: 'created' | 'planning' | 'executing' | 'waiting_user' | 'paused' | 'completed' | 'failed';
-  icon?: string;
   created_at: string;
+  task_type?: string;
 }
 
 interface SidebarProject {
   id: string;
   name: string;
-  icon?: string;
+  tasks: SidebarTask[];
 }
 
 export function SwissBrAInLayout() {
@@ -69,7 +69,7 @@ export function SwissBrAInLayout() {
 
       setTasks((data as any[])?.map((run: any) => ({
         id: run.id,
-        title: run.prompt?.substring(0, 50) + (run.prompt?.length > 50 ? '...' : ''),
+        prompt: run.prompt || '',
         status: run.status as SidebarTask['status'],
         created_at: run.created_at,
       })) || []);
@@ -126,9 +126,9 @@ export function SwissBrAInLayout() {
     }
   };
 
-  const handleSubmitTask = async (prompt: string, connectorIds?: string[]) => {
+  const handleSubmitTask = async (prompt: string, mode?: string) => {
     try {
-      await executeTask({ prompt, task_type: 'general', params: { connectorIds } });
+      await executeTask({ prompt, task_type: mode || 'general' });
       setCurrentView('execution');
       setShowManagementPanel(true);
 
@@ -157,7 +157,7 @@ export function SwissBrAInLayout() {
     id: currentTask.id,
     title: currentTask.prompt?.substring(0, 50) || 'Task',
     prompt: currentTask.prompt || '',
-    status: currentTask.status as Task['status'],
+    status: currentTask.status as SidebarTask['status'],
     plan_summary: currentTask.plan_summary,
     current_step: currentTask.current_step,
     total_steps: currentTask.total_steps,
@@ -168,12 +168,12 @@ export function SwissBrAInLayout() {
     <div className="flex h-screen bg-[#FAFAFA]">
       {/* Sidebar */}
       <SwissBrAInSidebar
-        tasks={tasks}
-        projects={projects}
+        tasks={tasks as any}
+        projects={projects as any}
         selectedTaskId={selectedTaskId}
         onNewTask={handleNewTask}
-        onTaskSelect={handleTaskSelect}
-        onCreateProject={handleCreateProject}
+        onSelectTask={handleTaskSelect}
+        onNewProject={handleCreateProject}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />

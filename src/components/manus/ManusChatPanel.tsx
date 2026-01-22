@@ -236,19 +236,19 @@ export function ManusChatPanel({
               </button>
               {expandedSteps.has(step.id) && (
                 <div className="p-4 border-t border-gray-200">
-                  {step.input && (
+                  {(step as any).tool_input && (
                     <div className="mb-3">
                       <h4 className="text-xs font-medium text-gray-500 mb-1">Input</h4>
                       <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto">
-                        {typeof step.input === 'string' ? step.input : JSON.stringify(step.input, null, 2)}
+                        {typeof (step as any).tool_input === 'string' ? (step as any).tool_input : JSON.stringify((step as any).tool_input, null, 2)}
                       </pre>
                     </div>
                   )}
-                  {step.output && (
+                  {(step as any).tool_output && (
                     <div>
                       <h4 className="text-xs font-medium text-gray-500 mb-1">Output</h4>
                       <pre className="text-xs bg-gray-100 text-gray-800 p-3 rounded-lg overflow-x-auto max-h-[200px]">
-                        {typeof step.output === 'string' ? step.output : JSON.stringify(step.output, null, 2)}
+                        {typeof (step as any).tool_output === 'string' ? (step as any).tool_output : JSON.stringify((step as any).tool_output, null, 2)}
                       </pre>
                     </div>
                   )}
