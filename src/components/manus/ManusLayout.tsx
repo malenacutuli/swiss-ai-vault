@@ -24,6 +24,7 @@ interface ManusLayoutProps {
   selectedTaskId?: string | null;
   onNewTask?: () => void;
   onTaskSelect?: (taskId: string) => void;
+  onDeleteTask?: (taskId: string) => Promise<void>;
   credits?: number;
   notifications?: number;
 }
@@ -35,6 +36,7 @@ export function ManusLayout({
   selectedTaskId,
   onNewTask,
   onTaskSelect,
+  onDeleteTask,
   credits,
   notifications,
 }: ManusLayoutProps) {
@@ -72,6 +74,7 @@ export function ManusLayout({
         selectedTaskId={selectedTaskId}
         onNewTask={handleNewTask}
         onTaskSelect={handleTaskSelect}
+        onDeleteTask={onDeleteTask}
         onCreateProject={handleCreateProject}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}

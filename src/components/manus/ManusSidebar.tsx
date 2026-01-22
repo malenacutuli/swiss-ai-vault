@@ -24,11 +24,20 @@ import {
   FileText,
   Palette,
   ClipboardList,
+  MoreHorizontal,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SwissFlag } from "@/components/icons/SwissFlag";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { DeleteTaskDialog } from "@/components/agents/DeleteTaskDialog";
 
 // Task status types matching Manus.im
 type TaskStatus = "created" | "planning" | "executing" | "waiting_user" | "paused" | "completed" | "failed";
@@ -52,6 +61,7 @@ interface ManusSidebarProps {
   selectedTaskId?: string | null;
   onNewTask?: () => void;
   onTaskSelect?: (taskId: string) => void;
+  onDeleteTask?: (taskId: string) => Promise<void>;
   onCreateProject?: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -89,12 +99,35 @@ export function ManusSidebar({
   selectedTaskId,
   onNewTask,
   onTaskSelect,
+  onDeleteTask,
   onCreateProject,
   isCollapsed = false,
   onToggleCollapse,
 }: ManusSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent, task: Task) => {
+    e.stopPropagation();
+    setTaskToDelete(task);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!taskToDelete || !onDeleteTask) return;
+    setIsDeleting(true);
+    try {
+      await onDeleteTask(taskToDelete.id);
+      setDeleteDialogOpen(false);
+      setTaskToDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Demo tasks if no real tasks
   const demoTasks: Task[] = [
@@ -232,23 +265,68 @@ export function ManusSidebar({
           <div className="space-y-0.5">
             {displayTasks.map((task) => {
               const TaskIcon = getTaskIcon(task.title);
+              const isHovered = hoveredTaskId === task.id;
+              const isDemo = task.id.startsWith('demo-');
               return (
-                <button
+                <div
                   key={task.id}
-                  onClick={() => onTaskSelect?.(task.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-left transition-colors",
-                    selectedTaskId === task.id && "bg-gray-100"
-                  )}
+                  className="relative group"
+                  onMouseEnter={() => setHoveredTaskId(task.id)}
+                  onMouseLeave={() => setHoveredTaskId(null)}
                 >
-                  <TaskIcon className="w-4 h-4 text-[#1D4E5F] flex-shrink-0" strokeWidth={1.25} />
-                  <span className="text-sm text-[#1D4E5F] truncate flex-1">{task.title}</span>
-                  <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColors[task.status] || "bg-gray-400")} />
-                </button>
+                  <button
+                    onClick={() => onTaskSelect?.(task.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-left transition-colors",
+                      selectedTaskId === task.id && "bg-gray-100"
+                    )}
+                  >
+                    <TaskIcon className="w-4 h-4 text-[#1D4E5F] flex-shrink-0" strokeWidth={1.25} />
+                    <span className="text-sm text-[#1D4E5F] truncate flex-1">{task.title}</span>
+                    {(!isHovered || isDemo) && (
+                      <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColors[task.status] || "bg-gray-400")} />
+                    )}
+                  </button>
+                  {isHovered && !isDemo && onDeleteTask && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 rounded hover:bg-gray-200 transition-colors"
+                          >
+                            <MoreHorizontal className="w-4 h-4 text-[#1D4E5F]" strokeWidth={1.25} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-32">
+                          <DropdownMenuItem
+                            onClick={(e) => handleDeleteClick(e, task)}
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
         </ScrollArea>
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteTaskDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => {
+            setDeleteDialogOpen(false);
+            setTaskToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          taskPrompt={taskToDelete?.title || ''}
+          isDeleting={isDeleting}
+        />
       </div>
 
       {/* Footer */}
