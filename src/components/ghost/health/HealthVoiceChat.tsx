@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
 import { VoiceProvider, useVoice } from '@humeai/voice-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, MicOff, X, Loader2, VolumeX, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, X, Loader2, VolumeX, AlertCircle, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
@@ -35,26 +35,72 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
     unmute,
     messages: humeMessages,
     fft,
-    isPlaying
+    isPlaying,
+    sendAssistantInput
   } = useVoice();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
+  const conversationHistory = useRef<{ role: string; content: string }[]>([]);
+  const lastProcessedUserMessage = useRef<string>('');
 
-  // Process Hume messages into our format
+  // Process user messages and get health responses
   useEffect(() => {
-    if (humeMessages && humeMessages.length > 0) {
-      const newMessages: Message[] = humeMessages
-        .filter((msg: any) => msg.type === 'user_message' || msg.type === 'assistant_message')
-        .map((msg: any) => ({
-          role: msg.type === 'user_message' ? 'user' as const : 'assistant' as const,
-          content: msg.message?.content || '',
-          timestamp: new Date(msg.receivedAt || Date.now())
-        }));
+    if (!humeMessages || humeMessages.length === 0) return;
+
+    const processMessages = async () => {
+      const newMessages: Message[] = [];
+      
+      for (const msg of humeMessages) {
+        if (msg.type === 'user_message') {
+          const userContent = (msg as any).message?.content || '';
+          newMessages.push({
+            role: 'user',
+            content: userContent,
+            timestamp: new Date((msg as any).receivedAt || Date.now())
+          });
+
+          // Check if this is a new message we haven't processed
+          if (userContent && userContent !== lastProcessedUserMessage.current) {
+            lastProcessedUserMessage.current = userContent;
+            
+            // Get health-focused response from our backend
+            try {
+              const { data, error } = await supabase.functions.invoke('hume-health-tool', {
+                body: {
+                  query: userContent,
+                  conversation_history: conversationHistory.current.slice(-6)
+                }
+              });
+
+              if (!error && data?.response) {
+                // Update conversation history
+                conversationHistory.current.push(
+                  { role: 'user', content: userContent },
+                  { role: 'assistant', content: data.response }
+                );
+
+                // Send the response to Hume to be spoken
+                sendAssistantInput(data.response);
+              }
+            } catch (err) {
+              console.error('Error getting health response:', err);
+            }
+          }
+        } else if (msg.type === 'assistant_message') {
+          newMessages.push({
+            role: 'assistant',
+            content: (msg as any).message?.content || '',
+            timestamp: new Date((msg as any).receivedAt || Date.now())
+          });
+        }
+      }
       
       setMessages(newMessages);
-    }
-  }, [humeMessages]);
+    };
+
+    processMessages();
+  }, [humeMessages, sendAssistantInput]);
 
   const handleConnect = useCallback(async () => {
     setIsConnecting(true);
@@ -65,6 +111,9 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
         hostname: 'api.hume.ai',
       });
       console.log('Connected to Hume EVI successfully');
+      // Reset conversation history on new connection
+      conversationHistory.current = [];
+      lastProcessedUserMessage.current = '';
     } catch (error) {
       console.error('Failed to connect to Hume:', error);
     } finally {
@@ -75,6 +124,8 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
   const handleDisconnect = useCallback(async () => {
     await disconnect();
     setMessages([]);
+    conversationHistory.current = [];
+    lastProcessedUserMessage.current = '';
   }, [disconnect]);
 
   const isConnected = status.value === 'connected';
@@ -111,15 +162,16 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
         {/* Status indicator */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
           <div className={cn(
-            "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+            "px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5",
             isConnected ? "bg-emerald-500/20 text-emerald-400" :
             isConnecting ? "bg-amber-500/20 text-amber-400" :
             "bg-slate-500/20 text-slate-400"
           )}>
+            {isConnected && <Heart className="w-3 h-3" />}
             {isConnecting ? t('ghost.health.avatar.connecting', 'Connecting...') :
              isConnected ? (isSpeaking ? t('ghost.health.avatar.speaking', 'Speaking...') : 
                           isListening ? t('ghost.health.avatar.listening', 'Listening...') :
-                          t('ghost.health.avatar.connected', 'Connected')) :
+                          t('ghost.health.avatar.healthReady', 'Health Assistant Ready')) :
              t('ghost.health.avatar.ready', 'Ready to chat')}
           </div>
         </div>
@@ -129,7 +181,7 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
       <ScrollArea className="flex-1 px-4 py-2">
         {messages.length === 0 && isConnected && (
           <p className="text-center text-slate-400 text-sm py-4">
-            {t('ghost.health.avatar.startPrompt', 'Say "Hello" to start the conversation')}
+            {t('ghost.health.avatar.healthStartPrompt', 'Ask me any health-related question!')}
           </p>
         )}
         {messages.map((msg, i) => (
