@@ -1,8 +1,8 @@
 /**
  * Manus API Client
  * 
- * Official Manus API integration using https://api.manus.ai/v1
- * Documentation: https://open.manus.ai/docs
+ * Official Manus API integration using https://api.manus.im/v1
+ * Documentation: https://open.manus.im/docs
  * 
  * This client uses the official Manus REST API with webhook-based updates.
  */

@@ -20,7 +20,7 @@ async function checkManus(apiKey: string): Promise<{ status: string; latency: nu
   const start = Date.now();
   try {
     // Use the correct Manus API endpoint and authentication
-    const response = await fetch('https://api.manus.ai/v1/tasks?limit=1', {
+    const response = await fetch('https://api.manus.im/v1/tasks?limit=1', {
       headers: { 'API_KEY': apiKey },
       signal: AbortSignal.timeout(5000),
     });

@@ -2,12 +2,12 @@
  * GET /api/agent-v2/[taskId]
  * Get task status from Manus API
  * 
- * Documentation: https://open.manus.ai/docs
+ * Documentation: https://open.manus.im/docs
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const MANUS_API_URL = process.env.MANUS_API_URL || 'https://api.manus.ai/v1';
+const MANUS_API_URL = process.env.MANUS_API_URL || 'https://api.manus.im/v1';
 const MANUS_API_KEY = process.env.MANUS_API_KEY;
 
 export default async function handler(

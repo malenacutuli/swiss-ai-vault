@@ -2,13 +2,13 @@
  * POST /api/agent-v2/create
  * Create a new agent task using Manus API
  * 
- * Documentation: https://open.manus.ai/docs
+ * Documentation: https://open.manus.im/docs
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Manus API configuration
-const MANUS_API_URL = process.env.MANUS_API_URL || 'https://api.manus.ai/v1';
+const MANUS_API_URL = process.env.MANUS_API_URL || 'https://api.manus.im/v1';
 const MANUS_API_KEY = process.env.MANUS_API_KEY;
 
 interface CreateTaskRequest {
