@@ -16,9 +16,11 @@ function isHealthRelated(query: string): boolean {
     'flu', 'infection', 'virus', 'bacteria', 'allergy', 'asthma', 'diabetes',
     'blood pressure', 'hypertension', 'cholesterol', 'heart', 'cancer', 'tumor',
     'headache', 'migraine', 'anxiety', 'depression', 'stress', 'sleep', 'insomnia',
+    'nausea', 'dizzy', 'fatigue', 'tired', 'weak', 'sore', 'swollen', 'rash',
+    'breathing', 'chest', 'stomach', 'digest', 'weight', 'diet', 'nutrition',
     
-    // Body parts
-    'head', 'chest', 'stomach', 'back', 'leg', 'arm', 'joint', 'muscle', 'bone',
+    // Body parts  
+    'head', 'neck', 'back', 'leg', 'arm', 'joint', 'muscle', 'bone',
     'skin', 'eye', 'ear', 'throat', 'lung', 'liver', 'kidney', 'brain',
     
     // Healthcare
@@ -27,8 +29,8 @@ function isHealthRelated(query: string): boolean {
     'insurance', 'coverage', 'prior authorization', 'claim', 'copay', 'deductible',
     
     // Wellness
-    'nutrition', 'diet', 'exercise', 'fitness', 'weight', 'bmi', 'calories',
-    'vitamin', 'supplement', 'wellness', 'mental health', 'physical',
+    'exercise', 'fitness', 'bmi', 'calories', 'vitamin', 'supplement', 'wellness',
+    'mental health', 'physical', 'hurt', 'sick', 'ill', 'unwell',
     
     // Medical codes
     'icd', 'cpt', 'npi', 'diagnosis code', 'procedure code',
@@ -39,7 +41,21 @@ function isHealthRelated(query: string): boolean {
   ];
   
   const lowerQuery = query.toLowerCase();
-  return healthKeywords.some(keyword => lowerQuery.includes(keyword));
+  
+  // Check for health keywords
+  const hasHealthKeyword = healthKeywords.some(keyword => lowerQuery.includes(keyword));
+  
+  // Also check for common health question patterns
+  const healthPatterns = [
+    /what (is|are|causes?|helps?)/i,
+    /how (do|can|to) (treat|cure|help|stop|prevent)/i,
+    /should i (see|go|take|eat|avoid)/i,
+    /i (have|feel|am having|got) (a |an )?/i,
+  ];
+  
+  const matchesPattern = healthPatterns.some(pattern => pattern.test(query));
+  
+  return hasHealthKeyword || matchesPattern;
 }
 
 // Non-health response for off-topic queries
@@ -105,12 +121,11 @@ serve(async (req) => {
       );
     }
 
-    // Forward to healthcare-query function
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    // Use Lovable AI (no rate limits) for health responses
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
-    if (!anthropicApiKey) {
-      // Fallback to a simpler response if no Anthropic key
-      console.log('[Hume Health] No Anthropic key, using basic response');
+    if (!lovableApiKey) {
+      console.log('[Hume Health] No Lovable API key, using basic response');
       return new Response(
         JSON.stringify({
           response: `I understand you're asking about: "${query}". While I can provide general health information, please consult a healthcare professional for personalized medical advice. Is there a specific aspect of this health topic you'd like me to explain?`,
@@ -120,69 +135,70 @@ serve(async (req) => {
       );
     }
 
-    // Use Claude for health responses with a focused system prompt
+    // Health-focused system prompt for voice conversations
     const systemPrompt = `You are a friendly, empathetic health assistant speaking through a voice interface. Your responses should be:
 
 1. CONVERSATIONAL: Speak naturally as if talking to a friend. Avoid bullet points and lists - use flowing sentences.
-2. CONCISE: Keep responses to 2-3 short paragraphs. Voice conversations require brevity.
+2. CONCISE: Keep responses to 2-3 short sentences. Voice conversations require brevity.
 3. ACCURATE: Only provide information you're confident about. If unsure, say so.
 4. SAFE: Always recommend consulting a healthcare professional for serious concerns.
 5. EMPATHETIC: Acknowledge the person's concerns before providing information.
 
 IMPORTANT CONSTRAINTS:
 - Do NOT provide specific medical diagnoses
-- Do NOT recommend specific prescription medications without context
+- Do NOT recommend specific prescription medications
 - Do NOT provide dosage information
 - ALWAYS suggest seeing a doctor for persistent or severe symptoms
 - If asked about emergencies, direct to call 911 or go to the ER
 
-You have access to clinical knowledge about:
-- Common symptoms and conditions
-- General wellness and prevention
-- Health insurance and billing concepts
-- Medical terminology explanations
-
-Remember: You're having a voice conversation, so be warm and natural.`;
+Keep your response SHORT - ideal for being spoken aloud. Maximum 3 sentences.`;
 
     const messages = [
-      ...conversation_history.slice(-6).map((msg: any) => ({
+      { role: 'system', content: systemPrompt },
+      ...conversation_history.slice(-4).map((msg: any) => ({
         role: msg.role,
         content: msg.content
       })),
       { role: 'user', content: query }
     ];
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500, // Keep responses concise for voice
-        system: systemPrompt,
-        messages
+        model: 'google/gemini-2.5-flash',
+        messages,
+        max_tokens: 200, // Very concise for voice
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Hume Health] Claude error:', errorText);
-      throw new Error(`Claude API error: ${response.status}`);
+      console.error('[Hume Health] Lovable AI error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            response: "I'm receiving a lot of questions right now. Please try again in a moment.",
+            is_health_related: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      throw new Error(`Lovable AI error: ${response.status}`);
     }
 
     const data = await response.json();
-    let content = '';
-    for (const block of data.content || []) {
-      if (block.type === 'text') {
-        content += block.text;
-      }
-    }
+    let content = data.choices?.[0]?.message?.content || '';
 
     // Add a brief disclaimer for voice
-    content += '\n\nRemember, this is general information only. Please consult a healthcare provider for personalized advice.';
+    if (content && !content.includes('consult')) {
+      content += ' Please consult a healthcare provider for personalized advice.';
+    }
 
     console.log(`[Hume Health] Response generated (${content.length} chars)`);
 
@@ -190,7 +206,7 @@ Remember: You're having a voice conversation, so be warm and natural.`;
       JSON.stringify({ 
         response: content,
         is_health_related: true,
-        model_used: 'claude-sonnet-4-20250514'
+        model_used: 'google/gemini-2.5-flash'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
