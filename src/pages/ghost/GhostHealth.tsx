@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,8 +16,14 @@ import {
   Loader2,
   ExternalLink,
   Search,
-  Zap
+  Zap,
+  MessageCircle
 } from 'lucide-react';
+
+// Lazy load the voice chat component
+const HealthVoiceChat = lazy(() => 
+  import('@/components/ghost/health/HealthVoiceChat').then(m => ({ default: m.HealthVoiceChat }))
+);
 import { cn } from '@/lib/utils';
 
 interface Citation {
@@ -103,6 +109,7 @@ export default function GhostHealth() {
   const [searchMode, setSearchMode] = useState<SearchMode>('search');
   const [activeAction, setActiveAction] = useState<ActionType>('conditions');
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showAvatar, setShowAvatar] = useState(false);
   const searchCardRef = useRef<HTMLDivElement>(null);
 
   const suggestionKeys = useMemo(
@@ -286,7 +293,27 @@ export default function GhostHealth() {
               <Zap className="w-4 h-4" />
               {t('ghost.modules.health.deepAnalysis', 'Deep Analysis')}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAvatar(true)}
+              className="gap-2 rounded-full border-purple-300 text-purple-600 hover:bg-purple-50 transition-all"
+            >
+              <MessageCircle className="w-4 h-4" />
+              {t('ghost.health.avatar.talkButton', 'Talk to Avatar')}
+            </Button>
           </div>
+
+          {/* Voice Avatar Section */}
+          {showAvatar && (
+            <Suspense fallback={
+              <Card className="flex items-center justify-center h-[500px] bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700">
+                <Loader2 className="w-10 h-10 text-[#2A8C86] animate-spin" />
+              </Card>
+            }>
+              <HealthVoiceChat onClose={() => setShowAvatar(false)} />
+            </Suspense>
+          )}
 
           {/* Search Result */}
           {result && (
