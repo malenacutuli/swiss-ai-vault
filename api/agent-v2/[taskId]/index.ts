@@ -1,15 +1,29 @@
 /**
- * GET /api/agent/[taskId]
- * Get task status and details
+ * GET /api/agent-v2/[taskId]
+ * Get task status from Manus API
+ * 
+ * Documentation: https://open.manus.ai/docs
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+
+const MANUS_API_URL = process.env.MANUS_API_URL || 'https://api.manus.ai/v1';
+const MANUS_API_KEY = process.env.MANUS_API_KEY;
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ): Promise<void> {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -22,49 +36,46 @@ export default async function handler(
     return;
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    res.status(500).json({ error: 'Supabase not configured' });
+  if (!MANUS_API_KEY) {
+    res.status(500).json({ 
+      error: 'Server configuration error',
+      details: 'MANUS_API_KEY is not configured'
+    });
     return;
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  try {
+    // Get task status from Manus API
+    const manusResponse = await fetch(`${MANUS_API_URL}/tasks/${taskId}`, {
+      method: 'GET',
+      headers: {
+        'API_KEY': MANUS_API_KEY,
+      },
+    });
 
-  // Get task
-  const { data: task, error: taskError } = await supabase
-    .from('agent_tasks_v2')
-    .select('*')
-    .eq('id', taskId)
-    .single();
+    if (!manusResponse.ok) {
+      const errorText = await manusResponse.text();
+      console.error('Manus API error:', manusResponse.status, errorText);
+      
+      res.status(manusResponse.status).json({
+        error: 'Failed to get task status',
+        details: errorText,
+      });
+      return;
+    }
 
-  if (taskError || !task) {
-    res.status(404).json({ error: 'Task not found' });
-    return;
+    const taskData = await manusResponse.json();
+    
+    res.status(200).json({
+      success: true,
+      task: taskData,
+    });
+
+  } catch (error) {
+    console.error('Error getting task status:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
-
-  // Get task steps
-  const { data: steps } = await supabase
-    .from('agent_steps_v2')
-    .select('*')
-    .eq('task_id', taskId)
-    .order('step_number', { ascending: true });
-
-  res.status(200).json({
-    task: {
-      id: task.id,
-      userId: task.user_id,
-      prompt: task.prompt,
-      state: task.state,
-      plan: task.plan,
-      currentPhaseId: task.current_phase_id,
-      createdAt: task.created_at,
-      updatedAt: task.updated_at,
-      completedAt: task.completed_at,
-      error: task.error,
-      result: task.result,
-    },
-    steps: steps || [],
-  });
 }
