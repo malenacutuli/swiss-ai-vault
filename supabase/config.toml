@@ -176,3 +176,6 @@ verify_jwt = false
 
 [functions.healthcare-query]
 verify_jwt = false
+
+[functions.hume-access-token]
+verify_jwt = false
