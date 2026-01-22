@@ -206,7 +206,7 @@ export class GoogleAIClient {
       return { success: false, error: 'Google API key not configured' };
     }
 
-    const model = request.model || 'gemini-2.0-flash';
+    const model = request.model || 'gemini-2.5-flash';
     const url = `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`;
 
     try {
@@ -405,7 +405,7 @@ export class GoogleAIClient {
       return { success: false, error: 'Google API key not configured' };
     }
 
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-2.5-flash';
     const url = `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`;
 
     try {

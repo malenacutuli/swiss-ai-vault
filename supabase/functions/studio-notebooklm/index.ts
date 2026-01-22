@@ -5,7 +5,7 @@ const PROJECT_ID = Deno.env.get("GOOGLE_CLOUD_PROJECT") || "swissvault";
 
 // Model configuration with fallback - us-central1 has best Gemini availability
 const GEMINI_MODELS = [
-  { model: "gemini-2.0-flash-001", location: "us-central1" },
+  { model: "gemini-2.5-flash", location: "us-central1" },
   { model: "gemini-1.5-flash-001", location: "us-central1" },
   { model: "gemini-1.5-pro-001", location: "us-central1" },
 ];

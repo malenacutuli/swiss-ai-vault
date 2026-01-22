@@ -49,14 +49,14 @@ export const AVAILABLE_MODELS: ModelOption[] = [
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', tier: 'pro' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', tier: 'pro' },
   { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash-Lite', provider: 'Google', tier: 'free' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'Google', tier: 'pro' },
-  { id: 'gemini-2.0-pro', name: 'Gemini 2.0 Pro', provider: 'Google', tier: 'pro' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', tier: 'pro' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', tier: 'pro' },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', tier: 'pro' },
 ];
 
 export const MODEL_PRESETS = {
   'frontier': ['gpt-5.2', 'gemini-3-pro', 'o3', 'gemini-2.5-pro'],
-  'fast': ['swissvault-fast', 'gpt-4o-mini', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'],
+  'fast': ['swissvault-fast', 'gpt-4o-mini', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'],
   'code': ['swissvault-code', 'o3-mini', 'gpt-4o', 'gemini-2.5-pro'],
   'free': ['swissvault-1.0', 'swissvault-code', 'swissvault-fast', 'gemini-2.5-flash-lite'],
 };

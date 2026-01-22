@@ -39,7 +39,7 @@ const QUICK_TEMPLATES = [
 export function TaskCreationModal({ isOpen, onClose, onCreated }: TaskCreationModalProps) {
   const [prompt, setPrompt] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [model, setModel] = useState('gemini-2.0-flash');
+  const [model, setModel] = useState('gemini-2.5-flash');
   const [privacyMode, setPrivacyMode] = useState('standard');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,8 +167,8 @@ export function TaskCreationModal({ isOpen, onClose, onCreated }: TaskCreationMo
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash (Fast)</SelectItem>
-                  <SelectItem value="gemini-2.0-pro">Gemini 2.0 Pro (Smart)</SelectItem>
+                  <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash (Fast)</SelectItem>
+                  <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro (Smart)</SelectItem>
                   <SelectItem value="claude-3-5-sonnet">Claude 3.5 Sonnet</SelectItem>
                   <SelectItem value="gpt-4o">GPT-4o</SelectItem>
                 </SelectContent>

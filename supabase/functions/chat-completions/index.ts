@@ -19,7 +19,7 @@ const MODEL_ALIASES: Record<string, string> = {
   'gpt-4o-mini': 'gpt-5-mini',
   'gpt-4-turbo': 'gpt-5',
   // Legacy Gemini aliases - map to valid API model names
-  'gemini-2.5-flash': 'gemini-2.0-flash',
+  'gemini-2.0-flash': 'gemini-2.5-flash',  // DEPRECATED: redirect to 2.5
   'gemini-1.5-pro': 'gemini-2.5-pro',
   'gemini-1.5-flash': 'gemini-2.5-flash',
   // Map UI model names to actual API model names
@@ -49,10 +49,11 @@ const MODEL_CONFIG: Record<string, { provider: string; isReasoning?: boolean }> 
   
   // Google Gemini (use actual API model names)
   'gemini-3-pro-preview': { provider: 'google' },
+  'gemini-3-pro': { provider: 'google' },
+  'gemini-3-flash': { provider: 'google' },
   'gemini-2.5-pro': { provider: 'google' },
   'gemini-2.5-flash': { provider: 'google' },
-  'gemini-2.0-flash': { provider: 'google' },
-  'gemini-2.0-flash-thinking-exp': { provider: 'google', isReasoning: true },
+  'gemini-2.5-flash-thinking': { provider: 'google', isReasoning: true },
 };
 
 // vLLM multi-endpoint routing (small vs large models)

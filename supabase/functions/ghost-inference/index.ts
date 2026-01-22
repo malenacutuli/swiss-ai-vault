@@ -906,13 +906,13 @@ async function callGoogle(
     'gemini-1.5-pro': 'gemini-1.5-pro',
     'gemini-1.5-flash': 'gemini-1.5-flash',
     'gemini-1.5-flash-8b': 'gemini-1.5-flash-8b',
-    // Gemini 2.0 series
-    'gemini-2.0-flash': 'gemini-2.0-flash',
-    'gemini-2.0-pro': 'gemini-exp-1206', // experimental pro
-    // Gemini 2.5 series (latest experimental)
-    'gemini-2.5-pro': 'gemini-2.5-pro-exp-03-25',
-    'gemini-2.5-flash': 'gemini-2.5-flash-preview-04-17',
-    'gemini-2.5-flash-lite': 'gemini-2.0-flash', // fallback to 2.0-flash
+    // Gemini 2.0 series (DEPRECATED - redirect to 2.5)
+    'gemini-2.0-flash': 'gemini-2.5-flash',
+    'gemini-2.0-pro': 'gemini-2.5-pro',
+    // Gemini 2.5 series (stable)
+    'gemini-2.5-pro': 'gemini-2.5-pro',
+    'gemini-2.5-flash': 'gemini-2.5-flash',
+    'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite',
     // Gemini 3 series (not yet available - fallback)
     'gemini-3-pro': 'gemini-2.5-pro-exp-03-25',
     'gemini-3-flash': 'gemini-2.5-flash-preview-04-17',
@@ -1023,11 +1023,11 @@ async function callGoogle(
 
     // Fall back to a stable model on 404 (model not found) or 400 (bad request due to model)
     if (response.status === 404 || response.status === 400) {
-      console.log(`[Google] Model "${googleModel}" not available (${response.status}); retrying with gemini-2.0-flash`);
-      
+      console.log(`[Google] Model "${googleModel}" not available (${response.status}); retrying with gemini-2.5-flash`);
+
       // Retry with stable fallback model
       const fallbackResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1047,8 +1047,8 @@ async function callGoogle(
         };
       }
       
-      // If gemini-2.0-flash also fails, try gemini-1.5-flash as final fallback
-      console.log('[Google] gemini-2.0-flash also failed; trying gemini-1.5-flash');
+      // If gemini-2.5-flash also fails, try gemini-1.5-flash as final fallback
+      console.log('[Google] gemini-2.5-flash also failed; trying gemini-1.5-flash');
       const finalFallbackResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         {

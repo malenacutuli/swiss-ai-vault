@@ -105,7 +105,7 @@ async function hashString(str: string): Promise<string> {
 function calculateCost(modelId: string, usage: { prompt_tokens: number; completion_tokens: number }): number {
   // Simplified cost estimation - actual prices from model registry
   const prices: Record<string, { input: number; output: number }> = {
-    'gemini-2.0-flash': { input: 0.0001, output: 0.0004 },
+    'gemini-2.5-flash': { input: 0.0001, output: 0.0004 },
     'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
     'claude-3-5-haiku': { input: 0.00025, output: 0.00125 },
     'deepseek-chat': { input: 0.00014, output: 0.00028 }

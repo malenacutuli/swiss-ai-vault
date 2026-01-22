@@ -53,7 +53,7 @@ const GOOGLE_MODELS: Model[] = [
   { id: 'gemini-3.0-pro', name: 'Gemini 3 Pro', provider: 'Google', description: 'Most intelligent', isNew: true },
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Stable & powerful' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast multimodal' },
-  { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', provider: 'Google', description: 'Reasoning', isReasoning: true },
+  { id: 'gemini-2.5-flash-thinking', name: 'Gemini 2.5 Thinking', provider: 'Google', description: 'Reasoning', isReasoning: true },
 ];
 
 const MISTRAL_MODELS: Model[] = [

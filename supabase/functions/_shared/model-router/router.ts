@@ -28,7 +28,7 @@ export async function routeRequest(request: ChatRequest): Promise<ChatResponse> 
       modelId = data[0].model_id;
       provider = data[0].provider;
     } else {
-      modelId = 'gemini-2.0-flash';
+      modelId = 'gemini-2.5-flash';
       provider = 'google';
     }
   } else {

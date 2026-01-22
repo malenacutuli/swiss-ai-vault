@@ -27,7 +27,7 @@ export interface UserPreferences {
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'light',
-  default_model: 'gemini-2.0-flash',
+  default_model: 'gemini-2.5-flash',
   temperature: 0.7,
   language: 'en',
   notifications_email: true,

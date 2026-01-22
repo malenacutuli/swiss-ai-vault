@@ -103,8 +103,8 @@ export function PreferencesSettings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                <SelectItem value="gemini-2.0-pro">Gemini 2.0 Pro</SelectItem>
+                <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
                 <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
                 <SelectItem value="claude-3-5-haiku">Claude 3.5 Haiku</SelectItem>
               </SelectContent>

@@ -99,22 +99,22 @@ export const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
 export const FALLBACK_CHAINS: Record<string, FallbackChain> = {
   default: {
-    primary: 'gemini-2.0-flash',
+    primary: 'gemini-2.5-flash',
     fallbacks: ['gpt-4o-mini', 'claude-3-5-haiku', 'deepseek-chat'],
     max_retries: 3
   },
   vision: {
-    primary: 'gemini-2.0-flash',
+    primary: 'gemini-2.5-flash',
     fallbacks: ['gpt-4o', 'claude-3-5-sonnet'],
     max_retries: 2
   },
   code: {
-    primary: 'gemini-2.0-flash',
+    primary: 'gemini-2.5-flash',
     fallbacks: ['claude-3-5-sonnet', 'deepseek-chat', 'gpt-4o-mini'],
     max_retries: 3
   },
   reasoning: {
-    primary: 'gemini-2.0-pro',
+    primary: 'gemini-2.5-pro',
     fallbacks: ['claude-3-5-sonnet', 'gpt-4o', 'deepseek-reasoner'],
     max_retries: 2
   }

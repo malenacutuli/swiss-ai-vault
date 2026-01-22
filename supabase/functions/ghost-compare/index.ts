@@ -33,14 +33,14 @@ const MODEL_CONFIGS: Record<string, {
   'o4-mini': { provider: 'openai', modelId: 'o1-mini', displayName: 'o4 Mini' },
   'gpt-5.2': { provider: 'openai', modelId: 'gpt-4o', displayName: 'GPT-5.2' },
   'gpt-5.2-mini': { provider: 'openai', modelId: 'gpt-4o-mini', displayName: 'GPT-5.2 Mini' },
-  // Google - Real existing models
-  'gemini-3-pro': { provider: 'google', modelId: 'gemini-2.0-flash', displayName: 'Gemini 3 Pro' },
-  'gemini-3-flash': { provider: 'google', modelId: 'gemini-2.0-flash', displayName: 'Gemini 3 Flash' },
-  'gemini-2.5-pro': { provider: 'google', modelId: 'gemini-1.5-pro', displayName: 'Gemini 2.5 Pro' },
-  'gemini-2.5-flash': { provider: 'google', modelId: 'gemini-1.5-flash', displayName: 'Gemini 2.5 Flash' },
-  'gemini-2.5-flash-lite': { provider: 'google', modelId: 'gemini-1.5-flash', displayName: 'Gemini 2.5 Flash-Lite' },
-  'gemini-2.0-flash': { provider: 'google', modelId: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash' },
-  'gemini-2.0-pro': { provider: 'google', modelId: 'gemini-1.5-pro', displayName: 'Gemini 2.0 Pro' },
+  // Google - Real existing models (Gemini 2.5+ stable)
+  'gemini-3-pro': { provider: 'google', modelId: 'gemini-2.5-pro', displayName: 'Gemini 3 Pro' },
+  'gemini-3-flash': { provider: 'google', modelId: 'gemini-2.5-flash', displayName: 'Gemini 3 Flash' },
+  'gemini-2.5-pro': { provider: 'google', modelId: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro' },
+  'gemini-2.5-flash': { provider: 'google', modelId: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' },
+  'gemini-2.5-flash-lite': { provider: 'google', modelId: 'gemini-2.5-flash-lite', displayName: 'Gemini 2.5 Flash-Lite' },
+  'gemini-2.0-flash': { provider: 'google', modelId: 'gemini-2.5-flash', displayName: 'Gemini 2.0 Flash (Legacy)' },
+  'gemini-2.0-pro': { provider: 'google', modelId: 'gemini-2.5-pro', displayName: 'Gemini 2.0 Pro (Legacy)' },
   'gemini-1.5-pro': { provider: 'google', modelId: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
 };
 

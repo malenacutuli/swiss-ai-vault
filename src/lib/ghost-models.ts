@@ -503,7 +503,7 @@ export const TEXT_MODELS: GhostModel[] = [
     enabled: true,
   },
   {
-    id: 'gemini-2.0-flash',
+    id: 'gemini-2.5-flash',
     name: 'Gemini 2.0 Flash',
     provider: 'Google',
     modality: 'text',
@@ -518,7 +518,7 @@ export const TEXT_MODELS: GhostModel[] = [
     enabled: true,
   },
   {
-    id: 'gemini-2.0-pro',
+    id: 'gemini-2.5-pro',
     name: 'Gemini 2.0 Pro',
     provider: 'Google',
     modality: 'text',
@@ -1011,7 +1011,7 @@ export const MODEL_ROUTES = {
   
   // Google
   google: {
-    models: ['gemini-2.0-flash', 'gemini-2.0-pro', 'gemini-1.5-pro'],
+    models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'],
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
   },
   

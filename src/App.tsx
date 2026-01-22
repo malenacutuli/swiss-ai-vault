@@ -101,6 +101,7 @@ import AgentBuilderPage from "./pages/AgentBuilder";
 import SwissBrAInAgents from "./pages/SwissBrAInAgents";
 import ManusHome from "./pages/ManusHome";
 import ManusTaskExecution from "./pages/ManusTaskExecution";
+import ManusTestPage from "./pages/ManusTestPage";
 import WorkspacesPage from "./pages/Workspaces";
 import Studio from "./pages/Studio";
 import Upgrade from "./pages/Upgrade";
@@ -206,6 +207,7 @@ const App = () => {
                 } />
                 <Route path="/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/agents/builder" element={<ProtectedRoute><ErrorBoundary><AgentBuilderPage /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/manus-test" element={<ProtectedRoute><ErrorBoundary><ManusTestPage /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/studio" element={<ProtectedRoute><ErrorBoundary><Studio /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/integrations" element={
                   <ProtectedRoute>

@@ -133,11 +133,11 @@ INSTRUCCIONES CRÍTICAS:
         { role: 'user' as const, content: query }
       ];
 
-      // Call inference with stable model (gemini-2.0-flash)
+      // Call inference with stable model (gemini-2.5-flash)
       const { data, error } = await supabase.functions.invoke('ghost-inference', {
         body: {
           messages,
-          model: 'gemini-2.0-flash',
+          model: 'gemini-2.5-flash',
           temperature: 0.2,
           max_tokens: 4096,
         }

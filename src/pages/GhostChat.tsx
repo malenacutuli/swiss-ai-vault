@@ -1606,7 +1606,7 @@ Use this context to inform your response when relevant. Cite sources by number w
                 'swissvault-code': 128000,
                 'gpt-4o-mini': 128000,
                 'gpt-4o': 128000,
-                'gemini-2.0-flash': 1000000,
+                'gemini-2.5-flash': 1000000,
                 'claude-haiku': 200000,
                 'claude-sonnet': 200000,
               };
