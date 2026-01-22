@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SwissFlag } from "@/components/icons/SwissFlag";
 
 // Task status types matching Manus.im
 type TaskStatus = "created" | "planning" | "executing" | "waiting_user" | "paused" | "completed" | "failed";
@@ -141,11 +142,8 @@ export function ManusSidebar({
     <div className="w-[280px] h-screen bg-white border-r border-[#E5E5E5] flex flex-col">
       {/* Header - Logo and Collapse */}
       <div className="flex items-center justify-between px-4 py-4">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2">
-          <img src="/swissbrain-logo.svg" alt="SwissBrAIn" className="w-6 h-6" onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }} />
-          <span className="font-semibold text-[#1D4E5F] text-lg">swissbrain</span>
+        <button onClick={() => navigate('/')} className="flex items-center">
+          <SwissFlag className="h-8" />
         </button>
         <button
           onClick={onToggleCollapse}
