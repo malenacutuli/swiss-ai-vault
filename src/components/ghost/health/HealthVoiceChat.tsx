@@ -59,12 +59,14 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
   const handleConnect = useCallback(async () => {
     setIsConnecting(true);
     try {
+      console.log('Attempting to connect to Hume EVI...');
       await connect({
         auth: { type: 'accessToken', value: accessToken },
         hostname: 'api.hume.ai',
       });
+      console.log('Connected to Hume EVI successfully');
     } catch (error) {
-      console.error('Failed to connect:', error);
+      console.error('Failed to connect to Hume:', error);
     } finally {
       setIsConnecting(false);
     }
@@ -272,6 +274,7 @@ export function HealthVoiceChat({ onClose }: HealthVoiceChatProps) {
       messageHistoryLimit={50}
       clearMessagesOnDisconnect={true}
       onError={(error) => console.error('Hume Voice error:', error)}
+      onClose={() => console.log('Hume connection closed')}
     >
       <VoiceChatInner onClose={onClose} accessToken={accessToken} />
     </VoiceProvider>
