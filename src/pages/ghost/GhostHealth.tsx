@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { SearchModeSelector, SourcesDropdown, type SearchMode } from '@/components/ghost/discover';
-import { useSubscription } from '@/hooks/useSubscription';
 import {
   Heart,
   Stethoscope,
@@ -17,7 +16,6 @@ import {
   Loader2,
   ExternalLink,
   Search,
-  Lock,
   Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -98,7 +96,6 @@ const getSuggestionKeys = (action: ActionType): string[] => {
 export default function GhostHealth() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { isPro, isPremium, isEnterprise } = useSubscription();
   
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -107,9 +104,6 @@ export default function GhostHealth() {
   const [activeAction, setActiveAction] = useState<ActionType>('conditions');
   const [showSuggestions, setShowSuggestions] = useState(true);
   const searchCardRef = useRef<HTMLDivElement>(null);
-
-  // Pro gate check
-  const hasAccess = isPro || isPremium || isEnterprise;
 
   const suggestionKeys = useMemo(
     () => getSuggestionKeys(activeAction),
@@ -127,7 +121,7 @@ export default function GhostHealth() {
   }, []);
 
   const handleSearch = async () => {
-    if (!query.trim() || !hasAccess) return;
+    if (!query.trim()) return;
     
     setIsSearching(true);
     setResult(null);
@@ -159,33 +153,6 @@ export default function GhostHealth() {
     setResult(null);
     setShowSuggestions(true);
   };
-
-  // Show upgrade prompt if no access
-  if (!hasAccess) {
-    return (
-      <DiscoverLayout activeModule="health">
-        <div className="flex-1 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full p-8 text-center space-y-6 bg-white shadow-lg">
-            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
-              <Lock className="w-8 h-8 text-rose-600" />
-            </div>
-            <h2 className="text-xl font-semibold text-slate-900">
-              {t('ghost.modules.health.proRequired.title', 'Health Intelligence is a Pro Feature')}
-            </h2>
-            <p className="text-slate-600">
-              {t('ghost.modules.health.proRequired.description', 'Access private healthcare intelligence, clinical trials, and medical research with Ghost Pro.')}
-            </p>
-            <Button 
-              onClick={() => navigate('/ghost/pricing')}
-              className="bg-[#2A8C86] hover:bg-[#2A8C86]/90"
-            >
-              {t('ghost.modules.health.proRequired.upgrade', 'Upgrade to Pro')}
-            </Button>
-          </Card>
-        </div>
-      </DiscoverLayout>
-    );
-  }
 
   return (
     <DiscoverLayout activeModule="health">
