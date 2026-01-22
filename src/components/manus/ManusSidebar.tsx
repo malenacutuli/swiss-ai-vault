@@ -15,6 +15,16 @@ import {
   Smartphone,
   ChevronRight,
   Users,
+  Star,
+  Gem,
+  Presentation,
+  Gift,
+  Code,
+  Globe,
+  FileText,
+  Palette,
+  ClipboardList,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,19 +67,19 @@ const statusColors: Record<string, string> = {
   failed: "bg-red-500",
 };
 
-// Task icons (emoji-style) based on task type
-const getTaskIcon = (title: string): string => {
+// Task icons (Lucide) based on task type
+const getTaskIcon = (title: string): LucideIcon => {
   const lower = title.toLowerCase();
-  if (lower.includes("learning") || lower.includes("genspark")) return "🌟";
-  if (lower.includes("product") || lower.includes("packaging")) return "💎";
-  if (lower.includes("presentation") || lower.includes("slides")) return "🟠";
-  if (lower.includes("invitación") || lower.includes("cumpleaños")) return "🔵";
-  if (lower.includes("developing") || lower.includes("agentic") || lower.includes("code")) return "⚫";
-  if (lower.includes("website") || lower.includes("web")) return "🌐";
-  if (lower.includes("research") || lower.includes("search")) return "🔍";
-  if (lower.includes("document") || lower.includes("doc")) return "📄";
-  if (lower.includes("image") || lower.includes("design")) return "🎨";
-  return "📋";
+  if (lower.includes("learning") || lower.includes("genspark")) return Star;
+  if (lower.includes("product") || lower.includes("packaging")) return Gem;
+  if (lower.includes("presentation") || lower.includes("slides")) return Presentation;
+  if (lower.includes("invitación") || lower.includes("cumpleaños")) return Gift;
+  if (lower.includes("developing") || lower.includes("agentic") || lower.includes("code")) return Code;
+  if (lower.includes("website") || lower.includes("web")) return Globe;
+  if (lower.includes("research") || lower.includes("search")) return Search;
+  if (lower.includes("document") || lower.includes("doc")) return FileText;
+  if (lower.includes("image") || lower.includes("design")) return Palette;
+  return ClipboardList;
 };
 
 export function ManusSidebar({
@@ -103,25 +113,25 @@ export function ManusSidebar({
           onClick={onToggleCollapse}
           className="p-2 rounded-lg hover:bg-gray-100 mb-4"
         >
-          <PanelLeft className="w-5 h-5 text-gray-600" />
+          <PanelLeft className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
         </button>
         <button
           onClick={onNewTask}
           className="p-2 rounded-lg hover:bg-gray-100 mb-2"
         >
-          <Edit3 className="w-5 h-5 text-gray-600" />
+          <Edit3 className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
         </button>
         <button 
           onClick={() => navigate('/search')}
           className="p-2 rounded-lg hover:bg-gray-100 mb-2"
         >
-          <Search className="w-5 h-5 text-gray-600" />
+          <Search className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
         </button>
         <button 
           onClick={() => navigate('/library')}
           className="p-2 rounded-lg hover:bg-gray-100"
         >
-          <BookOpen className="w-5 h-5 text-gray-600" />
+          <BookOpen className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
         </button>
       </div>
     );
@@ -135,13 +145,13 @@ export function ManusSidebar({
           <img src="/swissbrain-logo.svg" alt="SwissBrAIn" className="w-6 h-6" onError={(e) => {
             e.currentTarget.style.display = 'none';
           }} />
-          <span className="font-semibold text-gray-900 text-lg">swissbrain</span>
+          <span className="font-semibold text-[#1D4E5F] text-lg">swissbrain</span>
         </button>
         <button
           onClick={onToggleCollapse}
           className="p-1.5 rounded-lg hover:bg-gray-100"
         >
-          <PanelLeftClose className="w-5 h-5 text-gray-500" />
+          <PanelLeftClose className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
         </button>
       </div>
 
@@ -152,8 +162,8 @@ export function ManusSidebar({
           onClick={onNewTask}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-100 text-left"
         >
-          <Edit3 className="w-5 h-5 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">New task</span>
+          <Edit3 className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
+          <span className="text-sm font-medium text-[#1D4E5F]">New task</span>
         </button>
 
         {/* Search */}
@@ -164,8 +174,8 @@ export function ManusSidebar({
             location.pathname === "/search" && "bg-gray-100"
           )}
         >
-          <Search className="w-5 h-5 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">Search</span>
+          <Search className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
+          <span className="text-sm font-medium text-[#1D4E5F]">Search</span>
         </button>
 
         {/* Library */}
@@ -176,17 +186,17 @@ export function ManusSidebar({
             location.pathname === "/library" && "bg-gray-100"
           )}
         >
-          <BookOpen className="w-5 h-5 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">Library</span>
+          <BookOpen className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
+          <span className="text-sm font-medium text-[#1D4E5F]">Library</span>
         </button>
       </div>
 
       {/* Projects Section */}
       <div className="px-3 mt-6">
         <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Projects</span>
+          <span className="text-xs font-medium text-[#3A7A8C] uppercase tracking-wider">Projects</span>
           <button onClick={onCreateProject} className="p-1 rounded hover:bg-gray-100">
-            <Plus className="w-4 h-4 text-gray-400" />
+            <Plus className="w-4 h-4 text-[#1D4E5F]" strokeWidth={1.25} />
           </button>
         </div>
         {projects.length > 0 ? (
@@ -195,8 +205,8 @@ export function ManusSidebar({
               key={project.id}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-left"
             >
-              <FolderOpen className="w-5 h-5 text-gray-500" />
-              <span className="text-sm text-gray-600 truncate">{project.name}</span>
+              <FolderOpen className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
+              <span className="text-sm text-[#1D4E5F] truncate">{project.name}</span>
             </button>
           ))
         ) : (
@@ -204,8 +214,8 @@ export function ManusSidebar({
             onClick={onCreateProject}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-left"
           >
-            <FolderOpen className="w-5 h-5 text-gray-500" />
-            <span className="text-sm text-gray-600">New project</span>
+            <FolderOpen className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
+            <span className="text-sm text-[#1D4E5F]">New project</span>
           </button>
         )}
       </div>
@@ -213,29 +223,32 @@ export function ManusSidebar({
       {/* All Tasks Section */}
       <div className="px-3 mt-4 flex-1 overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">All tasks</span>
+          <span className="text-xs font-medium text-[#3A7A8C] uppercase tracking-wider">All tasks</span>
           <button className="p-1 rounded hover:bg-gray-100">
-            <SlidersHorizontal className="w-4 h-4 text-gray-400" />
+            <SlidersHorizontal className="w-4 h-4 text-[#1D4E5F]" strokeWidth={1.25} />
           </button>
         </div>
 
         {/* Task List */}
         <ScrollArea className="flex-1">
           <div className="space-y-0.5">
-            {displayTasks.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => onTaskSelect?.(task.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-left transition-colors",
-                  selectedTaskId === task.id && "bg-gray-100"
-                )}
-              >
-                <span className="text-base">{task.icon || getTaskIcon(task.title)}</span>
-                <span className="text-sm text-gray-700 truncate flex-1">{task.title}</span>
-                <span className={cn("w-2 h-2 rounded-full", statusColors[task.status] || "bg-gray-400")} />
-              </button>
-            ))}
+            {displayTasks.map((task) => {
+              const TaskIcon = getTaskIcon(task.title);
+              return (
+                <button
+                  key={task.id}
+                  onClick={() => onTaskSelect?.(task.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-left transition-colors",
+                    selectedTaskId === task.id && "bg-gray-100"
+                  )}
+                >
+                  <TaskIcon className="w-4 h-4 text-[#1D4E5F] flex-shrink-0" strokeWidth={1.25} />
+                  <span className="text-sm text-[#1D4E5F] truncate flex-1">{task.title}</span>
+                  <span className={cn("w-2 h-2 rounded-full flex-shrink-0", statusColors[task.status] || "bg-gray-400")} />
+                </button>
+              );
+            })}
           </div>
         </ScrollArea>
       </div>
@@ -246,13 +259,13 @@ export function ManusSidebar({
         <div className="px-3 py-3">
           <button className="w-full flex items-center gap-3 px-3 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <Users className="w-4 h-4 text-gray-600" />
+              <Users className="w-4 h-4 text-[#1D4E5F]" strokeWidth={1.25} />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium text-gray-900">Share SwissBrAIn with a friend</p>
-              <p className="text-xs text-gray-500">Get 500 credits each</p>
+              <p className="text-sm font-medium text-[#1D4E5F]">Share SwissBrAIn with a friend</p>
+              <p className="text-xs text-[#3A7A8C]">Get 500 credits each</p>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-[#1D4E5F]" strokeWidth={1.25} />
           </button>
         </div>
 
@@ -262,13 +275,13 @@ export function ManusSidebar({
             onClick={() => navigate('/settings')}
             className="p-2 rounded-lg hover:bg-gray-100"
           >
-            <SlidersHorizontal className="w-5 h-5 text-gray-500" />
+            <SlidersHorizontal className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
           </button>
           <button className="p-2 rounded-lg hover:bg-gray-100">
-            <LayoutGrid className="w-5 h-5 text-gray-500" />
+            <LayoutGrid className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
           </button>
           <button className="p-2 rounded-lg hover:bg-gray-100">
-            <Smartphone className="w-5 h-5 text-gray-500" />
+            <Smartphone className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
           </button>
         </div>
       </div>
