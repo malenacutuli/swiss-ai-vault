@@ -110,14 +110,14 @@ class JobProcessor:
 
         try:
             # Fetch run details (DNS call - may fail)
-            run_response = self.supabase.table("agent_runs").select("*").eq("id", run_id).single().execute()
+            run_response = self.supabase.table("agent_runs").select("*").eq("id", run_id).execute()
 
             if not run_response.data:
                 error = f"Run {run_id} not found"
                 logger.error(error)
                 return False, error
 
-            run = run_response.data
+            run = run_response.data[0]
             user_id = run["user_id"]
             prompt = run["prompt"]
 
