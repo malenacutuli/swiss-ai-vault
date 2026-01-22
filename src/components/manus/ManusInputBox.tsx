@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Plus,
-  Github,
   Smile,
   Mic,
   ArrowUp,
@@ -21,6 +20,8 @@ import {
   MessageSquare,
   BookOpen,
   ExternalLink,
+  HardDrive,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// Import integration logos
+import gmailLogo from "@/assets/integrations/gmail-logo.png";
+import slackLogo from "@/assets/integrations/slack-logo.png";
+import notionLogo from "@/assets/integrations/notion-logo.png";
+import githubLogo from "@/assets/integrations/github-logo.png";
+import asanaLogo from "@/assets/integrations/asana-logo.png";
 
 interface ManusInputBoxProps {
   onSubmit?: (value: string, mode?: string) => void;
@@ -41,16 +49,22 @@ interface ManusInputBoxProps {
   connectedTools?: string[];
 }
 
-// Tool icons for the connection bar
-const toolIcons = [
-  { id: "whatsapp", icon: "💬", name: "WhatsApp" },
-  { id: "gmail", icon: "📧", name: "Gmail" },
-  { id: "calendar", icon: "📅", name: "Calendar" },
-  { id: "drive", icon: "💾", name: "Drive" },
-  { id: "slack", icon: "💬", name: "Slack" },
-  { id: "github", icon: "🐙", name: "GitHub" },
-  { id: "notion", icon: "📝", name: "Notion" },
-  { id: "x", icon: "✕", name: "X" },
+// Tool configuration with logos and Lucide icons
+interface ToolIconConfig {
+  id: string;
+  name: string;
+  logo?: string;
+  LucideIcon?: LucideIcon;
+}
+
+const toolIcons: ToolIconConfig[] = [
+  { id: "gmail", name: "Gmail", logo: gmailLogo },
+  { id: "calendar", name: "Google Calendar", LucideIcon: Calendar },
+  { id: "drive", name: "Google Drive", LucideIcon: HardDrive },
+  { id: "github", name: "GitHub", logo: githubLogo },
+  { id: "slack", name: "Slack", logo: slackLogo },
+  { id: "notion", name: "Notion", logo: notionLogo },
+  { id: "asana", name: "Asana", logo: asanaLogo },
 ];
 
 // Quick action buttons
@@ -168,10 +182,10 @@ export function ManusInputBox({
             </button>
             <button
               onClick={() => onConnectorClick?.("github")}
-              className={`p-2 rounded-lg hover:bg-gray-100 transition-colors ${connectedTools.includes("github") ? "text-green-500" : ""}`}
+              className={`p-2 rounded-lg hover:bg-gray-100 transition-colors ${connectedTools.includes("github") ? "opacity-100" : "opacity-60"}`}
               title="Connect GitHub"
             >
-              <Github className={`w-5 h-5 ${connectedTools.includes("github") ? "text-green-500" : "text-gray-500"}`} />
+              <img src={githubLogo} alt="GitHub" className="w-5 h-5 object-contain" />
             </button>
           </div>
 
@@ -210,16 +224,23 @@ export function ManusInputBox({
           </div>
 
           <div className="flex items-center gap-1.5">
-            {toolIcons.map((tool) => (
-              <button
-                key={tool.id}
-                onClick={() => onConnectorClick?.(tool.id)}
-                className={`w-6 h-6 flex items-center justify-center text-sm transition-opacity cursor-pointer ${connectedTools.includes(tool.id) ? "opacity-100" : "opacity-60 hover:opacity-100"}`}
-                title={tool.name}
-              >
-                {tool.icon}
-              </button>
-            ))}
+            {toolIcons.map((tool) => {
+              const IconComponent = tool.LucideIcon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => onConnectorClick?.(tool.id)}
+                  className={`w-6 h-6 flex items-center justify-center transition-opacity cursor-pointer ${connectedTools.includes(tool.id) ? "opacity-100" : "opacity-60 hover:opacity-100"}`}
+                  title={tool.name}
+                >
+                  {tool.logo ? (
+                    <img src={tool.logo} alt={tool.name} className="w-5 h-5 object-contain" />
+                  ) : IconComponent ? (
+                    <IconComponent className="w-5 h-5 text-[#1D4E5F]" strokeWidth={1.25} />
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
 
           <button
