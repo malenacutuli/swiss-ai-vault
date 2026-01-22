@@ -103,6 +103,7 @@ import ManusHome from "./pages/ManusHome";
 import ManusTaskExecution from "./pages/ManusTaskExecution";
 import WorkspacesPage from "./pages/Workspaces";
 import Studio from "./pages/Studio";
+import AgentsV2Page from "./pages/agents-v2";
 import Upgrade from "./pages/Upgrade";
 import GhostFinance from "./pages/ghost/GhostFinance";
 import GhostPatents from "./pages/ghost/GhostPatents";
@@ -207,6 +208,10 @@ const App = () => {
                 <Route path="/agents/studio" element={<ProtectedRoute><ErrorBoundary><AgentsStudio /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/agents/builder" element={<ProtectedRoute><ErrorBoundary><AgentBuilderPage /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/studio" element={<ProtectedRoute><ErrorBoundary><Studio /></ErrorBoundary></ProtectedRoute>} />
+                
+                {/* Swiss Agents V2 - Test Environment with Manus API */}
+                <Route path="/agents-v2" element={<ProtectedRoute><ErrorBoundary><AgentsV2Page /></ErrorBoundary></ProtectedRoute>} />
+                <Route path="/agents-v2/task/:taskId" element={<ProtectedRoute><ErrorBoundary><AgentsV2Page /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="/integrations" element={
                   <ProtectedRoute>
                     <Suspense fallback={<PageLoader />}>
