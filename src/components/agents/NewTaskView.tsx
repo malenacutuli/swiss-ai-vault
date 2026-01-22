@@ -27,6 +27,8 @@ interface SamplePrompt {
   title: string;
   prompt: string;
   mode: TaskMode;
+  image?: string;
+  gradient?: string;
 }
 
 const SAMPLE_PROMPTS: SamplePrompt[] = [
@@ -35,24 +37,32 @@ const SAMPLE_PROMPTS: SamplePrompt[] = [
     title: 'Create a pitch deck',
     prompt: 'Create a 10-slide pitch deck for a Series A fundraise for my AI startup',
     mode: 'slides',
+    image: '/templates/pitchdeck.jpg',
+    gradient: 'from-blue-500/20 to-purple-500/20',
   },
   {
     icon: Search,
     title: 'Research a topic',
     prompt: 'Research the latest developments in quantum computing and summarize key findings',
     mode: 'research',
+    image: '/templates/research.jpg',
+    gradient: 'from-emerald-500/20 to-teal-500/20',
   },
   {
     icon: FileText,
     title: 'Write a report',
     prompt: 'Write a comprehensive market analysis report for the European fintech sector',
     mode: 'default',
+    image: '/templates/report.jpg',
+    gradient: 'from-orange-500/20 to-amber-500/20',
   },
   {
     icon: BarChart3,
     title: 'Analyze data',
     prompt: 'Analyze this dataset and create visualizations showing key trends and insights',
     mode: 'visualization',
+    image: '/templates/data.jpg',
+    gradient: 'from-indigo-500/20 to-blue-500/20',
   },
 ];
 
@@ -281,14 +291,34 @@ export function NewTaskView({ onSubmit, isLoading }: NewTaskViewProps) {
             <button
               key={index}
               onClick={() => handleSampleClick(sample)}
-              className="flex items-start gap-3 p-4 bg-white border border-[#E5E5E5] rounded-xl hover:border-[#1D4E5F]/30 hover:bg-[#FAFAFA] transition-all text-left group"
+              className="flex items-start gap-4 p-4 bg-white border border-[#E5E5E5] rounded-xl hover:border-[#1D4E5F]/30 hover:shadow-sm transition-all text-left group"
             >
-              <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center flex-shrink-0 group-hover:bg-[#E8F4F8] transition-colors">
-                <Icon className="w-4 h-4 text-[#666666] group-hover:text-[#1D4E5F]" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className="w-4 h-4 text-[#666666] group-hover:text-[#1D4E5F]" />
+                  <p className="font-medium text-[#1A1A1A] text-sm">{sample.title}</p>
+                </div>
+                <p className="text-xs text-[#999999] line-clamp-2">{sample.prompt}</p>
               </div>
-              <div>
-                <p className="font-medium text-[#1A1A1A] text-sm">{sample.title}</p>
-                <p className="text-xs text-[#999999] mt-0.5 line-clamp-2">{sample.prompt}</p>
+              {/* Template Image */}
+              <div className={cn(
+                "w-20 h-14 rounded-lg flex-shrink-0 overflow-hidden",
+                sample.gradient ? `bg-gradient-to-br ${sample.gradient}` : "bg-gray-100"
+              )}>
+                {sample.image ? (
+                  <img
+                    src={sample.image}
+                    alt={sample.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <Icon className="w-6 h-6 opacity-50" />
+                  </div>
+                )}
               </div>
             </button>
           );

@@ -29,9 +29,9 @@ class AgentPlanner:
     ) -> Tuple[Optional[ExecutionPlan], Optional[str]]:
         """Create execution plan from prompt"""
         try:
-            # Get user's available credits
-            result = self.supabase.table("credit_balances").select("available_credits").eq("user_id", self.user_id).single().execute()
-            balance = result.data if result.data else {}
+            # Get user's available credits (don't use .single() as user may not have balance record)
+            result = self.supabase.table("credit_balances").select("available_credits").eq("user_id", self.user_id).execute()
+            balance = result.data[0] if result.data else {}
 
             max_credits = constraints.max_credits if constraints else balance.get("available_credits", 100)
 

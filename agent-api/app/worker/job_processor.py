@@ -159,7 +159,6 @@ class JobProcessor:
 
             supervisor = AgentSupervisor(
                 supabase=self.supabase,
-                anthropic=self.anthropic,
                 run_id=run_id,
                 user_id=user_id,
                 plan=plan,

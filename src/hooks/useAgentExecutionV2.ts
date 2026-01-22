@@ -320,32 +320,41 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
 
-        const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/agent-status`, {
+        const response = await fetch(`${AGENT_API_URL}/agent/status`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ run_id: taskId }),
+          body: JSON.stringify({
+            run_id: taskId,
+            include_steps: true,
+            include_artifacts: true,
+            include_logs: true,
+          }),
         });
 
         if (!response.ok) return;
 
         const data = await response.json();
-        if (!data?.task) return;
+        // Handle both K8s API (returns 'run') and Edge Function (returns 'task')
+        const taskData = data?.run || data?.task;
+        if (!taskData) return;
 
-        setTask(data.task);
-        setStatus(data.task.status || 'executing');
+        setTask(taskData);
+        setStatus(taskData.status || 'executing');
         if (data.steps?.length > 0) setSteps(data.steps);
-        if (data.outputs?.length > 0) setOutputs(data.outputs);
+        if (data.outputs?.length > 0 || data.artifacts?.length > 0) {
+          setOutputs(data.outputs || data.artifacts || []);
+        }
 
         // Stop on terminal states
-        if (['completed', 'failed', 'cancelled'].includes(data.task.status)) {
+        if (['completed', 'failed', 'cancelled'].includes(taskData.status)) {
           stopPolling();
-          if (data.task.status === 'completed') {
-            optionsRef.current.onComplete?.(data.task);
-          } else if (data.task.status === 'failed') {
-            optionsRef.current.onError?.(data.task.error_message || 'Task failed');
+          if (taskData.status === 'completed') {
+            optionsRef.current.onComplete?.(taskData);
+          } else if (taskData.status === 'failed') {
+            optionsRef.current.onError?.(taskData.error_message || 'Task failed');
           }
         }
       } catch (err) {
@@ -373,8 +382,8 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
         throw new Error('Not authenticated');
       }
 
-      // Create task via Supabase function
-      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/agent-execute`, {
+      // Create task via K8s Agent API (supports long-running tasks with workers)
+      const response = await fetch(`${AGENT_API_URL}/agent/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

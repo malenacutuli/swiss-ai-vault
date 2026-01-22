@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   PenSquare,
   Search,
   BookOpen,
@@ -16,13 +16,10 @@ import {
   FileText,
   BarChart3,
   MessageSquare,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Loader2,
   MoreHorizontal,
   Trash2
 } from 'lucide-react';
+import { TaskStatusDot } from './TaskStatusDot';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -69,22 +66,6 @@ const getTaskIcon = (task: Task) => {
   return MessageSquare;
 };
 
-const getStatusIcon = (status: Task['status']) => {
-  switch (status) {
-    case 'completed':
-      return <CheckCircle2 className="w-3 h-3 text-green-500" />;
-    case 'failed':
-      return <XCircle className="w-3 h-3 text-red-500" />;
-    case 'executing':
-    case 'planning':
-      return <Loader2 className="w-3 h-3 text-[#D35400] animate-spin" />;
-    case 'waiting_user':
-    case 'paused':
-      return <Clock className="w-3 h-3 text-yellow-500" />;
-    default:
-      return null;
-  }
-};
 
 const truncatePrompt = (prompt: string, maxLength: number = 30) => {
   if (prompt.length <= maxLength) return prompt;
@@ -302,7 +283,7 @@ export function SwissBrAInSidebar({
                         >
                           <TaskIcon className="w-4 h-4 flex-shrink-0" />
                           <span className="truncate flex-1">{truncatePrompt(task.prompt)}</span>
-                          {getStatusIcon(task.status)}
+                          <TaskStatusDot status={task.status} size="sm" />
                         </button>
                         
                         {/* Delete button on hover */}

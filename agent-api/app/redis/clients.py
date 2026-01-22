@@ -1,18 +1,18 @@
-"""Dual Redis client setup: standard for worker, upstash for API"""
+"""Redis client setup for API and worker"""
 import logging
+import redis
 from redis.asyncio import Redis as AsyncRedis
-from upstash_redis import Redis as UpstashRedis
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-_worker_redis = None  # Long-lived connection for worker process
-_api_redis = None     # Serverless-optimized client for API
+_worker_redis = None  # Long-lived async connection for worker process
+_api_redis = None     # Sync Redis client for API
 
 
 def get_worker_redis() -> AsyncRedis:
     """
-    Get standard Redis client for worker process.
+    Get async Redis client for worker process.
 
     Uses persistent connection pool, suitable for long-running processes.
     """
@@ -30,17 +30,30 @@ def get_worker_redis() -> AsyncRedis:
     return _worker_redis
 
 
-def get_api_redis() -> UpstashRedis:
+def get_api_redis() -> redis.Redis:
     """
-    Get Upstash Redis client for API endpoints.
+    Get sync Redis client for API endpoints.
 
-    HTTP-based client optimized for serverless environments.
+    Standard Redis client with SSL support for Upstash.
     """
     global _api_redis
     if _api_redis is None:
         settings = get_settings()
-        _api_redis = UpstashRedis.from_url(settings.redis_url)
-        logger.info("Initialized API Redis client (Upstash)")
+        redis_url = settings.redis_url
+
+        # Build connection kwargs
+        connection_kwargs = {
+            'decode_responses': True,
+            'socket_connect_timeout': 10,
+        }
+
+        # Add SSL config for TLS connections (rediss://)
+        if redis_url.startswith('rediss://'):
+            connection_kwargs['ssl_cert_reqs'] = 'none'
+            logger.info("API Redis: Using TLS connection")
+
+        _api_redis = redis.from_url(redis_url, **connection_kwargs)
+        logger.info("Initialized API Redis client")
     return _api_redis
 
 

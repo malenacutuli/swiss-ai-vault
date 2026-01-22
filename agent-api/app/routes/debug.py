@@ -1,7 +1,8 @@
 """Debug endpoints for monitoring worker status"""
 
 from fastapi import APIRouter, Depends
-from redis import Redis
+import json
+from app.redis.clients import get_api_redis
 from app.config import get_settings
 
 router = APIRouter(prefix="/debug", tags=["debug"])
@@ -14,16 +15,9 @@ async def worker_status():
 
     Returns information about worker health and activity.
     """
-    settings = get_settings()
-
-    # Use standard Redis for reading (same as worker uses)
-    redis = Redis.from_url(
-        settings.redis_url,
-        decode_responses=True,
-        ssl_cert_reqs=None
-    )
-
     try:
+        redis = get_api_redis()
+
         # Get heartbeat
         heartbeat = redis.get("worker:heartbeat")
 
@@ -39,10 +33,25 @@ async def worker_status():
             "failed": redis.llen("jobs:failed"),
         }
 
+        # Get recent failed jobs with errors
+        failed_jobs = []
+        failed_raw = redis.lrange("jobs:failed", 0, 5)
+        for f in failed_raw:
+            try:
+                job = json.loads(f)
+                failed_jobs.append({
+                    "run_id": job.get("run_id"),
+                    "error": job.get("error", "N/A")[:500],
+                    "failed_at": job.get("failed_at"),
+                })
+            except:
+                pass
+
         return {
             "worker_heartbeat": heartbeat,
             "debug_logs": debug_logs,
             "queue_stats": queue_stats,
+            "failed_jobs": failed_jobs,
             "redis_connected": True
         }
     except Exception as e:

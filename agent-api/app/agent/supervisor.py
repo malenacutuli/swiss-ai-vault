@@ -251,11 +251,11 @@ class AgentSupervisor:
                     "tool_name": action.tool_name,
                     "tool_input": action.tool_input,
                     "status": "pending",
-                }).select().single().execute()
+                }).select().execute()
 
-                step = result.data
-                if not step:
+                if not result.data:
                     return False, "Failed to create step"
+                step = result.data[0]
 
                 # Mark step as running
                 self.supabase.table("agent_steps").update({
@@ -418,10 +418,22 @@ IMPORTANT:
             await self._log_info("Context trimmed due to size")
 
     async def _check_credits(self) -> bool:
-        """Check if user has credits"""
-        result = self.supabase.table("credit_balances").select("available_credits").eq("user_id", self.user_id).single().execute()
-        data = result.data or {}
-        return data.get("available_credits", 0) > 0
+        """Check if user has available credits, auto-create balance if missing."""
+        result = self.supabase.table("credit_balances").select("available_credits").eq("user_id", self.user_id).execute()
+
+        if not result.data:
+            # Auto-create credit balance for new users
+            logger.info(f"Creating credit balance for new user {self.user_id}")
+            try:
+                self.supabase.table("credit_balances").insert({
+                    "user_id": self.user_id,
+                    "available_credits": 10000
+                }).execute()
+            except Exception as e:
+                logger.warning(f"Failed to create credit balance: {e}")
+            return True
+
+        return result.data[0].get("available_credits", 0) > 0
 
     async def _deduct_credits(self, amount: float):
         """Deduct credits from user balance"""
@@ -432,8 +444,11 @@ IMPORTANT:
         }).execute()
 
         # Update run total
-        result = self.supabase.table("agent_runs").select("total_credits_used").eq("id", self.run_id).single().execute()
-        current_total = result.data.get("total_credits_used", 0) if result.data else 0
+        result = self.supabase.table("agent_runs").select("total_credits_used").eq("id", self.run_id).execute()
+        if not result.data:
+            logger.warning(f"Run {self.run_id} not found when updating credits used")
+            return
+        current_total = result.data[0].get("total_credits_used", 0)
 
         self.supabase.table("agent_runs").update({
             "total_credits_used": current_total + amount
@@ -441,8 +456,11 @@ IMPORTANT:
 
     async def _get_run_status(self) -> Optional[str]:
         """Get current run status"""
-        result = self.supabase.table("agent_runs").select("status").eq("id", self.run_id).single().execute()
-        return result.data.get("status") if result.data else None
+        result = self.supabase.table("agent_runs").select("status").eq("id", self.run_id).execute()
+        if not result.data:
+            logger.error(f"Run {self.run_id} not found when checking status")
+            return "failed"
+        return result.data[0].get("status")
 
     async def _update_run_status(self, status: str, **kwargs):
         """Update run status"""

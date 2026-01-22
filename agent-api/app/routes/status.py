@@ -16,7 +16,7 @@ router = APIRouter()
 @router.post("/status", response_model=AgentStatusResponse)
 async def agent_status(
     request: AgentStatusRequest,
-    user_id: str = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     supabase: Client = Depends(get_supabase_for_user),
 ):
     """
@@ -28,6 +28,7 @@ async def agent_status(
     - **artifacts**: Generated files and outputs
     - **logs**: Execution logs
     """
+    user_id = user_data["id"]
 
     logger.info(
         "agent_status_requested",
@@ -74,7 +75,7 @@ async def agent_status(
             steps_response = supabase.table("agent_steps")\
                 .select("*")\
                 .eq("run_id", request.run_id)\
-                .order("phase_number", desc=False)\
+                .order("created_at", desc=False)\
                 .limit(request.steps_limit)\
                 .execute()
 

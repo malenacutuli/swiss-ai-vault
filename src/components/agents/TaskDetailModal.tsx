@@ -35,6 +35,7 @@ import {
 import { formatDistanceToNow, format } from 'date-fns';
 import { AgentOutputRenderer } from './AgentOutputRenderer';
 import { TaskResultRenderer } from './TaskResultRenderer';
+import { SuggestedFollowUps } from './SuggestedFollowUps';
 
 interface TaskStep {
   id: string;
@@ -123,6 +124,7 @@ interface TaskDetailModalProps {
   onOpenChange: (open: boolean) => void;
   onRetry?: (task: Task) => void;
   onDelete?: (taskId: string) => Promise<void>;
+  onFollowUp?: (prompt: string) => void;
 }
 
 export function TaskDetailModal({
@@ -131,6 +133,7 @@ export function TaskDetailModal({
   onOpenChange,
   onRetry,
   onDelete,
+  onFollowUp,
 }: TaskDetailModalProps) {
   const [task, setTask] = useState<Task | null>(null);
   const [steps, setSteps] = useState<TaskStep[]>([]);
@@ -657,6 +660,22 @@ export function TaskDetailModal({
                       {task.tokens_used && <span>Tokens: {task.tokens_used.toLocaleString()}</span>}
                       {task.credits_used && <span>Credits: {task.credits_used}</span>}
                     </div>
+                  )}
+
+                  {/* Suggested Follow-ups for completed tasks */}
+                  {task.status === 'completed' && onFollowUp && (
+                    <>
+                      <Separator />
+                      <SuggestedFollowUps
+                        taskPrompt={task.prompt}
+                        taskResult={task.result_summary}
+                        taskType={task.task_type}
+                        onSelectFollowUp={(prompt) => {
+                          onFollowUp(prompt);
+                          onOpenChange(false);
+                        }}
+                      />
+                    </>
                   )}
 
                   {outputs.length === 0 && !task.result_summary && !task.error_message && steps.length === 0 && (

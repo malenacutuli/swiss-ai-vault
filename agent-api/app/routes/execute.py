@@ -8,7 +8,7 @@ from anthropic import Anthropic
 import structlog
 import os
 
-from app.auth import get_current_user, get_supabase_for_user
+from app.auth import get_current_user, get_current_user_with_email, get_supabase_for_user
 from app.models import AgentExecuteRequest, AgentExecuteResponse, ErrorResponse
 from app.agent.planner import AgentPlanner
 from app.agent.supervisor import AgentSupervisor
@@ -16,6 +16,12 @@ from app.agent.models.types import ExecutionPlan
 
 logger = structlog.get_logger()
 router = APIRouter()
+
+# Admin emails that bypass credit checks
+ADMIN_EMAILS = [
+    "malena@axessible.ai",
+    "malena@swissbrain.ai",
+]
 
 # Lazy initialization of Anthropic client
 _anthropic_client = None
@@ -35,7 +41,7 @@ def get_anthropic_client() -> Anthropic:
 async def agent_execute(
     request: AgentExecuteRequest,
     background_tasks: BackgroundTasks,
-    user_id: str = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user_with_email),
     supabase: Client = Depends(get_supabase_for_user),
 ):
     """
@@ -47,12 +53,15 @@ async def agent_execute(
     - **retry**: Retry a failed run (creates new run with same prompt)
     - **resume**: Resume a paused agent with optional user input
     """
+    user_id = user_data["id"]
+    user_email = user_data.get("email")
 
     logger.info(
         "agent_execute_requested",
         action=request.action,
         run_id=request.run_id,
         user_id=user_id,
+        user_email=user_email,
     )
 
     try:
@@ -60,7 +69,7 @@ async def agent_execute(
         if request.action == "create":
             return await handle_create(
                 supabase, user_id, request.prompt,
-                request.project_id, request.connector_ids
+                request.project_id, request.connector_ids, user_email
             )
 
         elif request.action == "start":
@@ -127,6 +136,7 @@ async def handle_create(
     prompt: str,
     project_id: str = None,
     connector_ids: list[str] = None,
+    user_email: str = None,
 ) -> AgentExecuteResponse:
     """Create a new agent run"""
 
@@ -137,14 +147,20 @@ async def handle_create(
             detail="Prompt is required"
         )
 
-    # Check credit balance
-    balance_response = supabase.table("credit_balances").select("available_credits").eq("user_id", user_id).execute()
+    # Check if admin (bypass credit check)
+    is_admin = user_email and user_email.lower() in [e.lower() for e in ADMIN_EMAILS]
 
-    if not balance_response.data or balance_response.data[0]["available_credits"] <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Insufficient credits"
-        )
+    if is_admin:
+        logger.info("admin_bypass_credits", user_id=user_id, email=user_email)
+    else:
+        # Check credit balance
+        balance_response = supabase.table("credit_balances").select("available_credits").eq("user_id", user_id).execute()
+
+        if not balance_response.data or balance_response.data[0]["available_credits"] <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Insufficient credits"
+            )
 
     # Create agent run record
     run_data = {
