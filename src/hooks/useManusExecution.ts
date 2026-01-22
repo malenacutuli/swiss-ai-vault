@@ -444,14 +444,15 @@ export function useManusExecution(options: UseManusExecutionOptions = {}) {
 
     // Fetch task from database to get manus_task_id
     const { data: run } = await supabase
-      .from('agent_runs')
+      .from('agent_runs' as any)
       .select('*')
       .eq('id', taskId)
       .single();
 
-    if (run && run.metadata?.manus_task_id) {
-      manusTaskIdRef.current = run.metadata.manus_task_id;
-      await pollManusStatus(taskId, run.metadata.manus_task_id);
+    const runData = run as { metadata?: { manus_task_id?: string } } | null;
+    if (runData && runData.metadata?.manus_task_id) {
+      manusTaskIdRef.current = runData.metadata.manus_task_id;
+      await pollManusStatus(taskId, runData.metadata.manus_task_id);
     }
   }, [pollManusStatus]);
 
