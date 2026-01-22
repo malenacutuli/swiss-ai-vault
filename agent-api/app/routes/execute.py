@@ -35,7 +35,7 @@ def get_anthropic_client() -> Anthropic:
 async def agent_execute(
     request: AgentExecuteRequest,
     background_tasks: BackgroundTasks,
-    user: dict = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     supabase: Client = Depends(get_supabase_for_user),
 ):
     """
@@ -47,7 +47,6 @@ async def agent_execute(
     - **retry**: Retry a failed run (creates new run with same prompt)
     - **resume**: Resume a paused agent with optional user input
     """
-    user_id = user["id"]
 
     logger.info(
         "agent_execute_requested",
@@ -148,14 +147,17 @@ async def handle_create(
         )
 
     # Create agent run record
-    run_response = supabase.table("agent_runs").insert({
+    run_data = {
         "user_id": user_id,
-        "project_id": project_id,
         "prompt": prompt,
         "status": "created",
-        "current_phase": 0,
         "total_credits_used": 0,
-    }).execute()
+    }
+    # Add project_id to metadata if provided
+    if project_id:
+        run_data["metadata"] = {"project_id": project_id}
+
+    run_response = supabase.table("agent_runs").insert(run_data).execute()
 
     if not run_response.data:
         raise HTTPException(

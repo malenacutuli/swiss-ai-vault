@@ -264,32 +264,32 @@ export function useAgentStream(
     };
     
     // Event handlers
-    eventSource.addEventListener('status', (e) => {
+    eventSource.addEventListener('status', (e: MessageEvent) => {
       handleStatus(JSON.parse(e.data));
     });
     
-    eventSource.addEventListener('tool_call', (e) => {
+    eventSource.addEventListener('tool_call', (e: MessageEvent) => {
       handleToolCall(JSON.parse(e.data));
     });
     
-    eventSource.addEventListener('tool_result', (e) => {
+    eventSource.addEventListener('tool_result', (e: MessageEvent) => {
       handleToolResult(JSON.parse(e.data));
     });
     
-    eventSource.addEventListener('message', (e) => {
+    eventSource.addEventListener('message', (e: MessageEvent) => {
       handleMessage(JSON.parse(e.data));
     });
     
-    eventSource.addEventListener('thinking', (e) => {
+    eventSource.addEventListener('thinking', (e: MessageEvent) => {
       handleThinking(JSON.parse(e.data));
     });
     
-    eventSource.addEventListener('complete', (e) => {
+    eventSource.addEventListener('complete', (e: MessageEvent) => {
       handleComplete(JSON.parse(e.data));
       eventSource.close();
     });
     
-    eventSource.addEventListener('error', (e) => {
+    eventSource.addEventListener('error', (e: MessageEvent) => {
       handleError(JSON.parse(e.data));
     });
     

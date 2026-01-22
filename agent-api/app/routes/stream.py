@@ -189,18 +189,18 @@ class AgentEventStream:
 async def stream_agent_execution(
     run_id: str,
     request: Request,
-    user: dict = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     supabase: Client = Depends(get_supabase_for_user),
 ):
     """
     Stream agent execution events via Server-Sent Events (SSE).
-    
+
     Connect to this endpoint to receive real-time updates about agent execution:
     - Status changes (queued → planning → executing → completed)
     - Tool calls and results
     - Agent messages
     - Progress updates
-    
+
     Example usage (JavaScript):
     ```javascript
     const eventSource = new EventSource('/agent/run/{run_id}/stream');
@@ -209,7 +209,6 @@ async def stream_agent_execution(
     eventSource.addEventListener('complete', (e) => { eventSource.close(); });
     ```
     """
-    user_id = user["id"]
     
     logger.info(f"SSE stream requested for run {run_id} by user {user_id}")
     
@@ -232,20 +231,19 @@ async def get_agent_events(
     run_id: str,
     since: Optional[str] = None,
     limit: int = 50,
-    user: dict = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     supabase: Client = Depends(get_supabase_for_user),
 ):
     """
     Get agent execution events (non-streaming fallback).
-    
+
     Use this endpoint for polling if SSE is not available.
-    
+
     Args:
         run_id: Agent run ID
         since: ISO timestamp to fetch events after
         limit: Maximum number of events to return
     """
-    user_id = user["id"]
     
     # Verify run belongs to user
     run_response = supabase.table("agent_runs").select("*").eq("id", run_id).eq("user_id", user_id).execute()
@@ -287,7 +285,7 @@ async def get_agent_events(
 async def publish_thinking(
     run_id: str,
     content: str,
-    user: dict = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Publish agent thinking update (internal use).

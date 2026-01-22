@@ -1,0 +1,27 @@
+# =============================================================================
+# Agent Worker - Pod Disruption Budget
+# =============================================================================
+# Ensures high availability during cluster maintenance and upgrades
+# Matches Manus.im BullMQ Worker PDB specification
+#
+# Usage:
+#   kubectl apply -f k8s/worker-pdb.yaml
+# =============================================================================
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agent-worker-pdb
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: swissbrain
+spec:
+  # Ensure at least 1 pod is always available during disruptions
+  # For production with 3+ replicas, increase to minAvailable: 2
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: agent-worker

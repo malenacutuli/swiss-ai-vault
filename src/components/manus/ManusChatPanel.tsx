@@ -20,7 +20,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import type { ChatMessage, AgentStep, AgentLog } from '@/hooks/useAgentExecution';
+import type { ChatMessage, ExecutionStep } from '@/hooks/useAgentExecution';
+
+// Type aliases for compatibility
+type AgentStep = ExecutionStep;
+type AgentLog = any;
 
 interface Task {
   id: string;

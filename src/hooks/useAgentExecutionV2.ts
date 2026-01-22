@@ -198,7 +198,7 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
       };
 
       // Status updates
-      eventSource.addEventListener('status', (e) => {
+      eventSource.addEventListener('status', (e: MessageEvent) => {
         const data = JSON.parse(e.data);
         setStatus(data.status);
         setTask(prev => prev ? { ...prev, status: data.status, current_step: data.current_phase } : null);
@@ -206,7 +206,7 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
       });
 
       // Tool calls
-      eventSource.addEventListener('tool_call', (e) => {
+      eventSource.addEventListener('tool_call', (e: MessageEvent) => {
         const data = JSON.parse(e.data);
         const step: ExecutionStep = {
           id: data.step_id,
@@ -222,7 +222,7 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
       });
 
       // Tool results
-      eventSource.addEventListener('tool_result', (e) => {
+      eventSource.addEventListener('tool_result', (e: MessageEvent) => {
         const data = JSON.parse(e.data);
         setSteps(prev => prev.map(s => 
           s.id === data.step_id 
@@ -243,13 +243,13 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
       });
 
       // Agent thinking
-      eventSource.addEventListener('thinking', (e) => {
+      eventSource.addEventListener('thinking', (e: MessageEvent) => {
         const data = JSON.parse(e.data);
         setThinking(data.content);
       });
 
       // Messages
-      eventSource.addEventListener('message', (e) => {
+      eventSource.addEventListener('message', (e: MessageEvent) => {
         const data = JSON.parse(e.data);
         if (data.role === 'assistant') {
           setTask(prev => prev ? { ...prev, result_summary: data.content } : null);
@@ -279,7 +279,7 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
       });
 
       // Completion
-      eventSource.addEventListener('complete', (e) => {
+      eventSource.addEventListener('complete', (e: MessageEvent) => {
         const data = JSON.parse(e.data);
         setStatus(data.status);
         setTask(prev => prev ? { ...prev, status: data.status, result: data.result } : null);
@@ -292,7 +292,7 @@ export function useAgentExecutionV2(options: UseAgentExecutionOptions = {}) {
       });
 
       // Error
-      eventSource.addEventListener('error', (e) => {
+      eventSource.addEventListener('error', (e: MessageEvent) => {
         try {
           const data = JSON.parse(e.data);
           setError(data.message);

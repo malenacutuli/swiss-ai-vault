@@ -23,7 +23,7 @@ async def agent_logs(
     mode: str = "polling",
     since: str = None,
     limit: int = 100,
-    user: dict = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     supabase: Client = Depends(get_supabase_for_user),
 ):
     """
@@ -33,7 +33,6 @@ async def agent_logs(
     - **polling**: Get logs since timestamp (cursor-based pagination)
     - **stream**: Server-Sent Events stream for real-time logs
     """
-    user_id = user["id"]
 
     logger.info(
         "agent_logs_requested",

@@ -124,6 +124,7 @@ interface ManagementPanelProps {
   onToggleCollapse?: () => void;
   onPublish?: () => void;
   onShare?: () => void;
+  onClose?: () => void;
 }
 
 // Preview Panel Component

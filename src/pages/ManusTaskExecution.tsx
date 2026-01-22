@@ -34,7 +34,6 @@ export function ManusTaskExecution() {
     executeTask,
     sendMessage,
     stopTask,
-    resumeTask,
     terminalLines,
     previewUrl,
     currentPhase,
@@ -59,7 +58,7 @@ export function ManusTaskExecution() {
 
   const fetchTasks = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('agent_runs')
         .select('id, prompt, status, created_at')
         .eq('user_id', user?.id)
@@ -68,7 +67,7 @@ export function ManusTaskExecution() {
 
       if (error) throw error;
 
-      setTasks(data?.map(run => ({
+      setTasks((data as any[])?.map((run: any) => ({
         id: run.id,
         title: run.prompt?.substring(0, 50) + (run.prompt?.length > 50 ? '...' : ''),
         status: run.status as Task['status'],
@@ -79,29 +78,24 @@ export function ManusTaskExecution() {
   };
 
   const handleSendMessage = async (message: string) => {
-    if (taskId) {
-      await sendMessage(taskId, message);
-    }
+    await sendMessage(message);
   };
 
   const handleStopTask = async () => {
-    if (taskId) {
-      await stopTask(taskId);
-      toast({
-        title: "Task stopped",
-        description: "The task has been paused",
-      });
-    }
+    await stopTask();
+    toast({
+      title: "Task stopped",
+      description: "The task has been paused",
+    });
   };
 
   const handleResumeTask = async () => {
-    if (taskId) {
-      await resumeTask(taskId);
-      toast({
-        title: "Task resumed",
-        description: "The task is continuing execution",
-      });
-    }
+    // Resume functionality - send empty message to continue
+    await sendMessage('');
+    toast({
+      title: "Task resumed",
+      description: "The task is continuing execution",
+    });
   };
 
   const handleTaskSelect = (selectedTaskId: string) => {

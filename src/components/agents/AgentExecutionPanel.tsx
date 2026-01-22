@@ -65,7 +65,10 @@ export function AgentExecutionPanel({
 
   const handleDownloadAll = () => {
     execution.outputs.forEach(output => {
-      execution.downloadOutput(output);
+      // Download via URL
+      if (output.download_url) {
+        window.open(output.download_url, '_blank');
+      }
     });
   };
 
@@ -120,7 +123,7 @@ export function AgentExecutionPanel({
             <PlanApproval
               task={execution.task}
               steps={execution.steps}
-              onApprove={execution.approveAndStart}
+              onApprove={() => execution.sendMessage('approved')}
               onReject={onClose}
             />
           </div>
@@ -148,7 +151,7 @@ export function AgentExecutionPanel({
             <PausedView
               task={execution.task}
               steps={execution.steps}
-              onResume={execution.resumeTask}
+              onResume={() => execution.sendMessage('resume')}
               onStop={execution.stopTask}
             />
           </div>

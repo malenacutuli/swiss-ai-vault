@@ -1,0 +1,114 @@
+# =============================================================================
+# Agent Worker - Network Policy
+# =============================================================================
+# Network isolation and security for agent workers
+# Matches Manus.im BullMQ Worker NetworkPolicy specification
+#
+# Usage:
+#   kubectl apply -f k8s/worker-networkpolicy.yaml
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-worker-network-policy
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: swissbrain
+spec:
+  podSelector:
+    matchLabels:
+      app: agent-worker
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow Prometheus scraping from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+          podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+
+    # Allow health checks from anywhere in cluster
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+
+  egress:
+    # Allow Redis access (Upstash - external)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 443  # Upstash uses TLS on 443
+
+    # Allow Supabase/PostgreSQL access (external)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 443  # Supabase REST API
+
+    # Allow external API access (Anthropic, OpenAI, E2B, Exoscale S3)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # Allow external DNS (Google, Cloudflare) - configured in deployment
+    - to:
+        - ipBlock:
+            cidr: 8.8.8.8/32
+      ports:
+        - protocol: UDP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 1.1.1.1/32
+      ports:
+        - protocol: UDP
+          port: 53

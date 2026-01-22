@@ -1,0 +1,39 @@
+# =============================================================================
+# Agent Worker - Service
+# =============================================================================
+# ClusterIP service for metrics and health check endpoints
+# Matches Manus.im BullMQ Worker Service specification
+#
+# Usage:
+#   kubectl apply -f k8s/worker-service.yaml
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-worker
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: swissbrain
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    # Prometheus metrics endpoint
+    - port: 9090
+      targetPort: 9090
+      name: metrics
+      protocol: TCP
+    # Health check endpoint
+    - port: 8080
+      targetPort: 8080
+      name: health
+      protocol: TCP
+  selector:
+    app: agent-worker

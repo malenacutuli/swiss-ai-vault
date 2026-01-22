@@ -67,24 +67,19 @@ COPY --from=builder /build/dist /usr/share/nginx/html
 RUN echo 'server { \
     listen 80; \
     listen [::]:80; \
-    server_name localhost; \
+    server_name _; \
     root /usr/share/nginx/html; \
     index index.html; \
     location / { \
         try_files $uri $uri/ /index.html; \
     } \
-    location /api { \
-        proxy_pass http://agent-api:8000; \
-        proxy_http_version 1.1; \
-        proxy_set_header Upgrade $http_upgrade; \
-        proxy_set_header Connection "upgrade"; \
-        proxy_set_header Host $host; \
-        proxy_set_header X-Real-IP $remote_addr; \
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
-        proxy_set_header X-Forwarded-Proto $scheme; \
+    location /health { \
+        access_log off; \
+        return 200 "healthy"; \
+        add_header Content-Type text/plain; \
     } \
     gzip on; \
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript; \
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript; \
 }' > /etc/nginx/conf.d/default.conf
 
 # Set environment variables

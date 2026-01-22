@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-interface Task {
+interface SidebarTask {
   id: string;
   title: string;
   status: 'created' | 'planning' | 'executing' | 'waiting_user' | 'paused' | 'completed' | 'failed';
@@ -18,7 +18,7 @@ interface Task {
   created_at: string;
 }
 
-interface Project {
+interface SidebarProject {
   id: string;
   name: string;
   icon?: string;
@@ -28,8 +28,8 @@ export function SwissBrAInLayout() {
   const { user } = useAuth();
   const [currentView, setCurrentView] = useState<'home' | 'execution'>('home');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<SidebarTask[]>([]);
+  const [projects, setProjects] = useState<SidebarProject[]>([]);
   const [showManagementPanel, setShowManagementPanel] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
@@ -58,7 +58,7 @@ export function SwissBrAInLayout() {
 
   const fetchTasks = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('agent_runs')
         .select('id, prompt, status, created_at')
         .eq('user_id', user?.id)
@@ -67,10 +67,10 @@ export function SwissBrAInLayout() {
 
       if (error) throw error;
 
-      setTasks(data?.map(run => ({
+      setTasks((data as any[])?.map((run: any) => ({
         id: run.id,
         title: run.prompt?.substring(0, 50) + (run.prompt?.length > 50 ? '...' : ''),
-        status: run.status as Task['status'],
+        status: run.status as SidebarTask['status'],
         created_at: run.created_at,
       })) || []);
     } catch (error) {
@@ -106,10 +106,10 @@ export function SwissBrAInLayout() {
   const handleTaskSelect = async (taskId: string) => {
     setSelectedTaskId(taskId);
     setCurrentView('execution');
-    
+
     // Load the task details
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('agent_runs')
         .select('*')
         .eq('id', taskId)
@@ -118,7 +118,7 @@ export function SwissBrAInLayout() {
       if (error) throw error;
 
       // If task has artifacts/preview, show management panel
-      if (data?.artifacts?.length > 0 || data?.status === 'completed') {
+      if ((data as any)?.artifacts?.length > 0 || (data as any)?.status === 'completed') {
         setShowManagementPanel(true);
       }
     } catch (error) {
@@ -128,10 +128,10 @@ export function SwissBrAInLayout() {
 
   const handleSubmitTask = async (prompt: string, connectorIds?: string[]) => {
     try {
-      await executeTask(prompt, undefined, connectorIds);
+      await executeTask({ prompt, task_type: 'general', params: { connectorIds } });
       setCurrentView('execution');
       setShowManagementPanel(true);
-      
+
       // Refresh tasks list
       setTimeout(fetchTasks, 1000);
     } catch (error) {
@@ -141,15 +141,11 @@ export function SwissBrAInLayout() {
   };
 
   const handleSendMessage = async (message: string) => {
-    if (currentTask?.id) {
-      await sendMessage(currentTask.id, message);
-    }
+    await sendMessage(message);
   };
 
   const handleStopTask = async () => {
-    if (currentTask?.id) {
-      await stopTask(currentTask.id);
-    }
+    await stopTask();
   };
 
   const handleCreateProject = async () => {
@@ -163,8 +159,8 @@ export function SwissBrAInLayout() {
     prompt: currentTask.prompt || '',
     status: currentTask.status as Task['status'],
     plan_summary: currentTask.plan_summary,
-    current_phase: currentTask.current_phase,
-    total_phases: currentTask.total_phases,
+    current_step: currentTask.current_step,
+    total_steps: currentTask.total_steps,
     credits_used: currentTask.credits_used,
   } : null;
 
@@ -194,7 +190,7 @@ export function SwissBrAInLayout() {
               className="flex-1"
             >
               <SwissBrAInHome
-                onSubmitTask={handleSubmitTask}
+                onSubmit={handleSubmitTask}
                 userName={user?.user_metadata?.full_name || user?.email?.split('@')[0]}
               />
             </motion.div>
@@ -210,10 +206,10 @@ export function SwissBrAInLayout() {
               <div className={showManagementPanel ? 'w-1/2' : 'flex-1'}>
                 <SwissBrAInExecutionView
                   task={executionTask}
-                  messages={messages}
-                  logs={logs}
-                  steps={steps}
-                  terminalLines={terminalLines}
+                  messages={messages as any}
+                  logs={logs?.map((l: any) => typeof l === 'string' ? l : l.message || JSON.stringify(l)) || []}
+                  steps={steps?.map((s: any) => ({ id: s.id, title: s.name || s.tool_name || 'Step', status: s.status, output: s.tool_output })) || []}
+                  terminalLines={terminalLines?.map((t: any) => t.content || String(t)) || []}
                   thinking={thinking}
                   isExecuting={isExecuting}
                   onSendMessage={handleSendMessage}

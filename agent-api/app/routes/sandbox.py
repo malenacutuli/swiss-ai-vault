@@ -89,19 +89,18 @@ class MetricsResponse(BaseModel):
 @router.post("/sandboxes/create", response_model=SandboxResponse)
 async def create_sandbox(
     request: CreateSandboxRequest,
-    user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user)
 ):
     """
     Create a new E2B sandbox with custom configuration.
 
     Args:
         request: Sandbox configuration
-        user: Authenticated user
+        user_id: Authenticated user ID
 
     Returns:
         Sandbox information including ID and status
     """
-    user_id = user["id"]
     manager = get_enhanced_sandbox_manager()
 
     try:
@@ -142,7 +141,7 @@ async def create_sandbox(
 async def execute_command(
     run_id: str,
     request: ExecuteCommandRequest,
-    user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user)
 ):
     """
     Execute shell command in sandbox.
@@ -186,7 +185,7 @@ async def execute_command(
 async def execute_code(
     run_id: str,
     request: ExecuteCodeRequest,
-    user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user)
 ):
     """
     Execute code in sandbox.
@@ -230,7 +229,7 @@ async def execute_code(
 @router.get("/sandboxes/{run_id}/metrics", response_model=MetricsResponse)
 async def get_metrics(
     run_id: str,
-    user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user)
 ):
     """
     Get real-time metrics for sandbox.
@@ -262,7 +261,7 @@ async def get_metrics(
 @router.get("/sandboxes/{run_id}/health")
 async def health_check(
     run_id: str,
-    user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user)
 ):
     """
     Check sandbox health status.
@@ -303,7 +302,7 @@ async def health_check(
 @router.delete("/sandboxes/{run_id}")
 async def destroy_sandbox(
     run_id: str,
-    user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user)
 ):
     """
     Destroy sandbox and free resources.
@@ -339,7 +338,7 @@ async def destroy_sandbox(
 
 @router.get("/sandboxes")
 async def list_sandboxes(
-    user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user)
 ):
     """
     List all active sandboxes.

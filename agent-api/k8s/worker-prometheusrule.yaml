@@ -1,0 +1,194 @@
+# =============================================================================
+# Agent Worker - Prometheus Alert Rules
+# =============================================================================
+# Alerting rules for agent worker monitoring
+# Matches Manus.im BullMQ Worker PrometheusRule specification
+#
+# Prerequisites:
+#   - Prometheus Operator installed
+#   - AlertManager configured
+#
+# Usage:
+#   kubectl apply -f k8s/worker-prometheusrule.yaml
+# =============================================================================
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agent-worker-alerts
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: swissbrain
+    release: prometheus  # Required for Prometheus Operator to discover
+spec:
+  groups:
+    - name: agent-worker.rules
+      rules:
+        # =================================================================
+        # Queue Depth Alerts
+        # =================================================================
+
+        # Warning: High queue depth
+        - alert: AgentQueueHighDepth
+          expr: |
+            sum(agent_queue_depth{namespace="agents", queue="jobs:pending"}) > 50
+          for: 5m
+          labels:
+            severity: warning
+            service: agent-worker
+          annotations:
+            summary: "High agent job queue depth"
+            description: "Queue depth is {{ $value }} jobs, exceeding threshold of 50"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/queue-depth"
+
+        # Critical: Very high queue depth
+        - alert: AgentQueueCriticalDepth
+          expr: |
+            sum(agent_queue_depth{namespace="agents", queue="jobs:pending"}) > 200
+          for: 2m
+          labels:
+            severity: critical
+            service: agent-worker
+          annotations:
+            summary: "Critical agent job queue depth"
+            description: "Queue depth is {{ $value }} jobs, exceeding critical threshold of 200"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/queue-depth-critical"
+
+        # =================================================================
+        # Job Failure Alerts
+        # =================================================================
+
+        # Warning: High job failure rate
+        - alert: AgentHighFailureRate
+          expr: |
+            (
+              sum(rate(agent_jobs_failed_total{namespace="agents"}[5m]))
+              / sum(rate(agent_jobs_completed_total{namespace="agents"}[5m]))
+            ) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            service: agent-worker
+          annotations:
+            summary: "High agent job failure rate"
+            description: "Job failure rate is {{ $value | humanizePercentage }}, exceeding 10%"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/job-failures"
+
+        # Critical: Very high job failure rate
+        - alert: AgentCriticalFailureRate
+          expr: |
+            (
+              sum(rate(agent_jobs_failed_total{namespace="agents"}[5m]))
+              / sum(rate(agent_jobs_completed_total{namespace="agents"}[5m]))
+            ) > 0.25
+          for: 2m
+          labels:
+            severity: critical
+            service: agent-worker
+          annotations:
+            summary: "Critical agent job failure rate"
+            description: "Job failure rate is {{ $value | humanizePercentage }}, exceeding 25%"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/job-failures-critical"
+
+        # =================================================================
+        # Worker Health Alerts
+        # =================================================================
+
+        # Critical: Worker pod down
+        - alert: AgentWorkerDown
+          expr: |
+            up{job="agent-worker", namespace="agents"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            service: agent-worker
+          annotations:
+            summary: "Agent worker pod is down"
+            description: "Worker pod {{ $labels.pod }} is not responding to health checks"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/worker-down"
+
+        # Warning: Worker restarts
+        - alert: AgentWorkerRestarts
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="agents", container="worker"}[1h]) > 3
+          for: 5m
+          labels:
+            severity: warning
+            service: agent-worker
+          annotations:
+            summary: "Agent worker experiencing restarts"
+            description: "Worker pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/worker-restarts"
+
+        # =================================================================
+        # Job Latency Alerts
+        # =================================================================
+
+        # Warning: High job latency
+        - alert: AgentHighJobLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le) (rate(agent_job_duration_seconds_bucket{namespace="agents"}[5m]))
+            ) > 300
+          for: 5m
+          labels:
+            severity: warning
+            service: agent-worker
+          annotations:
+            summary: "High agent job latency"
+            description: "P95 job duration is {{ $value | humanizeDuration }}, exceeding 5 minutes"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/job-latency"
+
+        # =================================================================
+        # Redis Connection Alerts
+        # =================================================================
+
+        # Critical: Redis connection errors
+        - alert: AgentRedisConnectionErrors
+          expr: |
+            sum(rate(agent_redis_connection_errors_total{namespace="agents"}[5m])) > 1
+          for: 2m
+          labels:
+            severity: critical
+            service: agent-worker
+          annotations:
+            summary: "Agent worker Redis connection errors"
+            description: "Redis connection error rate is {{ $value }}/s"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/redis-errors"
+
+        # =================================================================
+        # Sandbox Alerts
+        # =================================================================
+
+        # Warning: High active sandbox count
+        - alert: AgentHighSandboxCount
+          expr: |
+            sum(agent_active_sandboxes{namespace="agents"}) > 20
+          for: 5m
+          labels:
+            severity: warning
+            service: agent-worker
+          annotations:
+            summary: "High number of active E2B sandboxes"
+            description: "{{ $value }} active sandboxes, may indicate resource leak"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/sandbox-leak"
+
+        # =================================================================
+        # Dead Letter Queue Alerts
+        # =================================================================
+
+        # Warning: Jobs in DLQ
+        - alert: AgentDLQNotEmpty
+          expr: |
+            sum(agent_queue_depth{namespace="agents", queue="jobs:failed"}) > 0
+          for: 10m
+          labels:
+            severity: warning
+            service: agent-worker
+          annotations:
+            summary: "Jobs in dead letter queue"
+            description: "{{ $value }} jobs in DLQ require investigation"
+            runbook_url: "https://docs.swissbrain.ai/runbooks/dlq"

@@ -1,0 +1,38 @@
+# =============================================================================
+# Agent Worker - Prometheus ServiceMonitor
+# =============================================================================
+# Enables Prometheus to automatically discover and scrape worker metrics
+# Matches Manus.im BullMQ Worker ServiceMonitor specification
+#
+# Prerequisites:
+#   - Prometheus Operator installed
+#   - Worker Service with metrics port exposed
+#
+# Usage:
+#   kubectl apply -f k8s/worker-servicemonitor.yaml
+# =============================================================================
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agent-worker
+  namespace: agents
+  labels:
+    app: agent-worker
+    app.kubernetes.io/name: agent-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: swissbrain
+    release: prometheus  # Required for Prometheus Operator to discover
+spec:
+  selector:
+    matchLabels:
+      app: agent-worker
+  namespaceSelector:
+    matchNames:
+      - agents
+  endpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      path: /metrics
+      scheme: http

@@ -39,7 +39,8 @@ export function ManusHome() {
       }
 
       try {
-        const { data, error } = await supabase
+        // Use type assertion since agent_runs is not in generated types
+        const { data, error } = await (supabase as any)
           .from('agent_runs')
           .select('id, prompt, status, created_at, metadata')
           .eq('user_id', user.id)
@@ -50,7 +51,7 @@ export function ManusHome() {
           console.error('Error fetching tasks:', error);
           setTasks([]);
         } else {
-          setTasks(data?.map(run => ({
+          setTasks((data as any[])?.map((run: any) => ({
             id: run.id,
             title: run.prompt?.slice(0, 50) || 'Untitled Task',
             prompt: run.prompt,
