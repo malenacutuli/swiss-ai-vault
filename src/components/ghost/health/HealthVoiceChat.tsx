@@ -41,51 +41,36 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const conversationHistory = useRef<{ role: string; content: string }[]>([]);
-  const lastProcessedUserMessage = useRef<string>('');
+  const processedMessageIds = useRef<Set<string>>(new Set());
+  const processingLock = useRef<boolean>(false);
 
-  // Process user messages and get health responses
+  // Process user messages and get health responses - with debouncing
   useEffect(() => {
     if (!humeMessages || humeMessages.length === 0) return;
 
     const processMessages = async () => {
+      // Prevent concurrent processing
+      if (processingLock.current) return;
+      
       const newMessages: Message[] = [];
+      let pendingUserMessage: { content: string; id: string } | null = null;
       
       for (const msg of humeMessages) {
         if (msg.type === 'user_message') {
           const userContent = (msg as any).message?.content || '';
+          const msgId = `${userContent}-${(msg as any).receivedAt}`;
+          
           newMessages.push({
             role: 'user',
             content: userContent,
             timestamp: new Date((msg as any).receivedAt || Date.now())
           });
 
-          // Check if this is a new message we haven't processed
-          if (userContent && userContent !== lastProcessedUserMessage.current) {
-            lastProcessedUserMessage.current = userContent;
-            
-            // Get health-focused response from our backend
-            try {
-              const { data, error } = await supabase.functions.invoke('hume-health-tool', {
-                body: {
-                  query: userContent,
-                  conversation_history: conversationHistory.current.slice(-6)
-                }
-              });
-
-              if (!error && data?.response) {
-                // Update conversation history
-                conversationHistory.current.push(
-                  { role: 'user', content: userContent },
-                  { role: 'assistant', content: data.response }
-                );
-
-                // Send the response to Hume to be spoken
-                sendAssistantInput(data.response);
-              }
-            } catch (err) {
-              console.error('Error getting health response:', err);
-            }
+          // Only process if we haven't already
+          if (userContent && !processedMessageIds.current.has(msgId)) {
+            pendingUserMessage = { content: userContent, id: msgId };
           }
         } else if (msg.type === 'assistant_message') {
           newMessages.push({
@@ -97,9 +82,44 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
       }
       
       setMessages(newMessages);
+
+      // Process the pending message if any
+      if (pendingUserMessage && !processingLock.current) {
+        processingLock.current = true;
+        processedMessageIds.current.add(pendingUserMessage.id);
+        setIsProcessing(true);
+        
+        try {
+          console.log('[HealthVoiceChat] Processing:', pendingUserMessage.content.substring(0, 50));
+          
+          const { data, error } = await supabase.functions.invoke('hume-health-tool', {
+            body: {
+              query: pendingUserMessage.content,
+              conversation_history: conversationHistory.current.slice(-4)
+            }
+          });
+
+          if (!error && data?.response) {
+            conversationHistory.current.push(
+              { role: 'user', content: pendingUserMessage.content },
+              { role: 'assistant', content: data.response }
+            );
+            sendAssistantInput(data.response);
+          } else if (error) {
+            console.error('[HealthVoiceChat] Backend error:', error);
+          }
+        } catch (err) {
+          console.error('[HealthVoiceChat] Error:', err);
+        } finally {
+          processingLock.current = false;
+          setIsProcessing(false);
+        }
+      }
     };
 
-    processMessages();
+    // Debounce to prevent rapid-fire calls
+    const timeoutId = setTimeout(processMessages, 100);
+    return () => clearTimeout(timeoutId);
   }, [humeMessages, sendAssistantInput]);
 
   const handleConnect = useCallback(async () => {
@@ -113,7 +133,7 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
       console.log('Connected to Hume EVI successfully');
       // Reset conversation history on new connection
       conversationHistory.current = [];
-      lastProcessedUserMessage.current = '';
+      processedMessageIds.current.clear();
     } catch (error) {
       console.error('Failed to connect to Hume:', error);
     } finally {
@@ -125,7 +145,7 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
     await disconnect();
     setMessages([]);
     conversationHistory.current = [];
-    lastProcessedUserMessage.current = '';
+    processedMessageIds.current.clear();
   }, [disconnect]);
 
   const isConnected = status.value === 'connected';
