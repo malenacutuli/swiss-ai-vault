@@ -110,17 +110,19 @@ class LLMProvider:
         if manus_api_key:
             logger.info("✓ Manus API provider initialized (fallback orchestrator)")
 
-        # Set default model
+        # Set default model based on primary provider
         if default_model:
             self.default_model = default_model
+        elif primary_provider == "manus":
+            self.default_model = "manus-1.6-max"
         elif primary_provider == "anthropic":
             self.default_model = "claude-sonnet-4-20250514"
         else:
             self.default_model = "gpt-4o"
 
         # Validate at least one provider is available
-        if not self.anthropic and not self.openai:
-            raise ValueError("At least one LLM provider must be configured")
+        if not self.anthropic and not self.openai and not self.manus_api_key:
+            raise ValueError("At least one LLM provider must be configured (Anthropic, OpenAI, or Manus)")
 
     async def complete(
         self,

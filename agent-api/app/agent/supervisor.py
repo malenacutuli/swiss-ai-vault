@@ -42,7 +42,7 @@ class AgentSupervisor:
         self.max_iterations = 50
         self.max_context_tokens = 100000
 
-        # Initialize multi-provider LLM
+        # Initialize multi-provider LLM with Manus as primary for full parity
         if llm_provider:
             self.llm = llm_provider
         else:
@@ -50,11 +50,13 @@ class AgentSupervisor:
             self.llm = create_llm_provider(
                 anthropic_api_key=settings.anthropic_api_key,
                 openai_api_key=settings.openai_api_key,
+                manus_api_key=settings.manus_api_key,
+                manus_api_url=settings.manus_api_url,
                 primary_provider=settings.llm_primary_provider,
                 default_model=settings.llm_default_model,
                 fallback_enabled=settings.llm_fallback_enabled,
             )
-            logger.info("✓ Multi-provider LLM initialized")
+            logger.info(f"✓ Multi-provider LLM initialized (primary: {settings.llm_primary_provider})")
 
     async def execute(self) -> ExecutionResult:
         """Main execution loop"""

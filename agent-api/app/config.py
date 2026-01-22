@@ -18,12 +18,14 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
 
     # LLM Providers
-    anthropic_api_key: str
+    anthropic_api_key: str | None = None
     openai_api_key: str | None = None
+    manus_api_key: str | None = None
+    manus_api_url: str = "https://api.manus.im/v1"
 
-    # LLM Settings
-    llm_primary_provider: str = "anthropic"  # "anthropic" or "openai"
-    llm_default_model: str = "claude-sonnet-4-20250514"
+    # LLM Settings - Default to Manus for full parity
+    llm_primary_provider: str = "manus"  # "manus", "anthropic", or "openai"
+    llm_default_model: str = "manus-1.6-max"
     llm_fallback_enabled: bool = True
 
     # E2B Sandboxes (for tool execution)

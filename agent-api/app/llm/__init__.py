@@ -10,6 +10,7 @@ from app.llm.models import (
     ModelInfo,
     ANTHROPIC_MODELS,
     OPENAI_MODELS,
+    MANUS_MODELS,
     get_model_info,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "ModelInfo",
     "ANTHROPIC_MODELS",
     "OPENAI_MODELS",
+    "MANUS_MODELS",
     "get_model_info",
 ]
