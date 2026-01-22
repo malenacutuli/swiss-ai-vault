@@ -175,12 +175,42 @@ export function ManusHome() {
     navigate(`/ghost/agents/task/${taskId}`);
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await (supabase as any)
+        .from('agent_runs')
+        .delete()
+        .eq('id', taskId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      
+      toast({
+        title: "Task deleted",
+        description: "Task has been removed successfully",
+      });
+    } catch (error: any) {
+      console.error("Failed to delete task:", error);
+      toast({
+        title: "Failed to delete task",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <ManusLayout
       tasks={mappedTasks}
       selectedTaskId={null}
       onNewTask={() => navigate("/ghost/agents")}
       onTaskSelect={handleTaskSelect}
+      onDeleteTask={handleDeleteTask}
     >
       {/* Hidden file input */}
       <input

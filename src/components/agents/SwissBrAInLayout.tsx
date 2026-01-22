@@ -90,6 +90,7 @@ export function SwissBrAInLayout() {
         setProjects(data.map(p => ({
           id: p.id,
           name: p.name,
+          tasks: [],
         })));
       }
     } catch (error) {
@@ -191,7 +192,6 @@ export function SwissBrAInLayout() {
             >
               <SwissBrAInHome
                 onSubmit={handleSubmitTask}
-                userName={user?.user_metadata?.full_name || user?.email?.split('@')[0]}
               />
             </motion.div>
           ) : (
