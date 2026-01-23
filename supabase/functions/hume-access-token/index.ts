@@ -29,13 +29,19 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
+    // Extract JWT token and validate using getClaims
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error('Auth validation failed:', claimsError);
       return new Response(
         JSON.stringify({ error: 'User not authenticated' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    const userId = claimsData.claims.sub;
 
     // Get Hume API credentials
     const humeApiKey = Deno.env.get('HUME_API_KEY');
@@ -72,7 +78,7 @@ serve(async (req) => {
 
     const tokenData = await tokenResponse.json();
     
-    console.log(`Access token generated for user ${user.id}`);
+    console.log(`Access token generated for user ${userId}`);
 
     return new Response(
       JSON.stringify({ 
