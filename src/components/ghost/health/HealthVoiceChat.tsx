@@ -290,11 +290,22 @@ export function HealthVoiceChat({ onClose }: HealthVoiceChatProps) {
   useEffect(() => {
     const fetchToken = async () => {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          setError(t('ghost.health.avatar.authRequired', 'Sign up and upgrade to use Health Professionals voice.') );
+          return;
+        }
+
         const { data, error } = await supabase.functions.invoke('hume-access-token');
         
         if (error) {
           console.error('Token fetch error:', error);
-          setError('Failed to initialize voice chat. Please try again.');
+          const status = (error as any)?.context?.status;
+          if (status === 401) {
+            setError(t('ghost.health.avatar.authRequired', 'Sign up and upgrade to use Health Professionals voice.'));
+          } else {
+            setError(t('ghost.health.avatar.initFailed', 'Failed to initialize voice chat. Please try again.'));
+          }
           return;
         }
         
@@ -330,9 +341,24 @@ export function HealthVoiceChat({ onClose }: HealthVoiceChatProps) {
       <Card className="flex flex-col items-center justify-center h-[500px] bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700 p-6">
         <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
         <p className="text-red-400 text-center mb-4">{error}</p>
-        <Button variant="outline" onClick={onClose} className="text-white border-slate-600">
-          {t('common.close', 'Close')}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => window.location.assign('/auth?intent=ghost')}
+            className="gap-2 bg-[#2A8C86] hover:bg-[#2A8C86]/90 text-white"
+          >
+            {t('auth.signUp', 'Sign up')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => window.location.assign('/ghost/pricing')}
+            className="text-white border-slate-600"
+          >
+            {t('ghost.pricing.upgrade', 'Upgrade')}
+          </Button>
+          <Button variant="outline" onClick={onClose} className="text-white border-slate-600">
+            {t('common.close', 'Close')}
+          </Button>
+        </div>
       </Card>
     );
   }
