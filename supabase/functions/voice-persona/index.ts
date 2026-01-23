@@ -11,7 +11,7 @@ const corsHeaders = {
 };
 
 // Modal PersonaPlex endpoint (English only)
-const PERSONAPLEX_URL = Deno.env.get('PERSONAPLEX_URL') || 'wss://axessible-labs--personaplex-moshiserver-websocket-app.modal.run/ws';
+const PERSONAPLEX_URL = Deno.env.get('PERSONAPLEX_URL') || 'wss://axessible-labs--personaplex-moshiserver-app.modal.run/ws';
 
 // Hume EVI WebSocket endpoint (multilingual fallback)
 const HUME_WS_URL = 'wss://api.hume.ai/v0/evi/chat';

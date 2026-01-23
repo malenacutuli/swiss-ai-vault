@@ -1,11 +1,11 @@
 """
 PersonaPlex Voice AI on Modal
 Real-time speech-to-speech with customizable personas
+Single endpoint to minimize Modal quota usage
 """
 
 import modal
 
-# Define the Modal app
 app = modal.App("personaplex")
 
 # GPU image with Moshi dependencies
@@ -81,59 +81,48 @@ You maintain confidentiality for all business matters."""
     secrets=[modal.Secret.from_name("huggingface")],
 )
 class MoshiServer:
-    """Moshi voice AI server running on Modal GPU"""
+    """Moshi voice AI server - single ASGI endpoint"""
 
     @modal.enter()
     def setup(self):
-        """Initialize the Moshi model on container start"""
         import os
         import torch
 
-        # Set HuggingFace token
         self.hf_token = os.environ.get("HUGGINGFACE_TOKEN", "")
         os.environ["HF_TOKEN"] = self.hf_token
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[PersonaPlex] Initializing on {self.device}")
-        print(f"[PersonaPlex] CUDA available: {torch.cuda.is_available()}")
         if torch.cuda.is_available():
             print(f"[PersonaPlex] GPU: {torch.cuda.get_device_name(0)}")
 
-    @modal.fastapi_endpoint(method="GET")
-    def health(self):
-        """Health check endpoint"""
-        return {"status": "healthy", "service": "personaplex-modal"}
-
-    @modal.fastapi_endpoint(method="GET")
-    def personas(self):
-        """List available personas"""
-        return {
-            "personas": [
-                {
-                    "id": k,
-                    "voice": v["voice"],
-                    "name": v["prompt"].split("named ")[1].split(".")[0] if "named " in v["prompt"] else k
-                }
-                for k, v in PERSONAS.items()
-            ]
-        }
-
     @modal.asgi_app()
-    def websocket_app(self):
-        """WebSocket endpoint for real-time voice conversations"""
+    def app(self):
+        """Single ASGI app: /health, /personas, /ws"""
         from starlette.applications import Starlette
         from starlette.routing import WebSocketRoute, Route
         from starlette.websockets import WebSocket
         from starlette.responses import JSONResponse
         import json
 
-        async def health_route(request):
-            return JSONResponse({"status": "healthy", "service": "personaplex-ws"})
+        async def health(request):
+            return JSONResponse({"status": "healthy", "service": "personaplex-modal"})
+
+        async def personas(request):
+            return JSONResponse({
+                "personas": [
+                    {
+                        "id": k,
+                        "voice": v["voice"],
+                        "name": v["prompt"].split("named ")[1].split(".")[0] if "named " in v["prompt"] else k
+                    }
+                    for k, v in PERSONAS.items()
+                ]
+            })
 
         async def voice_handler(websocket: WebSocket):
             await websocket.accept()
 
-            # Get persona from query params or default
             persona_id = websocket.query_params.get("persona", "research-assistant")
             persona = PERSONAS.get(persona_id, PERSONAS["research-assistant"])
 
@@ -141,14 +130,10 @@ class MoshiServer:
 
             try:
                 while True:
-                    # Receive data from client
                     data = await websocket.receive()
 
                     if "bytes" in data:
                         audio_chunk = data["bytes"]
-                        # Process audio through Moshi
-                        # In production, this streams through the model
-                        # For now, echo back to confirm connectivity
                         await websocket.send_bytes(audio_chunk)
 
                     elif "text" in data:
@@ -160,7 +145,6 @@ class MoshiServer:
                                 "type": "config_ack",
                                 "persona": persona_id
                             }))
-                            print(f"[PersonaPlex] Switched to persona: {persona_id}")
                         elif msg.get("type") == "ping":
                             await websocket.send_text(json.dumps({"type": "pong"}))
 
@@ -169,17 +153,14 @@ class MoshiServer:
             finally:
                 print("[PersonaPlex] Client disconnected")
 
-        return Starlette(
-            routes=[
-                Route("/health", health_route),
-                WebSocketRoute("/ws", voice_handler),
-            ]
-        )
+        return Starlette(routes=[
+            Route("/health", health),
+            Route("/personas", personas),
+            WebSocketRoute("/ws", voice_handler),
+        ])
 
 
 @app.local_entrypoint()
 def main():
-    """Test the deployment locally"""
     print("PersonaPlex Modal app ready")
-    print("Deploy with: modal deploy personaplex_app.py")
-    print("Available personas:", list(PERSONAS.keys()))
+    print("Single endpoint: /health, /personas, /ws")
