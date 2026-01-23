@@ -287,11 +287,11 @@ export default function GhostHealth() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/vault/health${query ? `?query=${encodeURIComponent(query)}&type=${activeAction === 'conditions' ? 'icd10_lookup' : activeAction === 'treatments' ? 'drug_interaction' : 'literature_search'}` : ''}`)}
+              onClick={() => navigate('/ghost/pricing')}
               className="gap-2 rounded-full border-[#1D4E5F]/30 text-[#1D4E5F] hover:bg-[#1D4E5F]/10 transition-all"
             >
               <Zap className="w-4 h-4" />
-              {t('ghost.modules.health.deepAnalysis', 'Deep Analysis')}
+              {t('ghost.modules.health.healthProfessionals', 'Health Professionals')}
             </Button>
             <Button
               variant="outline"

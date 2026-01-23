@@ -75,7 +75,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditCost: 1,
     creditMultiplier: 1,
     isPayPerUse: false,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
   {
     id: 'swissvault-fast',
@@ -89,7 +89,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditCost: 0.5,
     creditMultiplier: 0.5,
     isPayPerUse: false,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
 
   // ============================================
@@ -237,7 +237,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 2,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
   {
     id: 'gpt-4o-mini',
@@ -282,7 +282,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 3,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
   {
     id: 'o3-mini',
@@ -312,7 +312,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 10,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
   {
     id: 'o4-mini',
@@ -327,7 +327,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 6,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
   {
     id: 'gpt-5.2',
@@ -515,7 +515,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 1,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
   {
     id: 'gemini-2.5-pro',
@@ -530,7 +530,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 3,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
   {
     id: 'gemini-1.5-pro',
@@ -545,7 +545,7 @@ export const TEXT_MODELS: GhostModel[] = [
     creditMultiplier: 2,
     isPayPerUse: true,
     requiresPro: true,
-    enabled: true,
+    enabled: false, // Removed from model list
   },
 
   // ============================================

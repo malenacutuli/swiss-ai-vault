@@ -627,9 +627,9 @@ export default function VaultHealth() {
       <div className="flex flex-col items-center justify-center h-screen bg-background p-8">
         <Card className="max-w-md w-full text-center p-8 border-primary/20">
           <Lock className="w-16 h-16 mx-auto mb-4 text-primary/40" />
-          <h2 className="text-2xl font-semibold text-primary mb-2">Vault Health is a Pro Feature</h2>
-          <p className="text-muted-foreground mb-6">Access healthcare AI with prior auth review, claims analysis, and clinical tools.</p>
-          <Button onClick={() => navigate('/ghost/pricing')} className="bg-primary hover:bg-primary/90">Upgrade to Pro</Button>
+          <h2 className="text-2xl font-semibold text-primary mb-2">Health Professionals is a Pro Feature</h2>
+          <p className="text-muted-foreground mb-6">Access advanced healthcare AI with prior auth review, claims analysis, and clinical decision support tools.</p>
+          <Button onClick={() => navigate('/ghost/pricing')} className="bg-primary hover:bg-primary/90">Upgrade to Access</Button>
         </Card>
       </div>
     );
