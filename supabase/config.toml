@@ -182,3 +182,6 @@ verify_jwt = false
 
 [functions.hume-health-tool]
 verify_jwt = false
+
+[functions.voice-persona]
+verify_jwt = true

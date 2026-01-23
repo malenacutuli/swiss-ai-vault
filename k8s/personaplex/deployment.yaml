@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: personaplex-server
+  namespace: swissbrain
+  labels:
+    app: personaplex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: personaplex
+  template:
+    metadata:
+      labels:
+        app: personaplex
+    spec:
+      containers:
+      - name: personaplex
+        image: registry.exoscale.com/axessible/personaplex:latest
+        resources:
+          requests:
+            memory: "16Gi"
+            cpu: "4"
+          limits:
+            memory: "32Gi"
+            cpu: "8"
+            nvidia.com/gpu: 1
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: personaplex-secrets
+              key: HUGGINGFACE_TOKEN
+        - name: SSL_ENABLED
+          value: "false"
+        ports:
+        - containerPort: 8998
+          name: websocket
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8998
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8998
+          initialDelaySeconds: 120
+          periodSeconds: 30
+      nodeSelector:
+        nvidia.com/gpu: "true"
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: personaplex-service
+  namespace: swissbrain
+spec:
+  selector:
+    app: personaplex
+  ports:
+  - port: 8998
+    targetPort: 8998
+    name: websocket
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: personaplex-ingress
+  namespace: swissbrain
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "personaplex-service"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - voice.swissbrain.ai
+    secretName: personaplex-tls
+  rules:
+  - host: voice.swissbrain.ai
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: personaplex-service
+            port:
+              number: 8998
