@@ -15,9 +15,11 @@ spec:
       labels:
         app: personaplex
     spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
       containers:
       - name: personaplex
-        image: registry.exoscale.com/axessible/personaplex:latest
+        image: axessvideo/personaplex:latest
         resources:
           requests:
             memory: "16Gi"
