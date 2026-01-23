@@ -9,7 +9,9 @@ const TIER_PRICES: Record<string, { priceId: string; name: string }> = {
   'ghost_pro': { priceId: 'price_1Sk87oCAKg7jOuBKiPEBZCFY', name: 'Ghost Pro' },  // $18/mo
   'ghost_pro_annual': { priceId: 'price_1Sk88kCAKg7jOuBK4FV2xhAe', name: 'Ghost Pro Annual' },  // $151.20/yr
   'swissvault_pro': { priceId: 'price_1ScM8JCAKg7jOuBKkUh2zShm', name: 'SwissVault Pro' },  // $49/mo
+  'swissvault_pro_annual': { priceId: 'price_1SsnVsCAKg7jOuBKrxS712W7', name: 'SwissVault Pro Annual' },  // $490/yr
   'vault_pro': { priceId: 'price_1ScM8JCAKg7jOuBKkUh2zShm', name: 'SwissVault Pro' },  // Alias for backward compat
+  'vault_pro_annual': { priceId: 'price_1SsnVsCAKg7jOuBKrxS712W7', name: 'SwissVault Pro Annual' },  // Alias
 };
 
 serve(async (req) => {
@@ -48,8 +50,12 @@ serve(async (req) => {
     
     // Map tier + billing period to correct price ID
     let priceKey = tier;
-    if (tier === 'ghost_pro' && billingPeriod === 'annual') {
-      priceKey = 'ghost_pro_annual';
+    if (billingPeriod === 'annual') {
+      if (tier === 'ghost_pro') {
+        priceKey = 'ghost_pro_annual';
+      } else if (tier === 'vault_pro' || tier === 'swissvault_pro') {
+        priceKey = 'vault_pro_annual';
+      }
     }
     
     if (!TIER_PRICES[priceKey]) {
@@ -71,12 +77,13 @@ serve(async (req) => {
 
     // Determine success/cancel URLs based on tier and domain
     const baseUrl = getAppBaseUrl(req);
-    const successUrl = tier.startsWith('ghost') || tier === 'swissvault_pro'
+    const isGhostTier = tier.startsWith('ghost') || tier === 'swissvault_pro' || tier === 'vault_pro';
+    const successUrl = isGhostTier
       ? `${baseUrl}/ghost?subscription=success`
       : `${baseUrl}/dashboard?subscription=success`;
     
-    const cancelUrl = tier.startsWith('ghost') || tier === 'swissvault_pro'
-      ? `${baseUrl}/ghost?subscription=cancelled`
+    const cancelUrl = isGhostTier
+      ? `${baseUrl}/ghost/upgrade?subscription=cancelled`
       : `${baseUrl}/#pricing`;
 
     const session = await stripe.checkout.sessions.create({

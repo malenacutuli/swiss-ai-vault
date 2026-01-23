@@ -59,6 +59,7 @@ export default function Auth() {
   // URL parameter detection
   const [searchParams] = useSearchParams();
   const intent = searchParams.get('intent') as 'ghost' | 'vault' | null;
+  const planFromUrl = searchParams.get('plan'); // Capture plan param for checkout
   
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -106,8 +107,27 @@ export default function Auth() {
         return;
       }
       
-      // Priority 2: Check for pending checkout
+      // Priority 2: Check for pending checkout (from URL plan param or localStorage)
       const pendingCheckout = localStorage.getItem('pendingCheckout');
+      const pendingPlan = planFromUrl || pendingCheckout;
+      
+      if (pendingPlan && pendingPlan !== 'pro') {
+        // Handle specific tier checkout (ghost_pro, vault_pro, etc.)
+        localStorage.removeItem('pendingCheckout');
+        try {
+          const { data: checkoutData, error } = await supabase.functions.invoke('create-pro-checkout', {
+            body: { tier: pendingPlan, billing_period: 'monthly' }
+          });
+          if (!error && checkoutData?.url) {
+            window.open(checkoutData.url, '_blank');
+          }
+        } catch (err) {
+          console.error('Checkout error:', err);
+        }
+        navigate('/ghost/chat', { replace: true });
+        return;
+      }
+      
       if (pendingCheckout === 'pro') {
         localStorage.removeItem('pendingCheckout');
         try {
