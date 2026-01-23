@@ -7,6 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = parts[1];
+    // base64url -> base64
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    const json = atob(padded);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -15,8 +30,8 @@ serve(async (req) => {
 
   try {
     // Verify the user is authenticated
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
+    const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -29,8 +44,22 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Extract JWT token and validate using getClaims
-    const token = authHeader.replace('Bearer ', '');
+    // Extract JWT token
+    const token = authHeader.slice('Bearer '.length).trim();
+
+    // If the caller is anonymous, Supabase will send the anon key as the Bearer token.
+    // That token is valid but has no `sub`. Avoid calling `getClaims()` in that case
+    // (it will error with "missing sub claim").
+    const payload = decodeJwtPayload(token);
+    const sub = typeof payload?.sub === 'string' ? payload.sub : null;
+    if (!sub) {
+      return new Response(
+        JSON.stringify({ error: 'User not authenticated' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate using getClaims
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     
     if (claimsError || !claimsData?.claims?.sub) {
