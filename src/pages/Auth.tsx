@@ -178,7 +178,9 @@ export default function Auth() {
 
   const handleOAuthLogin = async (provider: 'google') => {
     setIsOAuthLoading(provider);
-    const redirectUrl = `${window.location.origin}/auth${intent ? `?intent=${intent}` : ''}`;
+    // Always redirect to our dedicated callback route so the code exchange is handled consistently.
+    // (The /auth page is a UI screen and shouldn't be the OAuth landing URL.)
+    const redirectUrl = `${window.location.origin}/auth/callback${intent ? `?intent=${intent}` : ''}`;
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
