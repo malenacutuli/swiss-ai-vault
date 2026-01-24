@@ -18,7 +18,8 @@ const MODEL_CONFIGS: Record<string, {
   displayName: string;
 }> = {
   // SwissVault (aliased to Gemini for speed/cost)
-  'swissvault-1.0': { provider: 'swissvault', modelId: 'google/gemini-2.5-flash-lite', displayName: 'SwissVault 1.0' },
+  // Keep the SwissVault 1.0 name, but run it through the Google/Gemini path.
+  'swissvault-1.0': { provider: 'google', modelId: 'gemini-2.5-flash-lite', displayName: 'SwissVault 1.0' },
   'swissvault-pro': { provider: 'swissvault', modelId: 'gpt-4o', displayName: 'SwissVault Pro' },
   'swissvault-code': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault Code' },
   'swissvault-fast': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault Fast' },
