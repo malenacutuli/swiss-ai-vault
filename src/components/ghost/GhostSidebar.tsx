@@ -1033,7 +1033,7 @@ export const GhostSidebar = memo(function GhostSidebar({
             label="Agents" 
             onClick={() => navigate('/ghost/agents')} 
             active={location.pathname === '/ghost/agents'}
-            badge="Beta"
+            badge="Soon"
           />
           <IconButton 
             icon={FlaskConical} 
