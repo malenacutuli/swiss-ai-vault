@@ -134,6 +134,25 @@ serve(async (req) => {
             logStep("Ghost subscription updated successfully", { tier });
           }
 
+          // CRITICAL FIX: Update unified_subscriptions (the table that frontend reads via useSubscription hook)
+          const { error: unifiedError } = await supabase
+            .from("unified_subscriptions")
+            .upsert({
+              user_id: userId,
+              tier: tier,
+              status: "active",
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: session.subscription as string,
+              current_period_start: new Date().toISOString(),
+              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            }, { onConflict: "user_id" });
+
+          if (unifiedError) {
+            logStep("ERROR: Failed to update unified_subscriptions", { error: unifiedError.message });
+          } else {
+            logStep("Unified subscription updated successfully", { tier, userId });
+          }
+
           // Also update billing_customers for consistency
           await supabase
             .from("billing_customers")
@@ -337,6 +356,16 @@ serve(async (req) => {
             })
             .eq("user_id", metaUserId);
 
+          // CRITICAL FIX: Update unified_subscriptions (the table that frontend reads)
+          await supabase
+            .from("unified_subscriptions")
+            .update({
+              tier: ghostTier,
+              status: subscription.status === "active" ? "active" : subscription.status,
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            })
+            .eq("user_id", metaUserId);
+
           // Also update billing_customers
           await supabase
             .from("billing_customers")
@@ -429,6 +458,16 @@ serve(async (req) => {
             .update({
               tier: "free",
               plan: "free",
+            })
+            .eq("user_id", ghostUserId);
+
+          // CRITICAL FIX: Update unified_subscriptions (the table that frontend reads)
+          await supabase
+            .from("unified_subscriptions")
+            .update({
+              tier: "ghost_free",
+              status: "canceled",
+              stripe_subscription_id: null,
             })
             .eq("user_id", ghostUserId);
 
