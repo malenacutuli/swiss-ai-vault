@@ -268,9 +268,9 @@ const SWISS_ENDPOINTS: Record<string, string> = {
   // 'deepseek-v3-oss': 'https://axessible-labs--swissvault-deepseek-deepseek-chat.modal.run',
 };
 
-// SwissVault branded models that route to OpenAI (hidden from user)
+// SwissVault branded models that route to underlying providers (hidden from user)
 const SWISSVAULT_OPENAI_ALIASES: Record<string, string> = {
-  'swissvault-1.0': 'gpt-4o-mini',
+  'swissvault-1.0': 'google/gemini-2.5-flash-lite',
   'swissvault-pro': 'gpt-4o',
   'swissvault-code': 'gpt-4o-mini',
   'swissvault-fast': 'gpt-4o-mini',
