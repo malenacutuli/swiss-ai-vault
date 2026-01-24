@@ -7,9 +7,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+// Initialize Supabase early for DB logging
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL") || "";
+const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || "";
+
+// Database logging helper - writes to webhook_logs table for debugging
+const logToDb = async (functionName: string, message: string, data?: Record<string, unknown>, level: string = "info") => {
+  try {
+    if (!supabaseUrl || !supabaseKey) return;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    await supabase.from("webhook_logs").insert({
+      function_name: functionName,
+      message,
+      data: data || {},
+      level,
+      created_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    // Silently fail - this is just for debugging
+    console.error("[DB-LOG-FAIL]", e);
+  }
+};
+
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
+  // Also log to database for debugging
+  logToDb("stripe-webhook", step, details, details?.error ? "error" : "info");
 };
 
 serve(async (req) => {
@@ -19,14 +43,14 @@ serve(async (req) => {
   }
 
   try {
-    logStep("Webhook received");
+    logStep("Webhook received", { method: req.method, url: req.url });
 
     // Get the raw body for signature verification
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
 
     if (!signature) {
-      logStep("ERROR: Missing stripe-signature header");
+      logStep("ERROR: Missing stripe-signature header", { error: "Missing signature" });
       return new Response(JSON.stringify({ error: "Missing signature" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -38,7 +62,11 @@ serve(async (req) => {
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
     if (!stripeSecretKey || !webhookSecret) {
-      logStep("ERROR: Missing Stripe configuration");
+      logStep("ERROR: Missing Stripe configuration", { 
+        error: "Missing config",
+        hasStripeKey: !!stripeSecretKey,
+        hasWebhookSecret: !!webhookSecret 
+      });
       return new Response(JSON.stringify({ error: "Server configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -54,7 +82,7 @@ serve(async (req) => {
       logStep("Signature verified", { eventType: event.type, eventId: event.id });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      logStep("ERROR: Signature verification failed", { error: errorMessage });
+      logStep("ERROR: Signature verification failed", { error: errorMessage, signaturePrefix: signature.substring(0, 20) });
       return new Response(JSON.stringify({ error: "Invalid signature" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -62,8 +90,6 @@ serve(async (req) => {
     }
 
     // Initialize Supabase with service role key
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Helper to get user_id from Stripe customer email
