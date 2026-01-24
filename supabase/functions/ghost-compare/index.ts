@@ -17,8 +17,8 @@ const MODEL_CONFIGS: Record<string, {
   modelId: string;
   displayName: string;
 }> = {
-  // SwissVault (aliased to OpenAI for reliability)
-  'swissvault-1.0': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault 1.0' },
+  // SwissVault (aliased to Gemini for speed/cost)
+  'swissvault-1.0': { provider: 'swissvault', modelId: 'google/gemini-2.5-flash-lite', displayName: 'SwissVault 1.0' },
   'swissvault-pro': { provider: 'swissvault', modelId: 'gpt-4o', displayName: 'SwissVault Pro' },
   'swissvault-code': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault Code' },
   'swissvault-fast': { provider: 'swissvault', modelId: 'gpt-4o-mini', displayName: 'SwissVault Fast' },
