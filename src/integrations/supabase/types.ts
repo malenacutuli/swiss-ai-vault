@@ -2868,6 +2868,45 @@ export type Database = {
           },
         ]
       }
+      connector_credentials: {
+        Row: {
+          access_token_encrypted: string
+          connected_at: string
+          connector_id: string
+          id: string
+          metadata: Json | null
+          refresh_token_encrypted: string | null
+          scopes: string[] | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted: string
+          connected_at?: string
+          connector_id: string
+          id?: string
+          metadata?: Json | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string
+          connected_at?: string
+          connector_id?: string
+          id?: string
+          metadata?: Json | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_keys: {
         Row: {
           algorithm: string | null
