@@ -1,206 +1,215 @@
 
 
-# Payment System Investigation: Root Cause Analysis and Fix Plan
+# Payment Webhook Issue - Root Cause Analysis & Fix Plan
 
 ## Executive Summary
 
-After extensive investigation of the payment system, Google authentication, and subscription activation flow, I've identified **three critical issues** causing users to be charged but not receive their subscription benefits.
+After thorough investigation, I've identified that while the Stripe webhook is correctly configured and events are being sent, the edge function is either **not receiving calls** or **logging is broken**. The database confirms the webhook never executed - all relevant tables (`unified_subscriptions`, `ghost_subscriptions`, `billing_customers`) remain unchanged after payment.
 
 ---
 
-## Issue 1: Stripe Webhook Not Updating the Correct Table (CRITICAL)
+## Investigation Findings
 
-### Root Cause
-The Stripe webhook (`stripe-webhook/index.ts`) updates `ghost_subscriptions` and `billing_customers` tables, but the subscription verification system (`useSubscription` hook and `get_user_tier` RPC function) reads from the `unified_subscriptions` table.
-
-### Evidence
-- Database query shows ALL users in `unified_subscriptions` have `tier: ghost_free`, `stripe_customer_id: null`, `stripe_subscription_id: null`
-- Active Stripe subscriptions exist (e.g., `sub_1St3UCCAKg7jOuBKriiJmrAr` with $18/month Ghost Pro)
-- No subscription activation notifications in the `notifications` table
-- The `get_user_tier` RPC function queries `unified_subscriptions` exclusively
-
-### The Table Mismatch
-
-```text
-+------------------------+     +----------------------+     +------------------------+
-| Stripe Webhook WRITES  |     | Frontend READS       |     | Result                 |
-+------------------------+     +----------------------+     +------------------------+
-| ghost_subscriptions    | --> | unified_subscriptions| --> | Tier always shows FREE |
-| billing_customers      |     | (via get_user_tier)  |     |                        |
-+------------------------+     +----------------------+     +------------------------+
-```
-
-### Fix Required
-Modify `stripe-webhook/index.ts` to ALSO update the `unified_subscriptions` table when processing `checkout.session.completed` events.
-
----
-
-## Issue 2: Metadata Key Mismatch (CRITICAL)
-
-### Root Cause
-The `create-pro-checkout` function sets metadata as:
-```typescript
-metadata: {
-  user_id: user.id,
-  tier: tier,
-  type: 'pro_subscription',  // <-- This key
-}
-```
-
-But the webhook checks for:
-```typescript
-const productType = session.metadata?.product_type;  // <-- Different key!
-if (productType === "ghost_subscription" && tier) {
-  // This block never executes because product_type is undefined
-}
-```
-
-### Evidence
-- Stripe subscription `sub_1St3UCCAKg7jOuBKriiJmrAr` shows empty metadata: `"metadata":{}`
-- The metadata is set on the checkout session but the webhook reads `product_type` which doesn't exist
-
-### Fix Required
-1. Update `create-pro-checkout` to use `product_type: "ghost_subscription"` instead of `type: "pro_subscription"`
-2. Ensure Stripe subscription inherits metadata from checkout session (or fetch it correctly)
-
----
-
-## Issue 3: Webhook May Not Be Receiving Events
-
-### Root Cause
-No recent stripe-webhook calls appear in the Edge Function logs, suggesting the Stripe webhook endpoint may not be properly configured in the Stripe Dashboard.
-
-### Evidence
-- Edge function analytics show NO calls to `stripe-webhook` function
+### What's Working
+- Stripe Dashboard shows webhook endpoint is Active with 0% error rate
+- Events are being generated (checkout.session.completed, invoice.paid, etc.)
+- itorres@axessible.ai successfully paid $18/mo Ghost Pro subscription
+- Edge function code is correctly structured
 - `STRIPE_WEBHOOK_SECRET` is configured in secrets
-- Payment was processed successfully (payment intent shows `succeeded`)
+- Edge function responds (tested with curl - returns 400 "Missing signature" as expected)
 
-### Fix Required
-1. Verify Stripe Dashboard webhook endpoint URL: `https://rljnrgscmosgkcjdvlrq.supabase.co/functions/v1/stripe-webhook`
-2. Ensure these events are enabled:
-   - `checkout.session.completed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.paid`
-   - `invoice.payment_failed`
+### What's NOT Working
+- No edge function logs appear for `stripe-webhook` (zero entries in analytics)
+- User itorres@axessible.ai still shows `tier: ghost_free` in `unified_subscriptions`
+- `ghost_subscriptions` shows `tier: free` 
+- `billing_customers` table is completely empty
+- No notifications created from webhook
 
 ---
 
-## Issue 4: Google Authentication Redirect URL
+## Root Cause Analysis
 
-### Observation
-The Google OAuth redirect URL is set to `/auth` with intent parameters:
-```typescript
-const redirectUrl = `${window.location.origin}/auth${intent ? `?intent=${intent}` : ''}`;
-```
+### Primary Issue: Webhook Signing Secret Mismatch
 
-This should work, but the auth callback page at `/auth/callback` handles session recovery separately. If users are having Google login issues, it may be due to:
-1. Google Cloud Console not having the correct authorized redirect URIs
-2. Session not being properly persisted after OAuth redirect
+The most likely cause is a **mismatch between the webhook signing secret**. There are several scenarios:
 
-### Verification Needed
-Check Google Cloud Console for authorized redirect URIs:
-- `https://swissbrain.ai/auth/callback`
-- `https://swissvault.ai/auth/callback`
-- `https://*.lovable.app/auth/callback` (for preview)
-- The Supabase callback: `https://rljnrgscmosgkcjdvlrq.supabase.co/auth/v1/callback`
+1. **Test vs Live Secret Mismatch**: The `STRIPE_WEBHOOK_SECRET` stored in the backend may be for Stripe's Test mode while the webhook endpoint is configured in Live mode (or vice versa)
+
+2. **Multiple Webhook Secrets**: If multiple webhook endpoints exist in Stripe, each has its own signing secret. The stored secret may be for a different endpoint
+
+3. **Recently Rotated Secret**: If the webhook secret was rotated in Stripe Dashboard, the old secret would still be stored in the backend
+
+### Evidence Supporting This Theory
+
+- Stripe shows the webhook is "Active" and events are being sent
+- The edge function exists and responds to direct calls
+- No logs appear - this typically happens when:
+  - The function crashes before logging starts
+  - Signature verification fails silently
+  - The Supabase logging pipeline has issues (known issue per community reports)
+
+### Secondary Issue: Supabase Logging Pipeline
+
+There's a documented issue where Supabase Edge Function logs may not appear in the dashboard even when functions execute. This means the webhook might actually be failing but we can't see the error.
 
 ---
 
-## Implementation Plan
+## Verification Steps Required
 
-### Phase 1: Fix Stripe Webhook Table Updates (Immediate)
+Before implementing fixes, we need to verify the actual issue:
 
-1. **Modify `stripe-webhook/index.ts`** - Add unified_subscriptions update:
+### Step 1: Verify Webhook Secret (User Action Required)
+
+Please compare the webhook signing secret:
+
+1. Go to Stripe Dashboard → Developers → Webhooks → Click on "SwissVault Webhook"
+2. Click "Reveal" next to the signing secret
+3. The secret should start with `whsec_...`
+4. Verify this matches what's stored in `STRIPE_WEBHOOK_SECRET`
+
+**Important**: There's a different secret for Live mode vs Test mode. Make sure you're looking at the correct one.
+
+### Step 2: Check Webhook Event Delivery
+
+1. In Stripe Dashboard → Developers → Webhooks → Click on the webhook
+2. Click "Test webhook" → Select "checkout.session.completed"
+3. Send a test event
+4. Check if the event shows as "Succeeded" or "Failed" in the webhook log
+
+### Step 3: Verify All Required Events are Enabled
+
+Ensure these events are enabled for the webhook:
+- `checkout.session.completed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+- `invoice.paid`
+
+Currently the screenshot shows "1 event" which may indicate only one event type is enabled.
+
+---
+
+## Fix Plan (After Verification)
+
+### Phase 1: Update Webhook Signing Secret
+
+If the secret is mismatched:
+
+1. Copy the correct webhook signing secret from Stripe Dashboard
+2. Update `STRIPE_WEBHOOK_SECRET` in the backend secrets
+
+### Phase 2: Add Enhanced Error Logging
+
+Even without visible logs, we can make the webhook more resilient:
+
+**File: `supabase/functions/stripe-webhook/index.ts`**
+
+Add a fallback logging mechanism that writes errors to a database table:
 
 ```typescript
-// After updating ghost_subscriptions, ALSO update unified_subscriptions
-if (productType === "ghost_subscription" && tier) {
-  // Existing ghost_subscriptions update...
-  
-  // ADD: Update unified_subscriptions (the table that useSubscription reads)
-  const { error: unifiedError } = await supabase
-    .from("unified_subscriptions")
-    .upsert({
-      user_id: userId,
-      tier: tier,
-      status: "active",
-      stripe_customer_id: session.customer as string,
-      stripe_subscription_id: session.subscription as string,
-      current_period_start: new Date().toISOString(),
-      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    }, { onConflict: "user_id" });
-    
-  if (unifiedError) {
-    logStep("ERROR: Failed to update unified_subscriptions", { error: unifiedError.message });
-  } else {
-    logStep("Unified subscription updated successfully", { tier });
+// Add at top of file
+const logToDb = async (message: string, data: any) => {
+  try {
+    await supabase.from('webhook_logs').insert({
+      function_name: 'stripe-webhook',
+      message,
+      data,
+      created_at: new Date().toISOString()
+    });
+  } catch (e) {
+    // Silently fail - this is just for debugging
   }
-}
+};
 ```
 
-2. **Modify `create-pro-checkout/index.ts`** - Fix metadata keys:
+### Phase 3: Manual Database Sync for Existing Paid Users
 
-```typescript
-metadata: {
-  user_id: user.id,
-  tier: tier,
-  product_type: 'ghost_subscription',  // Changed from 'type: pro_subscription'
-}
-```
+Once webhook is working, run a one-time sync for itorres@axessible.ai:
 
-### Phase 2: Handle Standard Subscription Mode
-
-The webhook also has a `session.mode === "subscription"` block that falls through when `productType` is not set. This block updates `billing_customers` but not `unified_subscriptions`. It needs the same fix.
-
-### Phase 3: Verify Stripe Webhook Configuration
-
-User action required: Verify in Stripe Dashboard that the webhook endpoint is correctly configured.
-
-### Phase 4: Fix Existing Paid Users
-
-Create a one-time migration script to sync existing Stripe subscriptions to `unified_subscriptions`:
+**Database Migration:**
 
 ```sql
--- Match Stripe customers to users and update unified_subscriptions
--- This would need to be run manually after identifying affected users
+-- Update unified_subscriptions for itorres@axessible.ai
+UPDATE unified_subscriptions 
+SET 
+  tier = 'ghost_pro',
+  status = 'active',
+  stripe_customer_id = 'cus_TqkzSmMwAwwEOs',
+  stripe_subscription_id = 'sub_1St3UCCAKg7jOuBKriiJmrAr',
+  current_period_start = NOW(),
+  current_period_end = NOW() + INTERVAL '30 days',
+  updated_at = NOW()
+WHERE user_id = '458e553a-7c8f-4f57-8806-633a5c801905';
+
+-- Update ghost_subscriptions
+UPDATE ghost_subscriptions 
+SET 
+  tier = 'ghost_pro',
+  plan = 'ghost_pro',
+  expires_at = NOW() + INTERVAL '30 days'
+WHERE user_id = '458e553a-7c8f-4f57-8806-633a5c801905';
+
+-- Insert billing_customers record
+INSERT INTO billing_customers (
+  user_id, email, stripe_customer_id, stripe_subscription_id,
+  subscription_status, tier, current_period_end
+) VALUES (
+  '458e553a-7c8f-4f57-8806-633a5c801905',
+  'itorres@axessible.ai',
+  'cus_TqkzSmMwAwwEOs',
+  'sub_1St3UCCAKg7jOuBKriiJmrAr',
+  'active',
+  'ghost_pro',
+  NOW() + INTERVAL '30 days'
+) ON CONFLICT (user_id) DO UPDATE SET
+  stripe_customer_id = EXCLUDED.stripe_customer_id,
+  stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+  subscription_status = EXCLUDED.subscription_status,
+  tier = EXCLUDED.tier,
+  current_period_end = EXCLUDED.current_period_end;
+```
+
+### Phase 4: Create Webhook Debug Table
+
+To help debug future webhook issues:
+
+```sql
+CREATE TABLE IF NOT EXISTS webhook_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  function_name TEXT NOT NULL,
+  message TEXT,
+  data JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Allow service role to write
+ALTER TABLE webhook_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role can insert" ON webhook_logs 
+  FOR INSERT WITH CHECK (true);
 ```
 
 ---
 
-## Technical Details
+## Recommended Immediate Actions
 
-### Files to Modify
+1. **Priority 1**: Verify the `STRIPE_WEBHOOK_SECRET` matches what's in Stripe Dashboard (this is most likely the issue)
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/stripe-webhook/index.ts` | Add `unified_subscriptions` upsert in checkout.session.completed, subscription.updated, and subscription.deleted handlers |
-| `supabase/functions/create-pro-checkout/index.ts` | Change metadata key from `type` to `product_type` |
+2. **Priority 2**: Check if all required webhook events are enabled (screenshot shows only "1 event")
 
-### Database Tables Affected
+3. **Priority 3**: Manually sync itorres@axessible.ai's subscription data to resolve their immediate issue
 
-| Table | Current Role | Should Also Handle |
-|-------|--------------|-------------------|
-| `unified_subscriptions` | READ by frontend | WRITE by webhook |
-| `ghost_subscriptions` | WRITE by webhook | Keep as-is for token tracking |
-| `billing_customers` | WRITE by webhook | Keep as backup |
-
-### Testing Plan
-
-1. Create test checkout session with correct metadata
-2. Verify webhook receives event (check Edge Function logs)
-3. Verify `unified_subscriptions` is updated
-4. Verify `useSubscription` hook returns correct tier
-5. Verify user sees correct tier in UI
+4. **Priority 4**: Implement webhook debug logging to catch future issues
 
 ---
 
-## Summary of Root Causes
+## Technical Summary
 
-| Problem | Root Cause | Impact |
-|---------|-----------|--------|
-| Payment taken but no upgrade | Webhook writes to wrong table | Users stuck on free tier |
-| Metadata mismatch | `type` vs `product_type` key difference | Ghost subscription handler never executes |
-| No webhook calls in logs | Possibly missing Stripe Dashboard configuration | Payments never trigger updates |
-| Google auth issues | Needs redirect URI verification | Users cannot sign in with Google |
+| Component | Status | Issue |
+|-----------|--------|-------|
+| Stripe Webhook Endpoint | Configured | May have wrong signing secret |
+| Event Types | Partially Configured | Only 1 event enabled? |
+| Edge Function | Deployed | No logs visible |
+| unified_subscriptions | Not Updated | tier=ghost_free |
+| ghost_subscriptions | Not Updated | tier=free |
+| billing_customers | Empty | No records |
 
