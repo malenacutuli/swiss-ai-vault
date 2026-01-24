@@ -326,10 +326,16 @@ const DEEPSEEK_MODEL_MAP: Record<string, string> = {
 // ============================================
 
 function getProvider(model: string): 'modal' | 'openai' | 'anthropic' | 'google' | 'xai' | 'deepseek' {
-  // SwissVault branded models that route to OpenAI (hidden)
-  if (SWISSVAULT_OPENAI_ALIASES[model]) {
-    console.log(`[Router] SwissVault model "${model}" → OpenAI alias "${SWISSVAULT_OPENAI_ALIASES[model]}"`);
-    return 'openai';
+  // SwissVault branded models that route to underlying providers (hidden)
+  const swissAlias = SWISSVAULT_OPENAI_ALIASES[model];
+  if (swissAlias) {
+    // If the alias is a Gemini model (or explicitly prefixed), route via Google.
+    // This prevents sending Gemini model IDs to the OpenAI endpoint.
+    const isGoogleAlias = swissAlias.startsWith('google/') || swissAlias.includes('gemini');
+    console.log(
+      `[Router] SwissVault model "${model}" → ${isGoogleAlias ? 'Google' : 'OpenAI'} alias "${swissAlias}"`
+    );
+    return isGoogleAlias ? 'google' : 'openai';
   }
   
   // Open source models → Modal (includes Qwen, LLaMA, Mistral via Modal)
@@ -1683,7 +1689,9 @@ Deno.serve(async (req: Request) => {
     // ==========================================
     if (provider === 'google') {
       try {
-        const result = await callGoogle(model, finalMessages, options);
+        // Resolve SwissVault aliases to actual Google/Gemini model
+        const actualModel = SWISSVAULT_OPENAI_ALIASES[model] || model;
+        const result = await callGoogle(actualModel, finalMessages, options);
         
         const googleResponseData: any = {
           id: `chatcmpl-google-${Date.now()}`,
