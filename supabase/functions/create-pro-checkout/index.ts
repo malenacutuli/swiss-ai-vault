@@ -101,7 +101,7 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         tier: tier,
-        type: 'pro_subscription',
+        product_type: 'ghost_subscription',
       },
     });
 
