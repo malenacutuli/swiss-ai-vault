@@ -293,7 +293,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: 300, // Concise for voice
+            max_tokens: 1024, // Increased to prevent cutoffs
             system: HEALTHCARE_TRIAGE_SYSTEM_PROMPT,
             messages: messages
           }),
@@ -344,7 +344,7 @@ SAFETY: If someone mentions self-harm, immediately provide crisis resources (988
               { role: 'system', content: geminiSystemPrompt },
               ...messages
             ],
-            max_tokens: 250,
+            max_tokens: 1024, // Increased to prevent cutoffs
           }),
         });
 
