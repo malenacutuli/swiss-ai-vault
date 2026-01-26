@@ -19,12 +19,14 @@ import {
   Zap,
   Mic,
   UserRound,
-  Phone
 } from 'lucide-react';
 
-// Lazy load the voice chat component
+// Lazy load components
 const HealthVoiceChat = lazy(() => 
   import('@/components/ghost/health/HealthVoiceChat').then(m => ({ default: m.HealthVoiceChat }))
+);
+const HumanProfessionalModal = lazy(() => 
+  import('@/components/ghost/health/HumanProfessionalModal').then(m => ({ default: m.HumanProfessionalModal }))
 );
 import { cn } from '@/lib/utils';
 
@@ -100,71 +102,6 @@ const getSuggestionKeys = (action: ActionType): string[] => {
   };
   return suggestionKeys[action];
 };
-
-// Human professional request modal content
-function HumanProfessionalModal({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
-  
-  return (
-    <Card className="p-6 bg-white shadow-lg border-slate-200 max-w-md mx-auto">
-      <div className="text-center space-y-4">
-        <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
-          <UserRound className="w-8 h-8 text-emerald-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-slate-900">
-          {t('ghost.health.humanProfessional.title', 'Connect with a Healthcare Professional')}
-        </h3>
-        <p className="text-sm text-slate-600">
-          {t('ghost.health.humanProfessional.description', 'For personalized medical advice, please consult with a licensed healthcare provider.')}
-        </p>
-        
-        <div className="space-y-3 pt-4">
-          {/* Emergency Resources */}
-          <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-            <div className="flex items-center gap-2 text-red-700 font-medium text-sm">
-              <Phone className="w-4 h-4" />
-              {t('ghost.health.humanProfessional.emergency', 'Emergency: Call 911')}
-            </div>
-          </div>
-          
-          {/* Mental Health Crisis */}
-          <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-            <div className="text-purple-700 font-medium text-sm">
-              {t('ghost.health.humanProfessional.crisis', '988 Suicide & Crisis Lifeline')}
-            </div>
-            <p className="text-xs text-purple-600 mt-1">
-              {t('ghost.health.humanProfessional.crisisNote', 'Call or text 988 • Available 24/7')}
-            </p>
-          </div>
-          
-          {/* Telehealth Options */}
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <div className="text-blue-700 font-medium text-sm">
-              {t('ghost.health.humanProfessional.telehealth', 'Telehealth Services')}
-            </div>
-            <p className="text-xs text-blue-600 mt-1">
-              {t('ghost.health.humanProfessional.telehealthNote', 'Many insurance plans cover virtual doctor visits')}
-            </p>
-          </div>
-          
-          {/* Primary Care */}
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-            <div className="text-slate-700 font-medium text-sm">
-              {t('ghost.health.humanProfessional.primaryCare', 'Schedule with Your Doctor')}
-            </div>
-            <p className="text-xs text-slate-600 mt-1">
-              {t('ghost.health.humanProfessional.primaryCareNote', 'Regular check-ups help maintain your health')}
-            </p>
-          </div>
-        </div>
-        
-        <Button onClick={onClose} variant="outline" className="mt-4">
-          {t('common.close', 'Close')}
-        </Button>
-      </div>
-    </Card>
-  );
-}
 
 export default function GhostHealth() {
   const { t, i18n } = useTranslation();
@@ -393,8 +330,14 @@ export default function GhostHealth() {
 
           {/* Human Professional Modal */}
           {showHumanModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <HumanProfessionalModal onClose={() => setShowHumanModal(false)} />
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowHumanModal(false)}>
+              <Suspense fallback={
+                <Card className="flex items-center justify-center h-[400px] w-[500px] bg-white">
+                  <Loader2 className="w-8 h-8 text-[#2A8C86] animate-spin" />
+                </Card>
+              }>
+                <HumanProfessionalModal onClose={() => setShowHumanModal(false)} />
+              </Suspense>
             </div>
           )}
 
