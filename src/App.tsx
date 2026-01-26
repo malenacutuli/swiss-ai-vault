@@ -118,6 +118,9 @@ import GhostVentureCapital from "./pages/ghost/GhostVentureCapital";
 import VaultHealth from "./pages/vault/VaultHealth";
 import { OnboardingWizard } from "./components/onboarding";
 
+// Lazy load Verified Expert System
+const VerifiedExpertSystem = lazy(() => import('./pages/ghost/VerifiedExpertSystem'));
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -224,6 +227,7 @@ const App = () => {
                 <Route path="/ghost/research" element={<GhostResearch />} />
                 <Route path="/ghost/security" element={<GhostSecurity />} />
                 <Route path="/ghost/health" element={<GhostHealth />} />
+                <Route path="/ghost/health/expert" element={<Suspense fallback={<PageLoader />}><VerifiedExpertSystem /></Suspense>} />
                 <Route path="/ghost/travel" element={<GhostTravel />} />
                 <Route path="/ghost/realestate" element={<GhostRealEstate />} />
                 <Route path="/ghost/art" element={<GhostArt />} />
