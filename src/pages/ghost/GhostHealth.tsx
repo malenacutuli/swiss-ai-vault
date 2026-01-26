@@ -17,7 +17,9 @@ import {
   ExternalLink,
   Search,
   Zap,
-  MessageCircle
+  Mic,
+  UserRound,
+  Phone
 } from 'lucide-react';
 
 // Lazy load the voice chat component
@@ -99,6 +101,71 @@ const getSuggestionKeys = (action: ActionType): string[] => {
   return suggestionKeys[action];
 };
 
+// Human professional request modal content
+function HumanProfessionalModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  
+  return (
+    <Card className="p-6 bg-white shadow-lg border-slate-200 max-w-md mx-auto">
+      <div className="text-center space-y-4">
+        <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
+          <UserRound className="w-8 h-8 text-emerald-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-slate-900">
+          {t('ghost.health.humanProfessional.title', 'Connect with a Healthcare Professional')}
+        </h3>
+        <p className="text-sm text-slate-600">
+          {t('ghost.health.humanProfessional.description', 'For personalized medical advice, please consult with a licensed healthcare provider.')}
+        </p>
+        
+        <div className="space-y-3 pt-4">
+          {/* Emergency Resources */}
+          <div className="p-3 bg-red-50 rounded-lg border border-red-100">
+            <div className="flex items-center gap-2 text-red-700 font-medium text-sm">
+              <Phone className="w-4 h-4" />
+              {t('ghost.health.humanProfessional.emergency', 'Emergency: Call 911')}
+            </div>
+          </div>
+          
+          {/* Mental Health Crisis */}
+          <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+            <div className="text-purple-700 font-medium text-sm">
+              {t('ghost.health.humanProfessional.crisis', '988 Suicide & Crisis Lifeline')}
+            </div>
+            <p className="text-xs text-purple-600 mt-1">
+              {t('ghost.health.humanProfessional.crisisNote', 'Call or text 988 • Available 24/7')}
+            </p>
+          </div>
+          
+          {/* Telehealth Options */}
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <div className="text-blue-700 font-medium text-sm">
+              {t('ghost.health.humanProfessional.telehealth', 'Telehealth Services')}
+            </div>
+            <p className="text-xs text-blue-600 mt-1">
+              {t('ghost.health.humanProfessional.telehealthNote', 'Many insurance plans cover virtual doctor visits')}
+            </p>
+          </div>
+          
+          {/* Primary Care */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <div className="text-slate-700 font-medium text-sm">
+              {t('ghost.health.humanProfessional.primaryCare', 'Schedule with Your Doctor')}
+            </div>
+            <p className="text-xs text-slate-600 mt-1">
+              {t('ghost.health.humanProfessional.primaryCareNote', 'Regular check-ups help maintain your health')}
+            </p>
+          </div>
+        </div>
+        
+        <Button onClick={onClose} variant="outline" className="mt-4">
+          {t('common.close', 'Close')}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export default function GhostHealth() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -110,6 +177,7 @@ export default function GhostHealth() {
   const [activeAction, setActiveAction] = useState<ActionType>('conditions');
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showAvatar, setShowAvatar] = useState(false);
+  const [showHumanModal, setShowHumanModal] = useState(false);
   const searchCardRef = useRef<HTMLDivElement>(null);
 
   const suggestionKeys = useMemo(
@@ -240,8 +308,9 @@ export default function GhostHealth() {
             </div>
           </Card>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Reorganized */}
           <div className="flex flex-wrap justify-center gap-2">
+            {/* Research Actions */}
             <Button
               variant="outline"
               size="sm"
@@ -284,6 +353,33 @@ export default function GhostHealth() {
               <FlaskConical className="w-4 h-4" />
               {t('ghost.modules.health.actions.trials')}
             </Button>
+            
+            {/* Divider */}
+            <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block" />
+            
+            {/* AI Agent Button - Primary CTA */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAvatar(true)}
+              className="gap-2 rounded-full border-[#2A8C86] bg-[#2A8C86]/5 text-[#2A8C86] hover:bg-[#2A8C86]/15 transition-all font-medium"
+            >
+              <Mic className="w-4 h-4" />
+              {t('ghost.health.avatar.talkToAgent', 'Talk to Healthcare AI Agent')}
+            </Button>
+            
+            {/* Request Human Professional */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHumanModal(true)}
+              className="gap-2 rounded-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 transition-all"
+            >
+              <UserRound className="w-4 h-4" />
+              {t('ghost.health.humanProfessional.button', 'Request Human Professional')}
+            </Button>
+            
+            {/* Health Professionals (Pro) */}
             <Button
               variant="outline"
               size="sm"
@@ -293,16 +389,14 @@ export default function GhostHealth() {
               <Zap className="w-4 h-4" />
               {t('ghost.modules.health.healthProfessionals', 'Health Professionals')}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAvatar(true)}
-              className="gap-2 rounded-full border-purple-300 text-purple-600 hover:bg-purple-50 transition-all"
-            >
-              <MessageCircle className="w-4 h-4" />
-              {t('ghost.health.avatar.talkButton', 'Talk to Avatar')}
-            </Button>
           </div>
+
+          {/* Human Professional Modal */}
+          {showHumanModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <HumanProfessionalModal onClose={() => setShowHumanModal(false)} />
+            </div>
+          )}
 
           {/* Voice Avatar Section */}
           {showAvatar && (
@@ -356,7 +450,7 @@ export default function GhostHealth() {
           )}
 
           {/* Categories */}
-          {!result && (
+          {!result && !showAvatar && (
             <div className="space-y-4">
               <h2 className="text-sm font-medium text-slate-500 text-center">{t('ghost.modules.health.exploreByCategory')}</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
