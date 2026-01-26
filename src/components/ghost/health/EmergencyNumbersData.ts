@@ -5,7 +5,6 @@
 export interface EmergencyNumbers {
   country: string;
   countryCode: string;
-  flag: string;
   emergency: string;
   police?: string;
   ambulance?: string;
@@ -25,7 +24,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'United States',
     countryCode: 'US',
-    flag: '🇺🇸',
     emergency: '911',
     crisisLine: '988',
     crisisName: 'Suicide & Crisis Lifeline',
@@ -41,7 +39,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'United Kingdom',
     countryCode: 'GB',
-    flag: '🇬🇧',
     emergency: '999 or 112',
     crisisLine: '116 123',
     crisisName: 'Samaritans',
@@ -56,7 +53,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'European Union (General)',
     countryCode: 'EU',
-    flag: '🇪🇺',
     emergency: '112',
     crisisNote: 'Works in all EU countries from any phone, free of charge',
   },
@@ -64,7 +60,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Switzerland',
     countryCode: 'CH',
-    flag: '🇨🇭',
     emergency: '112',
     police: '117',
     ambulance: '144',
@@ -81,7 +76,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Germany',
     countryCode: 'DE',
-    flag: '🇩🇪',
     emergency: '112',
     police: '110',
     crisisLine: '0800 111 0 111',
@@ -96,7 +90,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'France',
     countryCode: 'FR',
-    flag: '🇫🇷',
     emergency: '112',
     ambulance: '15',
     police: '17',
@@ -112,7 +105,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Spain',
     countryCode: 'ES',
-    flag: '🇪🇸',
     emergency: '112',
     police: '091',
     crisisLine: '024',
@@ -127,7 +119,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Italy',
     countryCode: 'IT',
-    flag: '🇮🇹',
     emergency: '112',
     police: '113',
     ambulance: '118',
@@ -143,7 +134,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Netherlands',
     countryCode: 'NL',
-    flag: '🇳🇱',
     emergency: '112',
     crisisLine: '0800-0113',
     crisisName: '113 Zelfmoordpreventie',
@@ -153,7 +143,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Belgium',
     countryCode: 'BE',
-    flag: '🇧🇪',
     emergency: '112',
     police: '101',
     crisisLine: '1813',
@@ -167,7 +156,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Austria',
     countryCode: 'AT',
-    flag: '🇦🇹',
     emergency: '112',
     ambulance: '144',
     police: '133',
@@ -183,7 +171,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Portugal',
     countryCode: 'PT',
-    flag: '🇵🇹',
     emergency: '112',
     crisisLine: '(+351) 225 50 60 70',
     crisisName: 'Voz de Apoio',
@@ -195,7 +182,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Ireland',
     countryCode: 'IE',
-    flag: '🇮🇪',
     emergency: '112 or 999',
     crisisLine: '116 123',
     crisisName: 'Samaritans',
@@ -209,7 +195,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'United Arab Emirates',
     countryCode: 'AE',
-    flag: '🇦🇪',
     emergency: '999',
     police: '999',
     ambulance: '998',
@@ -225,7 +210,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Mexico',
     countryCode: 'MX',
-    flag: '🇲🇽',
     emergency: '911',
     crisisLine: '800 911 2000',
     crisisName: 'Línea de la Vida',
@@ -238,7 +222,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Brazil',
     countryCode: 'BR',
-    flag: '🇧🇷',
     emergency: '190',
     ambulance: '192',
     fire: '193',
@@ -250,7 +233,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Argentina',
     countryCode: 'AR',
-    flag: '🇦🇷',
     emergency: '101',
     ambulance: '107',
     fire: '100',
@@ -262,7 +244,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Colombia',
     countryCode: 'CO',
-    flag: '🇨🇴',
     emergency: '123',
     crisisLine: '106',
     crisisName: 'Línea 106',
@@ -272,7 +253,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Chile',
     countryCode: 'CL',
-    flag: '🇨🇱',
     emergency: '131',
     police: '133',
     fire: '132',
@@ -284,7 +264,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Australia',
     countryCode: 'AU',
-    flag: '🇦🇺',
     emergency: '000',
     crisisLine: '13 11 14',
     crisisName: 'Lifeline',
@@ -298,7 +277,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Canada',
     countryCode: 'CA',
-    flag: '🇨🇦',
     emergency: '911',
     crisisLine: '988',
     crisisName: 'Suicide Crisis Helpline',
@@ -312,7 +290,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'India',
     countryCode: 'IN',
-    flag: '🇮🇳',
     emergency: '112',
     police: '100',
     ambulance: '102',
@@ -328,7 +305,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Japan',
     countryCode: 'JP',
-    flag: '🇯🇵',
     emergency: '110',
     ambulance: '119',
     fire: '119',
@@ -340,7 +316,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'South Korea',
     countryCode: 'KR',
-    flag: '🇰🇷',
     emergency: '112',
     ambulance: '119',
     fire: '119',
@@ -352,7 +327,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'Singapore',
     countryCode: 'SG',
-    flag: '🇸🇬',
     emergency: '999',
     ambulance: '995',
     fire: '995',
@@ -364,7 +338,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'New Zealand',
     countryCode: 'NZ',
-    flag: '🇳🇿',
     emergency: '111',
     crisisLine: '1737',
     crisisName: 'Need to Talk?',
@@ -377,7 +350,6 @@ export const EMERGENCY_NUMBERS: EmergencyNumbers[] = [
   {
     country: 'South Africa',
     countryCode: 'ZA',
-    flag: '🇿🇦',
     emergency: '10111',
     ambulance: '10177',
     crisisLine: '0800 567 567',
