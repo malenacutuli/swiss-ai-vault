@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, MicOff, X, Loader2, VolumeX, AlertCircle, Heart, Phone, Globe } from 'lucide-react';
+import { Mic, MicOff, X, Loader2, VolumeX, AlertCircle, Heart, Phone, Globe, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { useHealthStorage } from '@/hooks/useHealthStorage';
 
 // Lazy load the 3D component for better performance
 const HealthAvatar3D = lazy(() => 
@@ -23,6 +24,8 @@ interface Message {
 interface VoiceChatInnerProps {
   onClose: () => void;
   accessToken: string;
+  onSessionCreated?: (sessionId: string) => void;
+  onMessagesUpdate?: (messages: Message[]) => void;
 }
 
 // Crisis banner component
@@ -53,7 +56,7 @@ function CrisisBanner({ type, language }: { type: string; language: string }) {
   );
 }
 
-function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
+function VoiceChatInner({ onClose, accessToken, onSessionCreated, onMessagesUpdate }: VoiceChatInnerProps) {
   const { t, i18n } = useTranslation();
   const { 
     connect, 
@@ -72,9 +75,15 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [crisisDetected, setCrisisDetected] = useState<{ type: string; language: string } | null>(null);
+  const [showEndDialog, setShowEndDialog] = useState(false);
   const conversationHistory = useRef<{ role: string; content: string }[]>([]);
   const processedMessageIds = useRef<Set<string>>(new Set());
   const processingLock = useRef<boolean>(false);
+
+  // Notify parent of message updates
+  useEffect(() => {
+    onMessagesUpdate?.(messages);
+  }, [messages, onMessagesUpdate]);
 
   // Welcome message in user's language
   const getWelcomeMessage = useCallback(() => {
@@ -212,12 +221,55 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
   }, [connect, accessToken, getWelcomeMessage, sendAssistantInput]);
 
   const handleDisconnect = useCallback(async () => {
+    // Show end dialog if there are messages
+    if (messages.length > 0) {
+      setShowEndDialog(true);
+    } else {
+      await disconnect();
+      onClose();
+    }
+  }, [disconnect, messages.length, onClose]);
+
+  const handleConfirmEnd = useCallback(async (shouldDownload: boolean) => {
+    if (shouldDownload && messages.length > 0) {
+      // Generate transcript
+      const content = [
+        `# Voice Health Consultation`,
+        `Date: ${new Date().toLocaleString()}`,
+        ``,
+        `---`,
+        ``,
+        ...messages.map(msg => {
+          const role = msg.role === 'user' ? 'You' : 'Healthcare AI';
+          const time = msg.timestamp.toLocaleTimeString();
+          return `**${role}** (${time}):\n${msg.content}\n`;
+        }),
+        ``,
+        `---`,
+        ``,
+        `*This consultation was conducted through SwissVault Health AI Voice Agent.*`,
+        `*This is not medical advice. Please consult with a healthcare professional for diagnosis and treatment.*`,
+      ].join('\n');
+
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `voice-consultation-${new Date().toISOString().split('T')[0]}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     await disconnect();
     setMessages([]);
     setCrisisDetected(null);
     conversationHistory.current = [];
     processedMessageIds.current.clear();
-  }, [disconnect]);
+    setShowEndDialog(false);
+    onClose();
+  }, [disconnect, messages, onClose]);
 
   const isConnected = status.value === 'connected';
   const isSpeaking = isPlaying || (fft && fft.length > 0 && fft.some((v: number) => v > 0.1));
@@ -225,6 +277,36 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
 
   return (
     <Card className="relative flex flex-col h-[550px] bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700 overflow-hidden">
+      {/* End Session Dialog */}
+      {showEndDialog && (
+        <div className="absolute inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-xl p-6 max-w-sm w-full space-y-4 border border-slate-700">
+            <h3 className="text-lg font-medium text-white text-center">
+              {t('ghost.health.voice.endSession', 'End Session')}
+            </h3>
+            <p className="text-sm text-slate-300 text-center">
+              {t('ghost.health.voice.downloadPrompt', 'Would you like to download a transcript of this conversation?')}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 border-slate-600 text-white hover:bg-slate-700"
+                onClick={() => handleConfirmEnd(false)}
+              >
+                {t('ghost.health.voice.noThanks', 'No, just end')}
+              </Button>
+              <Button
+                className="flex-1 bg-[#2A8C86] hover:bg-[#2A8C86]/90 text-white gap-2"
+                onClick={() => handleConfirmEnd(true)}
+              >
+                <Download className="w-4 h-4" />
+                {t('ghost.health.voice.downloadEnd', 'Download & End')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Crisis Banner */}
       {crisisDetected && (
         <CrisisBanner type={crisisDetected.type} language={crisisDetected.language} />
@@ -234,7 +316,7 @@ function VoiceChatInner({ onClose, accessToken }: VoiceChatInnerProps) {
       <Button
         variant="ghost"
         size="icon"
-        onClick={onClose}
+        onClick={handleDisconnect}
         className="absolute top-3 right-3 z-10 text-white/70 hover:text-white hover:bg-white/10"
       >
         <X className="w-5 h-5" />
@@ -371,6 +453,66 @@ export function HealthVoiceChat({ onClose }: HealthVoiceChatProps) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const messagesRef = useRef<Message[]>([]);
+
+  // Health storage for saving voice sessions
+  const {
+    isInitialized,
+    createConversation,
+    saveMessage,
+    updateTitle,
+    refreshConversations,
+  } = useHealthStorage();
+
+  // Create a session when voice chat starts
+  useEffect(() => {
+    if (isInitialized && !sessionId) {
+      const newId = createConversation(
+        t('ghost.health.voice.sessionTitle', 'Voice Health Consultation'),
+        'forever',
+        true,
+        'voice_consultation'
+      );
+      if (newId) {
+        setSessionId(newId);
+        console.log('[HealthVoiceChat] Created session:', newId);
+      }
+    }
+  }, [isInitialized, sessionId, createConversation, t]);
+
+  // Save messages to local storage when they change
+  const handleMessagesUpdate = useCallback((messages: Message[]) => {
+    if (!sessionId || !isInitialized) return;
+
+    // Find new messages (compare with previous)
+    const prevCount = messagesRef.current.length;
+    const newMessages = messages.slice(prevCount);
+
+    newMessages.forEach((msg) => {
+      saveMessage(sessionId, msg.role, msg.content, undefined, {
+        source: 'voice',
+        isCrisis: msg.isCrisis,
+      });
+    });
+
+    // Update title with first user message
+    if (prevCount === 0 && messages.length > 0) {
+      const firstUserMsg = messages.find(m => m.role === 'user');
+      if (firstUserMsg) {
+        const title = firstUserMsg.content.slice(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '');
+        updateTitle(sessionId, title);
+      }
+    }
+
+    messagesRef.current = messages;
+  }, [sessionId, isInitialized, saveMessage, updateTitle]);
+
+  // Handle close - refresh conversations list
+  const handleClose = useCallback(() => {
+    refreshConversations();
+    onClose();
+  }, [refreshConversations, onClose]);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -419,7 +561,7 @@ export function HealthVoiceChat({ onClose }: HealthVoiceChatProps) {
           <p className="text-slate-400 text-sm">
             {t('ghost.health.avatar.emergencyNote', 'If this is an emergency, please call 911')}
           </p>
-          <Button variant="outline" onClick={onClose} className="text-white border-slate-600">
+          <Button variant="outline" onClick={handleClose} className="text-white border-slate-600">
             {t('common.close', 'Close')}
           </Button>
         </div>
@@ -438,7 +580,12 @@ export function HealthVoiceChat({ onClose }: HealthVoiceChatProps) {
       onError={(error) => console.error('Hume Voice error:', error)}
       onClose={() => console.log('Hume connection closed')}
     >
-      <VoiceChatInner onClose={onClose} accessToken={accessToken} />
+      <VoiceChatInner 
+        onClose={handleClose} 
+        accessToken={accessToken}
+        onSessionCreated={setSessionId}
+        onMessagesUpdate={handleMessagesUpdate}
+      />
     </VoiceProvider>
   );
 }

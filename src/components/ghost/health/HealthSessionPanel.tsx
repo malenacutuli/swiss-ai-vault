@@ -55,8 +55,22 @@ export function HealthSessionPanel({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+  // Get session type label
+  const getSessionTypeLabel = useCallback((taskType?: string): string => {
+    switch (taskType) {
+      case 'voice_consultation':
+        return t('ghost.health.sessions.typeVoice', 'Voice Consultation');
+      case 'health_consult':
+      case 'consultation':
+        return t('ghost.health.sessions.typeText', 'Text Consultation');
+      default:
+        return t('ghost.health.sessions.typeGeneral', 'Health Session');
+    }
+  }, [t]);
+
   // Generate transcript text from conversation summary
   const generateTranscript = useCallback((conv: ConversationItem): string => {
+    const typeLabel = getSessionTypeLabel(conv.taskType);
     const header = [
       '═══════════════════════════════════════════════════════════════',
       '                    HEALTH CONSULTATION TRANSCRIPT',
@@ -64,13 +78,14 @@ export function HealthSessionPanel({
       '',
       `Session ID: ${conv.id}`,
       `Title: ${conv.title}`,
+      `Type: ${typeLabel}`,
       `Last Updated: ${format(new Date(conv.updatedAt), 'PPpp')}`,
-      `Type: ${conv.taskType || 'general_query'}`,
       `Messages: ${conv.messageCount}`,
       '',
       '═══════════════════════════════════════════════════════════════',
       '',
       'Note: Full transcript requires loading the complete session.',
+      'Use the "Export for Doctor" option for a complete export.',
       '',
       '═══════════════════════════════════════════════════════════════',
       '                          DISCLAIMER',
@@ -85,7 +100,7 @@ export function HealthSessionPanel({
     ].join('\n');
 
     return header;
-  }, []);
+  }, [getSessionTypeLabel]);
 
   // Download session as text file
   const handleDownload = useCallback(async (conv: ConversationItem) => {
@@ -200,9 +215,16 @@ export function HealthSessionPanel({
                 }}
               >
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm text-slate-800 truncate">
-                    {conv.title}
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-sm text-slate-800 truncate">
+                      {conv.title}
+                    </h4>
+                    {conv.taskType === 'voice_consultation' && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-100 text-emerald-700">
+                        Voice
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
                     <Clock className="w-3 h-3" />
                     <span>{format(new Date(conv.updatedAt), 'MMM d, yyyy h:mm a')}</span>
