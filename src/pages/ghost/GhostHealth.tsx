@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { DiscoverLayout } from '@/components/ghost/DiscoverLayout';
 import { SearchModeSelector, SourcesDropdown, type SearchMode } from '@/components/ghost/discover';
+import { useHealthStorage } from '@/hooks/useHealthStorage';
 import {
   Heart,
   Stethoscope,
@@ -19,6 +20,9 @@ import {
   Zap,
   Mic,
   UserRound,
+  FolderOpen,
+  Upload,
+  Brain,
 } from 'lucide-react';
 
 // Lazy load components
@@ -27,6 +31,12 @@ const HealthVoiceChat = lazy(() =>
 );
 const HumanProfessionalModal = lazy(() => 
   import('@/components/ghost/health/HumanProfessionalModal').then(m => ({ default: m.HumanProfessionalModal }))
+);
+const HealthSessionPanel = lazy(() => 
+  import('@/components/ghost/health/HealthSessionPanel').then(m => ({ default: m.HealthSessionPanel }))
+);
+const HealthImageUpload = lazy(() => 
+  import('@/components/ghost/health/HealthImageUpload').then(m => ({ default: m.HealthImageUpload }))
 );
 import { cn } from '@/lib/utils';
 
@@ -115,7 +125,12 @@ export default function GhostHealth() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showAvatar, setShowAvatar] = useState(false);
   const [showHumanModal, setShowHumanModal] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const searchCardRef = useRef<HTMLDivElement>(null);
+  
+  // Health storage hook for local session management
+  const { conversations, deleteConversation, isLoading: healthStorageLoading } = useHealthStorage();
 
   const suggestionKeys = useMemo(
     () => getSuggestionKeys(activeAction),
@@ -315,6 +330,35 @@ export default function GhostHealth() {
               <UserRound className="w-4 h-4" />
               {t('ghost.health.humanProfessional.button', 'Request Human Professional')}
             </Button>
+
+            {/* Divider */}
+            <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block" />
+            
+            {/* Sessions & Upload */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSessions(!showSessions)}
+              className={cn(
+                "gap-2 rounded-full transition-all",
+                showSessions ? "bg-slate-100 text-slate-800" : "text-slate-600"
+              )}
+            >
+              <FolderOpen className="w-4 h-4" />
+              {t('ghost.health.sessions.button', 'My Sessions')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowUpload(!showUpload)}
+              className={cn(
+                "gap-2 rounded-full transition-all",
+                showUpload ? "bg-slate-100 text-slate-800" : "text-slate-600"
+              )}
+            >
+              <Upload className="w-4 h-4" />
+              {t('ghost.health.upload.button', 'Upload Files')}
+            </Button>
             
             {/* Health Professionals (Pro) */}
             <Button
@@ -349,6 +393,33 @@ export default function GhostHealth() {
               </Card>
             }>
               <HealthVoiceChat onClose={() => setShowAvatar(false)} />
+            </Suspense>
+          )}
+
+          {/* Sessions Panel */}
+          {showSessions && (
+            <Suspense fallback={<Card className="h-[200px] flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></Card>}>
+              <HealthSessionPanel
+                conversations={conversations}
+                onDeleteSession={async (id) => await deleteConversation(id)}
+                onSelectSession={(id) => console.log('Selected session:', id)}
+              />
+            </Suspense>
+          )}
+
+          {/* Image Upload Panel */}
+          {showUpload && (
+            <Suspense fallback={<Card className="h-[200px] flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></Card>}>
+              <Card className="p-4">
+                <h3 className="font-medium text-slate-800 mb-4 flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-[#2A8C86]" />
+                  {t('ghost.health.upload.title', 'Upload Health Files for AI Analysis')}
+                </h3>
+                <HealthImageUpload
+                  onFileAnalyzed={(file) => console.log('File analyzed:', file.filename)}
+                  maxFiles={5}
+                />
+              </Card>
             </Suspense>
           )}
 
