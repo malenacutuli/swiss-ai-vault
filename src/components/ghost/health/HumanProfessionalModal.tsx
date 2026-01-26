@@ -33,7 +33,8 @@ import {
   MessageCircle,
   CheckCircle2,
   Shield,
-} from 'lucide-react';
+  Siren,
+} from '@/icons';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -150,7 +151,7 @@ export function HumanProfessionalModal({ onClose, userCountry }: HumanProfession
             {displayedCountries.map((country) => (
               <SelectItem key={country.countryCode} value={country.countryCode}>
                 <span className="flex items-center gap-2">
-                  <span>{country.flag}</span>
+                  <Globe className="w-4 h-4 text-muted-foreground" />
                   <span>{country.country}</span>
                 </span>
               </SelectItem>
@@ -176,15 +177,14 @@ export function HumanProfessionalModal({ onClose, userCountry }: HumanProfession
       {currentCountryInfo && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-            <span className="text-2xl">{currentCountryInfo.flag}</span>
+            <Globe className="w-6 h-6 text-[#1D4E5F]" />
             <span>{currentCountryInfo.country}</span>
           </div>
 
-          {/* Main Emergency Number */}
           <div className="p-4 bg-red-50 rounded-lg border border-red-200">
             <div className="flex items-center gap-2 text-red-700 font-bold text-lg">
-              <Phone className="w-5 h-5" />
-              <span>🚨 {t('ghost.health.emergency.emergency', 'EMERGENCY')}: {currentCountryInfo.emergency}</span>
+              <Siren className="w-5 h-5" />
+              <span>{t('ghost.health.emergency.emergency', 'EMERGENCY')}: {currentCountryInfo.emergency}</span>
             </div>
             {currentCountryInfo.police && (
               <p className="text-sm text-red-600 mt-1">
@@ -195,12 +195,11 @@ export function HumanProfessionalModal({ onClose, userCountry }: HumanProfession
             )}
           </div>
 
-          {/* Crisis Line */}
           {currentCountryInfo.crisisLine && (
             <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
               <div className="flex items-center gap-2 text-purple-700 font-semibold">
-                <Heart className="w-4 h-4" />
-                <span>📞 {t('ghost.health.emergency.crisisLine', 'Crisis Line')}: {currentCountryInfo.crisisLine}</span>
+                <Phone className="w-4 h-4" />
+                <span>{t('ghost.health.emergency.crisisLine', 'Crisis Line')}: {currentCountryInfo.crisisLine}</span>
               </div>
               {currentCountryInfo.crisisName && (
                 <p className="text-sm text-purple-600 mt-1">{currentCountryInfo.crisisName}</p>
@@ -367,7 +366,7 @@ export function HumanProfessionalModal({ onClose, userCountry }: HumanProfession
                         {EMERGENCY_NUMBERS.map((country) => (
                           <SelectItem key={country.countryCode} value={country.country}>
                             <span className="flex items-center gap-2">
-                              <span>{country.flag}</span>
+                              <Globe className="w-4 h-4 text-muted-foreground" />
                               <span>{country.country}</span>
                             </span>
                           </SelectItem>
