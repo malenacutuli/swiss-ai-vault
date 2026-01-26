@@ -226,12 +226,10 @@ export function HealthSessionPanel({
               {/* Expanded Actions */}
               {expandedId === conv.id && (
                 <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
-                  {/* Preview */}
-                  {conv.messages.length > 0 && (
-                    <div className="p-2 bg-slate-50 rounded text-xs text-slate-600 line-clamp-2">
-                      {conv.messages[0].content.substring(0, 150)}...
-                    </div>
-                  )}
+                  {/* Session Info */}
+                  <div className="p-2 bg-slate-50 rounded text-xs text-slate-600">
+                    {conv.messageCount} messages • Last updated {new Date(conv.updatedAt).toLocaleString()}
+                  </div>
 
                   {/* Retention Badge */}
                   <div className="flex items-center gap-2">
