@@ -38,6 +38,9 @@ const HealthSessionPanel = lazy(() =>
 const HealthImageUpload = lazy(() => 
   import('@/components/ghost/health/HealthImageUpload').then(m => ({ default: m.HealthImageUpload }))
 );
+const HealthConsultChat = lazy(() => 
+  import('@/components/ghost/health/HealthConsultChat').then(m => ({ default: m.HealthConsultChat }))
+);
 import { cn } from '@/lib/utils';
 
 interface Citation {
@@ -127,6 +130,7 @@ export default function GhostHealth() {
   const [showHumanModal, setShowHumanModal] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [showConsult, setShowConsult] = useState(false);
   const searchCardRef = useRef<HTMLDivElement>(null);
   
   // Health storage hook for local session management
@@ -309,7 +313,7 @@ export default function GhostHealth() {
             {/* Divider */}
             <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block" />
             
-            {/* AI Agent Button - Primary CTA */}
+            {/* AI Agent Button - Voice */}
             <Button
               variant="outline"
               size="sm"
@@ -318,6 +322,17 @@ export default function GhostHealth() {
             >
               <Mic className="w-4 h-4" />
               {t('ghost.health.avatar.talkToAgent', 'Talk to Healthcare AI Agent')}
+            </Button>
+
+            {/* Health Consult - Text Chat with Anthropic */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConsult(true)}
+              className="gap-2 rounded-full border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all font-medium"
+            >
+              <Brain className="w-4 h-4" />
+              {t('ghost.health.consult.button', 'Health Consult')}
             </Button>
             
             {/* Request Human Professional */}
@@ -383,6 +398,17 @@ export default function GhostHealth() {
                 <HumanProfessionalModal onClose={() => setShowHumanModal(false)} />
               </Suspense>
             </div>
+          )}
+
+          {/* Health Consult Chat - Text-based Anthropic Triage */}
+          {showConsult && (
+            <Suspense fallback={
+              <Card className="flex items-center justify-center h-[600px] bg-white">
+                <Loader2 className="w-10 h-10 text-[#2A8C86] animate-spin" />
+              </Card>
+            }>
+              <HealthConsultChat onClose={() => setShowConsult(false)} />
+            </Suspense>
           )}
 
           {/* Voice Avatar Section */}
