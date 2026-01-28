@@ -1,5 +1,5 @@
 /**
- * HELIOS Hooks
+ * HELIOS Hooks Index
  */
 
 export { useHeliosSession } from './useHeliosSession';

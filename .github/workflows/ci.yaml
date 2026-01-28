@@ -1,0 +1,129 @@
+name: HELIOS CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/helios/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/helios/**'
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: apps/helios
+
+      - name: Lint
+        run: pnpm lint
+        working-directory: apps/helios
+
+      - name: Type check
+        run: pnpm typecheck
+        working-directory: apps/helios
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: apps/helios
+
+      - name: Run unit tests
+        run: pnpm test
+        working-directory: apps/helios
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: apps/helios/coverage/lcov.info
+          flags: helios
+
+  safety-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: apps/helios
+
+      - name: Run safety tests
+        run: pnpm test:safety
+        working-directory: apps/helios
+
+      - name: Run language tests
+        run: pnpm test:languages
+        working-directory: apps/helios
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, safety-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: apps/helios
+
+      - name: Build
+        run: pnpm build
+        working-directory: apps/helios
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: helios-dist
+          path: apps/helios/dist

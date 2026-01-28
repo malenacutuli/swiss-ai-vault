@@ -1,0 +1,118 @@
+name: HELIOS Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/helios/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: registry.exoscale.com/axessible
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Exoscale Registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.exoscale.com
+          username: ${{ secrets.EXOSCALE_API_KEY }}
+          password: ${{ secrets.EXOSCALE_API_SECRET }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/helios
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/helios
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    needs: build-image
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_STAGING }}" > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+
+      - name: Deploy to staging
+        run: |
+          kubectl apply -k kubernetes/overlays/staging
+          kubectl -n helios-staging rollout status deployment/staging-helios-api
+
+  deploy-production:
+    needs: [build-image, deploy-staging]
+    if: github.event.inputs.environment == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+
+      - name: Deploy to production
+        run: |
+          kubectl apply -k kubernetes/overlays/production
+          kubectl -n helios rollout status deployment/helios-api
+
+      - name: Notify deployment
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "HELIOS deployed to production",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*HELIOS Healthcare AI* deployed to production\n*Image:* ${{ needs.build-image.outputs.image-tag }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

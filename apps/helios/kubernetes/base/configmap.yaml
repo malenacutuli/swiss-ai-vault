@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: helios-config
+  namespace: helios
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  DEFAULT_LANGUAGE: "en"
+  DEEPGRAM_MODEL: "nova-2-medical"
+
+  # Voice settings
+  VOICE_TIMEOUT_MS: "30000"
+  VOICE_MAX_DURATION_MS: "300000"
+
+  # Safety settings
+  SAFETY_CHECK_ENABLED: "true"
+  SAFETY_ESCALATION_ENABLED: "true"
+
+  # Rate limits
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW_MS: "60000"
