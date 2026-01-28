@@ -9,20 +9,17 @@ import { AgentPlanner } from '../_shared/agent/planner.ts';
 import { AgentSupervisor, SupervisorContext } from '../_shared/agent/supervisor.ts';
 import { ToolRouter } from '../_shared/tools/router.ts';
 import { authenticateToken, extractToken } from '../_shared/cross-project-auth.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCors, corsHeaders } from '../_shared/cors.ts';
 
 // Permissive client type to avoid strict typing issues
 type AnySupabaseClient = ReturnType<typeof createClient>;
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // Get Supabase client with service role (for database operations)
