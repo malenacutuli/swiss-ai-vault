@@ -141,9 +141,10 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <AuthProvider>
-              <EncryptionProvider>
-                <FirstTimeOrganizationModal />
-                <Routes>
+              <AnalyticsProvider>
+                <EncryptionProvider>
+                  <FirstTimeOrganizationModal />
+                  <Routes>
                 {/* Public routes - Marketing pages with MarketingLayout */}
                 <Route path="/" element={<MarketingLayout><Index /></MarketingLayout>} />
                 <Route path="/auth" element={<Auth />} />
@@ -301,7 +302,8 @@ const App = () => {
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              </EncryptionProvider>
+                </EncryptionProvider>
+              </AnalyticsProvider>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
