@@ -38,11 +38,13 @@ interface SessionUpdate {
 }
 
 interface IngestRequest {
-  type: 'event' | 'events' | 'session' | 'signup_complete';
+  type: 'event' | 'events' | 'session' | 'signup_complete' | 'user_login';
   event?: AnalyticsEvent;
   events?: AnalyticsEvent[];
   session?: SessionUpdate;
   signup_data?: Record<string, unknown>;
+  session_id?: string;
+  is_new_user?: boolean;
 }
 
 // Simple IP geolocation using ip-api.com (free tier)
@@ -390,6 +392,43 @@ serve(async (req) => {
             .update({ user_id: userId, is_converted: true })
             .eq('id', data.session_id as string);
         }
+        break;
+      }
+
+      case 'user_login': {
+        // Track existing user login and link session to user
+        if (!userId) {
+          console.log('user_login: No user authenticated, skipping');
+          return new Response(
+            JSON.stringify({ success: true, skipped: true, reason: 'no_user' }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Link session to user
+        if (body.session_id) {
+          await serviceClient
+            .from('user_sessions')
+            .update({ user_id: userId })
+            .eq('id', body.session_id);
+        }
+
+        // Track login event
+        const geo = ip ? await getGeoLocation(ip) : {};
+        await serviceClient.from('platform_analytics_events').insert({
+          user_id: userId,
+          session_id: body.session_id,
+          event_type: 'user_login',
+          event_name: 'existing_user_login',
+          ip_address: ip,
+          country_code: geo.country_code,
+          region: geo.region,
+          city: geo.city,
+          user_agent: userAgent,
+          metadata: { is_new_user: body.is_new_user ?? false }
+        });
+
+        console.log('user_login: Tracked login for user', userId);
         break;
       }
 
