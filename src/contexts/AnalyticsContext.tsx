@@ -178,50 +178,58 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Track when user logs in - send signup completion only for NEW signups
+  // Track user authentication - both new signups AND existing user logins
   useEffect(() => {
     if (user && isInitializedRef.current) {
       const firstVisit = localStorage.getItem('sb_first_visit');
       
-      // Only process if this is a potential new signup (first visit data exists)
-      if (!firstVisit) {
-        // Existing user login, no attribution to track
-        return;
-      }
-      
-      let firstVisitData: Record<string, unknown> = {};
-      try {
-        firstVisitData = JSON.parse(firstVisit);
-      } catch {
-        // Ignore parse errors
-        localStorage.removeItem('sb_first_visit');
-        return;
-      }
-
-      // Calculate time to signup if this is a new user
-      const signupData = {
-        session_id: sessionIdRef.current,
-        pages_before_signup: pageCountRef.current,
-        time_to_signup_seconds: firstVisitData.timestamp 
-          ? Math.floor((Date.now() - (firstVisitData.timestamp as number)) / 1000)
-          : 0,
-        landing_page: firstVisitData.landing_page,
-        referrer: firstVisitData.referrer || document.referrer,
-        utm_source: firstVisitData.utm_source,
-        utm_medium: firstVisitData.utm_medium,
-        utm_campaign: firstVisitData.utm_campaign
-      };
-
       // Small delay to ensure auth token is ready
       setTimeout(() => {
-        sendToBackend({
-          type: 'signup_complete',
-          signup_data: signupData
-        });
-      }, 500);
+        if (firstVisit) {
+          // NEW USER SIGNUP - send signup_complete with attribution data
+          let firstVisitData: Record<string, unknown> = {};
+          try {
+            firstVisitData = JSON.parse(firstVisit);
+          } catch {
+            localStorage.removeItem('sb_first_visit');
+            // Still track as login
+            sendToBackend({
+              type: 'user_login',
+              session_id: sessionIdRef.current,
+              is_new_user: false
+            });
+            return;
+          }
 
-      // Clear first visit data after signup
-      localStorage.removeItem('sb_first_visit');
+          const signupData = {
+            session_id: sessionIdRef.current,
+            pages_before_signup: pageCountRef.current,
+            time_to_signup_seconds: firstVisitData.timestamp 
+              ? Math.floor((Date.now() - (firstVisitData.timestamp as number)) / 1000)
+              : 0,
+            landing_page: firstVisitData.landing_page,
+            referrer: firstVisitData.referrer || document.referrer,
+            utm_source: firstVisitData.utm_source,
+            utm_medium: firstVisitData.utm_medium,
+            utm_campaign: firstVisitData.utm_campaign
+          };
+
+          sendToBackend({
+            type: 'signup_complete',
+            signup_data: signupData
+          });
+
+          // Clear first visit data after signup
+          localStorage.removeItem('sb_first_visit');
+        } else {
+          // EXISTING USER LOGIN - track login event and link session
+          sendToBackend({
+            type: 'user_login',
+            session_id: sessionIdRef.current,
+            is_new_user: false
+          });
+        }
+      }, 500);
     }
   }, [user]);
 
