@@ -1,215 +1,433 @@
 
+# Platform Owner Analytics & User Monitoring System
+## Complete Implementation Plan for malena@axessible.ai
 
-# Payment Webhook Issue - Root Cause Analysis & Fix Plan
+---
 
 ## Executive Summary
 
-After thorough investigation, I've identified that while the Stripe webhook is correctly configured and events are being sent, the edge function is either **not receiving calls** or **logging is broken**. The database confirms the webhook never executed - all relevant tables (`unified_subscriptions`, `ghost_subscriptions`, `billing_customers`) remain unchanged after payment.
+This plan delivers a comprehensive user monitoring and analytics system giving you full control and visibility over every user interaction, signup, session, cost, revenue, and feature usage across SwissBrain.
+
+**What You'll Get:**
+- Real-time email notifications for every new signup
+- Complete user journey tracking (source, pages, features)
+- Session-level analytics with duration and activity metrics
+- Per-user cost and revenue attribution
+- IP address and geolocation tracking
+- Active/idle user classification
+- Platform Owner Dashboard with live data
 
 ---
 
-## Investigation Findings
+## 1. Database Schema - User Activity Tracking
 
-### What's Working
-- Stripe Dashboard shows webhook endpoint is Active with 0% error rate
-- Events are being generated (checkout.session.completed, invoice.paid, etc.)
-- itorres@axessible.ai successfully paid $18/mo Ghost Pro subscription
-- Edge function code is correctly structured
-- `STRIPE_WEBHOOK_SECRET` is configured in secrets
-- Edge function responds (tested with curl - returns 400 "Missing signature" as expected)
+### 1.1 Core Analytics Tables
 
-### What's NOT Working
-- No edge function logs appear for `stripe-webhook` (zero entries in analytics)
-- User itorres@axessible.ai still shows `tier: ghost_free` in `unified_subscriptions`
-- `ghost_subscriptions` shows `tier: free` 
-- `billing_customers` table is completely empty
-- No notifications created from webhook
+**Table: `platform_analytics_events`**
+Captures every user interaction across the platform.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | Authenticated user (nullable for anonymous) |
+| anonymous_id | TEXT | Fingerprint hash for anonymous users |
+| session_id | UUID | Links events to sessions |
+| event_type | TEXT | page_view, feature_use, click, signup, login, etc. |
+| event_name | TEXT | Specific event (e.g., "ghost_chat_message") |
+| page_path | TEXT | URL path visited |
+| feature_category | TEXT | ghost, agents, studio, health, discovery |
+| metadata | JSONB | Custom properties per event |
+| ip_address | INET | User IP (hashed for privacy option) |
+| country_code | TEXT | Geo-location country |
+| region | TEXT | Geo-location region/state |
+| city | TEXT | Geo-location city |
+| user_agent | TEXT | Browser/device info |
+| referrer | TEXT | Traffic source URL |
+| utm_source | TEXT | Marketing attribution |
+| utm_medium | TEXT | Marketing channel |
+| utm_campaign | TEXT | Campaign name |
+| created_at | TIMESTAMPTZ | Event timestamp |
+
+**Table: `user_sessions`**
+Tracks complete user sessions with duration and activity metrics.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Session ID |
+| user_id | UUID | User reference |
+| anonymous_id | TEXT | For pre-signup tracking |
+| started_at | TIMESTAMPTZ | Session start |
+| ended_at | TIMESTAMPTZ | Session end (updated on last activity) |
+| duration_seconds | INTEGER | Computed session duration |
+| page_count | INTEGER | Pages visited |
+| feature_count | INTEGER | Features used |
+| event_count | INTEGER | Total events |
+| entry_page | TEXT | First page visited |
+| exit_page | TEXT | Last page visited |
+| ip_address | INET | Session IP |
+| country_code | TEXT | Geographic location |
+| device_type | TEXT | desktop, mobile, tablet |
+| browser | TEXT | Chrome, Safari, etc. |
+| referrer | TEXT | Traffic source |
+| utm_source | TEXT | Marketing source |
+| is_converted | BOOLEAN | Did anonymous convert to signup? |
+| is_active | BOOLEAN | Currently active session |
+| last_activity_at | TIMESTAMPTZ | Last event timestamp |
+
+**Table: `user_signups`**
+Dedicated table for signup tracking with full attribution.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | Reference to auth.users |
+| email | TEXT | User email |
+| full_name | TEXT | User name |
+| signup_method | TEXT | email, google, github |
+| ip_address | INET | Signup IP |
+| country_code | TEXT | Signup country |
+| city | TEXT | Signup city |
+| referrer | TEXT | Traffic source |
+| utm_source | TEXT | Marketing source |
+| utm_campaign | TEXT | Campaign |
+| landing_page | TEXT | First page visited |
+| pages_before_signup | INTEGER | Engagement depth |
+| time_to_signup_seconds | INTEGER | Time from first visit to signup |
+| device_type | TEXT | Device used |
+| browser | TEXT | Browser used |
+| notification_sent | BOOLEAN | Email notification sent |
+| created_at | TIMESTAMPTZ | Signup timestamp |
+
+**Table: `user_cost_tracking`**
+Tracks costs per user per feature.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | User reference |
+| date | DATE | Tracking date |
+| feature | TEXT | Feature used |
+| provider | TEXT | AI provider (anthropic, openai, etc.) |
+| model | TEXT | Model used |
+| input_tokens | INTEGER | Tokens consumed |
+| output_tokens | INTEGER | Tokens generated |
+| estimated_cost_usd | NUMERIC(10,6) | Estimated cost |
+| requests_count | INTEGER | Number of requests |
+| created_at | TIMESTAMPTZ | Record timestamp |
 
 ---
 
-## Root Cause Analysis
+## 2. Edge Function: Signup Notification System
 
-### Primary Issue: Webhook Signing Secret Mismatch
+### 2.1 New Function: `notify-signup`
 
-The most likely cause is a **mismatch between the webhook signing secret**. There are several scenarios:
+Sends immediate email notification to malena@axessible.ai for every new user.
 
-1. **Test vs Live Secret Mismatch**: The `STRIPE_WEBHOOK_SECRET` stored in the backend may be for Stripe's Test mode while the webhook endpoint is configured in Live mode (or vice versa)
-
-2. **Multiple Webhook Secrets**: If multiple webhook endpoints exist in Stripe, each has its own signing secret. The stored secret may be for a different endpoint
-
-3. **Recently Rotated Secret**: If the webhook secret was rotated in Stripe Dashboard, the old secret would still be stored in the backend
-
-### Evidence Supporting This Theory
-
-- Stripe shows the webhook is "Active" and events are being sent
-- The edge function exists and responds to direct calls
-- No logs appear - this typically happens when:
-  - The function crashes before logging starts
-  - Signature verification fails silently
-  - The Supabase logging pipeline has issues (known issue per community reports)
-
-### Secondary Issue: Supabase Logging Pipeline
-
-There's a documented issue where Supabase Edge Function logs may not appear in the dashboard even when functions execute. This means the webhook might actually be failing but we can't see the error.
-
----
-
-## Verification Steps Required
-
-Before implementing fixes, we need to verify the actual issue:
-
-### Step 1: Verify Webhook Secret (User Action Required)
-
-Please compare the webhook signing secret:
-
-1. Go to Stripe Dashboard → Developers → Webhooks → Click on "SwissVault Webhook"
-2. Click "Reveal" next to the signing secret
-3. The secret should start with `whsec_...`
-4. Verify this matches what's stored in `STRIPE_WEBHOOK_SECRET`
-
-**Important**: There's a different secret for Live mode vs Test mode. Make sure you're looking at the correct one.
-
-### Step 2: Check Webhook Event Delivery
-
-1. In Stripe Dashboard → Developers → Webhooks → Click on the webhook
-2. Click "Test webhook" → Select "checkout.session.completed"
-3. Send a test event
-4. Check if the event shows as "Succeeded" or "Failed" in the webhook log
-
-### Step 3: Verify All Required Events are Enabled
-
-Ensure these events are enabled for the webhook:
-- `checkout.session.completed`
-- `customer.subscription.created`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
-- `invoice.paid`
-
-Currently the screenshot shows "1 event" which may indicate only one event type is enabled.
-
----
-
-## Fix Plan (After Verification)
-
-### Phase 1: Update Webhook Signing Secret
-
-If the secret is mismatched:
-
-1. Copy the correct webhook signing secret from Stripe Dashboard
-2. Update `STRIPE_WEBHOOK_SECRET` in the backend secrets
-
-### Phase 2: Add Enhanced Error Logging
-
-Even without visible logs, we can make the webhook more resilient:
-
-**File: `supabase/functions/stripe-webhook/index.ts`**
-
-Add a fallback logging mechanism that writes errors to a database table:
-
-```typescript
-// Add at top of file
-const logToDb = async (message: string, data: any) => {
-  try {
-    await supabase.from('webhook_logs').insert({
-      function_name: 'stripe-webhook',
-      message,
-      data,
-      created_at: new Date().toISOString()
-    });
-  } catch (e) {
-    // Silently fail - this is just for debugging
-  }
-};
+```text
+Triggered by: Database trigger on auth.users INSERT
+Sends to: malena@axessible.ai
+Contains:
+  - User email and name
+  - Signup timestamp
+  - IP address and location
+  - Traffic source (referrer, UTM)
+  - Device and browser info
+  - Tier assigned (ghost_free)
 ```
 
-### Phase 3: Manual Database Sync for Existing Paid Users
+### 2.2 Database Trigger Enhancement
 
-Once webhook is working, run a one-time sync for itorres@axessible.ai:
+Modify `handle_new_user()` to:
+1. Insert into `user_signups` table
+2. Call `notify-signup` edge function via pg_net
+3. Record attribution data from session context
 
-**Database Migration:**
+---
 
-```sql
--- Update unified_subscriptions for itorres@axessible.ai
-UPDATE unified_subscriptions 
-SET 
-  tier = 'ghost_pro',
-  status = 'active',
-  stripe_customer_id = 'cus_TqkzSmMwAwwEOs',
-  stripe_subscription_id = 'sub_1St3UCCAKg7jOuBKriiJmrAr',
-  current_period_start = NOW(),
-  current_period_end = NOW() + INTERVAL '30 days',
-  updated_at = NOW()
-WHERE user_id = '458e553a-7c8f-4f57-8806-633a5c801905';
+## 3. Frontend Analytics Tracker
 
--- Update ghost_subscriptions
-UPDATE ghost_subscriptions 
-SET 
-  tier = 'ghost_pro',
-  plan = 'ghost_pro',
-  expires_at = NOW() + INTERVAL '30 days'
-WHERE user_id = '458e553a-7c8f-4f57-8806-633a5c801905';
+### 3.1 New Hook: `useAnalytics`
 
--- Insert billing_customers record
-INSERT INTO billing_customers (
-  user_id, email, stripe_customer_id, stripe_subscription_id,
-  subscription_status, tier, current_period_end
-) VALUES (
-  '458e553a-7c8f-4f57-8806-633a5c801905',
-  'itorres@axessible.ai',
-  'cus_TqkzSmMwAwwEOs',
-  'sub_1St3UCCAKg7jOuBKriiJmrAr',
-  'active',
-  'ghost_pro',
-  NOW() + INTERVAL '30 days'
-) ON CONFLICT (user_id) DO UPDATE SET
-  stripe_customer_id = EXCLUDED.stripe_customer_id,
-  stripe_subscription_id = EXCLUDED.stripe_subscription_id,
-  subscription_status = EXCLUDED.subscription_status,
-  tier = EXCLUDED.tier,
-  current_period_end = EXCLUDED.current_period_end;
+A comprehensive analytics hook that tracks:
+
+```text
+Location: src/hooks/useAnalytics.ts
+
+Features:
+- Automatic page view tracking
+- Feature usage tracking
+- Click event tracking
+- Session management (start/end/duration)
+- UTM parameter capture
+- Referrer tracking
+- Device/browser detection
 ```
 
-### Phase 4: Create Webhook Debug Table
+### 3.2 Analytics Provider
 
-To help debug future webhook issues:
+Wraps the app to provide consistent tracking context:
 
-```sql
-CREATE TABLE IF NOT EXISTS webhook_logs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  function_name TEXT NOT NULL,
-  message TEXT,
-  data JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+```text
+Location: src/contexts/AnalyticsContext.tsx
 
--- Allow service role to write
-ALTER TABLE webhook_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role can insert" ON webhook_logs 
-  FOR INSERT WITH CHECK (true);
+Responsibilities:
+- Generate/persist anonymous IDs
+- Manage session lifecycle
+- Batch events for efficient sending
+- Sync with backend on page unload
+```
+
+### 3.3 Feature Tracking Integration
+
+Add tracking calls to key features:
+
+| Feature | Events to Track |
+|---------|-----------------|
+| Ghost Chat | message_sent, model_switched, mode_changed |
+| Studio | artifact_generated, source_uploaded |
+| Agents | task_started, task_completed, task_failed |
+| Discovery | search_performed, source_selected |
+| Health | consultation_started, document_uploaded |
+| Vault | file_encrypted, file_shared |
+
+---
+
+## 4. Edge Function: Analytics Ingestion
+
+### 4.1 New Function: `ingest-analytics`
+
+High-performance analytics event receiver:
+
+```text
+Location: supabase/functions/ingest-analytics/index.ts
+
+Features:
+- Batch event ingestion (up to 100 events)
+- IP geolocation lookup
+- Session management
+- Cost calculation
+- Real-time updates
+```
+
+### 4.2 Cost Calculation Logic
+
+```text
+Cost per model (approximate):
+- Claude Opus 4: $15/1M input, $75/1M output
+- Claude Sonnet 4: $3/1M input, $15/1M output
+- GPT-4o: $5/1M input, $15/1M output
+- Gemini Pro: $1.25/1M input, $5/1M output
+- DeepSeek: $0.14/1M input, $0.28/1M output
 ```
 
 ---
 
-## Recommended Immediate Actions
+## 5. Platform Owner Dashboard
 
-1. **Priority 1**: Verify the `STRIPE_WEBHOOK_SECRET` matches what's in Stripe Dashboard (this is most likely the issue)
+### 5.1 New Page: `/admin/platform-analytics`
 
-2. **Priority 2**: Check if all required webhook events are enabled (screenshot shows only "1 event")
+A comprehensive dashboard showing:
 
-3. **Priority 3**: Manually sync itorres@axessible.ai's subscription data to resolve their immediate issue
+**Real-time Metrics Panel:**
+- Active users right now
+- Signups today/this week/this month
+- Active sessions count
+- Revenue today
 
-4. **Priority 4**: Implement webhook debug logging to catch future issues
+**User Acquisition:**
+- New signups with full details
+- Traffic sources breakdown
+- Conversion funnel (visit → signup → paid)
+- Geographic distribution map
+
+**User Activity:**
+- Most active users (ranked)
+- Feature usage heatmap
+- Page popularity
+- Session duration distribution
+- Active vs idle users
+
+**Cost & Revenue:**
+- Cost per user
+- Revenue per user
+- Margin by user tier
+- AI provider cost breakdown
+- Daily/weekly/monthly trends
+
+**User Drilldown:**
+Click any user to see:
+- Complete session history
+- All pages visited
+- Features used
+- Costs incurred
+- Revenue generated
+- Full activity timeline
+
+### 5.2 Real-time Notifications Component
+
+```text
+Location: src/components/admin/LiveActivityFeed.tsx
+
+Shows live stream of:
+- New signups (highlighted)
+- User logins
+- Feature usage
+- High-value actions
+```
 
 ---
 
-## Technical Summary
+## 6. Implementation Sequence
 
-| Component | Status | Issue |
-|-----------|--------|-------|
-| Stripe Webhook Endpoint | Configured | May have wrong signing secret |
-| Event Types | Partially Configured | Only 1 event enabled? |
-| Edge Function | Deployed | No logs visible |
-| unified_subscriptions | Not Updated | tier=ghost_free |
-| ghost_subscriptions | Not Updated | tier=free |
-| billing_customers | Empty | No records |
+### Phase 1: Database Schema (Day 1)
+1. Create analytics tables with proper indexes
+2. Create RLS policies (admin-only read)
+3. Create aggregation functions
+4. Add trigger to `auth.users` for signup capture
 
+### Phase 2: Signup Notifications (Day 1)
+1. Create `notify-signup` edge function
+2. Configure pg_net to call function on signup
+3. Test email delivery to malena@axessible.ai
+
+### Phase 3: Frontend Tracking (Day 2)
+1. Create `useAnalytics` hook
+2. Create `AnalyticsProvider` context
+3. Integrate into App.tsx
+4. Add feature-specific tracking
+
+### Phase 4: Analytics Ingestion (Day 2)
+1. Create `ingest-analytics` edge function
+2. Add geolocation lookup
+3. Implement cost calculation
+4. Test end-to-end flow
+
+### Phase 5: Dashboard (Day 3)
+1. Create Platform Analytics page
+2. Build metric cards and charts
+3. Add user drilldown views
+4. Implement live activity feed
+5. Add export capabilities
+
+---
+
+## 7. Technical Details
+
+### 7.1 Privacy Considerations
+
+- IP addresses can be hashed if preferred
+- Full GDPR compliance with data retention policies
+- Audit log for all data access
+- No tracking of sensitive health data content
+
+### 7.2 Performance Optimizations
+
+- Batch event ingestion (100 events per request)
+- Materialized views for aggregate metrics
+- Partitioned tables for historical data
+- Redis caching for real-time counters
+
+### 7.3 Data Retention
+
+| Data Type | Retention |
+|-----------|-----------|
+| Raw events | 90 days |
+| Session summaries | 1 year |
+| User aggregates | Forever |
+| Cost tracking | Forever |
+
+---
+
+## 8. Sample Signup Notification Email
+
+```text
+Subject: New SwissBrain Signup: john.doe@example.com
+
+New User Signup
+
+Name: John Doe
+Email: john.doe@example.com
+Timestamp: 2026-01-28 15:32:45 UTC
+
+Location:
+  IP: 185.23.xxx.xxx
+  Country: Switzerland
+  City: Zurich
+
+Traffic Source:
+  Referrer: https://www.google.com
+  UTM Source: google
+  UTM Campaign: brand_search
+
+Device:
+  Type: Desktop
+  Browser: Chrome 122
+  OS: macOS
+
+Engagement:
+  Landing Page: /ghost
+  Pages Before Signup: 4
+  Time to Signup: 8 minutes
+
+Tier Assigned: ghost_free
+
+View in Dashboard: [link]
+```
+
+---
+
+## 9. Dashboard Metrics Summary
+
+| Metric | Source | Update Frequency |
+|--------|--------|------------------|
+| Active Users Now | user_sessions | Real-time |
+| Signups Today | user_signups | Real-time |
+| Revenue Today | credit_transactions + stripe | Hourly |
+| Cost Today | user_cost_tracking | Real-time |
+| Top Features | platform_analytics_events | Hourly |
+| Geographic Breakdown | user_sessions | Daily |
+| User LTV | billing + usage | Daily |
+| Conversion Rate | user_signups / sessions | Daily |
+
+---
+
+## 10. Files to Create/Modify
+
+### New Files:
+```text
+supabase/functions/notify-signup/index.ts
+supabase/functions/ingest-analytics/index.ts
+src/hooks/useAnalytics.ts
+src/contexts/AnalyticsContext.tsx
+src/pages/admin/PlatformAnalytics.tsx
+src/components/admin/LiveActivityFeed.tsx
+src/components/admin/UserDrilldown.tsx
+src/components/admin/SignupNotifications.tsx
+src/components/admin/CostRevenueChart.tsx
+src/components/admin/GeographicMap.tsx
+```
+
+### Modified Files:
+```text
+src/App.tsx (add AnalyticsProvider)
+src/contexts/AuthContext.tsx (track signups/logins)
+src/layouts/AdminLayout.tsx (add Platform Analytics nav)
+supabase/migrations/[new migration for schema]
+```
+
+---
+
+## Outcome
+
+After implementation, you will have:
+
+1. **Immediate email notification** for every new signup to malena@axessible.ai
+2. **Complete visibility** into user journeys from first visit to conversion
+3. **Real-time session tracking** with duration and activity metrics
+4. **Per-user cost attribution** down to the model and token level
+5. **Revenue tracking** with LTV calculations
+6. **Geographic insights** showing where users are signing up from
+7. **Feature usage analytics** showing what's popular and what's not
+8. **Active/idle classification** to identify engaged vs churning users
+9. **Traffic source attribution** for marketing optimization
+10. **Enterprise-ready audit trail** for investor due diligence
