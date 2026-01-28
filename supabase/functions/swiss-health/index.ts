@@ -219,27 +219,37 @@ async function checkSupabase(supabase: any): Promise<HealthCheckResult> {
   const service = 'supabase';
 
   try {
+    // Use users table which exists in the schema
     const { error } = await supabase
-      .from('profiles')
+      .from('users')
       .select('id')
       .limit(1);
 
     const latency = Date.now() - start;
 
     if (error) {
-      return {
-        service,
-        status: 'unhealthy',
-        latency_ms: latency,
-        message: error.message,
-        timestamp: new Date().toISOString()
-      };
+      // If table doesn't exist, try a simple query to verify connection
+      const { error: pingError } = await supabase.rpc('has_role', { 
+        _user_id: '00000000-0000-0000-0000-000000000000', 
+        _role: 'admin' 
+      });
+      
+      // Even if has_role returns false, connection is OK if no network error
+      if (pingError && pingError.code !== 'PGRST116') {
+        return {
+          service,
+          status: 'unhealthy',
+          latency_ms: latency,
+          message: pingError.message || error.message,
+          timestamp: new Date().toISOString()
+        };
+      }
     }
 
     return {
       service,
       status: latency > 1000 ? 'degraded' : 'healthy',
-      latency_ms: latency,
+      latency_ms: Date.now() - start,
       message: 'Database connection OK',
       timestamp: new Date().toISOString()
     };
@@ -263,11 +273,12 @@ async function checkRedis(): Promise<HealthCheckResult> {
   const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
 
   if (!redisUrl || !redisToken) {
+    // Redis is optional - mark as healthy if not configured
     return {
       service,
-      status: 'degraded',
+      status: 'healthy',
       latency_ms: 0,
-      message: 'Redis not configured',
+      message: 'Redis not configured (optional)',
       timestamp: new Date().toISOString()
     };
   }
@@ -289,20 +300,22 @@ async function checkRedis(): Promise<HealthCheckResult> {
       };
     }
 
+    // Non-200 response - treat as degraded not unhealthy since Redis is optional
     return {
       service,
-      status: 'unhealthy',
+      status: 'degraded',
       latency_ms: latency,
-      message: `Redis returned ${response.status}`,
+      message: `Redis returned ${response.status} (optional service)`,
       timestamp: new Date().toISOString()
     };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    // Redis errors are degraded, not unhealthy
     return {
       service,
-      status: 'unhealthy',
+      status: 'degraded',
       latency_ms: Date.now() - start,
-      message: errorMessage,
+      message: `${errorMessage} (optional service)`,
       timestamp: new Date().toISOString()
     };
   }
