@@ -44,6 +44,14 @@ serve(async (req) => {
         if (capability) query = query.contains('capabilities', [capability]);
 
         const { data, error } = await query;
+        
+        // Handle missing table gracefully
+        if (error && error.message?.includes('schema cache')) {
+          console.log('[model-registry] ai_models table not found, returning empty list');
+          return new Response(JSON.stringify({ models: [], message: 'Model registry not configured' }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
         if (error) throw error;
 
         return new Response(JSON.stringify({ models: data }), {
@@ -61,6 +69,11 @@ serve(async (req) => {
           .eq('id', modelId)
           .single();
 
+        if (error && error.message?.includes('schema cache')) {
+          return new Response(JSON.stringify({ model: null, health: null, message: 'Model registry not configured' }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
         if (error) throw error;
 
         // Get health status
@@ -70,7 +83,7 @@ serve(async (req) => {
           .eq('model_id', modelId)
           .order('checked_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         return new Response(JSON.stringify({ model, health }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -89,6 +102,11 @@ serve(async (req) => {
             p_prefer_provider: preferProvider
           });
 
+        if (error && error.message?.includes('schema cache')) {
+          return new Response(JSON.stringify({ recommendation: null, message: 'Model registry not configured' }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
         if (error) throw error;
 
         return new Response(JSON.stringify({ recommendation: data?.[0] || null }), {
@@ -105,6 +123,11 @@ serve(async (req) => {
           `)
           .order('provider');
 
+        if (error && error.message?.includes('schema cache')) {
+          return new Response(JSON.stringify({ models: [], message: 'Model registry not configured' }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
         if (error) throw error;
 
         const healthStatus = data?.map(m => ({
