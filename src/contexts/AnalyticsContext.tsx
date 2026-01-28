@@ -178,18 +178,24 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Track when user logs in - send signup completion
+  // Track when user logs in - send signup completion only for NEW signups
   useEffect(() => {
     if (user && isInitializedRef.current) {
       const firstVisit = localStorage.getItem('sb_first_visit');
-      let firstVisitData: Record<string, unknown> = {};
       
-      if (firstVisit) {
-        try {
-          firstVisitData = JSON.parse(firstVisit);
-        } catch {
-          // Ignore parse errors
-        }
+      // Only process if this is a potential new signup (first visit data exists)
+      if (!firstVisit) {
+        // Existing user login, no attribution to track
+        return;
+      }
+      
+      let firstVisitData: Record<string, unknown> = {};
+      try {
+        firstVisitData = JSON.parse(firstVisit);
+      } catch {
+        // Ignore parse errors
+        localStorage.removeItem('sb_first_visit');
+        return;
       }
 
       // Calculate time to signup if this is a new user
@@ -206,11 +212,13 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
         utm_campaign: firstVisitData.utm_campaign
       };
 
-      // Call signup_complete to enrich data and trigger notification
-      sendToBackend({
-        type: 'signup_complete',
-        signup_data: signupData
-      });
+      // Small delay to ensure auth token is ready
+      setTimeout(() => {
+        sendToBackend({
+          type: 'signup_complete',
+          signup_data: signupData
+        });
+      }, 500);
 
       // Clear first visit data after signup
       localStorage.removeItem('sb_first_visit');

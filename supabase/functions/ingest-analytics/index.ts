@@ -291,10 +291,20 @@ serve(async (req) => {
 
       case 'signup_complete': {
         // Called after signup to enrich signup data and trigger notification
-        if (!userId || !body.signup_data) {
+        // Skip gracefully if not authenticated (race condition during login)
+        if (!userId) {
+          console.log('signup_complete: No user authenticated, skipping');
           return new Response(
-            JSON.stringify({ error: 'Missing signup data or user not authenticated' }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ success: true, skipped: true, reason: 'no_user' }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        if (!body.signup_data) {
+          console.log('signup_complete: No signup data provided, skipping');
+          return new Response(
+            JSON.stringify({ success: true, skipped: true, reason: 'no_data' }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
