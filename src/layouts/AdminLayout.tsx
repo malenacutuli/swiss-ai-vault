@@ -126,6 +126,9 @@ export function AdminLayout() {
           <NavLink to="/admin/metrics" icon={BarChart3} collapsed={collapsed}>
             Metrics
           </NavLink>
+          <NavLink to="/admin/platform-analytics" icon={BarChart3} collapsed={collapsed}>
+            Platform Analytics
+          </NavLink>
           <NavLink to="/admin/alerts" icon={Bell} collapsed={collapsed}>
             Alerts
           </NavLink>

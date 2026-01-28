@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AnalyticsProvider } from "@/contexts/AnalyticsContext";
 import { EncryptionProvider } from "@/contexts/EncryptionContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
@@ -37,6 +38,7 @@ import { AdminLayout as AdminLayoutComponent } from "@/layouts/AdminLayout";
 import AdminDashboardPage from "@/pages/admin/AdminDashboard";
 import UsersManagementPage from "@/pages/admin/UsersManagement";
 import AdminAuditLogsPage from "@/pages/admin/AdminAuditLogs";
+import PlatformAnalytics from "@/pages/admin/PlatformAnalytics";
 
 // Pages
 import Index from "./pages/Index";
@@ -287,6 +289,7 @@ const App = () => {
                   } />
                   <Route path="users" element={<UsersManagementPage />} />
                   <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+                  <Route path="platform-analytics" element={<PlatformAnalytics />} />
                 </Route>
 
                 {/* Legacy dashboard routes - redirect to labs with toast */}

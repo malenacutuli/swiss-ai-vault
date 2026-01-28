@@ -5238,6 +5238,72 @@ export type Database = {
           },
         ]
       }
+      platform_analytics_events: {
+        Row: {
+          anonymous_id: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string
+          event_name: string | null
+          event_type: string
+          feature_category: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          page_path: string | null
+          referrer: string | null
+          region: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          anonymous_id?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          event_name?: string | null
+          event_type: string
+          feature_category?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          page_path?: string | null
+          referrer?: string | null
+          region?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          anonymous_id?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          event_name?: string | null
+          event_type?: string
+          feature_category?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          page_path?: string | null
+          referrer?: string | null
+          region?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       presentation_templates: {
         Row: {
           colors: Json | null
@@ -6843,6 +6909,54 @@ export type Database = {
           },
         ]
       }
+      user_cost_tracking: {
+        Row: {
+          created_at: string
+          date: string
+          estimated_cost_usd: number | null
+          feature: string
+          id: string
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          provider: string | null
+          requests_count: number | null
+          total_tokens: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          estimated_cost_usd?: number | null
+          feature: string
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          provider?: string | null
+          requests_count?: number | null
+          total_tokens?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          estimated_cost_usd?: number | null
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          provider?: string | null
+          requests_count?: number | null
+          total_tokens?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_credits: {
         Row: {
           balance: number
@@ -6947,6 +7061,90 @@ export type Database = {
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          anonymous_id: string | null
+          browser: string | null
+          city: string | null
+          country_code: string | null
+          device_type: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          entry_page: string | null
+          event_count: number | null
+          exit_page: string | null
+          feature_count: number | null
+          id: string
+          ip_address: unknown
+          is_active: boolean | null
+          is_converted: boolean | null
+          last_activity_at: string | null
+          os: string | null
+          page_count: number | null
+          referrer: string | null
+          region: string | null
+          started_at: string
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          anonymous_id?: string | null
+          browser?: string | null
+          city?: string | null
+          country_code?: string | null
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          entry_page?: string | null
+          event_count?: number | null
+          exit_page?: string | null
+          feature_count?: number | null
+          id?: string
+          ip_address?: unknown
+          is_active?: boolean | null
+          is_converted?: boolean | null
+          last_activity_at?: string | null
+          os?: string | null
+          page_count?: number | null
+          referrer?: string | null
+          region?: string | null
+          started_at?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          anonymous_id?: string | null
+          browser?: string | null
+          city?: string | null
+          country_code?: string | null
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          entry_page?: string | null
+          event_count?: number | null
+          exit_page?: string | null
+          feature_count?: number | null
+          id?: string
+          ip_address?: unknown
+          is_active?: boolean | null
+          is_converted?: boolean | null
+          last_activity_at?: string | null
+          os?: string | null
+          page_count?: number | null
+          referrer?: string | null
+          region?: string | null
+          started_at?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           account_type: string | null
@@ -7005,6 +7203,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_signups: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string
+          device_type: string | null
+          email: string
+          full_name: string | null
+          id: string
+          ip_address: unknown
+          landing_page: string | null
+          notification_sent: boolean | null
+          os: string | null
+          pages_before_signup: number | null
+          referrer: string | null
+          region: string | null
+          signup_method: string | null
+          tier_assigned: string | null
+          time_to_signup_seconds: number | null
+          user_agent: string | null
+          user_id: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          device_type?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          ip_address?: unknown
+          landing_page?: string | null
+          notification_sent?: boolean | null
+          os?: string | null
+          pages_before_signup?: number | null
+          referrer?: string | null
+          region?: string | null
+          signup_method?: string | null
+          tier_assigned?: string | null
+          time_to_signup_seconds?: number | null
+          user_agent?: string | null
+          user_id: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          device_type?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          ip_address?: unknown
+          landing_page?: string | null
+          notification_sent?: boolean | null
+          os?: string | null
+          pages_before_signup?: number | null
+          referrer?: string | null
+          region?: string | null
+          signup_method?: string | null
+          tier_assigned?: string | null
+          time_to_signup_seconds?: number | null
+          user_agent?: string | null
+          user_id?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
       }
       users: {
         Row: {
@@ -7864,6 +8140,15 @@ export type Database = {
           success: boolean
         }[]
       }
+      get_feature_usage_stats: {
+        Args: { p_days?: number }
+        Returns: {
+          avg_uses_per_user: number
+          feature_category: string
+          total_uses: number
+          unique_users: number
+        }[]
+      }
       get_ghost_tier: { Args: { p_user_id: string }; Returns: Json }
       get_ghost_usage: {
         Args: { p_user_id: string }
@@ -7907,6 +8192,10 @@ export type Database = {
           id: string
         }[]
       }
+      get_platform_analytics_summary: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
       get_pool_stats: {
         Args: { p_region?: string }
         Returns: {
@@ -7915,6 +8204,25 @@ export type Database = {
           template: string
           total_count: number
           warm_count: number
+        }[]
+      }
+      get_recent_signups: {
+        Args: { p_limit?: number }
+        Returns: {
+          browser: string
+          city: string
+          country_code: string
+          created_at: string
+          device_type: string
+          email: string
+          full_name: string
+          id: string
+          referrer: string
+          signup_method: string
+          tier_assigned: string
+          user_id: string
+          utm_campaign: string
+          utm_source: string
         }[]
       }
       get_research_quota: { Args: never; Returns: Json }
@@ -7933,6 +8241,19 @@ export type Database = {
         }[]
       }
       get_subscription_status: { Args: { p_user_id: string }; Returns: Json }
+      get_user_activity_details: { Args: { p_user_id: string }; Returns: Json }
+      get_user_cost_breakdown: {
+        Args: { p_days?: number }
+        Returns: {
+          email: string
+          top_feature: string
+          top_model: string
+          total_cost: number
+          total_requests: number
+          total_tokens: number
+          user_id: string
+        }[]
+      }
       get_user_org_ids: { Args: never; Returns: string[] }
       get_user_organization: {
         Args: never
@@ -8116,6 +8437,18 @@ export type Database = {
       }
       setup_vaultchat_only_user: {
         Args: { target_user_id: string }
+        Returns: undefined
+      }
+      track_user_cost: {
+        Args: {
+          p_cost_usd: number
+          p_feature: string
+          p_input_tokens: number
+          p_model: string
+          p_output_tokens: number
+          p_provider: string
+          p_user_id: string
+        }
         Returns: undefined
       }
       user_owns_vault_conversation: {
