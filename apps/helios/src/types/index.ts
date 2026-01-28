@@ -27,11 +27,38 @@ export const SymptomEntitySchema = z.object({
   snomed_code: z.string().optional(),
   onset: z.string().optional(),
   location: z.string().optional(),
+  character: z.string().optional(),
   severity: z.number().min(0).max(10).optional(),
   confidence: z.number().min(0).max(1).default(0.8),
   extracted_at: z.string().datetime(),
 });
 export type SymptomEntity = z.infer<typeof SymptomEntitySchema>;
+
+// Patient Demographics
+export const PatientDemographicsSchema = z.object({
+  age: z.number().optional(),
+  age_unit: z.enum(['years', 'months', 'days']).optional(),
+  sex: z.enum(['male', 'female', 'other']).optional(),
+  pregnant: z.boolean().optional(),
+});
+export type PatientDemographics = z.infer<typeof PatientDemographicsSchema>;
+
+// Medication
+export const MedicationSchema = z.object({
+  name: z.string(),
+  dose: z.string().optional(),
+  frequency: z.string().optional(),
+  route: z.string().optional(),
+});
+export type Medication = z.infer<typeof MedicationSchema>;
+
+// Allergy
+export const AllergySchema = z.object({
+  allergen: z.string(),
+  reaction: z.string().optional(),
+  severity: z.enum(['mild', 'moderate', 'severe']).optional(),
+});
+export type Allergy = z.infer<typeof AllergySchema>;
 
 // Hypothesis
 export const HypothesisSchema = z.object({
@@ -41,8 +68,10 @@ export const HypothesisSchema = z.object({
   likelihood: z.number().min(0).max(1),
   category: z.enum(['must_not_miss', 'common', 'uncommon', 'rare']),
   supporting_evidence: z.array(z.string()),
+  contradicting_evidence: z.array(z.string()).optional(),
   proposed_by: z.string(),
   status: z.enum(['active', 'ruled_out', 'confirmed']).default('active'),
+  created_at: z.string().datetime().optional(),
 });
 export type Hypothesis = z.infer<typeof HypothesisSchema>;
 
@@ -95,14 +124,21 @@ export const CaseStateSchema = z.object({
     to_phase: PhaseSchema,
     timestamp: z.string().datetime(),
   })),
+  // Patient info
+  patient_demographics: PatientDemographicsSchema.optional(),
   chief_complaint: z.string().nullable(),
   symptom_entities: z.array(SymptomEntitySchema),
+  medical_history: z.array(z.string()).optional(),
+  medications: z.array(MedicationSchema).optional(),
+  allergies: z.array(AllergySchema).optional(),
+  // Clinical assessment
   hypothesis_list: z.array(HypothesisSchema),
   red_flags: z.array(RedFlagSchema),
   escalation_triggered: z.boolean(),
   escalation_reason: z.string().nullable(),
   triage_level: TriageLevelSchema.nullable(),
   disposition: DispositionSchema.nullable(),
+  // Conversation
   messages: z.array(MessageSchema),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
