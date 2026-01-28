@@ -1,10 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  // Include any custom headers used by the web app (case-insensitive)
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id',
-};
+import { getCorsHeaders, handleCors, corsHeaders } from '../_shared/cors.ts';
 
 // ============================================
 // REDIS CACHE CONFIGURATION (Upstash)
