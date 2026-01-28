@@ -18,6 +18,10 @@ export * from './voice/index.js';
 // Safety Rules
 export * from './safety/index.js';
 
+// Knowledge System
+export * from './knowledge/index.js';
+import { initializeKnowledge } from './knowledge/index.js';
+
 // Prompts (Multi-language)
 export * from './i18n/prompts/index.js';
 
@@ -31,3 +35,6 @@ export const SUPPORTED_LANGUAGES = ['en', 'es', 'fr'] as const;
 
 console.log(`🏥 HELIOS Healthcare AI Platform v${VERSION}`);
 console.log(`📍 Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
+
+// Auto-initialize knowledge on import
+initializeKnowledge();
