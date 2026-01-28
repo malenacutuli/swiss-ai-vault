@@ -40,6 +40,14 @@ import UsersManagementPage from "@/pages/admin/UsersManagement";
 import AdminAuditLogsPage from "@/pages/admin/AdminAuditLogs";
 import PlatformAnalytics from "@/pages/admin/PlatformAnalytics";
 
+// Lazy load additional admin pages
+const AdminTasks = lazy(() => import('@/pages/admin/AdminTasks'));
+const AdminAgents = lazy(() => import('@/pages/admin/AdminAgents'));
+const AdminSandboxes = lazy(() => import('@/pages/admin/AdminSandboxes'));
+const AdminMetrics = lazy(() => import('@/pages/admin/AdminMetrics'));
+const AdminAlerts = lazy(() => import('@/pages/admin/AdminAlerts'));
+const AdminCompliance = lazy(() => import('@/pages/admin/AdminCompliance'));
+
 // Pages
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -289,6 +297,36 @@ const App = () => {
                     </Suspense>
                   } />
                   <Route path="users" element={<UsersManagementPage />} />
+                  <Route path="tasks" element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminTasks />
+                    </Suspense>
+                  } />
+                  <Route path="agents" element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminAgents />
+                    </Suspense>
+                  } />
+                  <Route path="sandboxes" element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminSandboxes />
+                    </Suspense>
+                  } />
+                  <Route path="metrics" element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminMetrics />
+                    </Suspense>
+                  } />
+                  <Route path="alerts" element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminAlerts />
+                    </Suspense>
+                  } />
+                  <Route path="compliance" element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AdminCompliance />
+                    </Suspense>
+                  } />
                   <Route path="audit-logs" element={<AdminAuditLogsPage />} />
                   <Route path="platform-analytics" element={<PlatformAnalytics />} />
                 </Route>
