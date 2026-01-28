@@ -121,7 +121,19 @@ serve(async (req) => {
         throw new Error(`Unknown action: ${action}`);
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (error && typeof error === 'object') {
+      // Handle Supabase error objects
+      const errObj = error as Record<string, unknown>;
+      errorMessage = (errObj.message as string) || (errObj.error as string) || JSON.stringify(error);
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    console.error('[model-registry] Error:', errorMessage);
+    
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
