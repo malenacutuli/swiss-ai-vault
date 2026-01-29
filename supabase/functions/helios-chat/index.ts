@@ -8,6 +8,47 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Context window management - keeps first 2 messages (greeting + initial complaint) and recent messages
+const MAX_CONTEXT_MESSAGES = 20;
+
+function manageContextWindow(messages: Array<{role: string, content: string}>): Array<{role: string, content: string}> {
+  // If under limit, return all
+  if (messages.length <= MAX_CONTEXT_MESSAGES) {
+    return messages;
+  }
+
+  // Keep system message if present
+  const systemMessages = messages.filter(m => m.role === 'system');
+  const nonSystemMessages = messages.filter(m => m.role !== 'system');
+
+  // Keep first 2 messages (greeting + initial complaint) for context
+  const keepFirst = Math.min(2, nonSystemMessages.length);
+  const firstMessages = nonSystemMessages.slice(0, keepFirst);
+
+  // Calculate how many recent messages to keep
+  const keepLast = MAX_CONTEXT_MESSAGES - keepFirst - systemMessages.length - 1; // -1 for summary
+  const lastMessages = nonSystemMessages.slice(-keepLast);
+
+  // Summarize middle messages
+  const middleMessages = nonSystemMessages.slice(keepFirst, -keepLast);
+  if (middleMessages.length > 0) {
+    const summaryContent = middleMessages
+      .filter(m => m.role === 'user')
+      .map(m => m.content)
+      .join('; ')
+      .substring(0, 500);
+
+    const summaryMessage = {
+      role: 'system' as const,
+      content: `[Earlier in this consultation, the patient mentioned: ${summaryContent}...]`
+    };
+
+    return [...systemMessages, ...firstMessages, summaryMessage, ...lastMessages];
+  }
+
+  return [...systemMessages, ...firstMessages, ...lastMessages];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -113,40 +154,12 @@ serve(async (req) => {
       const sessionSpecialty = sess?.specialty || "primary-care";
       const sessionLanguage = language || sess?.language || "en";
 
-      // Context window management: estimate tokens and trim if needed
-      // Rough estimate: 4 chars = 1 token, max ~8000 tokens for context
-      const MAX_CONTEXT_CHARS = 24000;
-      const KEEP_RECENT_MESSAGES = 6;
-
+      // Build message history and add current message
       let contextMessages = history.map((m: any) => ({ role: m.role, content: m.content }));
-
-      // Calculate total context size
-      const totalChars = contextMessages.reduce((sum: number, m: any) => sum + m.content.length, 0);
-
-      // If context too large, create a summary of older messages
-      if (totalChars > MAX_CONTEXT_CHARS && contextMessages.length > KEEP_RECENT_MESSAGES) {
-        const olderMessages = contextMessages.slice(0, -KEEP_RECENT_MESSAGES);
-        const recentMessages = contextMessages.slice(-KEEP_RECENT_MESSAGES);
-
-        // Create a brief summary of older context
-        const summaryParts: string[] = [];
-        olderMessages.forEach((m: any) => {
-          if (m.role === "user") {
-            const snippet = m.content.substring(0, 100);
-            summaryParts.push("Patient mentioned: " + snippet);
-          }
-        });
-        const summary = summaryParts.slice(0, 5).join(". ");
-
-        // Build new context with summary
-        contextMessages = [
-          { role: "user", content: "[Earlier in conversation: " + summary + "]" },
-          { role: "assistant", content: "I understand. Let me continue helping you." },
-          ...recentMessages,
-        ];
-      }
-
       contextMessages.push({ role: "user", content: message });
+
+      // Apply context window management to prevent token overflow
+      const managedMessages = manageContextWindow(contextMessages);
 
       // Build system prompt with specialty, language, and patient context
       let systemPrompt = SPECIALTY_PROMPTS[sessionSpecialty] || SPECIALTY_PROMPTS["primary-care"];
@@ -158,11 +171,22 @@ serve(async (req) => {
         if (patientInfo.sex) systemPrompt += "Sex: " + patientInfo.sex + ". ";
       }
 
+      // Extract any summary from managed messages and add to system prompt
+      const summaryMsg = managedMessages.find(m => m.role === 'system');
+      if (summaryMsg) {
+        systemPrompt += " " + summaryMsg.content;
+      }
+
+      // Filter to only user/assistant messages for API
+      const apiMessages = managedMessages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
       const resp = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
         system: systemPrompt,
-        messages: contextMessages,
+        messages: apiMessages,
       });
 
       const reply = resp.content[0].type === "text" ? resp.content[0].text : "";
