@@ -6,10 +6,30 @@ import { useHeliosVoice } from '@/hooks/helios/useHeliosVoice';
 import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
-import { Loader2, Send, Paperclip, Mic, MicOff, X, Image } from 'lucide-react';
+import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+  { code: 'pt', name: 'Português', flag: '🇧🇷' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'ko', name: '한국어', flag: '🇰🇷' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+];
 
 interface HeliosChatPageV2Props {
   specialty?: string;
@@ -41,10 +61,11 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
   const [sessionInitialized, setSessionInitialized] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(initialMessage || null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [language, setLanguage] = useState('en');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Voice input
+  // Voice input (uses selected language)
   const {
     isRecording,
     transcript,
@@ -53,7 +74,7 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     startRecording,
     stopRecording,
     cancelRecording,
-  } = useHeliosVoice('en');
+  } = useHeliosVoice(language);
 
   // Load existing session or create new one
   useEffect(() => {
@@ -88,9 +109,9 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
       const msg = pendingInitialMessage;
       setPendingInitialMessage(null);
       setInput('');
-      sendMessage(msg);
+      sendMessage(msg, language);
     }
-  }, [termsAccepted, pendingInitialMessage, sessionId, isLoading, sendMessage]);
+  }, [termsAccepted, pendingInitialMessage, sessionId, isLoading, sendMessage, language]);
 
   // Update URL when session ID changes (for new sessions)
   useEffect(() => {
@@ -151,7 +172,7 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
 
     setInput('');
     setAttachedFiles([]);
-    await sendMessage(message);
+    await sendMessage(message, language);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -169,11 +190,35 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="px-6 py-4 border-b bg-gray-50">
-        <div className="text-sm text-gray-600">
-          Consult started: {new Date().toLocaleString()}
-        </div>
-        <div className="text-sm text-amber-600 font-medium">
-          If this is an emergency, call 911 or your local emergency number.
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm text-gray-600">
+              Consult started: {new Date().toLocaleString()}
+            </div>
+            <div className="text-sm text-amber-600 font-medium">
+              If this is an emergency, call 911 or your local emergency number.
+            </div>
+          </div>
+
+          {/* Language selector */}
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-gray-400" />
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger className="w-[140px] h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    <span className="flex items-center gap-2">
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

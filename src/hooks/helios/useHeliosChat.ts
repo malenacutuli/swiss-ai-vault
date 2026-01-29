@@ -23,13 +23,13 @@ interface UseHeliosChatReturn {
   intakeRequired: boolean;
   error: string | null;
   sessionId: string | null;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, language?: string) => Promise<void>;
   submitIntake: (age: number, sex: 'male' | 'female') => Promise<void>;
   startSession: (specialty?: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<boolean>;
 }
 
-export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
+export function useHeliosChat(initialSpecialty?: string, initialLanguage: string = 'en'): UseHeliosChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEscalated, setIsEscalated] = useState(false);
@@ -105,7 +105,7 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
   }, [initialSpecialty]);
 
   // Send a message
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, language: string = 'en') => {
     if (!content.trim()) return;
 
     setError(null);
@@ -115,7 +115,7 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
       message_id: crypto.randomUUID(),
       role: 'user',
       content: content.trim(),
-      language: 'en',
+      language: language,
       timestamp: new Date().toISOString(),
     };
     setMessages(prev => [...prev, userMessage]);
@@ -130,6 +130,7 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
           session_id: sessionIdRef.current,
           message: content.trim(),
           patient_info: caseState?.patient_info,
+          language: language,
         },
       });
 

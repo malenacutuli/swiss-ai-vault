@@ -27,6 +27,21 @@ serve(async (req) => {
     const message = body.message;
     const patient_info = body.patient_info;
     const specialty = body.specialty || "primary-care";
+    const language = body.language || "en";
+
+    // Language instructions
+    const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+      "en": "Respond in English.",
+      "es": "Responde en español.",
+      "fr": "Répondez en français.",
+      "de": "Antworten Sie auf Deutsch.",
+      "it": "Rispondi in italiano.",
+      "pt": "Responda em português.",
+      "zh": "请用中文回答。",
+      "ja": "日本語で回答してください。",
+      "ko": "한국어로 대답해 주세요.",
+      "ar": "الرجاء الرد بالعربية.",
+    };
 
     // Specialty-specific system prompts
     const SPECIALTY_PROMPTS: Record<string, string> = {
@@ -89,13 +104,14 @@ serve(async (req) => {
 
       const { data: sess } = await supabase
         .from("helios_sessions")
-        .select("messages, patient_info, specialty")
+        .select("messages, patient_info, specialty, language")
         .eq("session_id", session_id)
         .single();
 
       const history = sess?.messages || [];
       const patientInfo = sess?.patient_info || {};
       const sessionSpecialty = sess?.specialty || "primary-care";
+      const sessionLanguage = language || sess?.language || "en";
 
       // Context window management: estimate tokens and trim if needed
       // Rough estimate: 4 chars = 1 token, max ~8000 tokens for context
@@ -132,9 +148,10 @@ serve(async (req) => {
 
       contextMessages.push({ role: "user", content: message });
 
-      // Build system prompt with specialty and patient context
+      // Build system prompt with specialty, language, and patient context
       let systemPrompt = SPECIALTY_PROMPTS[sessionSpecialty] || SPECIALTY_PROMPTS["primary-care"];
       systemPrompt += " Always recommend consulting a doctor for medical advice.";
+      systemPrompt += " " + (LANGUAGE_INSTRUCTIONS[sessionLanguage] || LANGUAGE_INSTRUCTIONS["en"]);
       if (patientInfo.age || patientInfo.sex) {
         systemPrompt += " Patient info: ";
         if (patientInfo.age) systemPrompt += "Age " + patientInfo.age + ". ";
