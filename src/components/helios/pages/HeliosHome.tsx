@@ -5,12 +5,29 @@
 
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Send, Shield } from 'lucide-react';
+import { Send, Shield, Heart, Brain, Stethoscope, Baby, Users, Bone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { EmergencyDropdown } from '../common/EmergencyDropdown';
 import type { SupportedLanguage } from '@/lib/helios/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const SPECIALTIES = [
+  { value: 'primary-care', label: 'General Health', icon: Stethoscope, description: 'General symptoms & wellness' },
+  { value: 'cardiology', label: 'Heart & Cardio', icon: Heart, description: 'Chest pain, palpitations' },
+  { value: 'mental-health', label: 'Mental Health', icon: Brain, description: 'Anxiety, depression, stress' },
+  { value: 'dermatology', label: 'Skin & Hair', icon: Users, description: 'Rashes, acne, skin concerns' },
+  { value: 'pediatrics', label: 'Pediatrics', icon: Baby, description: "Children's health" },
+  { value: 'womens-health', label: "Women's Health", icon: Users, description: 'Reproductive & gynecological' },
+  { value: 'orthopedics', label: 'Bone & Joint', icon: Bone, description: 'Pain, injuries, mobility' },
+];
 
 interface HeliosHomeProps {
   userName?: string;
@@ -68,6 +85,7 @@ const doctorAvatars = [
 export function HeliosHome({ userName }: HeliosHomeProps) {
   const displayName = userName || 'there';
   const [message, setMessage] = useState('');
+  const [specialty, setSpecialty] = useState('primary-care');
   const [isStarting, setIsStarting] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
   const navigate = useNavigate();

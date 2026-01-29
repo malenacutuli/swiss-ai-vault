@@ -36,12 +36,14 @@ interface HeliosChatPageV2Props {
   specialty?: string;
 }
 
-export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV2Props) {
+export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: HeliosChatPageV2Props) {
   const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   // Support both initialMessage and initialSymptom for backwards compatibility
   const initialSymptom = (location.state as any)?.initialSymptom || (location.state as any)?.initialMessage;
+  // Get specialty from navigation state (from HeliosHome) or fall back to prop
+  const specialty = (location.state as any)?.specialty || propSpecialty;
 
   const {
     messages,
@@ -56,6 +58,7 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     submitIntake,
     startSession,
     loadSession,
+    completeSession,
   } = useHeliosChat(specialty);
 
   const [input, setInput] = useState('');
@@ -307,26 +310,35 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     }
   };
 
-  // Complete consult - saves to vault and marks as complete
+  // Complete consult - saves to Supabase AND local vault
   const handleCompleteConsult = async () => {
-    if (!vault || !sessionId || messages.length === 0) return;
+    if (!sessionId || messages.length === 0) return;
 
     setIsSaving(true);
     try {
-      // Save consult with 'completed' phase
-      await vault.saveConsult({
-        id: sessionId,
-        messages: messages.map(m => ({
-          role: m.role,
-          content: m.content,
-          timestamp: m.timestamp,
-        })),
-        symptoms: [],
-        hypotheses: [],
-        redFlags: redFlags,
-        language: language,
-        phase: 'completed',
-      });
+      // 1. Mark session as completed in Supabase
+      const result = await completeSession();
+      if (!result.success) {
+        console.error('Failed to complete session in Supabase');
+      }
+
+      // 2. Also save to local vault for offline access (if vault is available)
+      if (vault) {
+        await vault.saveConsult({
+          id: sessionId,
+          messages: messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: m.timestamp,
+          })),
+          symptoms: [],
+          hypotheses: [],
+          redFlags: redFlags,
+          language: language,
+          phase: 'completed',
+        });
+      }
+
       setIsCompleted(true);
       // Navigate to post-consult options after short delay
       setTimeout(() => {
@@ -372,8 +384,11 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
       <div className="px-6 py-4 border-b bg-gray-50">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-gray-600">
-              Consult started: {new Date().toLocaleString()}
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>Consult started: {new Date().toLocaleString()}</span>
+              <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-medium capitalize">
+                {specialty.replace('-', ' ')}
+              </span>
             </div>
             <div className="text-sm text-amber-600 font-medium">
               If this is an emergency, call 911 or your local emergency number.

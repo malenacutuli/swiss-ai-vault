@@ -27,6 +27,7 @@ interface UseHeliosChatReturn {
   submitIntake: (age: number, sex: 'male' | 'female') => Promise<void>;
   startSession: (specialty?: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<boolean>;
+  completeSession: () => Promise<{ success: boolean; summary?: string }>;
 }
 
 export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' | 'es' | 'fr' = 'en'): UseHeliosChatReturn {
@@ -269,7 +270,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
       setCaseState({
         session_id: data.session_id,
         phase: data.phase || 'intake',
-        specialty: 'primary-care',
+        specialty: data.specialty || 'primary-care',
         patient_info: data.patient_info || {},
       });
 
@@ -278,6 +279,45 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
       console.error('Failed to load session:', err);
       setError(err instanceof Error ? err.message : 'Failed to load session');
       return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Complete a session (marks it as completed in Supabase)
+  const completeSession = useCallback(async (): Promise<{ success: boolean; summary?: string }> => {
+    if (!sessionIdRef.current) {
+      return { success: false };
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('[HELIOS] Completing session:', sessionIdRef.current);
+
+      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+        body: {
+          action: 'complete_session',
+          session_id: sessionIdRef.current,
+        },
+      });
+
+      console.log('[HELIOS] Complete session response:', { data, fnError });
+
+      if (fnError) throw fnError;
+      if (!data?.success) throw new Error(data?.error || 'Failed to complete session');
+
+      setPhase('completed');
+
+      return {
+        success: true,
+        summary: data.summary,
+      };
+    } catch (err) {
+      console.error('Failed to complete session:', err);
+      setError(err instanceof Error ? err.message : 'Failed to complete session');
+      return { success: false };
     } finally {
       setIsLoading(false);
     }
@@ -297,5 +337,6 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     submitIntake,
     startSession,
     loadSession,
+    completeSession,
   };
 }
