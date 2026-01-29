@@ -5,8 +5,7 @@
 
 import React from 'react';
 import { AlertTriangle, Phone, ExternalLink } from 'lucide-react';
-import type { RedFlag, Severity } from '@/lib/helios/types';
-import type { SupportedLanguage } from '@/lib/helios/types';
+import type { RedFlag, Severity, SupportedLanguage } from '@/lib/helios/types';
 
 interface HeliosRedFlagProps {
   flag: RedFlag;

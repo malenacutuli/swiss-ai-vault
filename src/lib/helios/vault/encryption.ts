@@ -20,7 +20,7 @@ export async function deriveKey(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as unknown as ArrayBuffer,
       iterations: 100000,
       hash: 'SHA-256',
     },
@@ -57,7 +57,7 @@ export async function decrypt(
   key: CryptoKey
 ): Promise<ArrayBuffer> {
   return crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv as unknown as ArrayBuffer },
     key,
     ciphertext
   );

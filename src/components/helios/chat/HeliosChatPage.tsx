@@ -12,9 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useHeliosChat } from '@/hooks/helios/useHeliosChat';
-import { useHealthVault } from '@/hooks/helios/useHealthVault';
 import { ChatMessage } from './ChatMessage';
-import { DocumentPreview } from './DocumentPreview';
 import { RedFlagAlert } from './RedFlagAlert';
 import { IntakeForm } from './IntakeForm';
 import { ShareModal } from './ShareModal';
@@ -36,8 +34,6 @@ export function HeliosChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { vault, isInitialized } = useHealthVault();
-
   const {
     messages,
     isLoading,
@@ -45,9 +41,16 @@ export function HeliosChatPage() {
     redFlags,
     phase,
     sendMessage,
-    uploadDocument,
+    startSession,
     error,
-  } = useHeliosChat(sessionId!, vault);
+  } = useHeliosChat(sessionId!);
+
+  // Initialize session on mount
+  useEffect(() => {
+    if (sessionId) {
+      startSession();
+    }
+  }, [sessionId, startSession]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -59,7 +62,7 @@ export function HeliosChatPage() {
     if (initialMessage && messages.length === 1 && !showIntake) {
       sendMessage(initialMessage);
     }
-  }, [initialMessage, messages.length, showIntake]);
+  }, [initialMessage, messages.length, showIntake, sendMessage]);
 
   const handleSend = async () => {
     if (!input.trim() && pendingFiles.length === 0) return;
@@ -67,11 +70,6 @@ export function HeliosChatPage() {
 
     const messageText = input.trim();
     setInput('');
-
-    // Upload any pending files first
-    for (const file of pendingFiles) {
-      await uploadDocument(file);
-    }
     setPendingFiles([]);
 
     // Send text message
@@ -101,7 +99,7 @@ export function HeliosChatPage() {
     setShowIntake(false);
     // Include demographics with initial message
     if (initialMessage) {
-      await sendMessage(initialMessage, { demographics: data });
+      await sendMessage(`${initialMessage} (Age: ${data.age}, Sex: ${data.sex})`);
     }
   };
 
@@ -144,7 +142,7 @@ export function HeliosChatPage() {
 
           {!showIntake && messages.map((message, index) => (
             <ChatMessage
-              key={message.id || index}
+              key={message.message_id || index}
               message={message}
               isLast={index === messages.length - 1}
             />

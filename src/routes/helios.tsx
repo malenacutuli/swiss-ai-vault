@@ -24,11 +24,14 @@ export function HeliosRoutes() {
     );
   }
 
+  // Get display name from user metadata or email
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0];
+
   return (
-    <HeliosLayout userName={user?.name || user?.email?.split('@')[0]}>
+    <HeliosLayout userName={displayName}>
       <Routes>
         {/* Home - New Consult */}
-        <Route path="/" element={<HeliosHome userName={user?.name} />} />
+        <Route path="/" element={<HeliosHome userName={displayName} />} />
 
         {/* Chat */}
         <Route path="/chat/:sessionId" element={<HeliosChatPage />} />

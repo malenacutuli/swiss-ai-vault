@@ -28,13 +28,24 @@ export type Disposition =
   | 'telehealth'
   | 'self_care';
 
+export type Severity = 'critical' | 'high' | 'moderate' | 'low';
+
+export interface MessageAttachment {
+  type: 'image' | 'document';
+  filename: string;
+  url?: string;
+}
+
 export interface Message {
+  id?: string;
   message_id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   language: SupportedLanguage;
   emotion?: EmotionAnalysis;
   timestamp: string;
+  attachments?: MessageAttachment[];
+  redFlags?: RedFlag[];
 }
 
 export interface RedFlag {
