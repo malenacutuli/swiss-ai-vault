@@ -4,11 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Video, Plus, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, User, Video, Plus, AlertCircle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useHealthVault } from '@/hooks/helios/useHealthVault';
 import { BookingModal } from '../booking/BookingModal';
 import { AIVisitRequiredModal } from '../booking/AIVisitRequiredModal';
+import { DoctorDirectory, type Doctor } from '../booking/DoctorDirectory';
 
 const doctorAvatars = [
   { id: 1, name: 'Dr. Smith', image: '/avatars/doctor-1.jpg' },
@@ -20,6 +21,8 @@ export function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showAIRequiredModal, setShowAIRequiredModal] = useState(false);
+  const [showDoctorDirectory, setShowDoctorDirectory] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [hasRecentConsult, setHasRecentConsult] = useState(false);
 
   const { vault, isInitialized } = useHealthVault();
@@ -50,10 +53,16 @@ export function AppointmentsPage() {
 
   const handleBookClick = () => {
     if (hasRecentConsult) {
-      setShowBookingModal(true);
+      setShowDoctorDirectory(true);
     } else {
       setShowAIRequiredModal(true);
     }
+  };
+
+  const handleSelectDoctor = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
+    setShowDoctorDirectory(false);
+    setShowBookingModal(true);
   };
 
   const upcomingAppointments = appointments.filter(a =>
@@ -63,6 +72,24 @@ export function AppointmentsPage() {
   const pastAppointments = appointments.filter(a =>
     a.status === 'completed' || new Date(a.scheduledAt) <= new Date()
   );
+
+  // Show doctor directory view
+  if (showDoctorDirectory) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-serif">Find a Doctor</h1>
+            <p className="text-gray-600">Browse our network of licensed physicians</p>
+          </div>
+          <Button variant="outline" onClick={() => setShowDoctorDirectory(false)}>
+            Back
+          </Button>
+        </div>
+        <DoctorDirectory onSelectDoctor={handleSelectDoctor} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -91,12 +118,25 @@ export function AppointmentsPage() {
               Book a video appointment with top doctors licensed in all 50 states.
             </p>
 
-            <Button
-              onClick={handleBookClick}
-              className="w-full h-12 bg-[#2196F3] hover:bg-[#1976D2]"
-            >
-              Book Appointment
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={handleBookClick}
+                className="w-full h-12 bg-[#2196F3] hover:bg-[#1976D2]"
+              >
+                Book Appointment
+              </Button>
+
+              {hasRecentConsult && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDoctorDirectory(true)}
+                  className="w-full h-12"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Browse All Doctors
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Features */}
@@ -228,15 +268,22 @@ export function AppointmentsPage() {
       {/* Booking Modal */}
       {showBookingModal && (
         <BookingModal
-          onClose={() => setShowBookingModal(false)}
+          onClose={() => {
+            setShowBookingModal(false);
+            setSelectedDoctor(null);
+          }}
           onBook={async (data) => {
-            // Save appointment
+            // Save appointment with doctor info
             await vault?.saveAppointment({
               id: crypto.randomUUID(),
               ...data,
+              providerId: selectedDoctor?.id,
+              providerName: selectedDoctor?.name || 'Next Available Doctor',
+              specialty: selectedDoctor?.specialty || data.specialty,
               status: 'scheduled',
             });
             setShowBookingModal(false);
+            setSelectedDoctor(null);
             loadAppointments();
           }}
         />

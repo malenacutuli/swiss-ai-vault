@@ -44,6 +44,7 @@ export { ConsultSavePrompt } from './auth/ConsultSavePrompt';
 // Booking
 export { AIVisitRequiredModal } from './booking/AIVisitRequiredModal';
 export { BookingModal } from './booking/BookingModal';
+export { DoctorDirectory } from './booking/DoctorDirectory';
 
 // Record
 export { AddMedicationModal } from './record/AddMedicationModal';
