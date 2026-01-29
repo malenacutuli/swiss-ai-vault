@@ -24,10 +24,10 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const url = new URL(req.url);
-  const action = url.searchParams.get('action');
-
   try {
+    // Parse body to get action
+    const body = await req.json();
+    const action = body.action;
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -36,7 +36,7 @@ serve(async (req) => {
 
     if (action === 'get_access_token') {
       // Get Hume access token for WebSocket connection
-      const { session_id, specialty, language } = await req.json();
+      const { session_id, specialty, language } = body;
 
       const systemPrompt = buildSystemPrompt(specialty, language);
 
@@ -83,7 +83,7 @@ serve(async (req) => {
 
     if (action === 'handle_tool_call') {
       // Handle tool calls from Hume EVI
-      const { tool_name, parameters, session_id } = await req.json();
+      const { tool_name, parameters, session_id } = body;
 
       const result = await handleHeliosTool(supabaseClient, tool_name, parameters, session_id);
 
@@ -95,7 +95,7 @@ serve(async (req) => {
 
     if (action === 'save_transcript') {
       // Save conversation transcript
-      const { session_id, transcript, audio_url } = await req.json();
+      const { session_id, transcript, audio_url } = body;
 
       await supabaseClient
         .from('helios_sessions')
