@@ -4420,6 +4420,78 @@ export type Database = {
         }
         Relationships: []
       }
+      helios_sessions: {
+        Row: {
+          chief_complaint: string | null
+          completed_at: string | null
+          created_at: string | null
+          current_phase: string | null
+          disposition: string | null
+          escalation_reason: string | null
+          escalation_triggered: boolean | null
+          hypothesis_list: Json | null
+          id: string
+          language: string | null
+          messages: Json | null
+          metadata: Json | null
+          patient_id: string | null
+          red_flags: Json | null
+          session_id: string
+          summary: string | null
+          symptom_entities: Json | null
+          tenant_id: string | null
+          triage_level: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          chief_complaint?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_phase?: string | null
+          disposition?: string | null
+          escalation_reason?: string | null
+          escalation_triggered?: boolean | null
+          hypothesis_list?: Json | null
+          id?: string
+          language?: string | null
+          messages?: Json | null
+          metadata?: Json | null
+          patient_id?: string | null
+          red_flags?: Json | null
+          session_id?: string
+          summary?: string | null
+          symptom_entities?: Json | null
+          tenant_id?: string | null
+          triage_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          chief_complaint?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_phase?: string | null
+          disposition?: string | null
+          escalation_reason?: string | null
+          escalation_triggered?: boolean | null
+          hypothesis_list?: Json | null
+          id?: string
+          language?: string | null
+          messages?: Json | null
+          metadata?: Json | null
+          patient_id?: string | null
+          red_flags?: Json | null
+          session_id?: string
+          summary?: string | null
+          symptom_entities?: Json | null
+          tenant_id?: string | null
+          triage_level?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       inference_stats: {
         Row: {
           cache_tier: string | null
