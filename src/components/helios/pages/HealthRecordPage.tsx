@@ -16,12 +16,12 @@ import { AddAllergyModal } from '../record/AddAllergyModal';
 import { DocumentUploadModal } from '../record/DocumentUploadModal';
 
 const categories = [
-  { id: 'conditions', name: 'Conditions', icon: Heart, color: 'text-red-500' },
-  { id: 'medications', name: 'Medications', icon: Pill, color: 'text-blue-500' },
-  { id: 'allergies', name: 'Allergies', icon: AlertCircle, color: 'text-amber-500' },
-  { id: 'surgeries', name: 'Surgeries', icon: Plus, color: 'text-purple-500' },
-  { id: 'family', name: 'Family History', icon: Users, color: 'text-green-500' },
-  { id: 'immunizations', name: 'Immunizations', icon: Syringe, color: 'text-teal-500' },
+  { id: 'conditions', key: 'condition', name: 'Conditions', icon: Heart, color: 'text-red-500' },
+  { id: 'medications', key: 'medication', name: 'Medications', icon: Pill, color: 'text-blue-500' },
+  { id: 'allergies', key: 'allergy', name: 'Allergies', icon: AlertCircle, color: 'text-amber-500' },
+  { id: 'surgeries', key: 'surgery', name: 'Surgeries', icon: Plus, color: 'text-purple-500' },
+  { id: 'family', key: 'family', name: 'Family History', icon: Users, color: 'text-green-500' },
+  { id: 'immunizations', key: 'immunization', name: 'Immunizations', icon: Syringe, color: 'text-teal-500' },
 ];
 
 export function HealthRecordPage() {
@@ -193,7 +193,7 @@ export function HealthRecordPage() {
             <cat.icon className={`w-6 h-6 ${cat.color} mb-2`} />
             <p className="font-medium">{cat.name}</p>
             <p className="text-sm text-gray-500">
-              {items[cat.id.slice(0, -1)]?.length || 0} items
+              {items[cat.key]?.length || 0} items
             </p>
           </button>
         ))}
@@ -211,13 +211,13 @@ export function HealthRecordPage() {
           </Button>
         </div>
 
-        {items[activeCategory.slice(0, -1)]?.length === 0 ? (
+        {items[categories.find(c => c.id === activeCategory)?.key || '']?.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             No {activeCategory} recorded yet.
           </div>
         ) : (
           <div className="divide-y">
-            {items[activeCategory.slice(0, -1)]?.map((item) => (
+            {items[categories.find(c => c.id === activeCategory)?.key || '']?.map((item) => (
               <div
                 key={item.id}
                 className="p-4 flex items-center justify-between hover:bg-gray-50"
