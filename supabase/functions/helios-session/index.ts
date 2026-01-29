@@ -1,429 +1,354 @@
 /**
  * HELIOS Session Edge Function
- * Handles session creation, messaging, and orchestration
+ * Handles health consultation sessions via Anthropic Claude
  */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import Anthropic from 'https://esm.sh/@anthropic-ai/sdk';
+import { corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-language',
-};
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 
-// Models
-const MODELS = {
-  orchestration: 'claude-sonnet-4-5-20250929',
-  clinical: 'claude-opus-4-5-20251101',
-  fast: 'claude-haiku-4-5-20251001',
-};
+// Safety keywords that trigger immediate escalation
+const CRITICAL_KEYWORDS = [
+  'chest pain', "can't breathe", 'stroke', 'heart attack',
+  'suicide', 'kill myself', 'overdose', 'unconscious',
+  'severe bleeding', 'choking', 'seizure', 'anaphylaxis'
+];
 
-// Greetings by language
-const GREETINGS: Record<string, string> = {
-  en: "Hello! I'm your health assistant. I'll help gather information about your symptoms to connect you with the right care. This is not a substitute for professional medical advice. What brings you in today?",
-  es: "¡Hola! Soy tu asistente de salud. Te ayudaré a recopilar información sobre tus síntomas para conectarte con la atención adecuada. Esto no sustituye el consejo médico profesional. ¿Qué te trae hoy?",
-  fr: "Bonjour! Je suis votre assistant de santé. Je vais vous aider à recueillir des informations sur vos symptômes pour vous orienter vers les soins appropriés. Ceci ne remplace pas les conseils médicaux professionnels. Qu'est-ce qui vous amène aujourd'hui?",
-};
+// In-memory session store (for edge function - stateless between invocations)
+// In production, use Supabase database
+const sessions = new Map<string, SessionState>();
 
-// System prompts by language (abbreviated - full versions in src/i18n)
-const SYSTEM_PROMPTS: Record<string, string> = {
-  en: `You are a clinical triage AI assistant for HELIOS. You are NOT a doctor.
-NEVER diagnose. ALWAYS acknowledge uncertainty. ALWAYS recommend professional evaluation for concerning symptoms.
-Immediate escalation triggers: chest pain with risk factors, stroke symptoms, severe breathing difficulty, suicidal ideation, infant fever.
-For emergencies, tell patient to call 911 immediately.`,
+interface SessionState {
+  session_id: string;
+  language: string;
+  phase: string;
+  chief_complaint?: string;
+  symptoms: string[];
+  hypotheses: string[];
+  red_flags: string[];
+  messages: Array<{ role: string; content: string }>;
+  created_at: string;
+}
 
-  es: `Eres un asistente de IA de triaje clínico para HELIOS. NO eres médico.
-NUNCA diagnostiques. SIEMPRE reconoce la incertidumbre. SIEMPRE recomienda evaluación profesional para síntomas preocupantes.
-Disparadores de escalación inmediata: dolor torácico con factores de riesgo, síntomas de derrame, dificultad respiratoria severa, ideación suicida, fiebre en lactante.
-Para emergencias, dile al paciente que llame al 911 inmediatamente.`,
-
-  fr: `Vous êtes un assistant IA de triage clinique pour HELIOS. Vous n'êtes PAS médecin.
-NE JAMAIS diagnostiquer. TOUJOURS reconnaître l'incertitude. TOUJOURS recommander une évaluation professionnelle pour les symptômes préoccupants.
-Déclencheurs d'escalade immédiate: douleur thoracique avec facteurs de risque, symptômes d'AVC, difficulté respiratoire sévère, idéation suicidaire, fièvre du nourrisson.
-Pour les urgences, dites au patient d'appeler le 15 immédiatement.`,
-};
-
-// Red flag keywords for deterministic checking
-const RED_FLAG_KEYWORDS = {
-  cardiac: ['chest pain', 'dolor de pecho', 'douleur thoracique', 'radiating', 'irradia', 'irradie'],
-  stroke: ['facial droop', 'arm weakness', 'speech difficulty', 'caída facial', 'debilidad', 'affaissement'],
-  suicide: ['kill myself', 'want to die', 'suicide', 'matarme', 'quiero morir', 'me tuer'],
-  infant_fever: ['baby', 'infant', 'bebé', 'lactante', 'nourrisson', 'fever', 'fiebre', 'fièvre'],
-};
-
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const { action, session_id, message, language = 'en', demographics } = await req.json();
+
+    if (action === 'create') {
+      return handleCreateSession(language);
+    }
+
+    if (action === 'message') {
+      if (!session_id || !message) {
+        return new Response(
+          JSON.stringify({ error: 'session_id and message required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return handleMessage(session_id, message, language, demographics);
+    }
+
+    return new Response(
+      JSON.stringify({ error: 'Invalid action. Use "create" or "message"' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-    const anthropic = new Anthropic({
-      apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
-    });
-
-    const body = await req.json();
-    const { action, session_id, message, language = 'en' } = body;
-
-    // Validate language
-    if (!['en', 'es', 'fr'].includes(language)) {
-      throw new Error('Unsupported language. Supported: en, es, fr');
-    }
-
-    switch (action) {
-      // ========================================
-      // CREATE SESSION
-      // ========================================
-      case 'create': {
-        const authHeader = req.headers.get('Authorization');
-        const token = authHeader?.replace('Bearer ', '');
-
-        let userId: string | null = null;
-        if (token) {
-          const { data: { user } } = await supabase.auth.getUser(token);
-          userId = user?.id || null;
-        }
-
-        // Create session
-        const { data: session, error } = await supabase
-          .from('helios.case_sessions')
-          .insert({
-            patient_id: userId,
-            language,
-            current_phase: 'intake',
-            messages: [{
-              message_id: crypto.randomUUID(),
-              role: 'assistant',
-              content: GREETINGS[language],
-              language,
-              timestamp: new Date().toISOString(),
-            }],
-            metadata: {
-              client_type: 'web',
-              started_at: new Date().toISOString(),
-            },
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Audit log
-        await supabase.from('helios.audit_log').insert({
-          session_id: session.session_id,
-          event_type: 'session_started',
-          actor_type: 'system',
-          actor_id: 'helios-session',
-          event_payload: { language, patient_id: userId },
-          language,
-          event_hash: crypto.randomUUID(),
-        });
-
-        return new Response(JSON.stringify({
-          session_id: session.session_id,
-          phase: 'intake',
-          message: GREETINGS[language],
-          language,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // ========================================
-      // PROCESS MESSAGE
-      // ========================================
-      case 'message': {
-        if (!session_id || !message) {
-          throw new Error('session_id and message are required');
-        }
-
-        // Load session
-        const { data: session, error: loadError } = await supabase
-          .from('helios.case_sessions')
-          .select('*')
-          .eq('session_id', session_id)
-          .single();
-
-        if (loadError || !session) {
-          throw new Error('Session not found');
-        }
-
-        // Check for red flags (deterministic)
-        const redFlags = checkRedFlags(message, session.language);
-
-        // If critical red flag, escalate immediately
-        if (redFlags.length > 0 && redFlags.some((f: { severity: string }) => f.severity === 'critical')) {
-          const emergencyResponse = getEmergencyResponse(redFlags[0], session.language);
-
-          // Update session with escalation
-          const updatedMessages = [
-            ...session.messages,
-            {
-              message_id: crypto.randomUUID(),
-              role: 'user',
-              content: message,
-              language: session.language,
-              timestamp: new Date().toISOString(),
-            },
-            {
-              message_id: crypto.randomUUID(),
-              role: 'assistant',
-              content: emergencyResponse,
-              language: session.language,
-              timestamp: new Date().toISOString(),
-            },
-          ];
-
-          await supabase
-            .from('helios.case_sessions')
-            .update({
-              messages: updatedMessages,
-              red_flags: [...session.red_flags, ...redFlags],
-              escalation_triggered: true,
-              escalation_reason: redFlags[0].description,
-              current_phase: 'escalated',
-            })
-            .eq('session_id', session_id);
-
-          // Audit
-          await supabase.from('helios.audit_log').insert({
-            session_id,
-            event_type: 'escalation_triggered',
-            actor_type: 'safety_engine',
-            actor_id: 'deterministic_rules',
-            event_payload: { red_flags: redFlags, message },
-            language: session.language,
-            event_hash: crypto.randomUUID(),
-          });
-
-          return new Response(JSON.stringify({
-            session_id,
-            phase: 'escalated',
-            message: emergencyResponse,
-            language: session.language,
-            red_flags: redFlags,
-            escalated: true,
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Normal processing with Claude
-        const systemPrompt = SYSTEM_PROMPTS[session.language];
-
-        const response = await anthropic.messages.create({
-          model: MODELS.orchestration,
-          max_tokens: 2048,
-          system: systemPrompt,
-          messages: [
-            ...formatMessages(session.messages),
-            { role: 'user', content: message },
-          ],
-        });
-
-        const assistantContent = response.content[0].type === 'text'
-          ? response.content[0].text
-          : '';
-
-        // Update session
-        const updatedMessages = [
-          ...session.messages,
-          {
-            message_id: crypto.randomUUID(),
-            role: 'user',
-            content: message,
-            language: session.language,
-            timestamp: new Date().toISOString(),
-          },
-          {
-            message_id: crypto.randomUUID(),
-            role: 'assistant',
-            content: assistantContent,
-            language: session.language,
-            timestamp: new Date().toISOString(),
-          },
-        ];
-
-        await supabase
-          .from('helios.case_sessions')
-          .update({
-            messages: updatedMessages,
-            red_flags: [...session.red_flags, ...redFlags],
-          })
-          .eq('session_id', session_id);
-
-        // Audit
-        await supabase.from('helios.audit_log').insert({
-          session_id,
-          event_type: 'message_sent',
-          actor_type: 'agent',
-          actor_id: 'orchestrator',
-          event_payload: {
-            model: MODELS.orchestration,
-            input_tokens: response.usage?.input_tokens,
-            output_tokens: response.usage?.output_tokens,
-          },
-          language: session.language,
-          event_hash: crypto.randomUUID(),
-        });
-
-        return new Response(JSON.stringify({
-          session_id,
-          phase: session.current_phase,
-          message: assistantContent,
-          language: session.language,
-          red_flags: redFlags.length > 0 ? redFlags : undefined,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // ========================================
-      // GET SESSION
-      // ========================================
-      case 'get': {
-        if (!session_id) {
-          throw new Error('session_id is required');
-        }
-
-        const { data: session, error } = await supabase
-          .from('helios.case_sessions')
-          .select('*')
-          .eq('session_id', session_id)
-          .single();
-
-        if (error || !session) {
-          throw new Error('Session not found');
-        }
-
-        return new Response(JSON.stringify(session), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      default:
-        throw new Error(`Unknown action: ${action}`);
-    }
   } catch (error) {
-    console.error('HELIOS Error:', error);
-    return new Response(JSON.stringify({
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('HELIOS session error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message || 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
 
-// ========================================
-// HELPER FUNCTIONS
-// ========================================
+function handleCreateSession(language: string): Response {
+  const sessionId = crypto.randomUUID();
 
-interface MessageParam {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface SessionMessage {
-  role: string;
-  content: string;
-}
-
-function formatMessages(messages: SessionMessage[]): MessageParam[] {
-  return messages
-    .filter(m => m.role === 'user' || m.role === 'assistant')
-    .map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
-}
-
-interface RedFlag {
-  flag_id: string;
-  rule_id: string;
-  flag_type: string;
-  description: string;
-  severity: string;
-  escalation_level: string;
-  detected_at: string;
-}
-
-function checkRedFlags(message: string, language: string): RedFlag[] {
-  const flags: RedFlag[] = [];
-  const lowerMessage = message.toLowerCase();
-
-  // Check suicide keywords (highest priority)
-  if (RED_FLAG_KEYWORDS.suicide.some(k => lowerMessage.includes(k))) {
-    flags.push({
-      flag_id: crypto.randomUUID(),
-      rule_id: 'psych_001',
-      flag_type: 'psychiatric',
-      description: language === 'es' ? 'Ideación suicida detectada' :
-                   language === 'fr' ? 'Idéation suicidaire détectée' :
-                   'Suicidal ideation detected',
-      severity: 'critical',
-      escalation_level: 'emergency',
-      detected_at: new Date().toISOString(),
-    });
-  }
-
-  // Check cardiac keywords
-  if (RED_FLAG_KEYWORDS.cardiac.some(k => lowerMessage.includes(k))) {
-    flags.push({
-      flag_id: crypto.randomUUID(),
-      rule_id: 'cardiac_001',
-      flag_type: 'cardiac',
-      description: language === 'es' ? 'Síntomas cardíacos detectados' :
-                   language === 'fr' ? 'Symptômes cardiaques détectés' :
-                   'Cardiac symptoms detected',
-      severity: 'critical',
-      escalation_level: 'emergency',
-      detected_at: new Date().toISOString(),
-    });
-  }
-
-  // Check stroke keywords
-  if (RED_FLAG_KEYWORDS.stroke.some(k => lowerMessage.includes(k))) {
-    flags.push({
-      flag_id: crypto.randomUUID(),
-      rule_id: 'neuro_001',
-      flag_type: 'neuro',
-      description: language === 'es' ? 'Síntomas de derrame detectados' :
-                   language === 'fr' ? 'Symptômes d\'AVC détectés' :
-                   'Stroke symptoms detected',
-      severity: 'critical',
-      escalation_level: 'emergency',
-      detected_at: new Date().toISOString(),
-    });
-  }
-
-  return flags;
-}
-
-function getEmergencyResponse(flag: RedFlag, language: string): string {
-  const responses: Record<string, Record<string, string>> = {
-    psych_001: {
-      en: "I'm very concerned about what you're sharing. Your life matters, and help is available right now. Please call 988 (Suicide & Crisis Lifeline) immediately to speak with someone who can help. If you're in immediate danger, call 911.",
-      es: "Me preocupa mucho lo que estás compartiendo. Tu vida importa y hay ayuda disponible ahora mismo. Por favor llama al 024 (Línea de Atención a la Conducta Suicida) inmediatamente. Si estás en peligro inmediato, llama al 911.",
-      fr: "Je suis très préoccupé par ce que vous partagez. Votre vie compte et de l'aide est disponible maintenant. Veuillez appeler le 3114 (Numéro national de prévention du suicide) immédiatement. Si vous êtes en danger immédiat, appelez le 15.",
-    },
-    cardiac_001: {
-      en: "⚠️ EMERGENCY: Based on what you've described, you may be experiencing a serious cardiac event. Please call 911 immediately. Do not drive yourself. While waiting, sit upright and stay calm.",
-      es: "⚠️ EMERGENCIA: Según lo que describes, podrías estar experimentando un evento cardíaco grave. Llama al 911 inmediatamente. No conduzcas tú mismo. Mientras esperas, siéntate erguido y mantén la calma.",
-      fr: "⚠️ URGENCE: D'après ce que vous décrivez, vous pourriez avoir un événement cardiaque grave. Appelez le 15 immédiatement. Ne conduisez pas vous-même. En attendant, restez assis et gardez votre calme.",
-    },
-    neuro_001: {
-      en: "⚠️ EMERGENCY: The symptoms you're describing could indicate a stroke. Time is critical. Call 911 immediately. Note the time symptoms started.",
-      es: "⚠️ EMERGENCIA: Los síntomas que describes podrían indicar un derrame cerebral. El tiempo es crítico. Llama al 911 inmediatamente. Anota la hora de inicio.",
-      fr: "⚠️ URGENCE: Les symptômes que vous décrivez pourraient indiquer un AVC. Le temps est critique. Appelez le 15 immédiatement. Notez l'heure de début.",
-    },
+  const session: SessionState = {
+    session_id: sessionId,
+    language,
+    phase: 'intake',
+    symptoms: [],
+    hypotheses: [],
+    red_flags: [],
+    messages: [],
+    created_at: new Date().toISOString(),
   };
 
-  return responses[flag.rule_id]?.[language] || responses[flag.rule_id]?.en ||
-    "⚠️ EMERGENCY: Please call emergency services immediately.";
+  sessions.set(sessionId, session);
+
+  const greeting = getGreeting(language);
+
+  return new Response(
+    JSON.stringify({
+      session_id: sessionId,
+      phase: 'intake',
+      message: greeting,
+      language,
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function handleMessage(
+  sessionId: string,
+  userMessage: string,
+  language: string,
+  demographics?: { age?: number; sex?: string }
+): Promise<Response> {
+  // Get or create session
+  let session = sessions.get(sessionId);
+  if (!session) {
+    session = {
+      session_id: sessionId,
+      language,
+      phase: 'intake',
+      symptoms: [],
+      hypotheses: [],
+      red_flags: [],
+      messages: [],
+      created_at: new Date().toISOString(),
+    };
+    sessions.set(sessionId, session);
+  }
+
+  // Quick safety check (no LLM needed)
+  const lowerMessage = userMessage.toLowerCase();
+  for (const keyword of CRITICAL_KEYWORDS) {
+    if (lowerMessage.includes(keyword)) {
+      const escalationResponse = getEscalationResponse(language, keyword);
+      session.red_flags.push('Critical symptom detected: ' + keyword);
+      session.phase = 'escalated';
+
+      return new Response(
+        JSON.stringify({
+          session_id: sessionId,
+          phase: 'escalated',
+          message: escalationResponse,
+          red_flags: session.red_flags,
+          escalated: true,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  // Add user message to history
+  session.messages.push({ role: 'user', content: userMessage });
+
+  // Set chief complaint from first user message
+  if (!session.chief_complaint) {
+    session.chief_complaint = userMessage;
+  }
+
+  // Call Claude for response
+  const response = await callClaude(session, userMessage, language, demographics);
+
+  // Add assistant response to history
+  session.messages.push({ role: 'assistant', content: response.message });
+
+  // Update session state
+  if (response.phase) session.phase = response.phase;
+  if (response.symptoms) session.symptoms = [...session.symptoms, ...response.symptoms];
+  if (response.hypotheses) session.hypotheses = response.hypotheses;
+  if (response.red_flags) session.red_flags = [...session.red_flags, ...response.red_flags];
+
+  return new Response(
+    JSON.stringify({
+      session_id: sessionId,
+      phase: session.phase,
+      message: response.message,
+      symptoms: session.symptoms,
+      hypotheses: session.hypotheses,
+      red_flags: session.red_flags,
+      escalated: response.escalated || false,
+      triage_level: response.triage_level,
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function callClaude(
+  session: SessionState,
+  userMessage: string,
+  language: string,
+  demographics?: { age?: number; sex?: string }
+): Promise<{
+  message: string;
+  phase?: string;
+  symptoms?: string[];
+  hypotheses?: string[];
+  red_flags?: string[];
+  escalated?: boolean;
+  triage_level?: string;
+}> {
+  if (!ANTHROPIC_API_KEY) {
+    console.error('ANTHROPIC_API_KEY not configured');
+    return {
+      message: getErrorResponse(language),
+      phase: session.phase,
+    };
+  }
+
+  const systemPrompt = buildSystemPrompt(session, language, demographics);
+
+  // Build conversation history
+  const messages = session.messages.map(m => ({
+    role: m.role as 'user' | 'assistant',
+    content: m.content,
+  }));
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: messages,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Claude API error:', response.status, errorText);
+      return {
+        message: getErrorResponse(language),
+        phase: session.phase,
+      };
+    }
+
+    const data = await response.json();
+    const content = data.content[0]?.text || '';
+
+    return parseClaudeResponse(content, session.phase);
+
+  } catch (error) {
+    console.error('Claude API call failed:', error);
+    return {
+      message: getErrorResponse(language),
+      phase: session.phase,
+    };
+  }
+}
+
+function buildSystemPrompt(
+  session: SessionState,
+  language: string,
+  demographics?: { age?: number; sex?: string }
+): string {
+  const langInstructions: Record<string, string> = {
+    en: 'Respond in English.',
+    es: 'Responde en español.',
+    fr: 'Répondez en français.',
+  };
+
+  const demographicInfo = demographics
+    ? '\nPatient: ' + (demographics.age || 'unknown') + ' year old ' + (demographics.sex || 'unknown')
+    : '';
+
+  const existingInfo = session.chief_complaint
+    ? '\nKnown information:\n- Chief complaint: ' + session.chief_complaint + '\n- Symptoms: ' + JSON.stringify(session.symptoms)
+    : '';
+
+  return 'You are HELIOS, an AI health triage assistant. ' + (langInstructions[language] || langInstructions.en) + '\n\nCURRENT PHASE: ' + session.phase + demographicInfo + existingInfo + '\n\nYour role is to:\n1. Gather symptom information conversationally\n2. Identify any red flags or emergencies\n3. Guide the patient to appropriate care\n\nRULES:\n- Be empathetic but concise\n- Ask ONE follow-up question at a time\n- Flag emergencies immediately with [RED_FLAG: description]\n- Never diagnose - only gather information and triage\n- If symptoms suggest emergency, recommend immediate care\n\nRESPONSE FORMAT:\n[PHASE: intake|history|triage|plan|documentation|completed]\n[RED_FLAGS: none OR comma-separated list]\n[SYMPTOMS: comma-separated list of identified symptoms]\n[HYPOTHESES: comma-separated list of possible conditions to investigate]\n\nYour response to the patient:\n(Your conversational message here)\n\n---\nRemember: You are gathering information to help connect them with the right level of care, not providing medical diagnosis.';
+}
+
+function parseClaudeResponse(content: string, currentPhase: string): {
+  message: string;
+  phase?: string;
+  symptoms?: string[];
+  hypotheses?: string[];
+  red_flags?: string[];
+  escalated?: boolean;
+  triage_level?: string;
+} {
+  const lines = content.split('\n');
+  let phase = currentPhase;
+  let redFlags: string[] = [];
+  let symptoms: string[] = [];
+  let hypotheses: string[] = [];
+  const messageLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith('[PHASE:')) {
+      const match = line.match(/\[PHASE:\s*(\w+)\]/);
+      if (match) phase = match[1];
+    } else if (line.startsWith('[RED_FLAGS:')) {
+      const match = line.match(/\[RED_FLAGS:\s*(.+)\]/);
+      if (match && match[1].toLowerCase() !== 'none') {
+        redFlags = match[1].split(',').map(f => f.trim());
+      }
+    } else if (line.startsWith('[SYMPTOMS:')) {
+      const match = line.match(/\[SYMPTOMS:\s*(.+)\]/);
+      if (match && match[1].toLowerCase() !== 'none') {
+        symptoms = match[1].split(',').map(s => s.trim());
+      }
+    } else if (line.startsWith('[HYPOTHESES:')) {
+      const match = line.match(/\[HYPOTHESES:\s*(.+)\]/);
+      if (match && match[1].toLowerCase() !== 'none') {
+        hypotheses = match[1].split(',').map(h => h.trim());
+      }
+    } else if (line.trim() && !line.startsWith('[')) {
+      messageLines.push(line);
+    }
+  }
+
+  // If no structured format found, use the whole response
+  let message = messageLines.join('\n').trim();
+  if (!message) {
+    message = content
+      .replace(/\[PHASE:[^\]]+\]/g, '')
+      .replace(/\[RED_FLAGS:[^\]]+\]/g, '')
+      .replace(/\[SYMPTOMS:[^\]]+\]/g, '')
+      .replace(/\[HYPOTHESES:[^\]]+\]/g, '')
+      .trim();
+  }
+
+  return {
+    message,
+    phase,
+    symptoms: symptoms.length > 0 ? symptoms : undefined,
+    hypotheses: hypotheses.length > 0 ? hypotheses : undefined,
+    red_flags: redFlags.length > 0 ? redFlags : undefined,
+    escalated: redFlags.some(f => f.includes('CRITICAL')),
+  };
+}
+
+function getGreeting(language: string): string {
+  const greetings: Record<string, string> = {
+    en: "Hello! I'm HELIOS, your AI health assistant. I'll help gather information about your symptoms to connect you with the right care. This is not a substitute for professional medical advice. What brings you in today?",
+    es: "Hola! Soy HELIOS, tu asistente de salud con IA. Te ayudaré a recopilar información sobre tus síntomas para conectarte con la atención adecuada. Esto no sustituye el consejo médico profesional. ¿Qué te trae hoy?",
+    fr: "Bonjour! Je suis HELIOS, votre assistant de santé IA. Je vais vous aider à recueillir des informations sur vos symptômes pour vous orienter vers les soins appropriés. Ceci ne remplace pas les conseils médicaux professionnels. Qu'est-ce qui vous amène aujourd'hui?",
+  };
+  return greetings[language] || greetings.en;
+}
+
+function getEscalationResponse(language: string, trigger: string): string {
+  const responses: Record<string, string> = {
+    en: 'I am concerned about what you have described. "' + trigger + '" can be a sign of a medical emergency. Please call 911 or go to the nearest emergency room immediately. If you are unable to do so, have someone help you. Your safety is the priority.',
+    es: 'Me preocupa lo que has descrito. "' + trigger + '" puede ser señal de una emergencia médica. Por favor llama al 911 o ve a la sala de emergencias más cercana inmediatamente. Si no puedes hacerlo, pide ayuda a alguien. Tu seguridad es la prioridad.',
+    fr: 'Ce que vous décrivez m inquiète. "' + trigger + '" peut être le signe d une urgence médicale. Veuillez appeler le 15 ou vous rendre aux urgences les plus proches immédiatement. Si vous ne pouvez pas le faire, demandez de l aide. Votre sécurité est la priorité.',
+  };
+  return responses[language] || responses.en;
+}
+
+function getErrorResponse(language: string): string {
+  const responses: Record<string, string> = {
+    en: "I apologize, I encountered an issue processing your message. Could you please try again?",
+    es: "Lo siento, encontré un problema procesando tu mensaje. ¿Podrías intentarlo de nuevo?",
+    fr: "Je m'excuse, j'ai rencontré un problème lors du traitement de votre message. Pourriez-vous réessayer?",
+  };
+  return responses[language] || responses.en;
 }

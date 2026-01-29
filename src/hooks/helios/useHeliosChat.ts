@@ -1,11 +1,13 @@
 /**
  * HELIOS Chat Hook
  * Manages chat session with document upload and AI interaction
+ * Uses Supabase Edge Functions for API communication
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
 import { HealthVault } from '@/lib/helios/vault';
-import type { Message, RedFlag } from '@/lib/helios/types';
+import type { Message, RedFlag, CaseState, SymptomEntity, Hypothesis } from '@/lib/helios/types';
 
 interface UseHeliosChatOptions {
   language?: 'en' | 'es' | 'fr';
@@ -24,6 +26,11 @@ export function useHeliosChat(
   const [redFlags, setRedFlags] = useState<RedFlag[]>([]);
   const [phase, setPhase] = useState<string>('intake');
   const [error, setError] = useState<string | null>(null);
+  const [caseState, setCaseState] = useState<CaseState | null>(null);
+  const [symptoms, setSymptoms] = useState<SymptomEntity[]>([]);
+  const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
+  const [chiefComplaint, setChiefComplaint] = useState<string | undefined>();
+  const [demographics, setDemographics] = useState<{ age?: number; sex?: string } | undefined>();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -69,6 +76,16 @@ export function useHeliosChat(
     setIsLoading(true);
     setError(null);
 
+    // Store demographics if provided
+    if (options?.demographics) {
+      setDemographics(options.demographics);
+    }
+
+    // Set chief complaint from first message
+    if (!chiefComplaint && messages.length <= 1) {
+      setChiefComplaint(content);
+    }
+
     // Add user message
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -80,25 +97,20 @@ export function useHeliosChat(
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Call HELIOS API
-      abortControllerRef.current = new AbortController();
-
-      const response = await fetch(`/api/helios/sessions/${sessionId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Call HELIOS via Supabase Edge Function
+      const { data, error: fnError } = await supabase.functions.invoke('helios-session', {
+        body: {
+          action: 'message',
+          session_id: sessionId,
           message: content,
           language,
           demographics: options?.demographics,
-        }),
-        signal: abortControllerRef.current.signal,
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send message');
+      if (fnError) {
+        throw fnError;
       }
-
-      const data = await response.json();
 
       // Add AI response
       const aiMessage: Message = {
@@ -109,21 +121,49 @@ export function useHeliosChat(
         redFlags: data.red_flags,
       };
 
+      const updatedMessages = [...messages, userMessage, aiMessage];
       setMessages(prev => [...prev, aiMessage]);
-      setPhase(data.phase);
+      setPhase(data.phase || 'intake');
+
+      // Update symptoms and hypotheses
+      const updatedSymptoms = data.symptoms || symptoms;
+      const updatedHypotheses = data.hypotheses || hypotheses;
+      setSymptoms(updatedSymptoms);
+      setHypotheses(updatedHypotheses);
+
+      // Handle red flags and escalation
+      if (data.red_flags?.length > 0) {
+        setRedFlags(prev => [...prev, ...data.red_flags]);
+      }
 
       if (data.escalated) {
         setIsEscalated(true);
-        setRedFlags(data.red_flags || []);
       }
+
+      // Build and update CaseState
+      const newCaseState: CaseState = {
+        session_id: sessionId,
+        phase: data.phase || 'intake',
+        chief_complaint: chiefComplaint || content,
+        demographics: demographics || options?.demographics,
+        symptom_entities: updatedSymptoms,
+        hypothesis_list: updatedHypotheses,
+        red_flags: data.red_flags || redFlags,
+        triage_level: data.triage_level,
+        disposition: data.disposition,
+        messages: updatedMessages,
+        created_at: caseState?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setCaseState(newCaseState);
 
       // Save to vault
       if (vault) {
         await vault.saveConsult({
           id: sessionId,
-          messages: [...messages, userMessage, aiMessage],
-          symptoms: data.symptoms || [],
-          hypotheses: data.hypotheses || [],
+          messages: updatedMessages,
+          symptoms: updatedSymptoms,
+          hypotheses: updatedHypotheses,
           redFlags: data.red_flags || [],
           language,
           phase: data.phase,
@@ -131,15 +171,14 @@ export function useHeliosChat(
         });
       }
     } catch (err) {
-      if ((err as Error).name !== 'AbortError') {
-        setError('Failed to send message');
-        // Remove the optimistically added user message
-        setMessages(prev => prev.slice(0, -1));
-      }
+      console.error('HELIOS sendMessage error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send message');
+      // Remove the optimistically added user message
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId, language, vault, messages]);
+  }, [sessionId, language, vault, messages, chiefComplaint, demographics, symptoms, hypotheses, redFlags, caseState]);
 
   const uploadDocument = useCallback(async (file: File) => {
     if (!vault) return;
@@ -209,6 +248,7 @@ export function useHeliosChat(
     isEscalated,
     redFlags,
     phase,
+    caseState,
     error,
     sendMessage,
     uploadDocument,
