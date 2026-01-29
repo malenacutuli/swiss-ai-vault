@@ -31,6 +31,14 @@ export * from './agents/index.js';
 // Orchestrator
 export { HeliosOrchestrator, createOrchestrator } from './orchestrator/index.js';
 
+// LangChain Multi-Agent Orchestrator (recommended)
+export {
+  LangChainBridge,
+  createBridgedOrchestrator,
+  type LangChainTeamResult,
+  type LangChainConsensusResult,
+} from './orchestrator/index.js';
+
 // Monitoring
 export * from './monitoring/index.js';
 

@@ -12,14 +12,27 @@ import { secureHeaders } from 'hono/secure-headers';
 import { prettyJSON } from 'hono/pretty-json';
 
 import { env } from './config/env.js';
-import { createOrchestrator } from './orchestrator/index.js';
+import { createBridgedOrchestrator } from './orchestrator/index.js';
+import { FastHeliosOrchestrator } from '../../../src/orchestrator/langchain/fast-graph.js';
 import { initializeKnowledge } from './knowledge/index.js';
 import { getHealthStatus, getReadinessStatus, getMetricsOutput, metrics } from './monitoring/index.js';
 import { logger } from './utils/logger.js';
 
 // Initialize
 initializeKnowledge();
-const orchestrator = createOrchestrator(env.ANTHROPIC_API_KEY);
+
+// Orchestrator mode: 'fast' (default) or 'full' (107-agent LangChain)
+const ORCHESTRATOR_MODE = process.env.HELIOS_MODE || 'fast';
+
+// Fast orchestrator: Single optimized LLM call (~3-5 seconds)
+const fastOrchestrator = new FastHeliosOrchestrator(env.ANTHROPIC_API_KEY);
+
+// Full orchestrator: 107-agent LangChain system (~4 minutes, more thorough)
+const fullOrchestrator = createBridgedOrchestrator(true, env.ANTHROPIC_API_KEY);
+
+// Select orchestrator based on mode
+const orchestrator = ORCHESTRATOR_MODE === 'full' ? fullOrchestrator : fastOrchestrator;
+logger.info(`Using ${ORCHESTRATOR_MODE === 'full' ? 'Full 107-agent LangChain' : 'Fast single-pass'} orchestrator`);
 
 // Create app
 const app = new Hono();

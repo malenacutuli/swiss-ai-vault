@@ -398,3 +398,11 @@ export class HeliosOrchestrator {
 export function createOrchestrator(apiKey: string, config?: Partial<OrchestratorConfig>) {
   return new HeliosOrchestrator(apiKey, config);
 }
+
+// LangChain Multi-Agent Bridge
+export {
+  LangChainBridge,
+  createBridgedOrchestrator,
+  type TeamResult as LangChainTeamResult,
+  type ConsensusResult as LangChainConsensusResult,
+} from './langchain-bridge.js';
