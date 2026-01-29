@@ -10,6 +10,7 @@ import { useHeliosSession } from '@/hooks/helios/useHeliosSession';
 import { HeliosMessage } from './HeliosMessage';
 import { HeliosRedFlag } from './HeliosRedFlag';
 import { LanguageSelector } from '../common/LanguageSelector';
+import { supabase } from '@/integrations/supabase/client';
 import type { SupportedLanguage } from '@/lib/helios/types';
 
 interface HeliosChatProps {
@@ -24,9 +25,12 @@ export function HeliosChat({
   const [input, setInput] = useState('');
   const [language, setLanguage] = useState<SupportedLanguage>(initialLanguage);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const { toast } = useToast();
 
@@ -76,9 +80,112 @@ export function HeliosChat({
     }
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    // Voice recording handled by useHeliosVoice hook
+  // Voice recording handlers
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+
+      toast({
+        title: language === 'es' ? 'Grabando...' : language === 'fr' ? 'Enregistrement...' : 'Recording...',
+        description: language === 'es' 
+          ? 'Habla ahora. Haz clic de nuevo para parar.'
+          : language === 'fr'
+          ? 'Parlez maintenant. Cliquez à nouveau pour arrêter.'
+          : 'Speak now. Click again to stop.',
+      });
+    } catch (err) {
+      console.error('Microphone access error:', err);
+      toast({
+        title: language === 'es' ? 'Acceso al micrófono denegado' : language === 'fr' ? 'Accès au microphone refusé' : 'Microphone access denied',
+        description: language === 'es'
+          ? 'Por favor, permite el acceso al micrófono para usar la entrada de voz.'
+          : language === 'fr'
+          ? 'Veuillez autoriser l\'accès au microphone pour utiliser la saisie vocale.'
+          : 'Please allow microphone access to use voice input.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      // Create form data with the audio file
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      // Call the voice edge function for transcription
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice?action=transcribe`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Transcription failed');
+      }
+
+      const data = await response.json();
+      
+      if (data?.text) {
+        setInput(prev => prev + (prev ? ' ' : '') + data.text);
+        toast({
+          title: language === 'es' ? 'Transcripción completada' : language === 'fr' ? 'Transcription terminée' : 'Transcription complete',
+          description: data.text.slice(0, 50) + (data.text.length > 50 ? '...' : ''),
+        });
+      }
+    } catch (err) {
+      console.error('Transcription failed:', err);
+      toast({
+        title: language === 'es' ? 'Error de transcripción' : language === 'fr' ? 'Erreur de transcription' : 'Transcription failed',
+        description: language === 'es'
+          ? 'Por favor, inténtalo de nuevo o escribe tu mensaje.'
+          : language === 'fr'
+          ? 'Veuillez réessayer ou tapez votre message.'
+          : 'Please try again or type your message.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,15 +315,24 @@ export function HeliosChat({
           </button>
 
           <button
-            onClick={toggleRecording}
+            onClick={handleMicClick}
             className={`p-2 rounded-full transition-colors ${
               isRecording
-                ? 'bg-red-500 text-white'
+                ? 'bg-red-500 text-white animate-pulse'
+                : isTranscribing
+                ? 'bg-amber-500 text-white'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
             }`}
-            disabled={isLoading || isEscalated}
+            disabled={isLoading || isEscalated || isTranscribing}
+            title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Start voice input'}
           >
-            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isTranscribing ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isRecording ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
           </button>
 
           <input
