@@ -14,7 +14,7 @@ import { AppointmentsPage } from '@/components/helios/pages/AppointmentsPage';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function HeliosRoutes() {
-  const { user, isLoading } = useAuth();
+  const { user, session, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -25,7 +25,10 @@ export function HeliosRoutes() {
   }
 
   // Get display name from user metadata or email
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0];
+  const displayName = user?.user_metadata?.full_name 
+    || user?.email?.split('@')[0] 
+    || undefined;
+  const isGuest = !session;
 
   return (
     <HeliosLayout userName={displayName}>

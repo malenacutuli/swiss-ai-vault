@@ -19,7 +19,8 @@ const doctorAvatars = [
   '/avatars/doctor-3.jpg',
 ];
 
-export function HeliosHome({ userName = 'there' }: HeliosHomeProps) {
+export function HeliosHome({ userName }: HeliosHomeProps) {
+  const displayName = userName || 'there';
   const [message, setMessage] = useState('');
   const [isStarting, setIsStarting] = useState(false);
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export function HeliosHome({ userName = 'there' }: HeliosHomeProps) {
 
       {/* Greeting */}
       <h1 className="text-4xl md:text-5xl font-serif text-center mb-4">
-        How can I help you<br />today, {userName}?
+        How can I help you<br />today, {displayName}?
       </h1>
 
       <p className="text-gray-600 text-center mb-2">

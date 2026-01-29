@@ -144,9 +144,17 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
               {/* Search bar placeholder */}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-medium text-gray-900">
+                  {userName || 'Guest'}
+                </span>
+                {!userName && (
+                  <span className="text-xs text-gray-500">(Guest)</span>
+                )}
+              </div>
               <div className="w-10 h-10 bg-[#B8E8F5] rounded-full flex items-center justify-center text-[#1D4E5F] font-medium">
-                {userName?.charAt(0).toUpperCase() || 'M'}
+                {userName?.charAt(0).toUpperCase() || 'G'}
               </div>
             </div>
           </div>
