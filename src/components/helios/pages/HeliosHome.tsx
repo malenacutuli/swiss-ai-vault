@@ -85,7 +85,6 @@ const doctorAvatars = [
 export function HeliosHome({ userName }: HeliosHomeProps) {
   const displayName = userName || 'there';
   const [message, setMessage] = useState('');
-  const [specialty, setSpecialty] = useState('primary-care');
   const [isStarting, setIsStarting] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
   const navigate = useNavigate();
