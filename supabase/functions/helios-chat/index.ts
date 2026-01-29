@@ -39,7 +39,7 @@ const RED_FLAGS = [
   { pattern: /worst.*headache|thunderclap/i, severity: 'critical', action: 'Call 911 immediately' },
 
   // Respiratory
-  { pattern: /can'?t\s*breathe|choking|severe.*breathing/i, severity: 'critical', action: 'Call 911 immediately' },
+  { pattern: /can.?t\s*breathe|choking|severe.*breathing/i, severity: 'critical', action: 'Call 911 immediately' },
 
   // Psychiatric
   { pattern: /suicid|kill\s*myself|end.*life|want.*die/i, severity: 'critical', action: 'Call 988 (Suicide Hotline)' },
@@ -49,7 +49,7 @@ const RED_FLAGS = [
   { pattern: /baby.*fever|infant.*not.*breathing|newborn.*blue/i, severity: 'critical', action: 'Call 911 immediately' },
 
   // Trauma
-  { pattern: /severe.*bleeding|won'?t.*stop.*bleeding|deep.*cut/i, severity: 'critical', action: 'Call 911 immediately' },
+  { pattern: /severe.*bleeding|won.?t.*stop.*bleeding|deep.*cut/i, severity: 'critical', action: 'Call 911 immediately' },
   { pattern: /head.*injury.*unconscious|loss.*consciousness/i, severity: 'critical', action: 'Call 911 immediately' },
 ];
 
