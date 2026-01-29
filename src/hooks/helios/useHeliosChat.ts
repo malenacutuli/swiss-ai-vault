@@ -1,19 +1,7 @@
 // src/hooks/helios/useHeliosChat.ts
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
-
-interface RedFlag {
-  type: string;
-  severity: string;
-  description: string;
-}
+import type { Message, RedFlag } from '@/lib/helios/types';
 
 interface CaseState {
   session_id: string;
@@ -79,9 +67,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
 
       // Add greeting message
       setMessages([{
-        id: crypto.randomUUID(),
+        message_id: crypto.randomUUID(),
         role: 'assistant',
         content: data.message,
+        language: 'en',
         timestamp: new Date().toISOString(),
       }]);
 
@@ -90,9 +79,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
       setError(err instanceof Error ? err.message : 'Failed to start session');
       // Fallback greeting
       setMessages([{
-        id: crypto.randomUUID(),
+        message_id: crypto.randomUUID(),
         role: 'assistant',
         content: "Hello! I'm your AI health assistant. I'll help gather information about your symptoms to connect you with the right care. This is not a substitute for professional medical advice. What brings you in today?",
+        language: 'en',
         timestamp: new Date().toISOString(),
       }]);
       sessionIdRef.current = crypto.randomUUID();
@@ -115,9 +105,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
 
     // Add user message immediately
     const userMessage: Message = {
-      id: crypto.randomUUID(),
+      message_id: crypto.randomUUID(),
       role: 'user',
       content: content.trim(),
+      language: 'en',
       timestamp: new Date().toISOString(),
     };
     setMessages(prev => [...prev, userMessage]);
@@ -149,9 +140,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
 
       // Add assistant message
       const assistantMessage: Message = {
-        id: crypto.randomUUID(),
+        message_id: crypto.randomUUID(),
         role: 'assistant',
         content: data.message,
+        language: 'en',
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, assistantMessage]);
@@ -168,9 +160,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
       setError(err instanceof Error ? err.message : 'Failed to send message');
       // Add error message
       setMessages(prev => [...prev, {
-        id: crypto.randomUUID(),
+        message_id: crypto.randomUUID(),
         role: 'assistant',
         content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+        language: 'en',
         timestamp: new Date().toISOString(),
       }]);
     } finally {
@@ -206,9 +199,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
 
       // Add the AI response
       const assistantMessage: Message = {
-        id: crypto.randomUUID(),
+        message_id: crypto.randomUUID(),
         role: 'assistant',
         content: data.message,
+        language: 'en',
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, assistantMessage]);
