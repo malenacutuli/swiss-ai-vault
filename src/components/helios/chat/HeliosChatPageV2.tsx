@@ -60,8 +60,8 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     }
   };
 
-  const handleIntakeSubmit = async (age: number, sex: 'male' | 'female') => {
-    await submitIntake(age, sex);
+  const handleIntakeSubmit = async (data: { age: number; sex: string }) => {
+    await submitIntake(data.age, data.sex as 'male' | 'female');
   };
 
   return (

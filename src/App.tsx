@@ -127,7 +127,7 @@ import GhostArt from "./pages/ghost/GhostArt";
 import GhostVentureCapital from "./pages/ghost/GhostVentureCapital";
 import VaultHealth from "./pages/vault/VaultHealth";
 import { OnboardingWizard } from "./components/onboarding";
-import { HeliosRoutes } from "./routes/helios";
+import { HeliosRoutesV2 } from "./routes/heliosV2";
 
 // Lazy load Verified Expert System
 const VerifiedExpertSystem = lazy(() => import('./pages/ghost/VerifiedExpertSystem'));
@@ -249,7 +249,7 @@ const App = () => {
                 <Route path="/vault/health" element={<ProtectedRoute><VaultHealth /></ProtectedRoute>} />
 
                 {/* HELIOS Healthcare AI Platform */}
-                <Route path="/health/*" element={<ProtectedRoute><HeliosRoutes /></ProtectedRoute>} />
+                <Route path="/health/*" element={<HeliosRoutesV2 />} />
 
                 {/* Ghost Auth routes - redirect to unified auth */}
                 <Route path="/auth/ghost-signup" element={<Navigate to="/auth?intent=ghost" replace />} />
