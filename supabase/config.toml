@@ -185,3 +185,6 @@ verify_jwt = false
 
 [functions.voice-persona]
 verify_jwt = true
+
+[functions.helios-chat]
+verify_jwt = false

@@ -344,12 +344,13 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     setError(null);
 
     try {
-      console.log('[HELIOS] Completing session:', sessionIdRef.current);
+      console.log('[HELIOS] Completing session:', sessionIdRef.current, 'user_id:', userId);
 
       const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
         body: {
           action: 'complete_session',
           session_id: sessionIdRef.current,
+          user_id: userId, // Pass user_id for persistence
         },
       });
 
@@ -376,7 +377,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   // Create a booking linked to this session
   const createBooking = useCallback(async (bookingData: {

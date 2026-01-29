@@ -539,20 +539,21 @@ GUIDELINES:
     if (action === "create") {
       const sessionId = crypto.randomUUID();
 
-      // Only include columns that exist in the table
+      // Store external_user_id in patient_info to avoid foreign key constraint
+      // (user may be from a different Supabase project)
+      const patientInfoWithUser = { ...patient_info };
+      if (user_id && typeof user_id === 'string' && user_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        patientInfoWithUser.external_user_id = user_id;
+      }
+
       const sessionData: Record<string, unknown> = {
         session_id: sessionId,
         current_phase: "intake",
         specialty: specialty,
         messages: [],
-        patient_info: patient_info,
+        patient_info: patientInfoWithUser,
         created_at: new Date().toISOString(),
       };
-
-      // IMPORTANT: Save user_id for persistence (only if it's a valid UUID)
-      if (user_id && typeof user_id === 'string' && user_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        sessionData.user_id = user_id;
-      }
 
       const { error: insertErr } = await supabase.from("helios_sessions").insert(sessionData);
       if (insertErr) {
@@ -825,18 +826,56 @@ GUIDELINES:
         updated_at: completedAt,
       };
 
-      // Try to update completed_at and summary if columns exist (ignore errors)
+      // Store user_id in patient_info to avoid foreign key constraint
+      // (user may be from a different Supabase project)
+      if (user_id && typeof user_id === 'string' && user_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        completeUpdate.patient_info = {
+          ...(session.patient_info || {}),
+          external_user_id: user_id,
+        };
+      }
+
+      // Update session with completion data - try full update first, fallback to minimal
+      console.log("[HELIOS] Updating session:", session_id);
+
       const fullCompleteUpdate = {
         ...completeUpdate,
         completed_at: completedAt,
         summary: userMessages || "No symptoms recorded",
       };
-      
-      try {
-        await supabase.from("helios_sessions").update(fullCompleteUpdate).eq("session_id", session_id);
-      } catch {
-        // Fallback to minimal update
-        await supabase.from("helios_sessions").update(completeUpdate).eq("session_id", session_id);
+
+      // First try with all columns including soap_note
+      let { data: updateData, error: updateErr } = await supabase.from("helios_sessions").update({
+        ...fullCompleteUpdate,
+        soap_note: soapNote,
+      }).eq("session_id", session_id).select();
+
+      // If soap_note column doesn't exist, try without it
+      if (updateErr && updateErr.message?.includes("soap_note")) {
+        console.log("[HELIOS] Retrying without soap_note column");
+        const result = await supabase.from("helios_sessions").update(fullCompleteUpdate).eq("session_id", session_id).select();
+        updateData = result.data;
+        updateErr = result.error;
+      }
+
+      // If still failing, try minimal update
+      if (updateErr) {
+        console.log("[HELIOS] Retrying with minimal update");
+        const result = await supabase.from("helios_sessions").update(completeUpdate).eq("session_id", session_id).select();
+        updateData = result.data;
+        updateErr = result.error;
+      }
+
+      if (updateErr) {
+        console.error("[HELIOS] Failed to update session:", updateErr);
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Failed to update session: " + updateErr.message,
+          details: updateErr,
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // DUAL-WRITE: Sync completion to dev project (best-effort)
@@ -850,6 +889,7 @@ GUIDELINES:
         disposition: disposition,
         triage_level: session.triage_level,
         completed_at: completedAt,
+        updated_rows: updateData?.length || 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -926,11 +966,12 @@ GUIDELINES:
         });
       }
 
-      // Query with minimal columns that definitely exist
+      // Query sessions by external_user_id in patient_info (for cross-project auth)
+      // OR by user_id column (for same-project auth)
       const { data: sessions, error: listErr } = await supabase
         .from("helios_sessions")
         .select("*")
-        .eq("user_id", user_id)
+        .or(`user_id.eq.${user_id},patient_info->>external_user_id.eq.${user_id}`)
         .order("created_at", { ascending: false })
         .limit(50);
 
