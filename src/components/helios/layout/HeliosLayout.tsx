@@ -24,18 +24,21 @@ const navigation = [
 ];
 
 const specialtyConsults = [
-  'Primary Care',
-  'Dermatology',
-  'Women\'s Health',
-  'Mental Health',
-  'Pediatrics',
-  'Cardiology',
-  'More',
+  { name: 'Primary Care', slug: 'primary-care' },
+  { name: 'Dermatology', slug: 'dermatology' },
+  { name: 'Women\'s Health', slug: 'womens-health' },
+  { name: 'Mental Health', slug: 'mental-health' },
+  { name: 'Pediatrics', slug: 'pediatrics' },
+  { name: 'Cardiology', slug: 'cardiology' },
 ];
 
 export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  
+  // Get active specialty from URL search params
+  const searchParams = new URLSearchParams(location.search);
+  const activeSpecialty = searchParams.get('specialty') || 'primary-care';
 
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
@@ -95,16 +98,24 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
                 Free AI Doctor Consults
               </h3>
               <ul className="space-y-1">
-                {specialtyConsults.map((specialty) => (
-                  <li key={specialty}>
-                    <Link
-                      to={`/health/consult/${specialty.toLowerCase().replace(/\s+/g, '-')}`}
-                      className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                      {specialty}
-                    </Link>
-                  </li>
-                ))}
+                {specialtyConsults.map((specialty) => {
+                  const isActiveSpecialty = activeSpecialty === specialty.slug && location.pathname === '/health';
+                  return (
+                    <li key={specialty.slug}>
+                      <Link
+                        to={`/health?specialty=${specialty.slug}`}
+                        className={cn(
+                          "block px-4 py-2 text-sm rounded-lg transition-colors",
+                          isActiveSpecialty
+                            ? "bg-[#1D4E5F]/10 text-[#1D4E5F] font-medium"
+                            : "text-gray-600 hover:bg-gray-100"
+                        )}
+                      >
+                        {specialty.name}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </nav>
