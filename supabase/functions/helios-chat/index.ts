@@ -191,9 +191,10 @@ function checkSafetyRules(state: PatientState, language: string): SafetyCheckRes
 
     // Check age condition for pediatric rules
     if (rule.ageCondition) {
-      const ageInMonths = state.ageUnit === 'months' ? state.age :
+      const ageValue = state.ageUnit === 'months' ? state.age :
                          state.ageUnit === 'days' ? (state.age || 0) / 30 :
                          (state.age || 999) * 12;
+      const ageInMonths = ageValue ?? 999;
       if (ageInMonths > (rule.ageCondition.maxMonths || 999)) continue;
     }
 
