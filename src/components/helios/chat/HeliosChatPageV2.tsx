@@ -7,7 +7,7 @@ import { useHealthVault } from '@/hooks/helios/useHealthVault';
 import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
-import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check } from 'lucide-react';
+import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -81,6 +81,7 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
   const { vault, isInitialized: vaultReady } = useHealthVault();
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // Load existing session or create new one
   useEffect(() => {
@@ -194,6 +195,38 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     }
   };
 
+  // Complete consult - saves to vault and marks as complete
+  const handleCompleteConsult = async () => {
+    if (!vault || !sessionId || messages.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      // Save consult with 'completed' phase
+      await vault.saveConsult({
+        id: sessionId,
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+        })),
+        symptoms: [],
+        hypotheses: [],
+        redFlags: redFlags,
+        language: language,
+        phase: 'completed',
+      });
+      setIsCompleted(true);
+      // Navigate to post-consult options after short delay
+      setTimeout(() => {
+        navigate('/health/consults');
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to complete consult:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading || !termsAccepted) return;
 
@@ -236,8 +269,34 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Save to Records button */}
-            {vaultReady && messages.length > 0 && (
+            {/* Complete Consult button */}
+            {vaultReady && messages.length > 2 && !isCompleted && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleCompleteConsult}
+                disabled={isSaving}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 mr-1" />
+                )}
+                Complete Consult
+              </Button>
+            )}
+
+            {/* Completed indicator */}
+            {isCompleted && (
+              <div className="flex items-center gap-1 text-green-600 text-sm">
+                <Check className="w-4 h-4" />
+                <span>Completed! Redirecting...</span>
+              </div>
+            )}
+
+            {/* Save to Records button (for saving drafts) */}
+            {vaultReady && messages.length > 0 && !isCompleted && (
               <Button
                 variant="outline"
                 size="sm"
@@ -252,7 +311,7 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
                 ) : (
                   <Save className="w-4 h-4 mr-1" />
                 )}
-                {isSaved ? "Saved" : "Save to Records"}
+                {isSaved ? "Saved" : "Save Draft"}
               </Button>
             )}
 
