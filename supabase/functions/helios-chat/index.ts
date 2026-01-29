@@ -228,6 +228,65 @@ serve(async (req) => {
       });
     }
 
+    if (action === "complete_session") {
+      if (!session_id) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "session_id is required",
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get the session first to generate summary
+      const { data: session } = await supabase
+        .from("helios_sessions")
+        .select("messages, specialty, patient_info")
+        .eq("session_id", session_id)
+        .single();
+
+      // Generate a simple summary from user messages
+      const userMessages = (session?.messages || [])
+        .filter((m: any) => m.role === "user")
+        .map((m: any) => m.content)
+        .join(". ")
+        .substring(0, 500);
+
+      const summary = userMessages || "No symptoms recorded";
+      const completedAt = new Date().toISOString();
+
+      const { error: updateError } = await supabase
+        .from("helios_sessions")
+        .update({
+          current_phase: "completed",
+          completed_at: completedAt,
+          updated_at: completedAt,
+          summary: summary,
+        })
+        .eq("session_id", session_id);
+
+      if (updateError) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Failed to complete session",
+          details: updateError.message,
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        session_id: session_id,
+        summary: summary,
+        completed_at: completedAt,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "get" || action === "get_session") {
       if (!session_id) {
         return new Response(JSON.stringify({
