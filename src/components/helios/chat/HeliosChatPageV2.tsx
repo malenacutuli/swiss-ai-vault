@@ -3,10 +3,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useHeliosChat } from '@/hooks/helios/useHeliosChat';
 import { useHeliosVoice } from '@/hooks/helios/useHeliosVoice';
+import { useHealthVault } from '@/hooks/helios/useHealthVault';
 import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
-import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe } from 'lucide-react';
+import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -75,6 +76,11 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     stopRecording,
     cancelRecording,
   } = useHeliosVoice(language);
+
+  // Health vault for saving consults
+  const { vault, isInitialized: vaultReady } = useHealthVault();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   // Load existing session or create new one
   useEffect(() => {
@@ -159,6 +165,35 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     }
   };
 
+  // Save consult to vault
+  const handleSaveToRecords = async () => {
+    if (!vault || !sessionId || messages.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      await vault.saveConsult({
+        id: sessionId,
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+        })),
+        symptoms: [],
+        hypotheses: [],
+        redFlags: redFlags,
+        language: language,
+        phase: phase,
+      });
+      setIsSaved(true);
+      // Reset saved indicator after 3 seconds
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save consult:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading || !termsAccepted) return;
 
@@ -200,24 +235,46 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
             </div>
           </div>
 
-          {/* Language selector */}
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-gray-400" />
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-[140px] h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SUPPORTED_LANGUAGES.map((lang) => (
-                  <SelectItem key={lang.code} value={lang.code}>
-                    <span className="flex items-center gap-2">
-                      <span>{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-3">
+            {/* Save to Records button */}
+            {vaultReady && messages.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveToRecords}
+                disabled={isSaving || isSaved}
+                className={isSaved ? "text-green-600 border-green-600" : ""}
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                ) : isSaved ? (
+                  <Check className="w-4 h-4 mr-1" />
+                ) : (
+                  <Save className="w-4 h-4 mr-1" />
+                )}
+                {isSaved ? "Saved" : "Save to Records"}
+              </Button>
+            )}
+
+            {/* Language selector */}
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-gray-400" />
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="w-[140px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      <span className="flex items-center gap-2">
+                        <span>{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
