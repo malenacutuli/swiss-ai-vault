@@ -26,14 +26,17 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
   const navigate = useNavigate();
 
   const handleStart = async () => {
-    if (!message.trim()) return;
-
     setIsStarting(true);
 
-    // Navigate to chat with initial message - session will be created there
-    navigate('/health/chat/new', {
-      state: { initialMessage: message.trim() }
-    });
+    // Navigate to chat - pass initialSymptom if provided
+    if (message.trim()) {
+      navigate('/health/chat/new', {
+        state: { initialSymptom: message.trim() }
+      });
+    } else {
+      // Start empty chat
+      navigate('/health/chat/new');
+    }
   };
 
   const placeholders = [
@@ -95,10 +98,10 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
           <div className="absolute bottom-4 right-4">
             <Button
               onClick={handleStart}
-              disabled={!message.trim() || isStarting}
+              disabled={isStarting}
               className="bg-[#2196F3] hover:bg-[#1976D2] text-white rounded-lg px-6"
             >
-              Get Started
+              {message.trim() ? 'Get Started' : 'Start Chat'}
               <Send className="w-4 h-4 ml-2" />
             </Button>
           </div>

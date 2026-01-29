@@ -40,7 +40,8 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
   const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const initialMessage = (location.state as any)?.initialMessage;
+  // Support both initialMessage and initialSymptom for backwards compatibility
+  const initialSymptom = (location.state as any)?.initialSymptom || (location.state as any)?.initialMessage;
 
   const {
     messages,
@@ -57,10 +58,10 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     loadSession,
   } = useHeliosChat(specialty);
 
-  const [input, setInput] = useState(initialMessage || '');
+  const [input, setInput] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [sessionInitialized, setSessionInitialized] = useState(false);
-  const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(initialMessage || null);
+  const [pendingInitialSymptom, setPendingInitialSymptom] = useState<string | null>(initialSymptom || null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [language, setLanguage] = useState('en');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -91,12 +92,12 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
 
       // If URL has a session ID that's not 'new', try to load it
       if (urlSessionId && urlSessionId !== 'new') {
+        console.log('[HELIOS] Attempting to load session:', urlSessionId);
         const loaded = await loadSession(urlSessionId);
         if (loaded) {
-          console.log('[HELIOS] Session loaded from URL:', urlSessionId);
-          // Clear pending message if loading existing session
-          setPendingInitialMessage(null);
-          setInput('');
+          console.log('[HELIOS] Session resumed from URL:', urlSessionId);
+          // Clear pending symptom when resuming existing session
+          setPendingInitialSymptom(null);
           return;
         }
         // Session not found, create new and redirect
@@ -104,21 +105,22 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
       }
 
       // Create new session
+      console.log('[HELIOS] Creating new session');
       await startSession(specialty);
     };
 
     initSession();
   }, [urlSessionId, loadSession, startSession, specialty, sessionInitialized]);
 
-  // Auto-send initial message when terms are accepted
+  // Auto-send initial symptom when terms are accepted
   useEffect(() => {
-    if (termsAccepted && pendingInitialMessage && sessionId && !isLoading) {
-      const msg = pendingInitialMessage;
-      setPendingInitialMessage(null);
-      setInput('');
-      sendMessage(msg, language);
+    if (termsAccepted && pendingInitialSymptom && sessionId && !isLoading) {
+      const symptom = pendingInitialSymptom;
+      setPendingInitialSymptom(null);
+      console.log('[HELIOS] Sending initial symptom:', symptom);
+      sendMessage(symptom, language);
     }
-  }, [termsAccepted, pendingInitialMessage, sessionId, isLoading, sendMessage, language]);
+  }, [termsAccepted, pendingInitialSymptom, sessionId, isLoading, sendMessage, language]);
 
   // Update URL when session ID changes (for new sessions)
   useEffect(() => {
