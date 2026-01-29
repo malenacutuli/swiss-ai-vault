@@ -1,6 +1,6 @@
 /**
  * HELIOS Routes V2
- * Complete health platform routing
+ * Complete health platform routing - Connected to SwissBrain Auth
  */
 
 import React, { useState, useEffect } from 'react';
@@ -14,58 +14,34 @@ import { AppointmentsPage } from '@/components/helios/pages/AppointmentsPage';
 import { SOAPNoteView } from '@/components/helios/reports/SOAPNoteView';
 import { AssessmentPlanView } from '@/components/helios/reports/AssessmentPlanView';
 import { SignInPrompt } from '@/components/helios/auth/SignInPrompt';
-
-// Mock auth hook - replace with actual implementation
-function useAuth() {
-  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('helios_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        // Invalid saved user
-      }
-    }
-    setIsLoading(false);
-  }, []);
-
-  const signIn = () => {
-    // Mock sign in - replace with actual auth
-    const mockUser = { name: 'Guest', email: 'guest@example.com' };
-    setUser(mockUser);
-    localStorage.setItem('helios_user', JSON.stringify(mockUser));
-  };
-
-  const signOut = () => {
-    setUser(null);
-    localStorage.removeItem('helios_user');
-  };
-
-  return { user, isLoading, signIn, signOut };
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 export function HeliosRoutesV2() {
-  const { user, isLoading, signIn } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
+  // Get user display name from Supabase user object
+  const getUserDisplayName = () => {
+    if (!user) return undefined;
+    // Try full_name from metadata, then email prefix
+    return user.user_metadata?.full_name || user.email?.split('@')[0];
+  };
+
   // Show sign-in prompt for guests after first visit
   useEffect(() => {
-    if (!user && !isLoading) {
+    if (!user && !loading) {
       const hasSeenPrompt = localStorage.getItem('helios_seen_signin');
       if (!hasSeenPrompt) {
         setShowSignInPrompt(true);
       }
     }
-  }, [user, isLoading]);
+  }, [user, loading]);
 
   const handleSignIn = () => {
     setShowSignInPrompt(false);
-    signIn();
+    // Navigate to auth page for real sign in
+    navigate('/auth?redirect=/health');
   };
 
   const handleContinueGuest = () => {
@@ -73,7 +49,7 @@ export function HeliosRoutesV2() {
     localStorage.setItem('helios_seen_signin', 'true');
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FAF9F7]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1D4E5F]" />
@@ -101,10 +77,10 @@ export function HeliosRoutesV2() {
         />
       )}
 
-      <HeliosLayout userName={user?.name || user?.email?.split('@')[0]}>
+      <HeliosLayout userName={getUserDisplayName()}>
         <Routes>
           {/* Home */}
-          <Route path="/" element={<HeliosHome userName={user?.name} />} />
+          <Route path="/" element={<HeliosHome userName={getUserDisplayName()} />} />
 
           {/* Chat */}
           <Route path="/chat/:sessionId" element={<HeliosChatPageV2 />} />
