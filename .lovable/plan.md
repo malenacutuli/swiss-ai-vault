@@ -1,138 +1,135 @@
 
-# Plan: Fix HELIOS Voice Agent on `/health` by Replicating Working Implementation
+# Plan: Dual Database Persistence for HELIOS Sessions
 
-## Problem Analysis
+## Problem Summary
 
-The voice agent on `/health` is broken due to fundamental architecture differences from the working implementation on `/ghost/health/expert`:
+HELIOS sessions are being stored in the **dev project database** (`ghmmdochvlrnwbruyrqk`) but the frontend sometimes queries **Lovable Cloud** (`rljnrgscmosgkcjdvlrq`). The Lovable Cloud `helios_sessions` table is currently empty.
 
-| Aspect | Working (`/ghost/health/expert`) | Broken (`/health`) |
-|--------|----------------------------------|-------------------|
-| **SDK** | `@humeai/voice-react` (official) | Raw WebSocket (custom) |
-| **Token Endpoint** | `hume-access-token` | `helios-hume-evi` |
-| **Voice Provider** | `VoiceProvider` wrapper | Manual audio handling |
-| **Response Flow** | `sendAssistantInput()` from SDK | Custom WebSocket messages |
-| **Error** | None | "Long AssistantInput message (276 > 256 chars)" |
+---
 
-The custom WebSocket implementation in `useHumeEVI.ts` has multiple issues:
-1. Incorrect message format for `session_settings`
-2. Manual audio capture/encoding that may not match Hume's expected format
-3. Response messages exceed Hume's character limit for assistant input
+## Solution: Save to Both Databases
 
-## Solution: Adopt the Working Pattern
-
-Replace the custom WebSocket implementation with the proven `@humeai/voice-react` SDK pattern.
+Modify the `helios-chat` edge function on Lovable Cloud to save session data to **both** Supabase projects, ensuring data is available regardless of which database is queried.
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Create New Voice Component for HELIOS
+### Step 1: Update helios-chat Edge Function
 
-Create `src/components/helios/voice/HeliosVoiceConsultation.tsx` that mirrors `HealthVoiceChat.tsx` architecture:
+Add dual-write logic to create, update, and complete operations:
 
-- Import `VoiceProvider`, `useVoice` from `@humeai/voice-react`
-- Fetch access token from `hume-access-token` edge function (already working)
-- Use the same 3D avatar component pattern from HealthVoiceChat
-- Call `hume-health-tool` for healthcare responses
-- Use `sendAssistantInput()` for AI responses
+```text
+supabase/functions/helios-chat/index.ts
 
-**Key differences for HELIOS:**
-- Include session persistence to `helios_sessions` table
-- Support specialty-specific prompts
-- Maintain HELIOS branding/styling
+Add at the top:
+- Create a second Supabase client for the dev project
+- Use environment variables for dev project credentials
 
-### Step 2: Update Token Fetching
-
-Modify the HELIOS voice component to use the simpler `hume-access-token` edge function instead of the complex `helios-hume-evi` function.
-
-The working edge function (`hume-access-token`) is simpler and proven:
-```
-POST /functions/v1/hume-access-token
-Response: { accessToken, expiresIn }
+For each database operation (create, message, complete_session):
+- Write to the primary (Lovable Cloud) database first
+- Then mirror the same operation to the dev project database
+- Log any sync failures but don't block the main operation
 ```
 
-### Step 3: Integrate with HeliosHome or VoiceConsultation Page
+### Step 2: Add Dev Project Secrets
 
-Replace or update the voice consultation entry point to use the new component:
-- Add voice button to HeliosHome page
-- Create modal/overlay for voice consultation
-- Wire up session creation and message persistence
+Configure environment variables for the edge function:
+- `DEV_SUPABASE_URL`: `https://ghmmdochvlrnwbruyrqk.supabase.co`
+- `DEV_SUPABASE_SERVICE_ROLE_KEY`: Service role key for dev project
 
-### Step 4: Simplify or Remove Custom Hook
+### Step 3: Update ConsultsPage to Query Both
 
-The `useHumeEVI.ts` hook can be deprecated in favor of the SDK's `useVoice()` hook. The SDK handles:
-- WebSocket connection management
-- Audio capture and encoding
-- Message parsing
-- Connection state
+Modify ConsultsPage to try Lovable Cloud first, then fall back to dev project:
+
+```text
+src/components/helios/pages/ConsultsPage.tsx
+
+1. First, query Lovable Cloud via main supabase client
+2. If empty or error, fall back to dev project client
+3. Merge results if both have data (dedupe by session_id)
+```
+
+### Step 4: Update useHeliosChat to Use Lovable Cloud
+
+Change the import to use the main Supabase client for consistency:
+
+```text
+src/hooks/helios/useHeliosChat.ts
+
+Change:
+  import { supabase } from '@/lib/supabase';
+To:
+  import { supabase } from '@/integrations/supabase/client';
+```
+
+This ensures new sessions go to Lovable Cloud (which will mirror to dev).
 
 ---
 
 ## Technical Details
 
-### New Component Structure
+### Edge Function Changes
 
-```text
-src/components/helios/voice/
-├── HeliosVoiceConsultation.tsx   (NEW - main component using SDK)
-├── VoiceConsultation.tsx         (EXISTING - can be deprecated)
+```typescript
+// Create dev project client
+const devSupabaseUrl = Deno.env.get("DEV_SUPABASE_URL") || "https://ghmmdochvlrnwbruyrqk.supabase.co";
+const devSupabaseKey = Deno.env.get("DEV_SUPABASE_SERVICE_ROLE_KEY");
+
+const devSupabase = devSupabaseKey 
+  ? createClient(devSupabaseUrl, devSupabaseKey)
+  : null;
+
+// Helper function to sync to dev
+async function syncToDevProject(table: string, operation: 'insert' | 'update', data: any, matchColumn?: string, matchValue?: string) {
+  if (!devSupabase) return;
+  
+  try {
+    if (operation === 'insert') {
+      await devSupabase.from(table).insert(data);
+    } else if (operation === 'update' && matchColumn && matchValue) {
+      await devSupabase.from(table).update(data).eq(matchColumn, matchValue);
+    }
+    console.log(`[HELIOS] Synced to dev project: ${table} ${operation}`);
+  } catch (err) {
+    console.error(`[HELIOS] Dev sync failed:`, err);
+    // Don't throw - dev sync is best-effort
+  }
+}
 ```
 
-### Component Flow
+### Files to Modify
 
-```text
-User clicks "Voice Consult"
-         ↓
-HeliosVoiceConsultation mounts
-         ↓
-Fetch token from hume-access-token
-         ↓
-Wrap in VoiceProvider with auth
-         ↓
-User speaks → useVoice().messages updates
-         ↓
-Call hume-health-tool with transcript
-         ↓
-sendAssistantInput(response)
-         ↓
-Hume speaks the response
-```
+1. **supabase/functions/helios-chat/index.ts**
+   - Add dev project client initialization
+   - Add sync helper function
+   - Add sync calls after each primary operation (create, message, complete)
 
-### Files to Create/Modify
+2. **src/hooks/helios/useHeliosChat.ts**
+   - Change supabase import to use main client
+   - This ensures consistency with Lovable Cloud
 
-1. **Create:** `src/components/helios/voice/HeliosVoiceConsultation.tsx`
-   - New voice component using `@humeai/voice-react` SDK
-   - Based on `HealthVoiceChat.tsx` architecture
-   - HELIOS-specific styling and session management
+3. **src/components/helios/pages/ConsultsPage.tsx**
+   - Add fallback query to dev project
+   - Merge and deduplicate results
 
-2. **Create:** `src/components/helios/voice/HeliosVoiceAvatar.tsx`
-   - 3D audio-reactive avatar (similar to HealthAvatar3D)
-   - HELIOS branding colors
+### Required Secrets
 
-3. **Modify:** `src/components/helios/pages/HeliosHome.tsx`
-   - Add "Start Voice Consultation" button
-   - Modal/overlay to show voice component
-
-4. **Optional Cleanup:** `src/hooks/helios/useHumeEVI.ts`
-   - Can be removed or kept for reference
-   - SDK handles all WebSocket logic
+You will need to add these secrets to the Lovable Cloud project:
+- `DEV_SUPABASE_URL` (optional, can be hardcoded)
+- `DEV_SUPABASE_SERVICE_ROLE_KEY` (required for writes to dev)
 
 ---
 
-## Edge Function Configuration (No Changes Needed)
+## Benefits
 
-The existing `hume-access-token` edge function is already working and will be reused. The existing `hume-health-tool` edge function is also working for healthcare triage.
-
-No new edge functions required.
-
----
-
-## Dependencies
-
-The project already has `@humeai/voice-react` installed (verified from HealthVoiceChat.tsx imports). No new dependencies needed.
+1. **Redundancy** - Data exists in both projects
+2. **Backwards compatibility** - Old sessions from dev project are still accessible
+3. **Forward consistency** - New sessions are in both places
+4. **Gradual migration** - Can eventually move to single project if desired
 
 ---
 
 ## Summary
 
-This plan replicates the proven architecture from `/ghost/health/expert` to fix the broken voice agent on `/health`. The key change is adopting the official `@humeai/voice-react` SDK instead of the custom WebSocket implementation, which eliminates the "Long AssistantInput message" error and provides reliable voice interaction.
+This plan adds dual-write capability to the HELIOS edge function, ensuring sessions are persisted to both the Lovable Cloud and dev Supabase projects. The ConsultsPage will query both sources and merge results, guaranteeing users always see their consultation history regardless of which database originally stored it.
