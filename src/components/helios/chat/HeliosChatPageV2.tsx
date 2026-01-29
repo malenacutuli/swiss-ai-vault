@@ -2,10 +2,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useHeliosChat } from '@/hooks/helios/useHeliosChat';
+import { useHeliosVoice } from '@/hooks/helios/useHeliosVoice';
 import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
-import { Loader2, Send, Paperclip, Mic } from 'lucide-react';
+import { Loader2, Send, Paperclip, Mic, MicOff, X, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,7 +40,20 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [sessionInitialized, setSessionInitialized] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(initialMessage || null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Voice input
+  const {
+    isRecording,
+    transcript,
+    error: voiceError,
+    isSupported: voiceSupported,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  } = useHeliosVoice('en');
 
   // Load existing session or create new one
   useEffect(() => {
@@ -90,11 +104,53 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Update input with voice transcript
+  useEffect(() => {
+    if (transcript) {
+      setInput(prev => prev + transcript);
+    }
+  }, [transcript]);
+
+  // File upload handler
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => {
+      // Allow images and PDFs
+      return file.type.startsWith('image/') || file.type === 'application/pdf';
+    });
+    setAttachedFiles(prev => [...prev, ...validFiles]);
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Voice toggle handler
+  const handleVoiceToggle = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading || !termsAccepted) return;
 
-    const message = input;
+    let message = input;
+
+    // If files are attached, mention them in the message
+    if (attachedFiles.length > 0) {
+      const fileNames = attachedFiles.map(f => f.name).join(', ');
+      message = `[Attached: ${fileNames}]\n\n${message}`;
+    }
+
     setInput('');
+    setAttachedFiles([]);
     await sendMessage(message);
   };
 
@@ -173,8 +229,60 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
 
       {/* Input area */}
       <div className="px-6 py-4 border-t">
+        {/* Attached files preview */}
+        {attachedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {attachedFiles.map((file, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1 text-sm"
+              >
+                <Image className="w-4 h-4 text-gray-500" />
+                <span className="max-w-[150px] truncate">{file.name}</span>
+                <button
+                  onClick={() => removeFile(index)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Voice recording indicator */}
+        {isRecording && (
+          <div className="flex items-center gap-2 mb-2 text-red-500">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <span className="text-sm">Recording... Click mic to stop</span>
+            <button
+              onClick={cancelRecording}
+              className="text-gray-400 hover:text-gray-600 text-sm underline"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="text-gray-400">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-gray-400 hover:text-gray-600"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!termsAccepted}
+            title="Attach file"
+          >
             <Paperclip className="w-5 h-5" />
           </Button>
 
@@ -182,13 +290,20 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Reply to HELIOS..."
+            placeholder={isRecording ? "Listening..." : "Reply to HELIOS..."}
             disabled={isLoading || !termsAccepted || intakeRequired}
             className="flex-1"
           />
 
-          <Button variant="ghost" size="icon" className="text-gray-400">
-            <Mic className="w-5 h-5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className={isRecording ? "text-red-500 hover:text-red-600" : "text-gray-400 hover:text-gray-600"}
+            onClick={handleVoiceToggle}
+            disabled={!termsAccepted || !voiceSupported}
+            title={voiceSupported ? (isRecording ? "Stop recording" : "Start voice input") : "Voice not supported"}
+          >
+            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </Button>
 
           <Button
@@ -199,6 +314,10 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
             <Send className="w-5 h-5" />
           </Button>
         </div>
+
+        {voiceError && (
+          <p className="text-xs text-red-500 mt-1">{voiceError}</p>
+        )}
 
         <p className="text-xs text-center text-gray-400 mt-2">
           HELIOS is an AI assistant, not a licensed doctor, and does not practice medicine or provide medical advice or care.

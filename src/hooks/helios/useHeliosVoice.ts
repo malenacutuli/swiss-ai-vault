@@ -1,118 +1,148 @@
 /**
  * HELIOS Voice Hook
- * Handles voice recording and transcription
+ * Uses Web Speech API for browser-based speech-to-text
  */
 
-import { useState, useCallback, useRef } from 'react';
-import type { SupportedLanguage, EmotionAnalysis } from '@/lib/helios/types';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
-interface VoiceResult {
-  transcript: string;
-  emotion?: EmotionAnalysis;
+// Web Speech API types
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
 }
 
-export function useHeliosVoice(language: SupportedLanguage) {
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
+export function useHeliosVoice(language: string = 'en') {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isSupported, setIsSupported] = useState(false);
 
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<Blob[]>([]);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-  const startRecording = useCallback(async () => {
-    setError(null);
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      mediaRecorder.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-      });
-
-      audioChunks.current = [];
-
-      mediaRecorder.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.current.start(100); // Collect data every 100ms
-      setIsRecording(true);
-
-    } catch (err) {
-      setError('Microphone access denied');
-    }
+  // Check for browser support
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setIsSupported(!!SpeechRecognition);
   }, []);
 
-  const stopRecording = useCallback(async (): Promise<VoiceResult | null> => {
-    if (!mediaRecorder.current) return null;
+  const startRecording = useCallback(() => {
+    setError(null);
+    setTranscript('');
 
-    return new Promise((resolve) => {
-      mediaRecorder.current!.onstop = async () => {
-        setIsRecording(false);
-        setIsProcessing(true);
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError('Speech recognition not supported in this browser');
+      return;
+    }
 
-        try {
-          const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+    try {
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
 
-          // Convert to base64 for API
-          const base64 = await blobToBase64(audioBlob);
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = language === 'en' ? 'en-US' : language;
 
-          // Call voice processing API
-          const response = await fetch('/api/helios/voice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              audio: base64,
-              language,
-            }),
-          });
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
 
-          if (!response.ok) throw new Error('Voice processing failed');
-
-          const result: VoiceResult = await response.json();
-          resolve(result);
-
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Voice processing failed');
-          resolve(null);
-        } finally {
-          setIsProcessing(false);
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+          } else {
+            interimTranscript += result[0].transcript;
+          }
         }
+
+        setTranscript(prev => prev + finalTranscript + interimTranscript);
       };
 
-      mediaRecorder.current!.stop();
-      mediaRecorder.current!.stream.getTracks().forEach(track => track.stop());
-    });
+      recognition.onerror = (event) => {
+        if (event.error === 'not-allowed') {
+          setError('Microphone access denied');
+        } else {
+          setError(`Speech recognition error: ${event.error}`);
+        }
+        setIsRecording(false);
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        setIsProcessing(false);
+      };
+
+      recognition.start();
+      setIsRecording(true);
+    } catch (err) {
+      setError('Failed to start speech recognition');
+    }
   }, [language]);
 
-  const cancelRecording = useCallback(() => {
-    if (mediaRecorder.current && isRecording) {
-      mediaRecorder.current.stop();
-      mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
+  const stopRecording = useCallback((): string => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsProcessing(true);
     }
-  }, [isRecording]);
+    const result = transcript;
+    return result;
+  }, [transcript]);
+
+  const cancelRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+      setIsRecording(false);
+      setTranscript('');
+    }
+  }, []);
 
   return {
     isRecording,
     isProcessing,
+    transcript,
     error,
+    isSupported,
     startRecording,
     stopRecording,
     cancelRecording,
   };
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      resolve(base64.split(',')[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }
