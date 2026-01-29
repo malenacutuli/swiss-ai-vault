@@ -595,37 +595,87 @@ GUIDELINES:
     // ACTION: SEND MESSAGE
     // ========================================
     if (action === "message") {
-      // Fetch session
-      const { data: sess, error: sessErr } = await supabase
+      if (!session_id || !message) {
+        return new Response(JSON.stringify({ success: false, error: "session_id and message required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Try Lovable Cloud first, then fall back to dev project
+      let sess: Record<string, unknown> | null = null;
+      
+      const { data: cloudSess, error: sessErr } = await supabase
         .from("helios_sessions")
         .select("*")
         .eq("session_id", session_id)
         .single();
 
-      if (sessErr || !sess) {
+      if (!sessErr && cloudSess) {
+        sess = cloudSess;
+      } else if (devSupabase) {
+        // Fallback to dev project
+        console.log("[HELIOS] Session not found in Cloud for message, checking dev project...");
+        const { data: devSess, error: devErr } = await devSupabase
+          .from("helios_sessions")
+          .select("*")
+          .eq("session_id", session_id)
+          .single();
+        
+        if (!devErr && devSess) {
+          console.log("[HELIOS] Found session in dev project, migrating to Cloud...");
+          sess = devSess;
+          
+          // Migrate session to Lovable Cloud for future access
+          try {
+            await supabase.from("helios_sessions").insert({
+              session_id: devSess.session_id,
+              user_id: devSess.user_id,
+              patient_info: devSess.patient_info || {},
+              specialty: devSess.specialty || 'primary-care',
+              language: devSess.language || 'en',
+              current_phase: devSess.current_phase || 'intake',
+              messages: devSess.messages || [],
+              red_flags: devSess.red_flags || [],
+              chief_complaint: devSess.chief_complaint,
+              triage_level: devSess.triage_level,
+              summary: devSess.summary,
+              disposition: devSess.disposition,
+              created_at: devSess.created_at,
+              updated_at: new Date().toISOString(),
+            });
+            console.log("[HELIOS] Migrated session to Cloud successfully");
+          } catch (migrateErr) {
+            console.error("[HELIOS] Migration to Cloud failed:", migrateErr);
+          }
+        }
+      }
+
+      if (!sess) {
         return new Response(JSON.stringify({ success: false, error: "Session not found" }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const history = sess.messages || [];
-      const patientInfo = sess.patient_info || {};
-      const sessionSpecialty = sess.specialty || "primary-care";
-      const sessionLanguage = sess.language || language;
+      // Type cast session fields
+      const history = (sess.messages || []) as Array<{role: string, content: string, message_id?: string, timestamp?: string}>;
+      const patientInfo = (sess.patient_info || {}) as Record<string, unknown>;
+      const sessionSpecialty = (sess.specialty || "primary-care") as string;
+      const sessionLanguage = (sess.language || language) as string;
       let currentPhase = (sess.current_phase || "intake") as Phase;
-      const existingRedFlags = sess.red_flags || [];
+      const existingRedFlags = (sess.red_flags || []) as RedFlag[];
 
       // Build patient state for safety check
       const patientState: PatientState = {
-        age: patientInfo.age,
-        ageUnit: patientInfo.age_unit || 'years',
-        sex: patientInfo.sex,
-        pregnant: patientInfo.pregnant,
-        symptoms: history.filter((m: {role: string}) => m.role === 'user').map((m: {content: string}) => m.content),
-        riskFactors: patientInfo.risk_factors || [],
-        medications: patientInfo.medications || [],
-        messages: [...history.map((m: {content: string}) => m.content), message],
+        age: patientInfo.age as number | undefined,
+        ageUnit: (patientInfo.age_unit as 'years' | 'months' | 'days') || 'years',
+        sex: patientInfo.sex as 'male' | 'female' | 'other' | undefined,
+        pregnant: patientInfo.pregnant as boolean | undefined,
+        symptoms: history.filter((m) => m.role === 'user').map((m) => m.content),
+        riskFactors: (patientInfo.risk_factors || []) as string[],
+        medications: (patientInfo.medications || []) as string[],
+        messages: [...history.map((m) => m.content), message],
       };
 
       // SAFETY CHECK (deterministic, runs first)
@@ -653,14 +703,14 @@ GUIDELINES:
       }
 
       // Build message history
-      let contextMessages = history.map((m: {role: string, content: string}) => ({ role: m.role, content: m.content }));
+      let contextMessages = history.map((m) => ({ role: m.role, content: m.content }));
       contextMessages.push({ role: "user", content: message });
       const managedMessages = manageContextWindow(contextMessages);
 
       // Calculate history completeness and determine phase transition
       const historyCompleteness = calculateHistoryCompleteness(contextMessages);
-      const hasChiefComplaint = contextMessages.filter((m: {role: string}) => m.role === 'user').length >= 1;
-      const messageCount = contextMessages.filter((m: {role: string}) => m.role === 'user').length;
+      const hasChiefComplaint = contextMessages.filter((m) => m.role === 'user').length >= 1;
+      const messageCount = contextMessages.filter((m) => m.role === 'user').length;
 
       const nextPhase = determinePhaseTransition(currentPhase, messageCount, hasChiefComplaint, historyCompleteness);
 
@@ -697,18 +747,18 @@ GUIDELINES:
       const reply = resp.content[0].type === "text" ? resp.content[0].text : "";
 
       // Calculate triage level if in triage phase
-      let triageLevel: TriageLevel | null = sess.triage_level;
+      let triageLevel: TriageLevel | null = (sess.triage_level as TriageLevel | null) || null;
       if (nextPhase === 'triage' || currentPhase === 'triage') {
         triageLevel = calculateTriageLevel(
           patientState.symptoms,
-          patientInfo.severity,
-          patientInfo.age,
+          patientInfo.severity as string | undefined,
+          patientInfo.age as number | undefined,
           [...existingRedFlags, ...safetyResult.redFlags]
         );
       }
 
       // Generate SOAP note if entering documentation phase
-      let soapNote = sess.soap_note;
+      let soapNote = sess.soap_note as string | null;
       if (nextPhase === 'documentation' && !soapNote) {
         soapNote = await generateSOAPNote(anthropic, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }], sessionSpecialty, patientInfo, sessionLanguage);
       }
@@ -722,8 +772,8 @@ GUIDELINES:
       ];
 
       // Extract chief complaint from first user message if not set
-      let chiefComplaint = sess.chief_complaint;
-      if (!chiefComplaint && history.filter((m: {role: string}) => m.role === 'user').length === 0) {
+      let chiefComplaint = sess.chief_complaint as string | null;
+      if (!chiefComplaint && history.filter((m) => m.role === 'user').length === 0) {
         chiefComplaint = message.substring(0, 200);
       }
 
@@ -777,11 +827,31 @@ GUIDELINES:
         });
       }
 
-      const { data: session } = await supabase
+      // Try Lovable Cloud first, then fall back to dev project
+      let session: Record<string, unknown> | null = null;
+      
+      const { data: cloudSession } = await supabase
         .from("helios_sessions")
         .select("*")
         .eq("session_id", session_id)
         .single();
+
+      if (cloudSession) {
+        session = cloudSession;
+      } else if (devSupabase) {
+        // Fallback to dev project
+        console.log("[HELIOS] Session not found in Cloud for complete, checking dev project...");
+        const { data: devSession } = await devSupabase
+          .from("helios_sessions")
+          .select("*")
+          .eq("session_id", session_id)
+          .single();
+        
+        if (devSession) {
+          console.log("[HELIOS] Found session in dev project for completion");
+          session = devSession;
+        }
+      }
 
       if (!session) {
         return new Response(JSON.stringify({ success: false, error: "Session not found" }), {
@@ -791,32 +861,34 @@ GUIDELINES:
       }
 
       // Generate SOAP note if not already done
-      let soapNote = session.soap_note;
-      if (!soapNote && session.messages?.length > 0) {
+      const sessionMessages = (session.messages || []) as Array<{role: string, content: string}>;
+      let soapNote = session.soap_note as string | null;
+      if (!soapNote && sessionMessages.length > 0) {
         soapNote = await generateSOAPNote(
           anthropic,
-          session.messages,
-          session.specialty || "primary-care",
-          session.patient_info || {},
-          session.language || "en"
+          sessionMessages,
+          (session.specialty as string) || "primary-care",
+          (session.patient_info as Record<string, unknown>) || {},
+          (session.language as string) || "en"
         );
       }
 
       // Generate summary
-      const userMessages = (session.messages || [])
-        .filter((m: {role: string}) => m.role === "user")
-        .map((m: {content: string}) => m.content)
+      const userMessages = sessionMessages
+        .filter((m) => m.role === "user")
+        .map((m) => m.content)
         .join(". ")
         .substring(0, 500);
 
       const completedAt = new Date().toISOString();
 
       // Determine disposition based on triage level
-      let disposition = session.disposition;
-      if (!disposition && session.triage_level) {
-        if (session.triage_level <= 2) disposition = 'emergency';
-        else if (session.triage_level === 3) disposition = 'urgent_care';
-        else if (session.triage_level === 4) disposition = 'primary_care';
+      const sessionTriageLevel = session.triage_level as number | null;
+      let disposition = session.disposition as string | null;
+      if (!disposition && sessionTriageLevel) {
+        if (sessionTriageLevel <= 2) disposition = 'emergency';
+        else if (sessionTriageLevel === 3) disposition = 'urgent_care';
+        else if (sessionTriageLevel === 4) disposition = 'primary_care';
         else disposition = 'self_care';
       }
 
@@ -906,13 +978,32 @@ GUIDELINES:
         });
       }
 
-      const { data: sess, error: getErr } = await supabase
+      // Try Lovable Cloud first
+      let sess: Record<string, unknown> | null = null;
+      const { data: cloudSess, error: getErr } = await supabase
         .from("helios_sessions")
         .select("*")
         .eq("session_id", session_id)
         .single();
 
-      if (getErr || !sess) {
+      if (!getErr && cloudSess) {
+        sess = cloudSess;
+      } else if (devSupabase) {
+        // Fallback to dev project if not found in Lovable Cloud
+        console.log("[HELIOS] Session not found in Cloud, checking dev project...");
+        const { data: devSess, error: devErr } = await devSupabase
+          .from("helios_sessions")
+          .select("*")
+          .eq("session_id", session_id)
+          .single();
+        
+        if (!devErr && devSess) {
+          console.log("[HELIOS] Found session in dev project");
+          sess = devSess;
+        }
+      }
+
+      if (!sess) {
         return new Response(JSON.stringify({ success: false, error: "Session not found" }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -920,10 +1011,11 @@ GUIDELINES:
       }
 
       // Calculate UI triggers based on current state
+      const sessTriageLevel = sess.triage_level as number | null;
       const uiTriggers = {
         showAssessment: sess.current_phase === 'plan' || sess.current_phase === 'documentation' || sess.current_phase === 'completed',
-        showBooking: (sess.triage_level && sess.triage_level >= 3) || sess.current_phase === 'plan',
-        showEmergency: sess.escalation_triggered || (sess.triage_level && sess.triage_level <= 2),
+        showBooking: (sessTriageLevel && sessTriageLevel >= 3) || sess.current_phase === 'plan',
+        showEmergency: sess.escalation_triggered || (sessTriageLevel && sessTriageLevel <= 2),
         showSummary: sess.current_phase === 'completed',
       };
 
