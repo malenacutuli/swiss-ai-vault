@@ -121,6 +121,40 @@ export function useHeliosSession(language: SupportedLanguage) {
     }
   }, [session?.sessionId, language]);
 
+  // Complete/save session
+  const completeSession = useCallback(async () => {
+    if (!session?.sessionId) return false;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('helios-session', {
+        body: {
+          action: 'complete',
+          session_id: session.sessionId,
+        },
+      });
+
+      if (fnError) throw fnError;
+
+      // Update session state to completed
+      setSession(prev => prev ? {
+        ...prev,
+        phase: 'completed',
+        triageLevel: data.triage_level || null,
+        disposition: data.disposition || null,
+      } : null);
+
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to complete session');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [session?.sessionId]);
+
   // Reset session
   const resetSession = useCallback(() => {
     setSession(null);
@@ -139,6 +173,7 @@ export function useHeliosSession(language: SupportedLanguage) {
     error,
     startSession,
     sendMessage,
+    completeSession,
     resetSession,
   };
 }
