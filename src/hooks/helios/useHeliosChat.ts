@@ -44,7 +44,7 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('helios-session', {
+      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
         body: {
           action: 'create',
           specialty: specialty || initialSpecialty || 'primary-care',
@@ -115,7 +115,7 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
     setIsLoading(true);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('helios-session', {
+      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
         body: {
           action: 'message',
           session_id: sessionIdRef.current,
@@ -184,7 +184,7 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
     // Send intake action to update session
     setIsLoading(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('helios-session', {
+      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
         body: {
           action: 'intake',
           session_id: sessionIdRef.current,
