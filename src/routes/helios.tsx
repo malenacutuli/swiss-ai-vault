@@ -11,7 +11,7 @@ import { HeliosChatPage } from '@/components/helios/chat/HeliosChatPage';
 import { ConsultsPage } from '@/components/helios/pages/ConsultsPage';
 import { HealthRecordPage } from '@/components/helios/pages/HealthRecordPage';
 import { AppointmentsPage } from '@/components/helios/pages/AppointmentsPage';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function HeliosRoutes() {
   const { user, isLoading } = useAuth();

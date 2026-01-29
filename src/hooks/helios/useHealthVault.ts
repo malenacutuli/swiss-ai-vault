@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getHealthVault, HealthVault } from '@/lib/helios/vault';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function useHealthVault() {
   const [vault, setVault] = useState<HealthVault | null>(null);
