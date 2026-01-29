@@ -225,7 +225,7 @@ function getHeliosTools() {
 }
 
 async function handleHeliosTool(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   toolName: string,
   params: Record<string, unknown>,
   sessionId: string
@@ -249,7 +249,7 @@ async function handleHeliosTool(
         .update({
           urgency_level: urgency,
           red_flags: redFlags
-        })
+        } as any)
         .eq('session_id', sessionId);
 
       return { urgency, red_flags: redFlags };
@@ -263,7 +263,7 @@ async function handleHeliosTool(
           summary: params.chief_complaint,
           recommended_action: params.recommended_action,
           history_of_present_illness: params.history
-        })
+        } as any)
         .eq('session_id', sessionId);
 
       return { success: true };
@@ -276,7 +276,7 @@ async function handleHeliosTool(
           current_phase: 'completed',
           completed_at: new Date().toISOString(),
           completion_reason: params.reason
-        })
+        } as any)
         .eq('session_id', sessionId);
 
       return {
