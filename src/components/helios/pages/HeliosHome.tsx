@@ -3,9 +3,9 @@
  * "How can I help you today?"
  */
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Send, Shield, Heart, Brain, Stethoscope, Baby, Users, Bone } from 'lucide-react';
+import { Send, Shield, Heart, Brain, Stethoscope, Baby, Users, Bone, Mic, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { LanguageSelector } from '../common/LanguageSelector';
@@ -18,6 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+// Lazy load voice component for performance
+const HeliosVoiceConsultation = lazy(() => 
+  import('../voice/HeliosVoiceConsultation').then(m => ({ default: m.HeliosVoiceConsultation }))
+);
 
 const SPECIALTIES = [
   { value: 'primary-care', label: 'General Health', icon: Stethoscope, description: 'General symptoms & wellness' },
@@ -87,6 +92,7 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
   const [message, setMessage] = useState('');
   const [isStarting, setIsStarting] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -114,6 +120,33 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
 
   return (
     <div className="flex flex-col min-h-[80vh] px-4">
+      {/* Voice Consultation Modal */}
+      {showVoiceModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowVoiceModal(false)}
+              className="absolute -top-12 right-0 text-white hover:bg-white/20"
+            >
+              <X className="w-6 h-6" />
+            </Button>
+            <Suspense fallback={
+              <div className="h-[550px] bg-[#1D4E5F] rounded-xl flex items-center justify-center">
+                <Loader2 className="w-10 h-10 text-white animate-spin" />
+              </div>
+            }>
+              <HeliosVoiceConsultation 
+                onClose={() => setShowVoiceModal(false)}
+                specialty={specialty}
+                language={language}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar with Language and Emergency */}
       <div className="flex items-center justify-end gap-3 py-4">
         <EmergencyDropdown language={language} />
@@ -165,7 +198,18 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
               }}
             />
 
-            <div className="absolute bottom-4 right-4">
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+              {/* Voice button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowVoiceModal(true)}
+                className="rounded-full border-[#1D4E5F] text-[#1D4E5F] hover:bg-[#1D4E5F]/10"
+                title="Start Voice Consultation"
+              >
+                <Mic className="w-5 h-5" />
+              </Button>
+
               <Button
                 onClick={handleStart}
                 disabled={isStarting}
