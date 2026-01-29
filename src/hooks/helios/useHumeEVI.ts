@@ -73,26 +73,38 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
         throw error;
       }
 
+      if (!data?.accessToken) {
+        console.error('[Hume EVI] No access token received:', data);
+        throw new Error('Failed to get access token');
+      }
+
       const { accessToken, systemPrompt } = data;
       console.log('[Hume EVI] Got access token, connecting to WebSocket');
 
       // Connect to Hume EVI WebSocket with the access token
-      // Use the correct Hume EVI WebSocket URL format
-      const wsUrl = `wss://api.hume.ai/v0/evi/chat?access_token=${accessToken}`;
+      // Hume EVI requires the config to be passed in URL params, not as a message
+      const wsUrl = `wss://api.hume.ai/v0/evi/chat?access_token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[Hume EVI] Connected');
-        setIsConnected(true);
+        console.log('[Hume EVI] WebSocket opened, sending session settings');
         
-        // Send initial configuration with system prompt
+        // Send session settings as the first message after connection
+        // This configures the EVI session with our HELIOS system prompt
         ws.send(JSON.stringify({
           type: 'session_settings',
-          system_prompt: systemPrompt,
-          language: language,
+          session_settings: {
+            system_prompt: systemPrompt,
+            language_model_api_key: '', // Use Hume's default
+            context: {
+              text: `HELIOS Health Assistant - ${specialty} consultation. Patient session: ${sessionId}`,
+              type: 'persistent'
+            }
+          }
         }));
         
+        setIsConnected(true);
         toast({
           title: 'Voice consultation ready',
           description: 'Click the microphone to start speaking.',
