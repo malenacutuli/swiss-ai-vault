@@ -7,9 +7,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageSquare, ChevronRight, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase as mainSupabase } from '@/integrations/supabase/client';
-import { supabase as heliosSupabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
+
+// Dev project client for fallback queries (read-only)
+const DEV_SUPABASE_URL = 'https://ghmmdochvlrnwbruyrqk.supabase.co';
+const DEV_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdobW1kb2NodmxybndicnV5cnFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NTcxMzMsImV4cCI6MjA4MDQzMzEzM30.jUOFsOsCq36umtlnfxsW9tnDpPio0MNh2E11uX3SaEw';
+const devSupabase = createClient(DEV_SUPABASE_URL, DEV_SUPABASE_ANON_KEY);
 
 interface Consult {
   id: string;
@@ -54,25 +59,63 @@ export function ConsultsPage() {
 
   const fetchConsults = async () => {
     try {
-      // Get user from main Supabase auth
-      const { data: { user } } = await mainSupabase.auth.getUser();
+      // Get user from Supabase auth
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
         return;
       }
 
-      // Use helios-chat edge function to list sessions
-      const { data, error } = await heliosSupabase.functions.invoke('helios-chat', {
-        body: {
-          action: 'list_sessions',
-          user_id: user.id,
-        },
-      });
+      let allConsults: Consult[] = [];
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to load consults');
+      // Query 1: Try Lovable Cloud (main) via edge function
+      try {
+        const { data, error } = await supabase.functions.invoke('helios-chat', {
+          body: {
+            action: 'list_sessions',
+            user_id: user.id,
+          },
+        });
 
-      setConsults((data.sessions as Consult[]) || []);
+        if (!error && data?.success && data.sessions?.length > 0) {
+          allConsults = [...(data.sessions as Consult[])];
+          console.log('[HELIOS] Loaded from Lovable Cloud:', allConsults.length);
+        }
+      } catch (err) {
+        console.log('[HELIOS] Lovable Cloud query failed, trying dev project');
+      }
+
+      // Query 2: Also try dev project for any sessions stored there
+      try {
+        const { data: devData, error: devError } = await devSupabase.functions.invoke('helios-chat', {
+          body: {
+            action: 'list_sessions',
+            user_id: user.id,
+          },
+        });
+
+        if (!devError && devData?.success && devData.sessions?.length > 0) {
+          const devSessions = devData.sessions as Consult[];
+          console.log('[HELIOS] Loaded from dev project:', devSessions.length);
+          
+          // Merge and deduplicate by session_id
+          const existingIds = new Set(allConsults.map(c => c.session_id));
+          for (const session of devSessions) {
+            if (!existingIds.has(session.session_id)) {
+              allConsults.push(session);
+            }
+          }
+        }
+      } catch (err) {
+        console.log('[HELIOS] Dev project query failed (optional fallback)');
+      }
+
+      // Sort by created_at descending
+      allConsults.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setConsults(allConsults);
     } catch (err) {
       console.error('Failed to fetch consults:', err);
     } finally {
