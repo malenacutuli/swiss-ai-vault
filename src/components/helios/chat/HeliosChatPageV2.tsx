@@ -7,7 +7,8 @@ import { useHealthVault } from '@/hooks/helios/useHealthVault';
 import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
-import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check, CheckCircle2, Download } from 'lucide-react';
+import { VoiceConsultation } from '../voice/VoiceConsultation';
+import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check, CheckCircle2, Download, Phone, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -86,6 +87,7 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
 
   // Load existing session or create new one
   useEffect(() => {
@@ -474,6 +476,26 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Voice Mode Toggle */}
+            <Button
+              variant={voiceMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setVoiceMode(!voiceMode)}
+              className={voiceMode ? "bg-teal-600 hover:bg-teal-700" : ""}
+            >
+              {voiceMode ? (
+                <>
+                  <PhoneOff className="w-4 h-4 mr-1" />
+                  Exit Voice
+                </>
+              ) : (
+                <>
+                  <Phone className="w-4 h-4 mr-1" />
+                  Voice Mode
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
@@ -511,8 +533,24 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Terms checkbox */}
-      <div className="px-6 py-2 border-t bg-gray-50">
+      {/* Voice Consultation Mode OR Text Input */}
+      {voiceMode ? (
+        <div className="px-6 py-4 border-t bg-gray-50">
+          <VoiceConsultation
+            sessionId={sessionId || ''}
+            specialty={specialty}
+            language={language}
+            onComplete={(summary) => {
+              console.log('[HELIOS] Voice consultation complete:', summary);
+              setVoiceMode(false);
+              navigate('/health/consults');
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Terms checkbox */}
+          <div className="px-6 py-2 border-t bg-gray-50">
         <label className="flex items-start gap-2 text-sm text-gray-600">
           <Checkbox
             checked={termsAccepted}
@@ -624,6 +662,8 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
           HELIOS is an AI assistant, not a licensed doctor, and does not practice medicine or provide medical advice or care.
         </p>
       </div>
+      </>
+      )}
     </div>
   );
 }
