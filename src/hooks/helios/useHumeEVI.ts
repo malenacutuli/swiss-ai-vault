@@ -73,16 +73,26 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
         throw error;
       }
 
-      const { access_token, websocket_url } = data;
+      const { accessToken, systemPrompt } = data;
       console.log('[Hume EVI] Got access token, connecting to WebSocket');
 
-      // Connect to Hume EVI WebSocket
-      const ws = new WebSocket(`${websocket_url}?access_token=${access_token}`);
+      // Connect to Hume EVI WebSocket with the access token
+      // Use the correct Hume EVI WebSocket URL format
+      const wsUrl = `wss://api.hume.ai/v0/evi/chat?access_token=${accessToken}`;
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
         console.log('[Hume EVI] Connected');
         setIsConnected(true);
+        
+        // Send initial configuration with system prompt
+        ws.send(JSON.stringify({
+          type: 'session_settings',
+          system_prompt: systemPrompt,
+          language: language,
+        }));
+        
         toast({
           title: 'Voice consultation ready',
           description: 'Click the microphone to start speaking.',

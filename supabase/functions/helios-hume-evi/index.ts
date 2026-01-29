@@ -3,11 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const HUME_API_KEY = Deno.env.get('HUME_API_KEY');
-const HUME_CONFIG_ID = Deno.env.get('HUME_CONFIG_ID') || 'helios-health-assistant';
+const HUME_SECRET_KEY = Deno.env.get('HUME_SECRET_KEY');
 
 // HELIOS specialty agent prompts
 const SPECIALTY_PROMPTS: Record<string, string> = {
@@ -28,6 +28,7 @@ serve(async (req) => {
     // Parse body to get action
     const body = await req.json();
     const action = body.action;
+    
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -35,47 +36,62 @@ serve(async (req) => {
     );
 
     if (action === 'get_access_token') {
-      // Get Hume access token for WebSocket connection
+      // Get Hume access token for WebSocket connection using OAuth
       const { session_id, specialty, language } = body;
 
-      const systemPrompt = buildSystemPrompt(specialty, language);
-
-      // Create Hume EVI session
-      const response = await fetch('https://api.hume.ai/v0/evi/chat', {
-        method: 'POST',
-        headers: {
-          'X-Hume-Api-Key': HUME_API_KEY!,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          config_id: HUME_CONFIG_ID,
-          system_prompt: systemPrompt,
-          language: language || 'en',
-          tools: getHeliosTools(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Hume API error: ${response.status}`);
+      if (!HUME_API_KEY || !HUME_SECRET_KEY) {
+        console.error('Hume API credentials not configured');
+        return new Response(
+          JSON.stringify({ error: 'Hume API not configured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      const { chat_id, access_token } = await response.json();
+      // Fetch access token from Hume OAuth API
+      const credentials = btoa(`${HUME_API_KEY}:${HUME_SECRET_KEY}`);
+      
+      const tokenResponse = await fetch('https://api.hume.ai/oauth2-cc/token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
+      });
 
-      // Link Hume chat to HELIOS session
-      await supabaseClient
-        .from('helios_sessions')
-        .update({
-          hume_chat_id: chat_id,
-          voice_enabled: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('session_id', session_id);
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error('Hume token error:', errorText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to get Hume access token' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+      
+      console.log('[helios-hume-evi] Access token generated for session:', session_id);
+
+      // Build system prompt for the specialty
+      const systemPrompt = buildSystemPrompt(specialty, language);
+
+      // Update session with voice enabled status
+      if (session_id) {
+        await supabaseClient
+          .from('helios_sessions')
+          .update({
+            voice_enabled: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('session_id', session_id);
+      }
 
       return new Response(
         JSON.stringify({
-          access_token,
-          chat_id,
-          websocket_url: `wss://api.hume.ai/v0/evi/chat/${chat_id}`,
+          accessToken,
+          expiresIn: tokenData.expires_in,
+          systemPrompt,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

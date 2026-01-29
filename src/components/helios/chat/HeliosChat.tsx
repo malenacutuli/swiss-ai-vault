@@ -104,7 +104,12 @@ export function HeliosChat({
   };
 
   // Voice recording handlers
+  const isProcessingRef = useRef(false);
+  
   const startRecording = async () => {
+    // Prevent starting if already processing
+    if (isProcessingRef.current) return;
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
@@ -118,9 +123,19 @@ export function HeliosChat({
       };
 
       mediaRecorder.onstop = async () => {
+        // Prevent duplicate processing
+        if (isProcessingRef.current) return;
+        isProcessingRef.current = true;
+        
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach(track => track.stop());
-        await transcribeAudio(audioBlob);
+        audioChunksRef.current = []; // Clear chunks immediately
+        
+        try {
+          await transcribeAudio(audioBlob);
+        } finally {
+          isProcessingRef.current = false;
+        }
       };
 
       mediaRecorder.start();
@@ -181,7 +196,8 @@ export function HeliosChat({
       const data = await response.json();
       
       if (data?.text) {
-        setInput(prev => prev + (prev ? ' ' : '') + data.text);
+        // Replace input instead of appending to prevent duplicates
+        setInput(data.text);
         toast({
           title: language === 'es' ? 'Transcripción completada' : language === 'fr' ? 'Transcription terminée' : 'Transcription complete',
           description: data.text.slice(0, 50) + (data.text.length > 50 ? '...' : ''),
