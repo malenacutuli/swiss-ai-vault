@@ -29,7 +29,7 @@ interface EmergencyDropdownProps {
 
 const translations = {
   en: {
-    title: 'Connect with a Healthcare Professional',
+    title: 'Emergency Phone Numbers',
     emergency: 'Emergency',
     crisis: 'Crisis Line',
     police: 'Police',
@@ -39,7 +39,7 @@ const translations = {
     disclaimer: 'For immediate emergencies, call your local emergency services.',
   },
   es: {
-    title: 'Conectar con un Profesional de Salud',
+    title: 'Números de Emergencia',
     emergency: 'Emergencia',
     crisis: 'Línea de Crisis',
     police: 'Policía',
@@ -49,7 +49,7 @@ const translations = {
     disclaimer: 'Para emergencias inmediatas, llame a los servicios de emergencia locales.',
   },
   fr: {
-    title: 'Contacter un Professionnel de Santé',
+    title: 'Numéros d\'Urgence',
     emergency: 'Urgence',
     crisis: 'Ligne de Crise',
     police: 'Police',
