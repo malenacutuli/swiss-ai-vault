@@ -22,9 +22,11 @@ interface UseHeliosChatReturn {
   caseState: CaseState | null;
   intakeRequired: boolean;
   error: string | null;
+  sessionId: string | null;
   sendMessage: (content: string) => Promise<void>;
   submitIntake: (age: number, sex: 'male' | 'female') => Promise<void>;
   startSession: (specialty?: string) => Promise<void>;
+  loadSession: (sessionId: string) => Promise<boolean>;
 }
 
 export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
@@ -225,6 +227,61 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
     }
   }, []);
 
+  // Load an existing session
+  const loadSession = useCallback(async (sessionId: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      console.log('[HELIOS] Loading session:', sessionId);
+
+      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+        body: {
+          action: 'get',
+          session_id: sessionId,
+        },
+      });
+
+      console.log('[HELIOS] Load session response:', { data, fnError });
+
+      if (fnError) throw fnError;
+      if (!data?.success) {
+        console.log('[HELIOS] Session not found, will create new');
+        return false;
+      }
+
+      sessionIdRef.current = data.session_id;
+      setPhase(data.phase || 'intake');
+      setIsEscalated(data.escalated || false);
+      setRedFlags(data.red_flags || []);
+
+      // Convert stored messages to Message format
+      const loadedMessages: Message[] = (data.messages || []).map((m: any) => ({
+        message_id: m.message_id || crypto.randomUUID(),
+        role: m.role,
+        content: m.content,
+        language: m.language || 'en',
+        timestamp: m.timestamp || new Date().toISOString(),
+      }));
+
+      setMessages(loadedMessages);
+
+      setCaseState({
+        session_id: data.session_id,
+        phase: data.phase || 'intake',
+        specialty: 'primary-care',
+        patient_info: data.patient_info || {},
+      });
+
+      return true;
+    } catch (err) {
+      console.error('Failed to load session:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load session');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -234,8 +291,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
     caseState,
     intakeRequired,
     error,
+    sessionId: sessionIdRef.current,
     sendMessage,
     submitIntake,
     startSession,
+    loadSession,
   };
 }

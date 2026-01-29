@@ -1,5 +1,6 @@
 // src/components/helios/chat/HeliosChatPageV2.tsx
 import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useHeliosChat } from '@/hooks/helios/useHeliosChat';
 import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
@@ -14,6 +15,11 @@ interface HeliosChatPageV2Props {
 }
 
 export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV2Props) {
+  const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const initialMessage = (location.state as any)?.initialMessage;
+
   const {
     messages,
     isLoading,
@@ -22,23 +28,62 @@ export function HeliosChatPageV2({ specialty = 'primary-care' }: HeliosChatPageV
     phase,
     caseState,
     intakeRequired,
+    sessionId,
     sendMessage,
     submitIntake,
     startSession,
+    loadSession,
   } = useHeliosChat(specialty);
 
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialMessage || '');
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [sessionStarted, setSessionStarted] = useState(false);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
+  const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(initialMessage || null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Start session on mount
+  // Load existing session or create new one
   useEffect(() => {
-    if (!sessionStarted) {
-      startSession(specialty);
-      setSessionStarted(true);
+    const initSession = async () => {
+      if (sessionInitialized) return;
+      setSessionInitialized(true);
+
+      // If URL has a session ID that's not 'new', try to load it
+      if (urlSessionId && urlSessionId !== 'new') {
+        const loaded = await loadSession(urlSessionId);
+        if (loaded) {
+          console.log('[HELIOS] Session loaded from URL:', urlSessionId);
+          // Clear pending message if loading existing session
+          setPendingInitialMessage(null);
+          setInput('');
+          return;
+        }
+        // Session not found, create new and redirect
+        console.log('[HELIOS] Session not found, creating new');
+      }
+
+      // Create new session
+      await startSession(specialty);
+    };
+
+    initSession();
+  }, [urlSessionId, loadSession, startSession, specialty, sessionInitialized]);
+
+  // Auto-send initial message when terms are accepted
+  useEffect(() => {
+    if (termsAccepted && pendingInitialMessage && sessionId && !isLoading) {
+      const msg = pendingInitialMessage;
+      setPendingInitialMessage(null);
+      setInput('');
+      sendMessage(msg);
     }
-  }, [startSession, specialty, sessionStarted]);
+  }, [termsAccepted, pendingInitialMessage, sessionId, isLoading, sendMessage]);
+
+  // Update URL when session ID changes (for new sessions)
+  useEffect(() => {
+    if (sessionId && urlSessionId === 'new') {
+      navigate(`/health/chat/${sessionId}`, { replace: true });
+    }
+  }, [sessionId, urlSessionId, navigate]);
 
   // Auto-scroll to bottom
   useEffect(() => {

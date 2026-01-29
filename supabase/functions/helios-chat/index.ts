@@ -81,10 +81,11 @@ serve(async (req) => {
 
       const reply = resp.content[0].type === "text" ? resp.content[0].text : "";
 
+      const now = new Date().toISOString();
       const newMsgs = [
         ...history,
-        { role: "user", content: message },
-        { role: "assistant", content: reply },
+        { role: "user", content: message, message_id: crypto.randomUUID(), timestamp: now },
+        { role: "assistant", content: reply, message_id: crypto.randomUUID(), timestamp: now },
       ];
 
       await supabase.from("helios_sessions").upsert({
@@ -112,6 +113,36 @@ serve(async (req) => {
         success: true,
         session_id: session_id,
         message: "Thanks. What is your concern?",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "get") {
+      const { data: sess, error: getErr } = await supabase
+        .from("helios_sessions")
+        .select("*")
+        .eq("session_id", session_id)
+        .single();
+
+      if (getErr || !sess) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Session not found",
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        session_id: sess.session_id,
+        phase: sess.current_phase,
+        messages: sess.messages || [],
+        patient_info: sess.patient_info || {},
+        red_flags: sess.red_flags || [],
+        escalated: sess.escalation_triggered || false,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

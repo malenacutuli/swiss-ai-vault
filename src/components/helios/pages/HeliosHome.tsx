@@ -29,11 +29,8 @@ export function HeliosHome({ userName = 'there' }: HeliosHomeProps) {
 
     setIsStarting(true);
 
-    // Create new consult session
-    const sessionId = crypto.randomUUID();
-
-    // Navigate to chat with initial message
-    navigate(`/health/chat/${sessionId}`, {
+    // Navigate to chat with initial message - session will be created there
+    navigate('/health/chat/new', {
       state: { initialMessage: message.trim() }
     });
   };
