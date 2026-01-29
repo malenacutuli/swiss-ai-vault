@@ -19,16 +19,19 @@ import { ShareModal } from './ShareModal';
 import { cn } from '@/lib/utils';
 
 export function HeliosChatPage() {
-  const { sessionId } = useParams<{ sessionId: string }>();
+  const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const initialMessage = location.state?.initialMessage;
+  // Support both initialMessage and initialSymptom
+  const initialSymptom = location.state?.initialSymptom || location.state?.initialMessage;
 
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [showIntake, setShowIntake] = useState(true);
+  const [pendingInitialSymptom, setPendingInitialSymptom] = useState<string | null>(initialSymptom || null);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,27 +45,55 @@ export function HeliosChatPage() {
     phase,
     sendMessage,
     startSession,
+    loadSession,
     error,
-  } = useHeliosChat(sessionId!);
+    sessionId,
+  } = useHeliosChat();
 
-  // Initialize session on mount
+  // Initialize session - resume existing or create new
   useEffect(() => {
-    if (sessionId) {
-      startSession();
+    const initSession = async () => {
+      if (sessionInitialized) return;
+      setSessionInitialized(true);
+
+      // If URL has a session ID that's not 'new', try to load it
+      if (urlSessionId && urlSessionId !== 'new') {
+        const loaded = await loadSession(urlSessionId);
+        if (loaded) {
+          console.log('[HELIOS] Session resumed:', urlSessionId);
+          setPendingInitialSymptom(null);
+          setShowIntake(false); // Skip intake for resumed sessions
+          return;
+        }
+      }
+
+      // Create new session
+      await startSession();
+    };
+
+    initSession();
+  }, [urlSessionId, loadSession, startSession, sessionInitialized]);
+
+  // Update URL when session ID changes (for new sessions)
+  useEffect(() => {
+    if (sessionId && urlSessionId === 'new') {
+      navigate(`/health/chat/${sessionId}`, { replace: true });
     }
-  }, [sessionId, startSession]);
+  }, [sessionId, urlSessionId, navigate]);
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send initial message
+  // Send initial symptom after intake complete
   useEffect(() => {
-    if (initialMessage && messages.length === 1 && !showIntake) {
-      sendMessage(initialMessage);
+    if (pendingInitialSymptom && messages.length >= 1 && !showIntake && !isLoading) {
+      const symptom = pendingInitialSymptom;
+      setPendingInitialSymptom(null);
+      sendMessage(symptom);
     }
-  }, [initialMessage, messages.length, showIntake, sendMessage]);
+  }, [pendingInitialSymptom, messages.length, showIntake, isLoading, sendMessage]);
 
   const handleSend = async () => {
     if (!input.trim() && pendingFiles.length === 0) return;
@@ -97,9 +128,10 @@ export function HeliosChatPage() {
 
   const handleIntakeComplete = async (data: { age: number; sex: string }) => {
     setShowIntake(false);
-    // Include demographics with initial message
-    if (initialMessage) {
-      await sendMessage(`${initialMessage} (Age: ${data.age}, Sex: ${data.sex})`);
+    // Include demographics with initial symptom if provided
+    if (pendingInitialSymptom) {
+      await sendMessage(`${pendingInitialSymptom} (Age: ${data.age}, Sex: ${data.sex})`);
+      setPendingInitialSymptom(null);
     }
   };
 
