@@ -4,12 +4,14 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, AlertTriangle, Loader2, Paperclip, X, FileText } from 'lucide-react';
+import { Send, Mic, MicOff, AlertTriangle, Loader2, Paperclip, X, FileText, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useHeliosSession } from '@/hooks/helios/useHeliosSession';
 import { HeliosMessage } from './HeliosMessage';
 import { HeliosRedFlag } from './HeliosRedFlag';
 import { LanguageSelector } from '../common/LanguageSelector';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import type { SupportedLanguage } from '@/lib/helios/types';
 
@@ -34,6 +36,8 @@ export function HeliosChat({
 
   const { toast } = useToast();
 
+  const navigate = useNavigate();
+
   const {
     session,
     messages,
@@ -42,8 +46,27 @@ export function HeliosChat({
     isEscalated,
     sendMessage,
     startSession,
+    completeSession,
     error,
   } = useHeliosSession(language);
+
+  // Complete and save consultation
+  const handleCompleteConsultation = async () => {
+    const success = await completeSession();
+    if (success) {
+      toast({
+        title: language === 'es' ? 'Consulta guardada' : language === 'fr' ? 'Consultation enregistrée' : 'Consultation saved',
+        description: language === 'es' ? 'Ver en tu historial de consultas.' : language === 'fr' ? 'Voir dans votre historique.' : 'View it in your Consults history.',
+      });
+      navigate('/health/consults');
+    } else {
+      toast({
+        title: language === 'es' ? 'Error al guardar' : language === 'fr' ? 'Échec de la sauvegarde' : 'Failed to save',
+        description: language === 'es' ? 'Por favor, inténtalo de nuevo.' : language === 'fr' ? 'Veuillez réessayer.' : 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -225,7 +248,21 @@ export function HeliosChat({
             HELIOS Health Assistant
           </h2>
         </div>
-        <LanguageSelector value={language} onChange={setLanguage} />
+        <div className="flex items-center gap-3">
+          {messages.length >= 3 && session?.phase !== 'completed' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCompleteConsultation}
+              disabled={isLoading}
+              className="text-[#1D4E5F] border-[#1D4E5F] hover:bg-[#1D4E5F]/10"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              {language === 'es' ? 'Terminar y Guardar' : language === 'fr' ? 'Terminer et Sauvegarder' : 'End & Save'}
+            </Button>
+          )}
+          <LanguageSelector value={language} onChange={setLanguage} />
+        </div>
       </div>
 
       {/* Red Flags Banner */}
