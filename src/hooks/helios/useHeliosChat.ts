@@ -1,7 +1,6 @@
 // src/hooks/helios/useHeliosChat.ts
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { supabase as mainSupabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import type { Message, RedFlag } from '@/lib/helios/types';
 
 interface CaseState {
@@ -61,10 +60,10 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
 
   const sessionIdRef = useRef<string | null>(null);
 
-  // Get user ID from main Supabase auth for persistence
+  // Get user ID from Supabase auth for persistence
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await mainSupabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
       }

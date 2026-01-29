@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0";
 
 const corsHeaders = {
@@ -7,6 +7,48 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// ============================================
+// DEV PROJECT SYNC (Dual-Write for Redundancy)
+// ============================================
+const DEV_SUPABASE_URL = "https://ghmmdochvlrnwbruyrqk.supabase.co";
+const DEV_SUPABASE_SERVICE_KEY = Deno.env.get("DEV_SUPABASE_SERVICE_ROLE_KEY");
+
+// Create dev project client for dual-write
+function getDevSupabase(): SupabaseClient | null {
+  if (!DEV_SUPABASE_SERVICE_KEY) {
+    console.log("[HELIOS] Dev project sync disabled - no service key configured");
+    return null;
+  }
+  return createClient(DEV_SUPABASE_URL, DEV_SUPABASE_SERVICE_KEY);
+}
+
+// Helper function to sync operations to dev project (best-effort, non-blocking)
+async function syncToDevProject(
+  devSupabase: SupabaseClient | null,
+  table: string,
+  operation: 'insert' | 'update',
+  data: Record<string, unknown>,
+  matchColumn?: string,
+  matchValue?: string
+): Promise<void> {
+  if (!devSupabase) return;
+  
+  try {
+    if (operation === 'insert') {
+      const { error } = await devSupabase.from(table).insert(data);
+      if (error) throw error;
+      console.log(`[HELIOS] Synced to dev project: ${table} INSERT success`);
+    } else if (operation === 'update' && matchColumn && matchValue) {
+      const { error } = await devSupabase.from(table).update(data).eq(matchColumn, matchValue);
+      if (error) throw error;
+      console.log(`[HELIOS] Synced to dev project: ${table} UPDATE success`);
+    }
+  } catch (err) {
+    // Log but don't throw - dev sync is best-effort
+    console.error(`[HELIOS] Dev sync failed for ${table} ${operation}:`, err);
+  }
+}
 
 // ============================================
 // TYPES
@@ -449,6 +491,9 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const anthropic = new Anthropic({ apiKey: anthropicKey });
+    
+    // Initialize dev project client for dual-write
+    const devSupabase = getDevSupabase();
 
     const body = await req.json();
     const action = body.action;
@@ -517,6 +562,9 @@ GUIDELINES:
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // DUAL-WRITE: Sync to dev project (best-effort)
+      await syncToDevProject(devSupabase, "helios_sessions", "insert", sessionData);
 
       const greetings: Record<string, Record<string, string>> = {
         "primary-care": { en: "Hello! I'm your HELIOS health assistant. What brings you in today?", es: "¡Hola! Soy tu asistente de salud HELIOS. ¿Qué te trae hoy?", fr: "Bonjour! Je suis votre assistant santé HELIOS. Qu'est-ce qui vous amène aujourd'hui?" },
@@ -690,6 +738,9 @@ GUIDELINES:
         console.error("Failed to update session:", updateErr);
       }
 
+      // DUAL-WRITE: Sync message update to dev project (best-effort)
+      await syncToDevProject(devSupabase, "helios_sessions", "update", updateData, "session_id", session_id);
+
       // Determine UI triggers based on phase
       const uiTriggers = {
         showAssessment: nextPhase === 'plan' || nextPhase === 'documentation' || nextPhase === 'completed',
@@ -775,16 +826,21 @@ GUIDELINES:
       };
 
       // Try to update completed_at and summary if columns exist (ignore errors)
+      const fullCompleteUpdate = {
+        ...completeUpdate,
+        completed_at: completedAt,
+        summary: userMessages || "No symptoms recorded",
+      };
+      
       try {
-        await supabase.from("helios_sessions").update({
-          ...completeUpdate,
-          completed_at: completedAt,
-          summary: userMessages || "No symptoms recorded",
-        }).eq("session_id", session_id);
+        await supabase.from("helios_sessions").update(fullCompleteUpdate).eq("session_id", session_id);
       } catch {
         // Fallback to minimal update
         await supabase.from("helios_sessions").update(completeUpdate).eq("session_id", session_id);
       }
+
+      // DUAL-WRITE: Sync completion to dev project (best-effort)
+      await syncToDevProject(devSupabase, "helios_sessions", "update", fullCompleteUpdate, "session_id", session_id);
 
       return new Response(JSON.stringify({
         success: true,
