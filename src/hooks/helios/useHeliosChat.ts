@@ -369,7 +369,6 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
       return {
         success: true,
         summary: data.summary,
-        soap_note: data.soap_note,
       };
     } catch (err) {
       console.error('Failed to complete session:', err);

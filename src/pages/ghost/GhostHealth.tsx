@@ -324,11 +324,11 @@ export default function GhostHealth() {
               {t('ghost.health.avatar.talkToAgent', 'Talk to Healthcare AI Agent')}
             </Button>
 
-            {/* Health Consult - Text Chat with Anthropic */}
+            {/* Health Consult - Navigate to /health */}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowConsult(true)}
+              onClick={() => navigate('/health')}
               className="gap-2 rounded-full border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all font-medium"
             >
               <Brain className="w-4 h-4" />

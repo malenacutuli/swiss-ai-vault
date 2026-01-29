@@ -12,6 +12,7 @@ import { supabase as heliosSupabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 interface Consult {
+  id: string;
   session_id: string;
   user_id?: string;
   specialty?: string;
