@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, AlertTriangle, Loader2 } from 'lucide-react';
+import { Send, Mic, MicOff, AlertTriangle, Loader2, Paperclip, X, FileText } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { useHeliosSession } from '@/hooks/helios/useHeliosSession';
 import { HeliosMessage } from './HeliosMessage';
 import { HeliosRedFlag } from './HeliosRedFlag';
@@ -23,7 +24,11 @@ export function HeliosChat({
   const [input, setInput] = useState('');
   const [language, setLanguage] = useState<SupportedLanguage>(initialLanguage);
   const [isRecording, setIsRecording] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { toast } = useToast();
 
   const {
     session,
@@ -60,6 +65,7 @@ export function HeliosChat({
 
     const message = input.trim();
     setInput('');
+    setAttachedFiles([]); // Clear files after send
     await sendMessage(message);
   };
 
@@ -73,6 +79,27 @@ export function HeliosChat({
   const toggleRecording = () => {
     setIsRecording(!isRecording);
     // Voice recording handled by useHeliosVoice hook
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setAttachedFiles(prev => [...prev, ...files]);
+      toast({
+        title: 'File attached',
+        description: `${files[0].name} ready to send`,
+      });
+    }
+    // Reset input for same file selection
+    e.target.value = '';
+  };
+
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const placeholders: Record<SupportedLanguage, string> = {
@@ -132,6 +159,27 @@ export function HeliosChat({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Attached Files Preview */}
+      {attachedFiles.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-4 py-2 border-t bg-gray-50 dark:bg-gray-800/50">
+          {attachedFiles.map((file, i) => (
+            <div 
+              key={i} 
+              className="flex items-center gap-1 bg-white dark:bg-gray-700 px-2 py-1 rounded border dark:border-gray-600 text-sm"
+            >
+              <FileText className="w-4 h-4 text-gray-400" />
+              <span className="truncate max-w-[120px] dark:text-gray-200">{file.name}</span>
+              <button 
+                onClick={() => removeFile(i)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-4 border-t dark:border-gray-700">
         {error && (
@@ -141,6 +189,24 @@ export function HeliosChat({
         )}
 
         <div className="flex items-center gap-2">
+          {/* File Upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.doc,.docx,.txt"
+            className="hidden"
+            multiple
+          />
+          <button
+            onClick={handleAttachClick}
+            className="p-2 rounded-full transition-colors bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-teal-600"
+            disabled={isLoading || isEscalated}
+            title="Attach file"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+
           <button
             onClick={toggleRecording}
             className={`p-2 rounded-full transition-colors ${
