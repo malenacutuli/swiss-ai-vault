@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   Send, Mic, MicOff, Paperclip, Image, FileText,
-  AlertTriangle, Loader2, Share2, X, Camera
+  AlertTriangle, Loader2, Share2, X, Camera, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,7 @@ import { ChatMessage } from './ChatMessage';
 import { RedFlagAlert } from './RedFlagAlert';
 import { IntakeForm } from './IntakeForm';
 import { ShareModal } from './ShareModal';
+import { BookingModal } from '../booking/BookingModal';
 import { cn } from '@/lib/utils';
 
 export function HeliosChatPage() {
@@ -28,6 +29,7 @@ export function HeliosChatPage() {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [showIntake, setShowIntake] = useState(true);
   const [pendingInitialSymptom, setPendingInitialSymptom] = useState<string | null>(initialSymptom || null);
@@ -48,6 +50,9 @@ export function HeliosChatPage() {
     loadSession,
     error,
     sessionId,
+    uiTriggers,
+    soapNote,
+    createBooking,
   } = useHeliosChat();
 
   // Initialize session - resume existing or create new
@@ -148,15 +153,27 @@ export function HeliosChatPage() {
           </p>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowShareModal(true)}
-          className="text-gray-600"
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          Share
-        </Button>
+        <div className="flex items-center gap-2">
+          {uiTriggers?.showBooking && (
+            <Button
+              size="sm"
+              onClick={() => setShowBookingModal(true)}
+              className="bg-[#2196F3] hover:bg-[#1976D2] text-white"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Book Appointment
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowShareModal(true)}
+            className="text-gray-600"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Share
+          </Button>
+        </div>
       </div>
 
       {/* Red Flag Alert */}
@@ -319,6 +336,27 @@ export function HeliosChatPage() {
         <ShareModal
           sessionId={sessionId!}
           onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <BookingModal
+          consultId={sessionId || undefined}
+          onClose={() => setShowBookingModal(false)}
+          onBook={async (data) => {
+            const result = await createBooking({
+              scheduledAt: data.scheduledAt,
+              specialty: data.specialty,
+              includeSOAPNote: data.includeSOAPNote,
+              paymentMethod: data.paymentMethod,
+            });
+            if (result.success) {
+              setShowBookingModal(false);
+              // Add confirmation message to chat
+              sendMessage(`I've booked a video visit for ${new Date(data.scheduledAt).toLocaleString()}. Looking forward to seeing you then!`);
+            }
+          }}
         />
       )}
     </div>

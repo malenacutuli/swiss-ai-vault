@@ -7,25 +7,39 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageSquare, ChevronRight, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as mainSupabase } from '@/integrations/supabase/client';
+import { supabase as heliosSupabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 interface Consult {
-  id: string;
   session_id: string;
+  user_id?: string;
+  specialty?: string;
   current_phase: string;
   chief_complaint: string | null;
-  triage_level: string | null;
+  triage_level: number | null;
   created_at: string;
+  updated_at?: string;
   completed_at: string | null;
+  summary?: string;
+  disposition?: string;
 }
 
-const triageLevelColors: Record<string, string> = {
-  'ESI1': 'bg-red-100 text-red-700',
-  'ESI2': 'bg-orange-100 text-orange-700',
-  'ESI3': 'bg-yellow-100 text-yellow-700',
-  'ESI4': 'bg-green-100 text-green-700',
-  'ESI5': 'bg-blue-100 text-blue-700',
+// ESI triage level colors (1=critical to 5=non-urgent)
+const triageLevelColors: Record<number, string> = {
+  1: 'bg-red-100 text-red-700',
+  2: 'bg-orange-100 text-orange-700',
+  3: 'bg-yellow-100 text-yellow-700',
+  4: 'bg-green-100 text-green-700',
+  5: 'bg-blue-100 text-blue-700',
+};
+
+const triageLevelLabels: Record<number, string> = {
+  1: 'ESI 1 - Immediate',
+  2: 'ESI 2 - Emergent',
+  3: 'ESI 3 - Urgent',
+  4: 'ESI 4 - Less Urgent',
+  5: 'ESI 5 - Non-urgent',
 };
 
 export function ConsultsPage() {
@@ -39,21 +53,25 @@ export function ConsultsPage() {
 
   const fetchConsults = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get user from main Supabase auth
+      const { data: { user } } = await mainSupabase.auth.getUser();
       if (!user) {
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('helios_sessions')
-        .select('id, session_id, current_phase, chief_complaint, triage_level, created_at, completed_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      // Use helios-chat edge function to list sessions
+      const { data, error } = await heliosSupabase.functions.invoke('helios-chat', {
+        body: {
+          action: 'list_sessions',
+          user_id: user.id,
+        },
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to load consults');
 
-      setConsults((data as Consult[]) || []);
+      setConsults((data.sessions as Consult[]) || []);
     } catch (err) {
       console.error('Failed to fetch consults:', err);
     } finally {
@@ -149,7 +167,7 @@ export function ConsultsPage() {
                         "text-xs px-2 py-1 rounded-full",
                         triageLevelColors[consult.triage_level] || 'bg-gray-100'
                       )}>
-                        {consult.triage_level}
+                        {triageLevelLabels[consult.triage_level] || `ESI ${consult.triage_level}`}
                       </span>
                     )}
                     <ChevronRight className="w-5 h-5 text-gray-400" />

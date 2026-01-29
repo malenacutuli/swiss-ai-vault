@@ -1,6 +1,7 @@
 // src/hooks/helios/useHeliosChat.ts
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { supabase as mainSupabase } from '@/integrations/supabase/client';
 import type { Message, RedFlag } from '@/lib/helios/types';
 
 interface CaseState {
@@ -13,6 +14,13 @@ interface CaseState {
   };
 }
 
+interface UITriggers {
+  showAssessment: boolean;
+  showBooking: boolean;
+  showEmergency: boolean;
+  showSummary: boolean;
+}
+
 interface UseHeliosChatReturn {
   messages: Message[];
   isLoading: boolean;
@@ -23,11 +31,14 @@ interface UseHeliosChatReturn {
   intakeRequired: boolean;
   error: string | null;
   sessionId: string | null;
+  uiTriggers: UITriggers;
+  soapNote: string | null;
   sendMessage: (content: string, language?: string) => Promise<void>;
   submitIntake: (age: number, sex: 'male' | 'female') => Promise<void>;
   startSession: (specialty?: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<boolean>;
-  completeSession: () => Promise<{ success: boolean; summary?: string }>;
+  completeSession: () => Promise<{ success: boolean; summary?: string; soap_note?: string }>;
+  createBooking: (bookingData: { scheduledAt: string; specialty: string; includeSOAPNote: boolean; paymentMethod: string }) => Promise<{ success: boolean; booking_id?: string }>;
 }
 
 export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' | 'es' | 'fr' = 'en'): UseHeliosChatReturn {
@@ -39,8 +50,27 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
   const [caseState, setCaseState] = useState<CaseState | null>(null);
   const [intakeRequired, setIntakeRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [uiTriggers, setUITriggers] = useState<UITriggers>({
+    showAssessment: false,
+    showBooking: false,
+    showEmergency: false,
+    showSummary: false,
+  });
+  const [soapNote, setSoapNote] = useState<string | null>(null);
 
   const sessionIdRef = useRef<string | null>(null);
+
+  // Get user ID from main Supabase auth for persistence
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await mainSupabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, []);
 
   // Start a new session
   const startSession = useCallback(async (specialty?: string) => {
@@ -54,6 +84,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
           action: 'create',
           specialty: specialty || initialSpecialty || 'primary-care',
           language: 'en',
+          user_id: userId, // Pass user_id for persistence
         },
       });
 
@@ -103,7 +134,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     } finally {
       setIsLoading(false);
     }
-  }, [initialSpecialty]);
+  }, [initialSpecialty, userId]);
 
   // Send a message
   const sendMessage = useCallback(async (content: string, language: string = 'en') => {
@@ -150,6 +181,16 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
 
       if (data.escalated) {
         setIsEscalated(true);
+      }
+
+      // Update UI triggers
+      if (data.ui_triggers) {
+        setUITriggers(data.ui_triggers);
+      }
+
+      // Update SOAP note if available
+      if (data.soap_note) {
+        setSoapNote(data.soap_note);
       }
 
       // Add assistant message
@@ -274,6 +315,16 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
         patient_info: data.patient_info || {},
       });
 
+      // Update UI triggers from loaded session
+      if (data.ui_triggers) {
+        setUITriggers(data.ui_triggers);
+      }
+
+      // Update SOAP note if available
+      if (data.soap_note) {
+        setSoapNote(data.soap_note);
+      }
+
       return true;
     } catch (err) {
       console.error('Failed to load session:', err);
@@ -310,9 +361,15 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
 
       setPhase('completed');
 
+      // Update SOAP note
+      if (data.soap_note) {
+        setSoapNote(data.soap_note);
+      }
+
       return {
         success: true,
         summary: data.summary,
+        soap_note: data.soap_note,
       };
     } catch (err) {
       console.error('Failed to complete session:', err);
@@ -322,6 +379,55 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
       setIsLoading(false);
     }
   }, []);
+
+  // Create a booking linked to this session
+  const createBooking = useCallback(async (bookingData: {
+    scheduledAt: string;
+    specialty: string;
+    includeSOAPNote: boolean;
+    paymentMethod: string;
+  }): Promise<{ success: boolean; booking_id?: string }> => {
+    if (!sessionIdRef.current) {
+      return { success: false };
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('[HELIOS] Creating booking for session:', sessionIdRef.current);
+
+      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+        body: {
+          action: 'create_booking',
+          session_id: sessionIdRef.current,
+          user_id: userId,
+          booking: {
+            scheduled_at: bookingData.scheduledAt,
+            specialty: bookingData.specialty,
+            include_soap_note: bookingData.includeSOAPNote,
+            payment_method: bookingData.paymentMethod,
+          },
+        },
+      });
+
+      console.log('[HELIOS] Create booking response:', { data, fnError });
+
+      if (fnError) throw fnError;
+      if (!data?.success) throw new Error(data?.error || 'Failed to create booking');
+
+      return {
+        success: true,
+        booking_id: data.booking_id,
+      };
+    } catch (err) {
+      console.error('Failed to create booking:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create booking');
+      return { success: false };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
 
   return {
     messages,
@@ -333,10 +439,13 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     intakeRequired,
     error,
     sessionId: sessionIdRef.current,
+    uiTriggers,
+    soapNote,
     sendMessage,
     submitIntake,
     startSession,
     loadSession,
     completeSession,
+    createBooking,
   };
 }
