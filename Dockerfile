@@ -30,6 +30,7 @@ WORKDIR /build
 
 # Copy package files first for better caching
 COPY package.json package-lock.json ./
+COPY .npmrc ./
 
 # Install all dependencies (including devDependencies for build)
 RUN npm ci --include=dev
