@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Send, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,16 @@ interface HeliosHomeProps {
   userName?: string;
 }
 
+// Specialty-based symptom chips
+const SPECIALTY_SYMPTOMS: Record<string, string[]> = {
+  'primary-care': ['Headache', 'Cold symptoms', 'Fatigue', 'Fever', 'General checkup'],
+  'dermatology': ['Skin rash', 'Acne', 'Eczema flare', 'Suspicious mole', 'Hair loss'],
+  'womens-health': ['Irregular periods', 'Pelvic pain', 'Pregnancy questions', 'Menopause symptoms', 'Breast concerns'],
+  'mental-health': ['Anxiety', 'Depression', 'Sleep issues', 'Stress management', 'Mood changes'],
+  'pediatrics': ['Child fever', 'Ear pain', 'Rash on child', 'Cough in child', 'Growth concerns'],
+  'cardiology': ['Chest discomfort', 'Heart palpitations', 'Shortness of breath', 'High blood pressure', 'Dizziness'],
+};
+
 const translations = {
   en: {
     greeting: 'How can I help you today',
@@ -25,7 +35,6 @@ const translations = {
     getStarted: 'Get Started',
     startChat: 'Start Chat',
     privacy: 'HIPAA · Private',
-    quickActions: ['Headache', 'Cold symptoms', 'Skin rash', 'Anxiety', 'Sleep issues'],
     experiencing: "I'm experiencing",
   },
   es: {
@@ -36,7 +45,6 @@ const translations = {
     getStarted: 'Comenzar',
     startChat: 'Iniciar Chat',
     privacy: 'HIPAA · Privado',
-    quickActions: ['Dolor de cabeza', 'Síntomas de resfriado', 'Erupción cutánea', 'Ansiedad', 'Problemas de sueño'],
     experiencing: 'Estoy experimentando',
   },
   fr: {
@@ -47,7 +55,6 @@ const translations = {
     getStarted: 'Commencer',
     startChat: 'Démarrer le Chat',
     privacy: 'HIPAA · Privé',
-    quickActions: ['Mal de tête', 'Symptômes du rhume', 'Éruption cutanée', 'Anxiété', 'Troubles du sommeil'],
     experiencing: 'Je ressens',
   },
 };
@@ -64,21 +71,26 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Get specialty from URL, default to primary-care
+  const specialty = searchParams.get('specialty') || 'primary-care';
+  const quickSymptoms = SPECIALTY_SYMPTOMS[specialty] || SPECIALTY_SYMPTOMS['primary-care'];
 
   const t = translations[language] || translations.en;
 
   const handleStart = async () => {
     setIsStarting(true);
 
-    // Navigate to chat - pass initialSymptom and language if provided
+    // Navigate to chat - pass initialSymptom, language, and specialty
     if (message.trim()) {
       navigate('/health/chat/new', {
-        state: { initialSymptom: message.trim(), language }
+        state: { initialSymptom: message.trim(), language, specialty }
       });
     } else {
       // Start empty chat
       navigate('/health/chat/new', {
-        state: { language }
+        state: { language, specialty }
       });
     }
   };
@@ -157,9 +169,9 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
           </div>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions - dynamic based on specialty */}
         <div className="flex flex-wrap justify-center gap-3 mt-12">
-          {t.quickActions.map((symptom) => (
+          {quickSymptoms.map((symptom) => (
             <button
               key={symptom}
               onClick={() => setMessage(`${t.experiencing} ${symptom.toLowerCase()}`)}
