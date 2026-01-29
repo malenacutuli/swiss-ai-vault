@@ -64,19 +64,61 @@ serve(async (req) => {
 
       const { data: sess } = await supabase
         .from("helios_sessions")
-        .select("messages")
+        .select("messages, patient_info")
         .eq("session_id", session_id)
         .single();
 
       const history = sess?.messages || [];
-      const msgs = history.map((m: any) => ({ role: m.role, content: m.content }));
-      msgs.push({ role: "user", content: message });
+      const patientInfo = sess?.patient_info || {};
+
+      // Context window management: estimate tokens and trim if needed
+      // Rough estimate: 4 chars = 1 token, max ~8000 tokens for context
+      const MAX_CONTEXT_CHARS = 24000;
+      const KEEP_RECENT_MESSAGES = 6;
+
+      let contextMessages = history.map((m: any) => ({ role: m.role, content: m.content }));
+
+      // Calculate total context size
+      const totalChars = contextMessages.reduce((sum: number, m: any) => sum + m.content.length, 0);
+
+      // If context too large, create a summary of older messages
+      if (totalChars > MAX_CONTEXT_CHARS && contextMessages.length > KEEP_RECENT_MESSAGES) {
+        const olderMessages = contextMessages.slice(0, -KEEP_RECENT_MESSAGES);
+        const recentMessages = contextMessages.slice(-KEEP_RECENT_MESSAGES);
+
+        // Create a brief summary of older context
+        const summaryParts: string[] = [];
+        olderMessages.forEach((m: any) => {
+          if (m.role === "user") {
+            const snippet = m.content.substring(0, 100);
+            summaryParts.push("Patient mentioned: " + snippet);
+          }
+        });
+        const summary = summaryParts.slice(0, 5).join(". ");
+
+        // Build new context with summary
+        contextMessages = [
+          { role: "user", content: "[Earlier in conversation: " + summary + "]" },
+          { role: "assistant", content: "I understand. Let me continue helping you." },
+          ...recentMessages,
+        ];
+      }
+
+      contextMessages.push({ role: "user", content: message });
+
+      // Build system prompt with patient context
+      let systemPrompt = "You are HELIOS, an AI health assistant. You help patients describe symptoms and provide general health guidance. Always recommend consulting a doctor for medical advice.";
+      if (patientInfo.age || patientInfo.sex) {
+        systemPrompt += " Patient info: ";
+        if (patientInfo.age) systemPrompt += "Age " + patientInfo.age + ". ";
+        if (patientInfo.sex) systemPrompt += "Sex: " + patientInfo.sex + ". ";
+      }
 
       const resp = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1024,
-        system: "You are HELIOS, an AI health assistant.",
-        messages: msgs,
+        system: systemPrompt,
+        messages: contextMessages,
       });
 
       const reply = resp.content[0].type === "text" ? resp.content[0].text : "";
