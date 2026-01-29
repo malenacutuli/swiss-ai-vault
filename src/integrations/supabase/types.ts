@@ -4422,6 +4422,7 @@ export type Database = {
       }
       helios_sessions: {
         Row: {
+          booking_id: string | null
           chief_complaint: string | null
           completed_at: string | null
           created_at: string | null
@@ -4435,16 +4436,21 @@ export type Database = {
           messages: Json | null
           metadata: Json | null
           patient_id: string | null
+          patient_info: Json | null
+          recommended_action: string | null
           red_flags: Json | null
           session_id: string
+          soap_note: string | null
+          specialty: string | null
           summary: string | null
           symptom_entities: Json | null
           tenant_id: string | null
-          triage_level: string | null
+          triage_level: number | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          booking_id?: string | null
           chief_complaint?: string | null
           completed_at?: string | null
           created_at?: string | null
@@ -4458,16 +4464,21 @@ export type Database = {
           messages?: Json | null
           metadata?: Json | null
           patient_id?: string | null
+          patient_info?: Json | null
+          recommended_action?: string | null
           red_flags?: Json | null
           session_id?: string
+          soap_note?: string | null
+          specialty?: string | null
           summary?: string | null
           symptom_entities?: Json | null
           tenant_id?: string | null
-          triage_level?: string | null
+          triage_level?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          booking_id?: string | null
           chief_complaint?: string | null
           completed_at?: string | null
           created_at?: string | null
@@ -4481,12 +4492,16 @@ export type Database = {
           messages?: Json | null
           metadata?: Json | null
           patient_id?: string | null
+          patient_info?: Json | null
+          recommended_action?: string | null
           red_flags?: Json | null
           session_id?: string
+          soap_note?: string | null
+          specialty?: string | null
           summary?: string | null
           symptom_entities?: Json | null
           tenant_id?: string | null
-          triage_level?: string | null
+          triage_level?: number | null
           updated_at?: string | null
           user_id?: string | null
         }
