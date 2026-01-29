@@ -44,6 +44,8 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
     setIsLoading(true);
     setError(null);
     try {
+      console.log('[HELIOS] Creating session with specialty:', specialty || initialSpecialty || 'primary-care');
+
       const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
         body: {
           action: 'create',
@@ -52,7 +54,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
         },
       });
 
+      console.log('[HELIOS] Create response:', { data, fnError });
+
       if (fnError) throw fnError;
+      if (!data?.success) throw new Error(data?.error || 'Unknown error');
 
       sessionIdRef.current = data.session_id;
 
@@ -115,6 +120,8 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
     setIsLoading(true);
 
     try {
+      console.log('[HELIOS] Sending message to session:', sessionIdRef.current);
+
       const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
         body: {
           action: 'message',
@@ -124,7 +131,10 @@ export function useHeliosChat(initialSpecialty?: string): UseHeliosChatReturn {
         },
       });
 
+      console.log('[HELIOS] Response:', { data, fnError });
+
       if (fnError) throw fnError;
+      if (!data?.success) throw new Error(data?.error || 'Unknown error');
 
       // Update state from response
       setPhase(data.phase);
