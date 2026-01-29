@@ -26,22 +26,47 @@ serve(async (req) => {
     const session_id = body.session_id;
     const message = body.message;
     const patient_info = body.patient_info;
+    const specialty = body.specialty || "primary-care";
+
+    // Specialty-specific system prompts
+    const SPECIALTY_PROMPTS: Record<string, string> = {
+      "primary-care": "You are HELIOS, an AI health assistant specializing in primary care. Help patients describe symptoms, discuss general health concerns, and provide guidance on when to see a doctor. Focus on holistic health assessment.",
+      "cardiology": "You are HELIOS, an AI health assistant with cardiology focus. Help patients describe cardiac symptoms like chest pain, palpitations, shortness of breath. Ask about risk factors: family history, smoking, diabetes, blood pressure. Always recommend urgent care for severe symptoms.",
+      "dermatology": "You are HELIOS, an AI health assistant with dermatology focus. Help patients describe skin conditions including location, appearance, duration, itching, and changes. Ask about sun exposure, allergies, and family history of skin conditions.",
+      "mental-health": "You are HELIOS, an AI health assistant with mental health focus. Help patients discuss emotional well-being, stress, anxiety, mood changes. Be compassionate and non-judgmental. If someone expresses thoughts of self-harm, provide crisis resources immediately.",
+      "pediatrics": "You are HELIOS, an AI health assistant with pediatrics focus. Help parents describe symptoms in children including age, duration, fever, eating/sleeping patterns. Use clear, reassuring language. Recommend pediatrician visits for concerning symptoms.",
+      "womens-health": "You are HELIOS, an AI health assistant with women's health focus. Help patients discuss reproductive health, menstrual issues, pregnancy concerns, and menopause. Be sensitive and supportive when discussing personal health topics.",
+      "orthopedics": "You are HELIOS, an AI health assistant with orthopedics focus. Help patients describe musculoskeletal issues: pain location, onset, movement limitations. Ask about injury history, activity level, and what makes symptoms better or worse.",
+    };
 
     if (action === "create") {
       const sessionId = crypto.randomUUID();
       await supabase.from("helios_sessions").insert({
         session_id: sessionId,
         current_phase: "intake",
+        specialty: specialty,
         messages: [],
         patient_info: patient_info || {},
       });
+
+      // Specialty-specific greeting
+      const greetings: Record<string, string> = {
+        "primary-care": "Hello! I'm your HELIOS health assistant. What brings you in today?",
+        "cardiology": "Hello! I'm HELIOS, here to help with heart-related concerns. What symptoms are you experiencing?",
+        "dermatology": "Hello! I'm HELIOS, ready to help with skin-related concerns. Can you describe what you're seeing on your skin?",
+        "mental-health": "Hello, I'm HELIOS. I'm here to listen and help. How are you feeling today?",
+        "pediatrics": "Hello! I'm HELIOS, here to help with your child's health. What concerns do you have?",
+        "womens-health": "Hello! I'm HELIOS, ready to help with your health questions. What would you like to discuss?",
+        "orthopedics": "Hello! I'm HELIOS, here to help with bone and joint concerns. Where are you experiencing pain or discomfort?",
+      };
 
       return new Response(JSON.stringify({
         success: true,
         session_id: sessionId,
         phase: "intake",
-        message: "Hello! What brings you in today?",
-        caseState: { session_id: sessionId },
+        specialty: specialty,
+        message: greetings[specialty] || greetings["primary-care"],
+        caseState: { session_id: sessionId, specialty: specialty },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -64,12 +89,13 @@ serve(async (req) => {
 
       const { data: sess } = await supabase
         .from("helios_sessions")
-        .select("messages, patient_info")
+        .select("messages, patient_info, specialty")
         .eq("session_id", session_id)
         .single();
 
       const history = sess?.messages || [];
       const patientInfo = sess?.patient_info || {};
+      const sessionSpecialty = sess?.specialty || "primary-care";
 
       // Context window management: estimate tokens and trim if needed
       // Rough estimate: 4 chars = 1 token, max ~8000 tokens for context
@@ -106,8 +132,9 @@ serve(async (req) => {
 
       contextMessages.push({ role: "user", content: message });
 
-      // Build system prompt with patient context
-      let systemPrompt = "You are HELIOS, an AI health assistant. You help patients describe symptoms and provide general health guidance. Always recommend consulting a doctor for medical advice.";
+      // Build system prompt with specialty and patient context
+      let systemPrompt = SPECIALTY_PROMPTS[sessionSpecialty] || SPECIALTY_PROMPTS["primary-care"];
+      systemPrompt += " Always recommend consulting a doctor for medical advice.";
       if (patientInfo.age || patientInfo.sex) {
         systemPrompt += " Patient info: ";
         if (patientInfo.age) systemPrompt += "Age " + patientInfo.age + ". ";
