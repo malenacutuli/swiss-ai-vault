@@ -228,7 +228,17 @@ serve(async (req) => {
       });
     }
 
-    if (action === "get") {
+    if (action === "get" || action === "get_session") {
+      if (!session_id) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "session_id is required",
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: sess, error: getErr } = await supabase
         .from("helios_sessions")
         .select("*")
@@ -239,6 +249,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           success: false,
           error: "Session not found",
+          details: getErr?.message,
         }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -248,11 +259,15 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         session_id: sess.session_id,
-        phase: sess.current_phase,
+        current_phase: sess.current_phase,
+        phase: sess.current_phase, // alias for compatibility
+        specialty: sess.specialty,
         messages: sess.messages || [],
         patient_info: sess.patient_info || {},
         red_flags: sess.red_flags || [],
         escalated: sess.escalation_triggered || false,
+        created_at: sess.created_at,
+        updated_at: sess.updated_at,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
