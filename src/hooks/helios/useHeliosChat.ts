@@ -29,7 +29,7 @@ interface UseHeliosChatReturn {
   loadSession: (sessionId: string) => Promise<boolean>;
 }
 
-export function useHeliosChat(initialSpecialty?: string, initialLanguage: string = 'en'): UseHeliosChatReturn {
+export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' | 'es' | 'fr' = 'en'): UseHeliosChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEscalated, setIsEscalated] = useState(false);
@@ -115,7 +115,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: string
       message_id: crypto.randomUUID(),
       role: 'user',
       content: content.trim(),
-      language: language,
+      language: (language === 'en' || language === 'es' || language === 'fr') ? language : 'en',
       timestamp: new Date().toISOString(),
     };
     setMessages(prev => [...prev, userMessage]);
