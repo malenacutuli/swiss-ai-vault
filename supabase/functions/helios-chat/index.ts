@@ -476,6 +476,35 @@ function manageContextWindow(messages: Array<{role: string, content: string}>): 
 }
 
 // ============================================
+// OLDCARTS EXTRACTION HELPER
+// ============================================
+
+function extractFromHistory(messages: Array<{role: string, content: string}>, field: string): string | null {
+  const allText = messages.map(m => m.content).join(' ').toLowerCase();
+  
+  const patterns: Record<string, RegExp[]> = {
+    onset: [/started (\d+ \w+ ago)/i, /began (\d+ \w+ ago)/i, /since (yesterday|last \w+)/i],
+    location: [/in my (\w+)/i, /(\w+) hurts/i, /pain in (\w+)/i],
+    duration: [/for (\d+ \w+)/i, /(\d+ \w+) now/i, /lasts? (\d+ \w+)/i],
+    character: [/(sharp|dull|aching|burning|throbbing|stabbing)/i],
+    aggravating: [/worse when (\w+)/i, /(\w+) makes it worse/i],
+    relieving: [/better when (\w+)/i, /(\w+) helps/i, /relieved by (\w+)/i],
+    timing: [/(constant|intermittent|comes and goes)/i, /at (night|morning|evening)/i],
+    severity: [/(\d+) out of 10/i, /(\d+)\/10/i, /(mild|moderate|severe)/i],
+  };
+
+  const fieldPatterns = patterns[field] || [];
+  for (const pattern of fieldPatterns) {
+    const match = allText.match(pattern);
+    if (match) {
+      return match[1] || match[0];
+    }
+  }
+  
+  return null;
+}
+
+// ============================================
 // MAIN SERVER
 // ============================================
 
@@ -800,6 +829,27 @@ GUIDELINES:
         showSummary: nextPhase === 'completed',
       };
 
+      // Determine if multi-agent assessment should run
+      // Trigger when: history_taking phase complete (70%+) OR entering triage phase
+      const shouldAssess = (
+        (currentPhase === 'history_taking' && historyCompleteness >= 0.7) ||
+        (nextPhase === 'triage' && currentPhase !== 'triage') ||
+        (nextPhase === 'differential')
+      ) && !safetyResult.requiresEscalation;
+
+      // Extract OLDCARTS data for orchestrator
+      const oldcartsData = {
+        onset: extractFromHistory(history, 'onset'),
+        location: extractFromHistory(history, 'location'),
+        duration: extractFromHistory(history, 'duration'),
+        character: extractFromHistory(history, 'character'),
+        aggravating: extractFromHistory(history, 'aggravating'),
+        relieving: extractFromHistory(history, 'relieving'),
+        timing: extractFromHistory(history, 'timing'),
+        severity: extractFromHistory(history, 'severity'),
+        associatedSymptoms: patientState.symptoms,
+      };
+
       return new Response(JSON.stringify({
         success: true,
         session_id: session_id,
@@ -811,6 +861,14 @@ GUIDELINES:
         history_completeness: historyCompleteness,
         ui_triggers: uiTriggers,
         soap_note: nextPhase === 'documentation' || nextPhase === 'completed' ? soapNote : undefined,
+        oldcarts: oldcartsData,
+        // Debug info for frontend orchestrator triggering
+        _debug: {
+          assessmentTrigger: {
+            shouldAssess,
+            reason: shouldAssess ? `Phase: ${currentPhase} -> ${nextPhase}, completeness: ${historyCompleteness.toFixed(2)}` : null,
+          },
+        },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -1177,6 +1235,59 @@ GUIDELINES:
         specialty: booking.specialty,
         soap_note_shared: booking.include_soap_note,
         message: `Your video visit has been scheduled for ${new Date(booking.scheduled_at).toLocaleString()}. You'll receive a confirmation email shortly.`,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========================================
+    // ACTION: STORE ASSESSMENT (from frontend orchestrator)
+    // ========================================
+    if (action === "store_assessment") {
+      if (!session_id) {
+        return new Response(JSON.stringify({ success: false, error: "session_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const consensus_result = body.consensus_result;
+      if (!consensus_result) {
+        return new Response(JSON.stringify({ success: false, error: "consensus_result required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update session with consensus result
+      const updateData: Record<string, unknown> = {
+        consensus_result: consensus_result,
+        triage_level: consensus_result.triage_level || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error: updateErr } = await supabase
+        .from("helios_sessions")
+        .update(updateData)
+        .eq("session_id", session_id);
+
+      if (updateErr) {
+        console.error("[HELIOS] Failed to store assessment:", updateErr);
+        return new Response(JSON.stringify({ success: false, error: updateErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // DUAL-WRITE: Sync to dev project
+      await syncToDevProject(devSupabase, "helios_sessions", "update", updateData, "session_id", session_id);
+
+      console.log("[HELIOS] Assessment stored for session:", session_id);
+
+      return new Response(JSON.stringify({
+        success: true,
+        session_id,
+        message: "Assessment stored successfully",
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
