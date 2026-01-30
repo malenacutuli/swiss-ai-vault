@@ -85,6 +85,12 @@ export const SYMPTOM_KEYWORDS = {
   ],
 } as const;
 
+// Export type for use in other services
+export type { SpecialistConfig } from '@/types/medical-triage';
+
+// Helper to convert readonly arrays to mutable
+const toMutableArray = <T>(arr: readonly T[]): T[] => [...arr];
+
 // ============================================
 // SPECIALIST AGENT CONFIGURATIONS
 // ============================================
@@ -258,7 +264,7 @@ OUTPUT REQUIREMENTS:
       sweating: 0.75,
       exercise_intolerance: 0.8,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.cardiac,
+    activationKeywords: [...SYMPTOM_KEYWORDS.cardiac],
   },
 
   // ============================================
@@ -318,7 +324,7 @@ OUTPUT REQUIREMENTS:
       tremor: 0.85,
       balance_problems: 0.8,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.neurological,
+    activationKeywords: [...SYMPTOM_KEYWORDS.neurological],
   },
 
   // ============================================
@@ -370,7 +376,7 @@ OUTPUT REQUIREMENTS:
       sleep_apnea: 0.85,
       snoring: 0.6,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.respiratory,
+    activationKeywords: [...SYMPTOM_KEYWORDS.respiratory],
   },
 
   // ============================================
@@ -425,7 +431,7 @@ OUTPUT REQUIREMENTS:
       appetite_loss: 0.75,
       weight_loss: 0.8,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.gastrointestinal,
+    activationKeywords: [...SYMPTOM_KEYWORDS.gastrointestinal],
   },
 
   // ============================================
@@ -490,7 +496,7 @@ OUTPUT REQUIREMENTS:
       psychosis: 0.95,
       eating_disorder: 0.85,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.psychiatric,
+    activationKeywords: [...SYMPTOM_KEYWORDS.psychiatric],
   },
 
   // ============================================
@@ -542,7 +548,7 @@ OUTPUT REQUIREMENTS:
       rash: 0.75,
       travel: 0.8,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.infectious,
+    activationKeywords: [...SYMPTOM_KEYWORDS.infectious],
   },
 
   // ============================================
@@ -590,7 +596,7 @@ OUTPUT REQUIREMENTS:
       hair_loss: 0.6,
       menstrual: 0.7,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.endocrine,
+    activationKeywords: [...SYMPTOM_KEYWORDS.endocrine],
   },
 
   // ============================================
@@ -632,7 +638,7 @@ OUTPUT REQUIREMENTS:
       bruising: 0.6,
       acne: 0.7,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.dermatological,
+    activationKeywords: [...SYMPTOM_KEYWORDS.dermatological],
   },
 
   // ============================================
@@ -675,7 +681,7 @@ OUTPUT REQUIREMENTS:
       testicular: 0.95,
       erectile: 0.7,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.urological,
+    activationKeywords: [...SYMPTOM_KEYWORDS.urological],
   },
 
   // ============================================
@@ -717,7 +723,7 @@ OUTPUT REQUIREMENTS:
       breast: 0.75,
       menopause: 0.7,
     },
-    activationKeywords: SYMPTOM_KEYWORDS.gynecological,
+    activationKeywords: [...SYMPTOM_KEYWORDS.gynecological],
   },
 ];
 

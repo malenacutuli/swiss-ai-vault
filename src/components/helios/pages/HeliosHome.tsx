@@ -48,6 +48,15 @@ const SPECIALTY_SYMPTOMS: Record<string, string[]> = {
   'cardiology': ['Chest discomfort', 'Heart palpitations', 'Shortness of breath', 'High blood pressure', 'Dizziness'],
 };
 
+// Service action badges - consultation actions available across all specialties
+const SERVICE_ACTIONS = [
+  { label: 'Prescription refill', action: 'prescription-refill' },
+  { label: 'New prescription', action: 'prescription-new' },
+  { label: 'Interpret test results', action: 'test-results' },
+  { label: 'Book appointment', action: 'book-appointment' },
+  { label: 'Find a specialist', action: 'find-specialist' },
+];
+
 const translations = {
   en: {
     greeting: 'How can I help you today',
@@ -116,6 +125,35 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
         state: { language, specialty }
       });
     }
+  };
+
+  // Handle service action clicks - start chat with appropriate context
+  const handleServiceAction = (action: string) => {
+    let initialMessage = '';
+    
+    switch (action) {
+      case 'prescription-refill':
+        initialMessage = 'I need to refill a prescription';
+        break;
+      case 'prescription-new':
+        initialMessage = 'I need a new prescription for a condition';
+        break;
+      case 'test-results':
+        initialMessage = 'I need help interpreting my test results';
+        break;
+      case 'book-appointment':
+        initialMessage = "I'd like to book an appointment";
+        break;
+      case 'find-specialist':
+        initialMessage = 'I need to find a specialist near me';
+        break;
+      default:
+        return;
+    }
+    
+    navigate('/health/chat/new', {
+      state: { initialSymptom: initialMessage, language, specialty }
+    });
   };
 
   return (
@@ -238,13 +276,26 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
           </div>
         </div>
 
-        {/* Quick actions - dynamic based on specialty */}
-        <div className="flex flex-wrap justify-center gap-3 mt-12">
+        {/* Service action badges */}
+        <div className="flex flex-wrap justify-center gap-2 mt-10">
+          {SERVICE_ACTIONS.map((service) => (
+            <button
+              key={service.action}
+              onClick={() => handleServiceAction(service.action)}
+              className="px-4 py-2 bg-white rounded-full text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 border border-gray-200 transition-colors"
+            >
+              {service.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Symptom quick actions - dynamic based on specialty */}
+        <div className="flex flex-wrap justify-center gap-2 mt-3">
           {quickSymptoms.map((symptom) => (
             <button
               key={symptom}
               onClick={() => setMessage(`${t.experiencing} ${symptom.toLowerCase()}`)}
-              className="px-4 py-2 bg-white rounded-full text-sm text-gray-600 hover:bg-gray-100 border border-gray-200 transition-colors"
+              className="px-4 py-2 bg-white rounded-full text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 border border-gray-200 transition-colors"
             >
               {symptom}
             </button>
