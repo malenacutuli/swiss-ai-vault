@@ -3,14 +3,15 @@
  * "How can I help you today?"
  */
 
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useRef, Suspense, lazy } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Send, Shield, Heart, Brain, Stethoscope, Baby, Users, Bone, Mic, X, Loader2 } from 'lucide-react';
+import { Send, Shield, Heart, Brain, Stethoscope, Baby, Users, Bone, Mic, X, Loader2, Paperclip, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { EmergencyDropdown } from '../common/EmergencyDropdown';
 import type { SupportedLanguage } from '@/lib/helios/types';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -102,6 +103,9 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -111,20 +115,75 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
 
   const t = translations[language] || translations.en;
 
+  // File upload handler
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload an image or PDF file');
+      return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+    
+    setSelectedFile(file);
+    
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setUploadPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setUploadPreview(null); // PDF - just show filename
+    }
+    
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const clearFile = () => {
+    setSelectedFile(null);
+    setUploadPreview(null);
+  };
+
   const handleStart = async () => {
     setIsStarting(true);
 
-    // Navigate to chat - pass initialSymptom, language, and specialty
+    // Build navigation state with file info if attached
+    const navState: Record<string, unknown> = {
+      language,
+      specialty,
+    };
+
+    // Add initial message if provided
     if (message.trim()) {
-      navigate('/health/chat/new', {
-        state: { initialSymptom: message.trim(), language, specialty }
-      });
-    } else {
-      // Start empty chat
-      navigate('/health/chat/new', {
-        state: { language, specialty }
-      });
+      navState.initialSymptom = message.trim();
     }
+
+    // If file is attached, include file info (the actual upload will happen in the chat)
+    // For now, we indicate a file was selected and pass its name
+    if (selectedFile) {
+      navState.attachedFile = {
+        name: selectedFile.name,
+        type: selectedFile.type,
+        size: selectedFile.size,
+      };
+      // If no message but file attached, set a default message
+      if (!message.trim()) {
+        navState.initialSymptom = 'Please analyze this document';
+      }
+    }
+
+    navigate('/health/chat/new', { state: navState });
   };
 
   // Handle service action clicks - start chat with appropriate context
@@ -222,7 +281,39 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
 
         {/* Input area */}
         <div className="w-full max-w-xl">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,.pdf,.jpg,.jpeg,.png"
+            onChange={handleFileUpload}
+          />
+
           <div className="relative bg-white rounded-2xl shadow-sm border border-gray-200">
+            {/* File preview - shows when file is selected */}
+            {selectedFile && (
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
+                {uploadPreview ? (
+                  <img src={uploadPreview} alt="Upload preview" className="h-12 w-12 object-cover rounded" />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+                  </div>
+                )}
+                {uploadPreview && (
+                  <span className="text-sm text-gray-600 truncate max-w-[200px]">{selectedFile.name}</span>
+                )}
+                <button 
+                  onClick={clearFile}
+                  className="ml-auto p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -237,23 +328,33 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
             />
 
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-              {/* Voice button */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowVoiceModal(true)}
-                className="rounded-full border-[#1D4E5F] text-[#1D4E5F] hover:bg-[#1D4E5F]/10"
-                title="Start Voice Consultation"
-              >
-                <Mic className="w-5 h-5" />
-              </Button>
+              {/* Left side buttons */}
+              <div className="flex items-center gap-1">
+                {/* File upload button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Attach file"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
+
+                {/* Voice button */}
+                <button
+                  onClick={() => setShowVoiceModal(true)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Start Voice Consultation"
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
+              </div>
 
               <Button
                 onClick={handleStart}
-                disabled={isStarting}
+                disabled={isStarting && !message.trim() && !selectedFile}
                 className="bg-[#1D4E5F] hover:bg-[#1D4E5F]/90 text-white rounded-lg px-6"
               >
-                {message.trim() ? t.getStarted : t.startChat}
+                {message.trim() || selectedFile ? t.getStarted : t.startChat}
                 <Send className="w-4 h-4 ml-2" />
               </Button>
             </div>
