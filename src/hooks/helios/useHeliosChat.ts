@@ -20,36 +20,77 @@ interface UITriggers {
   showSummary: boolean;
 }
 
-// Multi-agent consensus result from helios-orchestrator
-export interface ConsensusResult {
+// OrchestrationResponse from helios-orchestrator
+interface OrchestrationResponse {
+  session_id: string;
   consensus: {
-    primary_diagnosis: string;
-    confidence: number;
-    supporting_agents: number;
-    differentials: Array<{
+    achieved: boolean;
+    agreement_score: number;
+    kendall_w: number;
+    rounds_required: number;
+    consensus_reached: boolean;
+    participating_agents: string[];
+    primary_diagnosis: {
+      rank: number;
       diagnosis: string;
-      probability: number;
-      agents_supporting: string[];
+      confidence: number;
+      reasoning: string;
+      supporting_experts: string[];
+      icd10_code: string;
+      icd10_name: string;
+    };
+    differential_diagnoses: Array<{
+      rank: number;
+      diagnosis: string;
+      confidence: number;
+      reasoning: string;
+      supporting_experts: string[];
+      icd10_code: string;
+      icd10_name: string;
     }>;
-    red_flags: string[];
-    recommended_specialty: string;
-    urgency: 'immediate' | 'urgent' | 'routine' | 'self_care';
+    dissenting_opinions?: Array<{
+      agent_id: string;
+      diagnosis: string;
+      reasoning: string;
+    }>;
   };
-  agents: Array<{
-    agent_id: string;
-    specialty: string;
-    diagnosis: string;
-    confidence: number;
+  triage: {
+    esi_level: 1 | 2 | 3 | 4 | 5;
+    disposition: string;
+    urgency: string;
     reasoning: string;
-  }>;
-  triage_level: number;
+    human_review_required?: boolean;
+  };
+  plan: {
+    immediate_actions: string[];
+    lab_tests: string[];
+    imaging: string[];
+    referrals: string[];
+    medications?: string[];
+    patient_education?: string[];
+    follow_up: string;
+    red_flag_warnings?: string[];
+  };
+  safety: {
+    critical_finding: boolean;
+    human_review_required: boolean;
+    red_flags_identified: string[];
+    confidence_level: string;
+  };
+  soap_note: {
+    subjective: string;
+    objective: string;
+    assessment: string;
+    plan: string;
+  };
   processing_time_ms: number;
+  experts_consulted: number;
 }
 
 interface UseHeliosChatReturn {
   messages: Message[];
   isLoading: boolean;
-  isAssessing: boolean;
+  isLoadingOrchestrator: boolean;
   isEscalated: boolean;
   redFlags: RedFlag[];
   phase: string;
@@ -59,7 +100,7 @@ interface UseHeliosChatReturn {
   sessionId: string | null;
   uiTriggers: UITriggers;
   soapNote: string | null;
-  consensusResult: ConsensusResult | null;
+  orchestration: OrchestrationResponse | null;
   sendMessage: (content: string, language?: string) => Promise<void>;
   submitIntake: (age: number, sex: 'male' | 'female') => Promise<void>;
   startSession: (specialty?: string) => Promise<void>;
@@ -71,7 +112,6 @@ interface UseHeliosChatReturn {
 export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' | 'es' | 'fr' = 'en'): UseHeliosChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAssessing, setIsAssessing] = useState(false);
   const [isEscalated, setIsEscalated] = useState(false);
   const [redFlags, setRedFlags] = useState<RedFlag[]>([]);
   const [phase, setPhase] = useState('intake');
@@ -86,7 +126,8 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     showSummary: false,
   });
   const [soapNote, setSoapNote] = useState<string | null>(null);
-  const [consensusResult, setConsensusResult] = useState<ConsensusResult | null>(null);
+  const [orchestration, setOrchestration] = useState<OrchestrationResponse | null>(null);
+  const [isLoadingOrchestrator, setIsLoadingOrchestrator] = useState(false);
 
   const sessionIdRef = useRef<string | null>(null);
 
@@ -165,12 +206,6 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     }
   }, [initialSpecialty, userId]);
 
-  // Helper to extract chief complaint from messages
-  const extractChiefComplaint = (msgs: Message[]): string => {
-    const userMessages = msgs.filter(m => m.role === 'user');
-    return userMessages[0]?.content || 'General symptoms';
-  };
-
   // Send a message
   const sendMessage = useCallback(async (content: string, language: string = 'en') => {
     if (!content.trim()) return;
@@ -245,47 +280,39 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
         ...(data.caseState || {}),
       } : null);
 
-      // Check if multi-agent assessment should run (bypasses edge-to-edge timeout)
-      if (data._debug?.assessmentTrigger?.shouldAssess && !consensusResult) {
-        console.log('[HELIOS] Triggering multi-agent assessment from frontend');
-        setIsAssessing(true);
+      // Call orchestrator if triggered (client-side orchestration pattern)
+      if (data.trigger_orchestrator && data.orchestrator_payload) {
+        console.log('[HELIOS] Triggering orchestrator with payload:', data.orchestrator_payload);
+        setIsLoadingOrchestrator(true);
 
         try {
-          // Build all messages including the new ones
-          const allMessages = [...messages, userMessage, assistantMessage];
-
-          // Call orchestrator DIRECTLY from frontend
           const { data: orchData, error: orchError } = await supabase.functions.invoke('helios-orchestrator', {
-            body: {
-              session_id: sessionIdRef.current,
-              language: language,
-              chief_complaint: extractChiefComplaint(allMessages),
-              symptoms: data.oldcarts?.associatedSymptoms || [],
-              oldcarts: data.oldcarts || {},
-              demographics: caseState?.patient_info || {},
-            },
+            body: data.orchestrator_payload,
           });
 
           console.log('[HELIOS] Orchestrator response:', { orchData, orchError });
 
-          if (orchData && !orchError) {
-            setConsensusResult(orchData);
-
-            // Optionally store assessment back to session for persistence
-            await supabase.functions.invoke('helios-chat', {
-              body: {
-                action: 'store_assessment',
-                session_id: sessionIdRef.current,
-                consensus_result: orchData,
-              },
-            });
-          } else if (orchError) {
+          if (orchError) {
             console.error('[HELIOS] Orchestrator error:', orchError);
+          } else if (orchData) {
+            setOrchestration(orchData as OrchestrationResponse);
+
+            // Update UI triggers to show assessment
+            setUITriggers(prev => ({
+              ...prev,
+              showAssessment: true,
+            }));
+
+            // Update SOAP note from orchestrator if available
+            if (orchData.soap_note) {
+              const soapText = `SUBJECTIVE:\n${orchData.soap_note.subjective}\n\nOBJECTIVE:\n${orchData.soap_note.objective}\n\nASSESSMENT:\n${orchData.soap_note.assessment}\n\nPLAN:\n${orchData.soap_note.plan}`;
+              setSoapNote(soapText);
+            }
           }
         } catch (orchErr) {
-          console.error('[HELIOS] Failed to run orchestrator:', orchErr);
+          console.error('[HELIOS] Orchestrator call failed:', orchErr);
         } finally {
-          setIsAssessing(false);
+          setIsLoadingOrchestrator(false);
         }
       }
 
@@ -303,7 +330,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     } finally {
       setIsLoading(false);
     }
-  }, [caseState, messages, consensusResult]);
+  }, [caseState]);
 
   // Submit intake information
   const submitIntake = useCallback(async (age: number, sex: 'male' | 'female') => {
@@ -511,7 +538,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
   return {
     messages,
     isLoading,
-    isAssessing,
+    isLoadingOrchestrator,
     isEscalated,
     redFlags,
     phase,
@@ -521,7 +548,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     sessionId: sessionIdRef.current,
     uiTriggers,
     soapNote,
-    consensusResult,
+    orchestration,
     sendMessage,
     submitIntake,
     startSession,

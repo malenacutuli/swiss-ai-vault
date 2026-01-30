@@ -221,12 +221,20 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
             </div>
           </div>
 
-          {/* Privacy indicator */}
+          {/* Privacy indicator and Voice button */}
           <div className="flex items-center justify-center gap-4 mt-4 text-sm text-gray-500">
             <div className="flex items-center gap-1">
               <Shield className="w-4 h-4" />
               <span>{t.privacy}</span>
             </div>
+            <span className="text-gray-300">|</span>
+            <button
+              onClick={() => setShowVoiceModal(true)}
+              className="flex items-center gap-1 text-[#1D4E5F] hover:text-[#1D4E5F]/80 transition-colors"
+            >
+              <Mic className="w-4 h-4" />
+              <span>Voice Consult</span>
+            </button>
           </div>
         </div>
 
@@ -243,6 +251,7 @@ export function HeliosHome({ userName }: HeliosHomeProps) {
           ))}
         </div>
       </div>
+
     </div>
   );
 }

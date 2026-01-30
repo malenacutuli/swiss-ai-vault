@@ -9,21 +9,30 @@ const corsHeaders = {
 };
 
 // ============================================
+// CONFIGURATION
+// ============================================
+
+// Use edge function for orchestration (bypasses K8s connectivity issues)
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://ghmmdochvlrnwbruyrqk.supabase.co";
+const GRAND_ROUNDS_API_URL = Deno.env.get("GRAND_ROUNDS_API_URL") || `${SUPABASE_URL}/functions/v1/helios-orchestrator`;
+const GRAND_ROUNDS_API_KEY = Deno.env.get("GRAND_ROUNDS_API_KEY") || "";
+// Use service role for internal edge function calls
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+// ============================================
 // DEV PROJECT SYNC (Dual-Write for Redundancy)
 // ============================================
+
 const DEV_SUPABASE_URL = "https://ghmmdochvlrnwbruyrqk.supabase.co";
 const DEV_SUPABASE_SERVICE_KEY = Deno.env.get("DEV_SUPABASE_SERVICE_ROLE_KEY");
 
-// Create dev project client for dual-write
 function getDevSupabase(): SupabaseClient | null {
   if (!DEV_SUPABASE_SERVICE_KEY) {
-    console.log("[HELIOS] Dev project sync disabled - no service key configured");
     return null;
   }
   return createClient(DEV_SUPABASE_URL, DEV_SUPABASE_SERVICE_KEY);
 }
 
-// Helper function to sync operations to dev project (best-effort, non-blocking)
 async function syncToDevProject(
   devSupabase: SupabaseClient | null,
   table: string,
@@ -33,20 +42,15 @@ async function syncToDevProject(
   matchValue?: string
 ): Promise<void> {
   if (!devSupabase) return;
-  
+
   try {
     if (operation === 'insert') {
-      const { error } = await devSupabase.from(table).insert(data);
-      if (error) throw error;
-      console.log(`[HELIOS] Synced to dev project: ${table} INSERT success`);
+      await devSupabase.from(table).insert(data);
     } else if (operation === 'update' && matchColumn && matchValue) {
-      const { error } = await devSupabase.from(table).update(data).eq(matchColumn, matchValue);
-      if (error) throw error;
-      console.log(`[HELIOS] Synced to dev project: ${table} UPDATE success`);
+      await devSupabase.from(table).update(data).eq(matchColumn, matchValue);
     }
   } catch (err) {
-    // Log but don't throw - dev sync is best-effort
-    console.error(`[HELIOS] Dev sync failed for ${table} ${operation}:`, err);
+    console.error(`[HELIOS] Dev sync failed for ${table}:`, err);
   }
 }
 
@@ -58,6 +62,7 @@ type Phase = 'intake' | 'chief_complaint' | 'history_taking' | 'triage' | 'diffe
 type Severity = 'low' | 'moderate' | 'high' | 'critical';
 type EscalationLevel = 'emergency' | 'urgent' | 'flag_only';
 type TriageLevel = 1 | 2 | 3 | 4 | 5;
+type Language = 'en' | 'es' | 'fr';
 
 interface RedFlag {
   flag_id: string;
@@ -70,12 +75,24 @@ interface RedFlag {
   detected_at: string;
 }
 
-interface SafetyCheckResult {
-  triggered: boolean;
-  redFlags: RedFlag[];
-  requiresEscalation: boolean;
-  escalationReason?: string;
-  highestSeverity?: Severity;
+interface OLDCARTSField {
+  value: string | number | null;
+  complete: boolean;
+  collectedAt?: string;
+}
+
+interface OLDCARTSData {
+  chiefComplaint: string;
+  onset: OLDCARTSField;
+  location: OLDCARTSField;
+  duration: OLDCARTSField;
+  character: OLDCARTSField;
+  aggravating: OLDCARTSField;
+  relieving: OLDCARTSField;
+  timing: OLDCARTSField;
+  severity: OLDCARTSField & { value: number | null };
+  completenessPercentage: number;
+  associatedSymptoms: string[];
 }
 
 interface PatientState {
@@ -89,9 +106,156 @@ interface PatientState {
   messages: string[];
 }
 
+interface ConsensusResult {
+  kendallW: number;
+  consensusReached: boolean;
+  roundsRequired: number;
+  participatingAgents: string[];
+  primaryDiagnosis: {
+    diagnosis: string;
+    icd10: { code: string; name: string };
+    confidence: number;
+    reasoning: string;
+  };
+  differentialDiagnosis: Array<{
+    rank: number;
+    diagnosis: string;
+    icd10: { code: string; name: string };
+    confidence: number;
+    reasoning: string;
+  }>;
+  planOfAction: {
+    labTests: string[];
+    imaging: string[];
+    referrals: string[];
+    medications: string[];
+    patientEducation: string[];
+    followUp: string;
+    redFlagWarnings: string[];
+  };
+  finalEsiLevel?: TriageLevel;
+  humanReviewRequired: boolean;
+  humanReviewReason?: string;
+  disposition?: string;
+}
+
+interface SafetyCheckResult {
+  triggered: boolean;
+  redFlags: RedFlag[];
+  requiresEscalation: boolean;
+  escalationReason?: string;
+  highestSeverity?: Severity;
+}
+
+// OrchestrationResponse from helios-orchestrator service
+interface OrchestrationResponse {
+  session_id: string;
+  consensus: {
+    kendall_w: number;
+    consensus_reached: boolean;
+    rounds_required: number;
+    participating_agents: string[];
+    primary_diagnosis: {
+      diagnosis: string;
+      icd10_code: string;
+      icd10_name: string;
+      confidence: number;
+      reasoning: string;
+    };
+    differential_diagnoses: Array<{
+      rank: number;
+      diagnosis: string;
+      icd10_code: string;
+      icd10_name: string;
+      confidence: number;
+      reasoning: string;
+    }>;
+    dissenting_opinions?: Array<{
+      agent_id: string;
+      diagnosis: string;
+      reasoning: string;
+    }>;
+  };
+  triage: {
+    esi_level: TriageLevel;
+    disposition: string;
+    reasoning: string;
+    human_review_required: boolean;
+    human_review_reason?: string;
+  };
+  plan: {
+    lab_tests: string[];
+    imaging: string[];
+    referrals: string[];
+    medications: string[];
+    patient_education: string[];
+    follow_up: string;
+    red_flag_warnings: string[];
+  };
+  safety: {
+    critical_finding: boolean;
+    immediate_action?: string;
+    red_flags: Array<{
+      category: string;
+      description: string;
+      severity: Severity;
+    }>;
+  };
+  soap_note: {
+    subjective: string;
+    objective: string;
+    assessment: string;
+    plan: string;
+  };
+  processing_time_ms: number;
+}
+
 // ============================================
-// DETERMINISTIC SAFETY RULES
-// These run WITHOUT LLM - pure logic, cannot be bypassed
+// OLDCARTS WEIGHTS (Essential 45%, Important 36%, Supporting 19%)
+// ============================================
+
+const OLDCARTS_WEIGHTS = {
+  onset: 15,      // Essential
+  location: 15,   // Essential
+  severity: 15,   // Essential
+  character: 12,  // Important
+  duration: 12,   // Important
+  aggravating: 9.5, // Important
+  relieving: 9.5,   // Important
+  timing: 12,     // Supporting
+};
+
+function createEmptyOLDCARTS(chiefComplaint: string): OLDCARTSData {
+  return {
+    chiefComplaint,
+    onset: { value: null, complete: false },
+    location: { value: null, complete: false },
+    duration: { value: null, complete: false },
+    character: { value: null, complete: false },
+    aggravating: { value: null, complete: false },
+    relieving: { value: null, complete: false },
+    timing: { value: null, complete: false },
+    severity: { value: null, complete: false },
+    completenessPercentage: 0,
+    associatedSymptoms: [],
+  };
+}
+
+function calculateOLDCARTSProgress(data: OLDCARTSData): number {
+  let score = 0;
+  if (data.onset.complete) score += OLDCARTS_WEIGHTS.onset;
+  if (data.location.complete) score += OLDCARTS_WEIGHTS.location;
+  if (data.severity.complete) score += OLDCARTS_WEIGHTS.severity;
+  if (data.character.complete) score += OLDCARTS_WEIGHTS.character;
+  if (data.duration.complete) score += OLDCARTS_WEIGHTS.duration;
+  if (data.aggravating.complete) score += OLDCARTS_WEIGHTS.aggravating;
+  if (data.relieving.complete) score += OLDCARTS_WEIGHTS.relieving;
+  if (data.timing.complete) score += OLDCARTS_WEIGHTS.timing;
+  return Math.min(100, score);
+}
+
+// ============================================
+// DETERMINISTIC SAFETY RULES (NO LLM)
 // ============================================
 
 const SAFETY_RULES = [
@@ -208,60 +372,53 @@ const SAFETY_RULES = [
   },
 ];
 
-function checkSafetyRules(state: PatientState, language: string): SafetyCheckResult {
+function isEmergency(message: string, patientState: PatientState): SafetyCheckResult {
   const redFlags: RedFlag[] = [];
   let requiresEscalation = false;
   let escalationReason: string | undefined;
   let highestSeverity: Severity | undefined;
-  const lang = (language || 'en') as 'en' | 'es' | 'fr';
 
-  const allText = [...state.symptoms, ...state.messages].join(' ').toLowerCase();
+  const allText = [...patientState.symptoms, ...patientState.messages, message].join(' ').toLowerCase();
 
   for (const rule of SAFETY_RULES) {
-    // Check keywords
     const hasKeyword = rule.keywords.some(k => allText.includes(k.toLowerCase()));
     if (!hasKeyword) continue;
 
-    // Check risk factors if required
     if (rule.needsRiskFactor && rule.riskKeywords) {
       const hasRisk = rule.riskKeywords.some(k =>
-        state.riskFactors.some(r => r.toLowerCase().includes(k.toLowerCase())) ||
+        patientState.riskFactors.some(r => r.toLowerCase().includes(k.toLowerCase())) ||
         allText.includes(k.toLowerCase())
-      ) || (state.age && state.age >= 40);
+      ) || (patientState.age && patientState.age >= 40);
       if (!hasRisk) continue;
     }
 
-    // Check age condition for pediatric rules
     if (rule.ageCondition) {
-      const ageValue = state.ageUnit === 'months' ? state.age :
-                         state.ageUnit === 'days' ? (state.age || 0) / 30 :
-                         (state.age || 999) * 12;
-      const ageInMonths = ageValue ?? 999;
-      if (ageInMonths > (rule.ageCondition.maxMonths || 999)) continue;
+      const ageInMonths = patientState.ageUnit === 'months' ? patientState.age :
+                         patientState.ageUnit === 'days' ? (patientState.age || 0) / 30 :
+                         (patientState.age || 999) * 12;
+      if ((ageInMonths ?? 999) > (rule.ageCondition.maxMonths || 999)) continue;
     }
 
-    // Check pregnancy for obstetric rules
     if (rule.pregnancyRequired) {
-      const isPregnant = state.pregnant || allText.includes('pregnant') ||
+      const isPregnant = patientState.pregnant || allText.includes('pregnant') ||
                         allText.includes('embarazada') || allText.includes('enceinte');
       if (!isPregnant) continue;
     }
 
-    // Rule triggered
     redFlags.push({
       flag_id: crypto.randomUUID(),
       rule_id: rule.ruleId,
       flag_type: rule.category,
-      description: rule.name[lang] || rule.name.en,
+      description: rule.name.en,
       severity: rule.severity,
       escalation_level: rule.escalationLevel,
-      action_taken: rule.action[lang] || rule.action.en,
+      action_taken: rule.action.en,
       detected_at: new Date().toISOString(),
     });
 
     if (rule.escalationLevel === 'emergency') {
       requiresEscalation = true;
-      escalationReason = rule.action[lang] || rule.action.en;
+      escalationReason = rule.action.en;
     }
 
     if (!highestSeverity || ['low', 'moderate', 'high', 'critical'].indexOf(rule.severity) >
@@ -273,165 +430,562 @@ function checkSafetyRules(state: PatientState, language: string): SafetyCheckRes
   return { triggered: redFlags.length > 0, redFlags, requiresEscalation, escalationReason, highestSeverity };
 }
 
+function getEmergencyResponse(language: Language, escalationReason: string): string {
+  const responses: Record<Language, string> = {
+    en: escalationReason,
+    es: escalationReason, // Already translated in rule
+    fr: escalationReason,
+  };
+  return responses[language] || responses.en;
+}
+
 // ============================================
-// PHASE MANAGEMENT & TRIAGE
+// SYMPTOM EXTRACTION & OLDCARTS UPDATE
 // ============================================
 
-const PHASE_PROMPTS: Record<Phase, Record<string, string>> = {
-  intake: {
-    en: "You are gathering initial information. Ask about their main concern in a warm, welcoming way.",
-    es: "Estás recopilando información inicial. Pregunta sobre su principal preocupación de manera cálida.",
-    fr: "Vous recueillez les informations initiales. Demandez leur principale préoccupation de manière chaleureuse.",
-  },
-  chief_complaint: {
-    en: "Focus on understanding their primary symptom. Ask about onset, location, and duration (OLD from OLDCARTS).",
-    es: "Enfócate en entender su síntoma principal. Pregunta sobre inicio, ubicación y duración.",
-    fr: "Concentrez-vous sur comprendre leur symptôme principal. Demandez le début, l'emplacement et la durée.",
-  },
-  history_taking: {
-    en: "Continue gathering details using OLDCARTS: Character, Aggravating factors, Relieving factors, Timing, Severity. Ask about medications and allergies.",
-    es: "Continúa recopilando detalles: Características, factores agravantes, factores aliviantes, momento, severidad. Pregunta sobre medicamentos y alergias.",
-    fr: "Continuez à recueillir des détails: Caractère, facteurs aggravants, facteurs de soulagement, moment, sévérité. Demandez les médicaments et allergies.",
-  },
-  triage: {
-    en: "Based on the information gathered, assess the urgency. Consider ESI level and appropriate care pathway.",
-    es: "Basándote en la información recopilada, evalúa la urgencia. Considera el nivel ESI y la vía de atención apropiada.",
-    fr: "Sur la base des informations recueillies, évaluez l'urgence. Considérez le niveau ESI et le parcours de soins approprié.",
-  },
-  differential: {
-    en: "Consider possible explanations for the symptoms. Focus on 'must not miss' conditions and common diagnoses.",
-    es: "Considera posibles explicaciones para los síntomas. Enfócate en condiciones que no se deben pasar por alto.",
-    fr: "Considérez les explications possibles des symptômes. Concentrez-vous sur les conditions à ne pas manquer.",
-  },
-  plan: {
-    en: "Provide care recommendations based on the assessment. Include when to seek immediate care and follow-up guidance.",
-    es: "Proporciona recomendaciones de atención basadas en la evaluación. Incluye cuándo buscar atención inmediata.",
-    fr: "Fournissez des recommandations de soins basées sur l'évaluation. Indiquez quand consulter en urgence.",
-  },
-  documentation: {
-    en: "Summarize the consultation in clinical format. The conversation is concluding.",
-    es: "Resume la consulta en formato clínico. La conversación está concluyendo.",
-    fr: "Résumez la consultation en format clinique. La conversation se termine.",
-  },
-  completed: { en: "", es: "", fr: "" },
-  escalated: { en: "", es: "", fr: "" },
-};
+async function extractSymptomsAndUpdateOLDCARTS(
+  anthropic: Anthropic,
+  message: string,
+  currentOLDCARTS: OLDCARTSData,
+  language: Language
+): Promise<{ oldcarts: OLDCARTSData; symptoms: string[] }> {
+  const prompt = `Extract symptom information from this patient message and update OLDCARTS data.
 
-function determinePhaseTransition(
-  currentPhase: Phase,
-  messageCount: number,
-  hasChiefComplaint: boolean,
-  historyCompleteness: number
-): Phase {
-  switch (currentPhase) {
-    case 'intake':
-      return hasChiefComplaint ? 'chief_complaint' : 'intake';
-    case 'chief_complaint':
-      return messageCount >= 2 ? 'history_taking' : 'chief_complaint';
-    case 'history_taking':
-      if (historyCompleteness >= 0.7 || messageCount >= 8) return 'triage';
-      return 'history_taking';
-    case 'triage':
-      return 'differential';
-    case 'differential':
-      return 'plan';
-    case 'plan':
-      return 'documentation';
-    case 'documentation':
-      return 'completed';
-    default:
-      return currentPhase;
+Current OLDCARTS state:
+${JSON.stringify(currentOLDCARTS, null, 2)}
+
+Patient message: "${message}"
+
+Extract any new information for:
+- onset: When did symptoms start? (e.g., "2 days ago", "this morning")
+- location: Where is the symptom? (e.g., "chest", "left arm", "head")
+- duration: How long does it last? (e.g., "constant", "30 minutes")
+- character: What does it feel like? (e.g., "sharp", "dull", "throbbing")
+- aggravating: What makes it worse? (e.g., "movement", "eating")
+- relieving: What makes it better? (e.g., "rest", "medication")
+- timing: When does it occur? (e.g., "at night", "after meals")
+- severity: Pain level 0-10? (extract number if mentioned)
+- associatedSymptoms: Other symptoms mentioned
+
+Respond with JSON only:
+{
+  "updates": {
+    "onset": { "value": "extracted value or null", "complete": true/false },
+    "location": { "value": "extracted value or null", "complete": true/false },
+    "duration": { "value": "extracted value or null", "complete": true/false },
+    "character": { "value": "extracted value or null", "complete": true/false },
+    "aggravating": { "value": "extracted value or null", "complete": true/false },
+    "relieving": { "value": "extracted value or null", "complete": true/false },
+    "timing": { "value": "extracted value or null", "complete": true/false },
+    "severity": { "value": number or null, "complete": true/false }
+  },
+  "newSymptoms": ["list of symptoms extracted"],
+  "chiefComplaintUpdate": "updated chief complaint if clearer now, or null"
+}`;
+
+  try {
+    const resp = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 500,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content = resp.content[0];
+    if (content.type !== "text") {
+      return { oldcarts: currentOLDCARTS, symptoms: [] };
+    }
+
+    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { oldcarts: currentOLDCARTS, symptoms: [] };
+    }
+
+    const extraction = JSON.parse(jsonMatch[0]);
+    const now = new Date().toISOString();
+
+    // Merge updates into current OLDCARTS
+    const updated = { ...currentOLDCARTS };
+
+    for (const [field, update] of Object.entries(extraction.updates || {})) {
+      const fieldKey = field as keyof typeof updated;
+      if (fieldKey in updated && update && typeof update === 'object') {
+        const updateObj = update as { value: unknown; complete: boolean };
+        if (updateObj.value !== null && updateObj.value !== undefined) {
+          if (fieldKey === 'severity') {
+            updated.severity = {
+              value: typeof updateObj.value === 'number' ? updateObj.value : null,
+              complete: updateObj.complete,
+              collectedAt: now,
+            };
+          } else if (fieldKey !== 'chiefComplaint' && fieldKey !== 'completenessPercentage' && fieldKey !== 'associatedSymptoms') {
+            (updated[fieldKey] as OLDCARTSField) = {
+              value: String(updateObj.value),
+              complete: updateObj.complete,
+              collectedAt: now,
+            };
+          }
+        }
+      }
+    }
+
+    // Add new associated symptoms
+    if (extraction.newSymptoms?.length > 0) {
+      const existingSymptoms = new Set(updated.associatedSymptoms.map((s: string) => s.toLowerCase()));
+      for (const symptom of extraction.newSymptoms) {
+        if (!existingSymptoms.has(symptom.toLowerCase())) {
+          updated.associatedSymptoms.push(symptom);
+        }
+      }
+    }
+
+    // Update chief complaint if clearer
+    if (extraction.chiefComplaintUpdate && !updated.chiefComplaint) {
+      updated.chiefComplaint = extraction.chiefComplaintUpdate;
+    }
+
+    // Recalculate completeness
+    updated.completenessPercentage = calculateOLDCARTSProgress(updated);
+
+    return { oldcarts: updated, symptoms: extraction.newSymptoms || [] };
+  } catch (error) {
+    console.error("[HELIOS] Extraction error:", error);
+    return { oldcarts: currentOLDCARTS, symptoms: [] };
   }
 }
 
-function calculateHistoryCompleteness(messages: Array<{role: string, content: string}>): number {
-  const allText = messages.map(m => m.content).join(' ').toLowerCase();
+// ============================================
+// ASSESSMENT TRIGGERS
+// ============================================
 
-  // OLDCARTS components
-  const components = {
-    onset: /when did|how long|started|began|onset|cuándo|depuis quand/.test(allText),
-    location: /where|location|ubicación|où/.test(allText),
-    duration: /how long|duration|duración|durée/.test(allText),
-    character: /describe|feels like|type of|describe|tipo de|décrivez/.test(allText),
-    aggravating: /worse|aggravate|trigger|peor|empeora|aggrave/.test(allText),
-    relieving: /better|relieve|help|mejora|alivia|soulage/.test(allText),
-    timing: /constant|intermittent|time of day|constante|intermitente/.test(allText),
-    severity: /scale|severe|pain level|escala|severidad|échelle/.test(allText),
-    medications: /medication|medicine|taking|medicamento|médicament/.test(allText),
-    allergies: /allerg|alergia|allergie/.test(allText),
-  };
-
-  const completed = Object.values(components).filter(Boolean).length;
-  return completed / Object.keys(components).length;
+interface AssessmentTriggerResult {
+  shouldAssess: boolean;
+  reason?: string;
 }
 
-function calculateTriageLevel(
-  symptoms: string[],
-  severity: string | undefined,
-  age: number | undefined,
-  redFlags: RedFlag[]
-): TriageLevel {
-  // ESI (Emergency Severity Index) calculation
+function checkAssessmentTriggers(
+  oldcarts: OLDCARTSData,
+  messageCount: number,
+  hasHighRiskSymptoms: boolean,
+  userRequestedAssessment: boolean
+): AssessmentTriggerResult {
+  // User explicitly requested assessment
+  if (userRequestedAssessment) {
+    return { shouldAssess: true, reason: 'user_requested' };
+  }
 
-  // Level 1: Life-threatening
-  if (redFlags.some(f => f.escalation_level === 'emergency')) return 1;
+  // OLDCARTS completeness >= 50% (lowered from 70% for testing)
+  if (oldcarts.completenessPercentage >= 50) {
+    console.log("[HELIOS] OLDCARTS trigger: completeness =", oldcarts.completenessPercentage);
+    return { shouldAssess: true, reason: 'oldcarts_complete' };
+  }
 
-  // Level 2: High risk / severe
-  const highRiskKeywords = ['severe', 'worst', 'sudden', 'acute', 'severo', 'peor', 'sévère'];
-  const hasHighRisk = symptoms.some(s => highRiskKeywords.some(k => s.toLowerCase().includes(k)));
-  if (hasHighRisk || severity === 'severe') return 2;
+  // Essential fields complete (onset, location, severity)
+  const essentialsComplete = oldcarts.onset.complete &&
+                            oldcarts.location.complete &&
+                            oldcarts.severity.complete;
+  if (essentialsComplete && messageCount >= 4) {
+    return { shouldAssess: true, reason: 'essentials_complete' };
+  }
 
-  // Level 3: Moderate / needs resources
-  const moderateKeywords = ['moderate', 'several days', 'getting worse', 'moderado', 'empeorando'];
-  const hasModerate = symptoms.some(s => moderateKeywords.some(k => s.toLowerCase().includes(k)));
-  if (hasModerate || (age && (age < 2 || age > 70))) return 3;
+  // High-risk symptoms detected
+  if (hasHighRiskSymptoms && messageCount >= 3) {
+    return { shouldAssess: true, reason: 'high_risk_symptoms' };
+  }
 
-  // Level 4: Less urgent
-  const mildKeywords = ['mild', 'minor', 'slight', 'leve', 'léger'];
-  const hasMild = symptoms.some(s => mildKeywords.some(k => s.toLowerCase().includes(k)));
-  if (hasMild) return 4;
+  // Extended conversation (8+ exchanges)
+  if (messageCount >= 8) {
+    return { shouldAssess: true, reason: 'conversation_length' };
+  }
 
-  // Level 5: Non-urgent
-  return 5;
+  return { shouldAssess: false };
+}
+
+function detectUserAssessmentRequest(message: string): boolean {
+  const assessmentPhrases = [
+    'what do you think', 'your assessment', 'what could it be',
+    'diagnose', 'diagnosis', 'what\'s wrong', 'should i be worried',
+    'is it serious', 'what should i do', 'need to see a doctor',
+    'please assess', 'assess my', 'my assessment', 'give me an assessment',
+    'qué crees', 'tu evaluación', 'qué puede ser',
+    'qu\'en pensez', 'votre évaluation', 'qu\'est-ce que c\'est',
+  ];
+  const lowerMessage = message.toLowerCase();
+  const result = assessmentPhrases.some(phrase => lowerMessage.includes(phrase));
+  console.log("[HELIOS] User assessment request detection:", result, "message sample:", lowerMessage.substring(0, 100));
+  return result;
+}
+
+function detectHighRiskSymptoms(symptoms: string[]): boolean {
+  const highRiskKeywords = [
+    'severe', 'worst', 'sudden', 'acute', 'can\'t', 'blood',
+    'severo', 'peor', 'repentino', 'sangre',
+    'sévère', 'pire', 'soudain', 'sang',
+  ];
+  return symptoms.some(s =>
+    highRiskKeywords.some(k => s.toLowerCase().includes(k))
+  );
 }
 
 // ============================================
-// SOAP NOTE GENERATION
+// GRAND ROUNDS INTEGRATION
+// ============================================
+
+async function runGrandRoundsAssessment(
+  sessionId: string,
+  oldcarts: OLDCARTSData,
+  patientDemographics: { age?: number; gender?: string },
+  symptoms: string[]
+): Promise<{ consensus: ConsensusResult; orchestration: OrchestrationResponse } | null> {
+  if (!GRAND_ROUNDS_API_URL) {
+    console.log("[HELIOS] Grand Rounds API not configured, skipping");
+    return null;
+  }
+
+  try {
+    // Call the orchestrator edge function (internal call with service role)
+    console.log("[HELIOS] Calling Grand Rounds orchestrator at:", GRAND_ROUNDS_API_URL);
+    const response = await fetch(GRAND_ROUNDS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'X-API-Key': GRAND_ROUNDS_API_KEY,
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        chief_complaint: oldcarts.chiefComplaint,
+        oldcarts_data: {
+          onset: oldcarts.onset.value,
+          location: oldcarts.location.value,
+          duration: oldcarts.duration.value,
+          character: oldcarts.character.value,
+          aggravating: oldcarts.aggravating.value,
+          relieving: oldcarts.relieving.value,
+          timing: oldcarts.timing.value,
+          severity: oldcarts.severity.value,
+        },
+        symptoms: symptoms.length > 0 ? symptoms : oldcarts.associatedSymptoms,
+        patient_demographics: {
+          age: patientDemographics.age,
+          sex: patientDemographics.gender,
+        },
+        config: {
+          max_rounds: 3,
+          consensus_threshold: 0.7,
+          min_specialists: 3,
+          max_specialists: 5,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[HELIOS] Orchestrator API error:", response.status, errorText);
+      // Return error details for debugging
+      return { error: `HTTP ${response.status}: ${errorText.substring(0, 200)}` } as any;
+    }
+
+    const orchestration: OrchestrationResponse = await response.json();
+
+    // Transform OrchestrationResponse to ConsensusResult for backward compatibility
+    const consensus: ConsensusResult = {
+      kendallW: orchestration.consensus.kendall_w,
+      consensusReached: orchestration.consensus.consensus_reached,
+      roundsRequired: orchestration.consensus.rounds_required,
+      participatingAgents: orchestration.consensus.participating_agents,
+      primaryDiagnosis: {
+        diagnosis: orchestration.consensus.primary_diagnosis.diagnosis,
+        icd10: {
+          code: orchestration.consensus.primary_diagnosis.icd10_code,
+          name: orchestration.consensus.primary_diagnosis.icd10_name,
+        },
+        confidence: orchestration.consensus.primary_diagnosis.confidence,
+        reasoning: orchestration.consensus.primary_diagnosis.reasoning,
+      },
+      differentialDiagnosis: orchestration.consensus.differential_diagnoses.map(d => ({
+        rank: d.rank,
+        diagnosis: d.diagnosis,
+        icd10: { code: d.icd10_code, name: d.icd10_name },
+        confidence: d.confidence,
+        reasoning: d.reasoning,
+      })),
+      planOfAction: {
+        labTests: orchestration.plan.lab_tests,
+        imaging: orchestration.plan.imaging,
+        referrals: orchestration.plan.referrals,
+        medications: orchestration.plan.medications,
+        patientEducation: orchestration.plan.patient_education,
+        followUp: orchestration.plan.follow_up,
+        redFlagWarnings: orchestration.plan.red_flag_warnings,
+      },
+      finalEsiLevel: orchestration.triage.esi_level,
+      humanReviewRequired: orchestration.triage.human_review_required,
+      humanReviewReason: orchestration.triage.human_review_reason,
+      disposition: orchestration.triage.disposition,
+    };
+
+    return { consensus, orchestration };
+  } catch (error) {
+    console.error("[HELIOS] Orchestrator API call failed:", error);
+    return null;
+  }
+}
+
+function buildCaseSummary(
+  oldcarts: OLDCARTSData,
+  demographics: { age?: number; gender?: string }
+): string {
+  const parts: string[] = [];
+
+  if (demographics.age || demographics.gender) {
+    parts.push(`Patient: ${demographics.age ? `${demographics.age} year old` : ''} ${demographics.gender || ''}`.trim());
+  }
+
+  parts.push(`Chief Complaint: ${oldcarts.chiefComplaint}`);
+
+  if (oldcarts.onset.value) parts.push(`Onset: ${oldcarts.onset.value}`);
+  if (oldcarts.location.value) parts.push(`Location: ${oldcarts.location.value}`);
+  if (oldcarts.duration.value) parts.push(`Duration: ${oldcarts.duration.value}`);
+  if (oldcarts.character.value) parts.push(`Character: ${oldcarts.character.value}`);
+  if (oldcarts.severity.value !== null) parts.push(`Severity: ${oldcarts.severity.value}/10`);
+  if (oldcarts.aggravating.value) parts.push(`Aggravating factors: ${oldcarts.aggravating.value}`);
+  if (oldcarts.relieving.value) parts.push(`Relieving factors: ${oldcarts.relieving.value}`);
+  if (oldcarts.timing.value) parts.push(`Timing: ${oldcarts.timing.value}`);
+
+  if (oldcarts.associatedSymptoms.length > 0) {
+    parts.push(`Associated symptoms: ${oldcarts.associatedSymptoms.join(', ')}`);
+  }
+
+  return parts.join('\n');
+}
+
+// ============================================
+// FOLLOW-UP QUESTION GENERATION
+// ============================================
+
+async function generateFollowUpQuestion(
+  anthropic: Anthropic,
+  oldcarts: OLDCARTSData,
+  messages: Array<{ role: string; content: string }>,
+  language: Language,
+  specialty: string
+): Promise<string> {
+  // Determine which OLDCARTS fields need more info
+  const missingFields: string[] = [];
+  if (!oldcarts.onset.complete) missingFields.push('onset (when did it start?)');
+  if (!oldcarts.location.complete) missingFields.push('location (where exactly?)');
+  if (!oldcarts.severity.complete) missingFields.push('severity (pain level 0-10)');
+  if (!oldcarts.character.complete) missingFields.push('character (what does it feel like?)');
+  if (!oldcarts.duration.complete) missingFields.push('duration (how long does it last?)');
+  if (!oldcarts.aggravating.complete) missingFields.push('aggravating factors (what makes it worse?)');
+  if (!oldcarts.relieving.complete) missingFields.push('relieving factors (what makes it better?)');
+
+  const languageInstructions: Record<Language, string> = {
+    en: "Respond in English.",
+    es: "Responde en español.",
+    fr: "Répondez en français.",
+  };
+
+  const systemPrompt = `You are HELIOS, an AI health assistant conducting a symptom intake. Be warm, empathetic, and professional.
+
+Current OLDCARTS data collected:
+- Chief Complaint: ${oldcarts.chiefComplaint}
+- Onset: ${oldcarts.onset.value || 'Not collected'}
+- Location: ${oldcarts.location.value || 'Not collected'}
+- Duration: ${oldcarts.duration.value || 'Not collected'}
+- Character: ${oldcarts.character.value || 'Not collected'}
+- Severity: ${oldcarts.severity.value !== null ? `${oldcarts.severity.value}/10` : 'Not collected'}
+- Aggravating: ${oldcarts.aggravating.value || 'Not collected'}
+- Relieving: ${oldcarts.relieving.value || 'Not collected'}
+- Associated symptoms: ${oldcarts.associatedSymptoms.join(', ') || 'None noted'}
+
+Completeness: ${oldcarts.completenessPercentage.toFixed(0)}%
+
+Missing information needed: ${missingFields.join(', ') || 'All essential info collected'}
+
+GUIDELINES:
+- Ask about ONE or TWO missing pieces of information at a time
+- Prioritize essential fields: onset, location, severity
+- Be conversational, not interrogative
+- Acknowledge what the patient has shared
+- ${languageInstructions[language]}
+
+Specialty focus: ${specialty}`;
+
+  const apiMessages = messages
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-10)
+    .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
+  try {
+    const resp = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 300,
+      system: systemPrompt,
+      messages: apiMessages,
+    });
+
+    return resp.content[0].type === "text" ? resp.content[0].text : "Could you tell me more about your symptoms?";
+  } catch (error) {
+    console.error("[HELIOS] Follow-up generation error:", error);
+    return language === 'es' ? "¿Puedes contarme más sobre tus síntomas?" :
+           language === 'fr' ? "Pouvez-vous m'en dire plus sur vos symptômes?" :
+           "Could you tell me more about your symptoms?";
+  }
+}
+
+// ============================================
+// ASSESSMENT MESSAGE FORMATTING
+// ============================================
+
+function formatAssessmentMessage(
+  consensus: ConsensusResult,
+  language: Language,
+  orchestration?: OrchestrationResponse
+): string {
+  const templates: Record<Language, { header: string; diagnosis: string; differentials: string; plan: string; followUp: string; warning: string; confidence: string; consensus: string }> = {
+    en: {
+      header: "Based on the information you've provided, here's my assessment:",
+      diagnosis: "Most likely explanation",
+      differentials: "Other possibilities to consider",
+      plan: "Recommended next steps",
+      followUp: "When to seek care",
+      warning: "Warning signs to watch for",
+      confidence: "Confidence",
+      consensus: "Multi-specialist consensus",
+    },
+    es: {
+      header: "Basándome en la información que proporcionaste, aquí está mi evaluación:",
+      diagnosis: "Explicación más probable",
+      differentials: "Otras posibilidades a considerar",
+      plan: "Próximos pasos recomendados",
+      followUp: "Cuándo buscar atención",
+      warning: "Señales de advertencia",
+      confidence: "Confianza",
+      consensus: "Consenso multi-especialista",
+    },
+    fr: {
+      header: "Sur la base des informations fournies, voici mon évaluation:",
+      diagnosis: "Explication la plus probable",
+      differentials: "Autres possibilités à considérer",
+      plan: "Prochaines étapes recommandées",
+      followUp: "Quand consulter",
+      warning: "Signes d'alerte",
+      confidence: "Confiance",
+      consensus: "Consensus multi-spécialiste",
+    },
+  };
+
+  const t = templates[language] || templates.en;
+  const lines: string[] = [t.header, ""];
+
+  // Show consensus info if available
+  if (orchestration && orchestration.consensus.consensus_reached) {
+    const kendallPercent = Math.round(orchestration.consensus.kendall_w * 100);
+    lines.push(`_${t.consensus}: ${kendallPercent}% agreement (${orchestration.consensus.participating_agents.length} specialists)_`);
+    lines.push("");
+  }
+
+  // Primary diagnosis with confidence
+  if (consensus.primaryDiagnosis) {
+    const confidencePercent = Math.round(consensus.primaryDiagnosis.confidence * 100);
+    lines.push(`**${t.diagnosis}:** ${consensus.primaryDiagnosis.diagnosis}`);
+    lines.push(`_${t.confidence}: ${confidencePercent}%_`);
+    lines.push("");
+    lines.push(consensus.primaryDiagnosis.reasoning);
+    lines.push("");
+  }
+
+  // Differential diagnoses
+  if (consensus.differentialDiagnosis?.length > 0) {
+    lines.push(`**${t.differentials}:**`);
+    for (const diff of consensus.differentialDiagnosis.slice(0, 3)) {
+      const confPercent = Math.round(diff.confidence * 100);
+      lines.push(`- ${diff.diagnosis} (${confPercent}%)`);
+    }
+    lines.push("");
+  }
+
+  // Plan of action
+  if (consensus.planOfAction) {
+    lines.push(`**${t.plan}:**`);
+    if (consensus.planOfAction.labTests?.length > 0) {
+      lines.push(`- Tests: ${consensus.planOfAction.labTests.join(', ')}`);
+    }
+    if (consensus.planOfAction.imaging?.length > 0) {
+      lines.push(`- Imaging: ${consensus.planOfAction.imaging.join(', ')}`);
+    }
+    if (consensus.planOfAction.referrals?.length > 0) {
+      lines.push(`- Referrals: ${consensus.planOfAction.referrals.join(', ')}`);
+    }
+    if (consensus.planOfAction.medications?.length > 0) {
+      lines.push(`- Medications: ${consensus.planOfAction.medications.join(', ')}`);
+    }
+    lines.push("");
+  }
+
+  // Follow-up
+  if (consensus.planOfAction?.followUp) {
+    lines.push(`**${t.followUp}:** ${consensus.planOfAction.followUp}`);
+    lines.push("");
+  }
+
+  // Red flag warnings
+  if (consensus.planOfAction?.redFlagWarnings?.length > 0) {
+    lines.push(`**${t.warning}:**`);
+    for (const warning of consensus.planOfAction.redFlagWarnings) {
+      lines.push(`- ⚠️ ${warning}`);
+    }
+    lines.push("");
+  }
+
+  // Safety critical finding
+  if (orchestration?.safety.critical_finding && orchestration.safety.immediate_action) {
+    lines.push(`**🚨 IMPORTANT:** ${orchestration.safety.immediate_action}`);
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================
+// SOAP NOTE GENERATION (FALLBACK)
 // ============================================
 
 async function generateSOAPNote(
   anthropic: Anthropic,
-  messages: Array<{role: string, content: string}>,
-  specialty: string,
+  messages: Array<{ role: string; content: string }>,
+  oldcarts: OLDCARTSData,
   patientInfo: Record<string, unknown>,
-  language: string
+  language: Language
 ): Promise<string> {
   const conversationText = messages
     .filter(m => m.role === 'user' || m.role === 'assistant')
     .map(m => `${m.role === 'user' ? 'Patient' : 'HELIOS'}: ${m.content}`)
     .join('\n');
 
-  const soapPrompt = `Based on this health consultation, generate a brief SOAP note.
+  const prompt = `Generate a SOAP note from this health consultation.
+
+OLDCARTS Data:
+${JSON.stringify(oldcarts, null, 2)}
+
+Patient Info: ${JSON.stringify(patientInfo)}
 
 Conversation:
 ${conversationText}
 
-Patient Info: ${JSON.stringify(patientInfo)}
-Specialty: ${specialty}
+Generate a SOAP note with:
+- Subjective: Chief complaint, HPI using OLDCARTS
+- Objective: Self-reported findings
+- Assessment: Summary and ESI level recommendation
+- Plan: Recommendations
 
-Generate a SOAP note with these sections:
-- Subjective: Chief complaint and history from patient
-- Objective: Any reported vitals, observations
-- Assessment: Summary of findings and ESI level if applicable
-- Plan: Recommendations given
-
-Keep it concise and professional. ${language === 'es' ? 'Write in Spanish.' : language === 'fr' ? 'Write in French.' : 'Write in English.'}`;
+Keep it concise. ${language === 'es' ? 'Write in Spanish.' : language === 'fr' ? 'Write in French.' : ''}`;
 
   try {
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      messages: [{ role: "user", content: soapPrompt }],
+      messages: [{ role: "user", content: prompt }],
     });
     return resp.content[0].type === "text" ? resp.content[0].text : "";
   } catch {
@@ -445,7 +999,7 @@ Keep it concise and professional. ${language === 'es' ? 'Write in Spanish.' : la
 
 const MAX_CONTEXT_MESSAGES = 20;
 
-function manageContextWindow(messages: Array<{role: string, content: string}>): Array<{role: string, content: string}> {
+function manageContextWindow(messages: Array<{ role: string; content: string }>): Array<{ role: string; content: string }> {
   if (messages.length <= MAX_CONTEXT_MESSAGES) return messages;
 
   const systemMessages = messages.filter(m => m.role === 'system');
@@ -456,52 +1010,290 @@ function manageContextWindow(messages: Array<{role: string, content: string}>): 
   const keepLast = MAX_CONTEXT_MESSAGES - keepFirst - systemMessages.length - 1;
   const lastMessages = nonSystemMessages.slice(-keepLast);
 
-  const middleMessages = nonSystemMessages.slice(keepFirst, -keepLast);
-  if (middleMessages.length > 0) {
-    const summaryContent = middleMessages
-      .filter(m => m.role === 'user')
-      .map(m => m.content)
-      .join('; ')
-      .substring(0, 500);
-
-    return [
-      ...systemMessages,
-      ...firstMessages,
-      { role: 'system', content: `[Earlier: ${summaryContent}...]` },
-      ...lastMessages,
-    ];
-  }
-
   return [...systemMessages, ...firstMessages, ...lastMessages];
 }
 
 // ============================================
-// OLDCARTS EXTRACTION HELPER
+// TRIAGE LEVEL CALCULATION
 // ============================================
 
-function extractFromHistory(messages: Array<{role: string, content: string}>, field: string): string | null {
-  const allText = messages.map(m => m.content).join(' ').toLowerCase();
-  
-  const patterns: Record<string, RegExp[]> = {
-    onset: [/started (\d+ \w+ ago)/i, /began (\d+ \w+ ago)/i, /since (yesterday|last \w+)/i],
-    location: [/in my (\w+)/i, /(\w+) hurts/i, /pain in (\w+)/i],
-    duration: [/for (\d+ \w+)/i, /(\d+ \w+) now/i, /lasts? (\d+ \w+)/i],
-    character: [/(sharp|dull|aching|burning|throbbing|stabbing)/i],
-    aggravating: [/worse when (\w+)/i, /(\w+) makes it worse/i],
-    relieving: [/better when (\w+)/i, /(\w+) helps/i, /relieved by (\w+)/i],
-    timing: [/(constant|intermittent|comes and goes)/i, /at (night|morning|evening)/i],
-    severity: [/(\d+) out of 10/i, /(\d+)\/10/i, /(mild|moderate|severe)/i],
+function calculateTriageLevel(
+  symptoms: string[],
+  severity: number | null,
+  age: number | undefined,
+  redFlags: RedFlag[]
+): TriageLevel {
+  // Level 1: Life-threatening
+  if (redFlags.some(f => f.escalation_level === 'emergency')) return 1;
+
+  // Level 2: High risk / severe
+  const highRiskKeywords = ['severe', 'worst', 'sudden', 'acute'];
+  const hasHighRisk = symptoms.some(s => highRiskKeywords.some(k => s.toLowerCase().includes(k)));
+  if (hasHighRisk || (severity !== null && severity >= 8)) return 2;
+
+  // Level 3: Moderate / needs resources
+  if ((severity !== null && severity >= 5) || (age && (age < 2 || age > 70))) return 3;
+
+  // Level 4: Less urgent
+  if (severity !== null && severity >= 3) return 4;
+
+  // Level 5: Non-urgent
+  return 5;
+}
+
+// ============================================
+// MAIN REQUEST HANDLER
+// ============================================
+
+interface HandleMessageResult {
+  message: string;
+  assessmentReady: boolean;
+  consensus?: ConsensusResult;
+  orchestration?: OrchestrationResponse;
+  soapNote?: string;
+  recommendDoctor: boolean;
+  oldcartsProgress: number;
+  triageLevel?: TriageLevel;
+  phase: Phase;
+  redFlags: RedFlag[];
+}
+
+async function handleMessage(
+  supabase: SupabaseClient,
+  anthropic: Anthropic,
+  sessionId: string,
+  userMessage: string,
+  language: Language,
+  specialty: string
+): Promise<HandleMessageResult> {
+  // 1. Load session state
+  const { data: session, error: sessErr } = await supabase
+    .from("helios_sessions")
+    .select("*")
+    .eq("session_id", sessionId)
+    .single();
+
+  if (sessErr || !session) {
+    throw new Error("Session not found");
+  }
+
+  const history = session.messages || [];
+  const patientInfo = session.patient_info || {};
+  let currentPhase = (session.current_phase || "intake") as Phase;
+  let oldcarts: OLDCARTSData = session.oldcarts_data || createEmptyOLDCARTS(session.chief_complaint || "");
+  const existingRedFlags = session.red_flags || [];
+
+  // Build patient state
+  const patientState: PatientState = {
+    age: patientInfo.age,
+    ageUnit: patientInfo.age_unit || 'years',
+    sex: patientInfo.sex,
+    pregnant: patientInfo.pregnant,
+    symptoms: oldcarts.associatedSymptoms,
+    riskFactors: patientInfo.risk_factors || [],
+    medications: patientInfo.medications || [],
+    messages: history.map((m: { content: string }) => m.content),
   };
 
-  const fieldPatterns = patterns[field] || [];
-  for (const pattern of fieldPatterns) {
-    const match = allText.match(pattern);
-    if (match) {
-      return match[1] || match[0];
+  // 2. Emergency check (deterministic, fast)
+  const safetyResult = isEmergency(userMessage, patientState);
+  if (safetyResult.requiresEscalation) {
+    await supabase.from("helios_sessions").update({
+      current_phase: "escalated",
+      red_flags: [...existingRedFlags, ...safetyResult.redFlags],
+      updated_at: new Date().toISOString(),
+    }).eq("session_id", sessionId);
+
+    return {
+      message: getEmergencyResponse(language, safetyResult.escalationReason || ""),
+      assessmentReady: false,
+      recommendDoctor: false,
+      oldcartsProgress: oldcarts.completenessPercentage,
+      phase: "escalated",
+      redFlags: safetyResult.redFlags,
+    };
+  }
+
+  // 3. Extract symptoms and update OLDCARTS
+  const extraction = await extractSymptomsAndUpdateOLDCARTS(
+    anthropic,
+    userMessage,
+    oldcarts,
+    language
+  );
+  oldcarts = extraction.oldcarts;
+
+  // Set chief complaint from first user message if not set
+  if (!oldcarts.chiefComplaint && history.length === 0) {
+    oldcarts.chiefComplaint = userMessage.substring(0, 200);
+  }
+
+  // 4. Check assessment triggers
+  const userRequestedAssessment = detectUserAssessmentRequest(userMessage);
+  const hasHighRisk = detectHighRiskSymptoms(extraction.symptoms);
+  const messageCount = history.filter((m: { role: string }) => m.role === 'user').length + 1;
+
+  const assessmentTrigger = checkAssessmentTriggers(
+    oldcarts,
+    messageCount,
+    hasHighRisk,
+    userRequestedAssessment
+  );
+
+  // Build new messages
+  const now = new Date().toISOString();
+  let responseMessage: string;
+  let consensus: ConsensusResult | null = null;
+  let orchestration: OrchestrationResponse | null = null;
+  let soapNote: string | undefined;
+  let assessmentReady = false;
+  let newPhase = currentPhase;
+
+  console.log("[HELIOS] Assessment check:", {
+    shouldAssess: assessmentTrigger.shouldAssess,
+    reason: assessmentTrigger.reason,
+    hasConsensusResult: !!session.consensus_result,
+    oldcartsProgress: oldcarts.completenessPercentage,
+    messageCount,
+    userRequestedAssessment,
+  });
+
+  // Check if assessment should be triggered (client will call orchestrator directly)
+  const shouldTriggerOrchestrator = assessmentTrigger.shouldAssess && !session.consensus_result;
+
+  if (shouldTriggerOrchestrator) {
+    // Signal to client to call orchestrator, but still provide a response
+    responseMessage = await generateFollowUpQuestion(
+      anthropic,
+      oldcarts,
+      [...history, { role: 'user', content: userMessage }],
+      language,
+      specialty
+    );
+    newPhase = 'triage';
+    assessmentReady = true; // Signal that orchestrator should be called
+  } else {
+    // 5b. Continue intake conversation
+    responseMessage = await generateFollowUpQuestion(
+      anthropic,
+      oldcarts,
+      [...history, { role: 'user', content: userMessage }],
+      language,
+      specialty
+    );
+
+    // Determine phase transition
+    if (currentPhase === 'intake' && oldcarts.chiefComplaint) {
+      newPhase = 'chief_complaint';
+    } else if (currentPhase === 'chief_complaint' && messageCount >= 2) {
+      newPhase = 'history_taking';
+    } else if (currentPhase === 'history_taking' && oldcarts.completenessPercentage >= 70) {
+      newPhase = 'triage';
     }
   }
-  
-  return null;
+
+  // Calculate triage level
+  const triageLevel = calculateTriageLevel(
+    oldcarts.associatedSymptoms,
+    oldcarts.severity.value,
+    patientInfo.age,
+    [...existingRedFlags, ...safetyResult.redFlags]
+  );
+
+  // Update session
+  const newMessages = [
+    ...history,
+    { role: "user", content: userMessage, message_id: crypto.randomUUID(), timestamp: now },
+    { role: "assistant", content: responseMessage, message_id: crypto.randomUUID(), timestamp: now },
+  ];
+
+  const updateData: Record<string, unknown> = {
+    messages: newMessages,
+    current_phase: newPhase,
+    oldcarts_data: oldcarts,
+    triage_level: triageLevel,
+    updated_at: now,
+    red_flags: [...existingRedFlags, ...safetyResult.redFlags],
+  };
+
+  if (!session.chief_complaint && oldcarts.chiefComplaint) {
+    updateData.chief_complaint = oldcarts.chiefComplaint;
+  }
+
+  if (consensus) {
+    updateData.consensus_result = consensus;
+  }
+
+  if (soapNote) {
+    updateData.soap_note = soapNote;
+  }
+
+  // Store full orchestration result with dissenting opinions and safety data
+  if (orchestration) {
+    updateData.orchestration_result = {
+      consensus: orchestration.consensus,
+      triage: orchestration.triage,
+      plan: orchestration.plan,
+      safety: orchestration.safety,
+      processing_time_ms: orchestration.processing_time_ms,
+    };
+
+    // Store dissenting opinions separately for easy access
+    if (orchestration.consensus.dissenting_opinions?.length) {
+      updateData.dissenting_opinions = orchestration.consensus.dissenting_opinions;
+    }
+
+    // Update triage level from orchestrator if available
+    if (orchestration.triage.esi_level) {
+      updateData.triage_level = orchestration.triage.esi_level;
+    }
+
+    // Update disposition from orchestrator
+    if (orchestration.triage.disposition) {
+      updateData.disposition = orchestration.triage.disposition;
+    }
+  }
+
+  await supabase.from("helios_sessions").update(updateData).eq("session_id", sessionId);
+
+  // Build orchestrator payload for client-side call
+  const orchestratorPayload = shouldTriggerOrchestrator ? {
+    session_id: sessionId,
+    chief_complaint: oldcarts.chiefComplaint,
+    oldcarts_data: {
+      onset: oldcarts.onset.value,
+      location: oldcarts.location.value,
+      duration: oldcarts.duration.value,
+      character: oldcarts.character.value,
+      aggravating: oldcarts.aggravating.value,
+      relieving: oldcarts.relieving.value,
+      timing: oldcarts.timing.value,
+      severity: oldcarts.severity.value,
+    },
+    symptoms: oldcarts.associatedSymptoms,
+    patient_demographics: {
+      age: patientInfo.age,
+      sex: patientInfo.sex,
+      medical_history: patientInfo.medicalHistory,
+      medications: patientInfo.medications,
+      allergies: patientInfo.allergies,
+    },
+  } : undefined;
+
+  return {
+    message: responseMessage,
+    assessmentReady,
+    triggerOrchestrator: shouldTriggerOrchestrator,
+    orchestratorPayload,
+    consensus: consensus || undefined,
+    orchestration: orchestration || undefined,
+    soapNote,
+    recommendDoctor: triageLevel <= 3,
+    oldcartsProgress: oldcarts.completenessPercentage,
+    triageLevel: orchestration?.triage.esi_level || triageLevel,
+    phase: newPhase,
+    redFlags: safetyResult.redFlags,
+  };
 }
 
 // ============================================
@@ -520,8 +1312,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const anthropic = new Anthropic({ apiKey: anthropicKey });
-    
-    // Initialize dev project client for dual-write
     const devSupabase = getDevSupabase();
 
     const body = await req.json();
@@ -530,47 +1320,16 @@ serve(async (req) => {
     const message = body.message;
     const patient_info = body.patient_info || {};
     const specialty = body.specialty || "primary-care";
-    const language = body.language || "en";
-    const user_id = body.user_id; // NEW: Accept user_id for persistence
-
-    // Language instructions
-    const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
-      "en": "Respond in English.",
-      "es": "Responde en español.",
-      "fr": "Répondez en français.",
-    };
-
-    // Base system prompt
-    const BASE_SYSTEM_PROMPT = `You are HELIOS, an AI health assistant. You gather information about symptoms to connect patients with the right care. You do NOT diagnose - you gather information and recommend care pathways.
-
-GUIDELINES:
-- Be warm, empathetic, and professional
-- Ask one or two questions at a time
-- Use the OLDCARTS method: Onset, Location, Duration, Character, Aggravating factors, Relieving factors, Timing, Severity
-- Always recommend professional medical evaluation for concerning symptoms
-- Never provide specific diagnoses or treatment recommendations
-- If emergency symptoms are mentioned, IMMEDIATELY recommend calling 911`;
-
-    // Specialty-specific guidance
-    const SPECIALTY_PROMPTS: Record<string, string> = {
-      "primary-care": "Focus on overall health, lifestyle factors, preventive care.",
-      "cardiology": "Be vigilant for cardiac symptoms. Ask about chest pain using PQRST. Screen for cardiac risk factors.",
-      "dermatology": "Focus on skin appearance, location, duration, itching/pain. Recommend photos for dermatologist.",
-      "mental-health": "Be extra empathetic and non-judgmental. Screen for depression, anxiety. ALWAYS provide crisis resources (988) if needed.",
-      "pediatrics": "Assume parent/caregiver is describing child's symptoms. Ask about child's age, feeding, activity level.",
-      "womens-health": "Focus on gynecological and reproductive health. Be sensitive and professional.",
-      "orthopedics": "Focus on pain location, onset, mechanism of injury, range of motion, swelling.",
-    };
+    const language = (body.language || "en") as Language;
+    const user_id = body.user_id;
 
     // ========================================
     // ACTION: CREATE SESSION
     // ========================================
     if (action === "create") {
       const sessionId = crypto.randomUUID();
-
-      // Store external_user_id in patient_info to avoid foreign key constraint
-      // (user may be from a different Supabase project)
       const patientInfoWithUser = { ...patient_info };
+
       if (user_id && typeof user_id === 'string' && user_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
         patientInfoWithUser.external_user_id = user_id;
       }
@@ -579,8 +1338,10 @@ GUIDELINES:
         session_id: sessionId,
         current_phase: "intake",
         specialty: specialty,
+        language: language,
         messages: [],
         patient_info: patientInfoWithUser,
+        oldcarts_data: createEmptyOLDCARTS(""),
         created_at: new Date().toISOString(),
       };
 
@@ -593,10 +1354,9 @@ GUIDELINES:
         });
       }
 
-      // DUAL-WRITE: Sync to dev project (best-effort)
       await syncToDevProject(devSupabase, "helios_sessions", "insert", sessionData);
 
-      const greetings: Record<string, Record<string, string>> = {
+      const greetings: Record<string, Record<Language, string>> = {
         "primary-care": { en: "Hello! I'm your HELIOS health assistant. What brings you in today?", es: "¡Hola! Soy tu asistente de salud HELIOS. ¿Qué te trae hoy?", fr: "Bonjour! Je suis votre assistant santé HELIOS. Qu'est-ce qui vous amène aujourd'hui?" },
         "cardiology": { en: "Hello! I'm HELIOS, here to help with heart-related concerns. What symptoms are you experiencing?", es: "¡Hola! Soy HELIOS, aquí para ayudar con preocupaciones cardíacas. ¿Qué síntomas experimentas?", fr: "Bonjour! Je suis HELIOS, ici pour les problèmes cardiaques. Quels symptômes ressentez-vous?" },
         "mental-health": { en: "Hello, I'm HELIOS. I'm here to listen and help. How are you feeling today?", es: "Hola, soy HELIOS. Estoy aquí para escuchar y ayudar. ¿Cómo te sientes hoy?", fr: "Bonjour, je suis HELIOS. Je suis là pour écouter et aider. Comment vous sentez-vous?" },
@@ -614,6 +1374,7 @@ GUIDELINES:
         phase: "intake",
         specialty: specialty,
         message: greeting,
+        oldcartsProgress: 0,
         ui_triggers: { showAssessment: false, showBooking: false, showEmergency: false },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -621,254 +1382,42 @@ GUIDELINES:
     }
 
     // ========================================
-    // ACTION: SEND MESSAGE
+    // ACTION: SEND MESSAGE (REFACTORED)
     // ========================================
     if (action === "message") {
-      if (!session_id || !message) {
-        return new Response(JSON.stringify({ success: false, error: "session_id and message required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      const result = await handleMessage(
+        supabase,
+        anthropic,
+        session_id,
+        message,
+        language,
+        specialty
+      );
 
-      // Try Lovable Cloud first, then fall back to dev project
-      let sess: Record<string, unknown> | null = null;
-      
-      const { data: cloudSess, error: sessErr } = await supabase
-        .from("helios_sessions")
-        .select("*")
-        .eq("session_id", session_id)
-        .single();
-
-      if (!sessErr && cloudSess) {
-        sess = cloudSess;
-      } else if (devSupabase) {
-        // Fallback to dev project
-        console.log("[HELIOS] Session not found in Cloud for message, checking dev project...");
-        const { data: devSess, error: devErr } = await devSupabase
-          .from("helios_sessions")
-          .select("*")
-          .eq("session_id", session_id)
-          .single();
-        
-        if (!devErr && devSess) {
-          console.log("[HELIOS] Found session in dev project, migrating to Cloud...");
-          sess = devSess;
-          
-          // Migrate session to Lovable Cloud for future access
-          try {
-            await supabase.from("helios_sessions").insert({
-              session_id: devSess.session_id,
-              user_id: devSess.user_id,
-              patient_info: devSess.patient_info || {},
-              specialty: devSess.specialty || 'primary-care',
-              language: devSess.language || 'en',
-              current_phase: devSess.current_phase || 'intake',
-              messages: devSess.messages || [],
-              red_flags: devSess.red_flags || [],
-              chief_complaint: devSess.chief_complaint,
-              triage_level: devSess.triage_level,
-              summary: devSess.summary,
-              disposition: devSess.disposition,
-              created_at: devSess.created_at,
-              updated_at: new Date().toISOString(),
-            });
-            console.log("[HELIOS] Migrated session to Cloud successfully");
-          } catch (migrateErr) {
-            console.error("[HELIOS] Migration to Cloud failed:", migrateErr);
-          }
-        }
-      }
-
-      if (!sess) {
-        return new Response(JSON.stringify({ success: false, error: "Session not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Type cast session fields
-      const history = (sess.messages || []) as Array<{role: string, content: string, message_id?: string, timestamp?: string}>;
-      const patientInfo = (sess.patient_info || {}) as Record<string, unknown>;
-      const sessionSpecialty = (sess.specialty || "primary-care") as string;
-      const sessionLanguage = (sess.language || language) as string;
-      let currentPhase = (sess.current_phase || "intake") as Phase;
-      const existingRedFlags = (sess.red_flags || []) as RedFlag[];
-
-      // Build patient state for safety check
-      const patientState: PatientState = {
-        age: patientInfo.age as number | undefined,
-        ageUnit: (patientInfo.age_unit as 'years' | 'months' | 'days') || 'years',
-        sex: patientInfo.sex as 'male' | 'female' | 'other' | undefined,
-        pregnant: patientInfo.pregnant as boolean | undefined,
-        symptoms: history.filter((m) => m.role === 'user').map((m) => m.content),
-        riskFactors: (patientInfo.risk_factors || []) as string[],
-        medications: (patientInfo.medications || []) as string[],
-        messages: [...history.map((m) => m.content), message],
-      };
-
-      // SAFETY CHECK (deterministic, runs first)
-      const safetyResult = checkSafetyRules(patientState, sessionLanguage);
-
-      if (safetyResult.requiresEscalation) {
-        // Update session with escalation - use only columns that exist
-        const escalationUpdate: Record<string, unknown> = {
-          current_phase: "escalated",
-          updated_at: new Date().toISOString(),
-        };
-        await supabase.from("helios_sessions").update(escalationUpdate).eq("session_id", session_id);
-
-        return new Response(JSON.stringify({
-          success: true,
-          session_id: session_id,
-          phase: "escalated",
-          message: safetyResult.escalationReason,
-          escalated: true,
-          red_flags: safetyResult.redFlags,
-          ui_triggers: { showAssessment: false, showBooking: false, showEmergency: true },
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Build message history
-      let contextMessages = history.map((m) => ({ role: m.role, content: m.content }));
-      contextMessages.push({ role: "user", content: message });
-      const managedMessages = manageContextWindow(contextMessages);
-
-      // Calculate history completeness and determine phase transition
-      const historyCompleteness = calculateHistoryCompleteness(contextMessages);
-      const hasChiefComplaint = contextMessages.filter((m) => m.role === 'user').length >= 1;
-      const messageCount = contextMessages.filter((m) => m.role === 'user').length;
-
-      const nextPhase = determinePhaseTransition(currentPhase, messageCount, hasChiefComplaint, historyCompleteness);
-
-      // Build system prompt with phase guidance
-      const specialtyGuidance = SPECIALTY_PROMPTS[sessionSpecialty] || SPECIALTY_PROMPTS["primary-care"];
-      const phaseGuidance = PHASE_PROMPTS[currentPhase]?.[sessionLanguage] || PHASE_PROMPTS[currentPhase]?.en || "";
-
-      let systemPrompt = `${BASE_SYSTEM_PROMPT}\n\n## SPECIALTY: ${sessionSpecialty.toUpperCase()}\n${specialtyGuidance}`;
-      systemPrompt += `\n\n## CURRENT PHASE: ${currentPhase}\n${phaseGuidance}`;
-      systemPrompt += "\n\n" + (LANGUAGE_INSTRUCTIONS[sessionLanguage] || LANGUAGE_INSTRUCTIONS["en"]);
-
-      if (patientInfo.age || patientInfo.sex) {
-        systemPrompt += ` Patient: ${patientInfo.age ? `Age ${patientInfo.age}` : ''} ${patientInfo.sex || ''}`.trim();
-      }
-
-      // Include any existing red flags for context
-      if (existingRedFlags.length > 0 || safetyResult.redFlags.length > 0) {
-        systemPrompt += `\n\nNOTE: Patient has flagged symptoms requiring attention.`;
-      }
-
-      // Filter to only user/assistant messages for API
-      const apiMessages = managedMessages
-        .filter(m => m.role === 'user' || m.role === 'assistant')
-        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-
-      // Call Claude
-      const resp = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: apiMessages,
-      });
-
-      const reply = resp.content[0].type === "text" ? resp.content[0].text : "";
-
-      // Calculate triage level if in triage phase
-      let triageLevel: TriageLevel | null = (sess.triage_level as TriageLevel | null) || null;
-      if (nextPhase === 'triage' || currentPhase === 'triage') {
-        triageLevel = calculateTriageLevel(
-          patientState.symptoms,
-          patientInfo.severity as string | undefined,
-          patientInfo.age as number | undefined,
-          [...existingRedFlags, ...safetyResult.redFlags]
-        );
-      }
-
-      // Generate SOAP note if entering documentation phase
-      let soapNote = sess.soap_note as string | null;
-      if (nextPhase === 'documentation' && !soapNote) {
-        soapNote = await generateSOAPNote(anthropic, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }], sessionSpecialty, patientInfo, sessionLanguage);
-      }
-
-      // Build new messages array
-      const now = new Date().toISOString();
-      const newMsgs = [
-        ...history,
-        { role: "user", content: message, message_id: crypto.randomUUID(), timestamp: now },
-        { role: "assistant", content: reply, message_id: crypto.randomUUID(), timestamp: now },
-      ];
-
-      // Extract chief complaint from first user message if not set
-      let chiefComplaint = sess.chief_complaint as string | null;
-      if (!chiefComplaint && history.filter((m) => m.role === 'user').length === 0) {
-        chiefComplaint = message.substring(0, 200);
-      }
-
-      // Update session - only use columns that exist in the table
-      const updateData: Record<string, unknown> = {
-        messages: newMsgs,
-        current_phase: nextPhase,
-        updated_at: now,
-      };
-
-      const { error: updateErr } = await supabase.from("helios_sessions").update(updateData).eq("session_id", session_id);
-      if (updateErr) {
-        console.error("Failed to update session:", updateErr);
-      }
-
-      // DUAL-WRITE: Sync message update to dev project (best-effort)
-      await syncToDevProject(devSupabase, "helios_sessions", "update", updateData, "session_id", session_id);
-
-      // Determine UI triggers based on phase
       const uiTriggers = {
-        showAssessment: nextPhase === 'plan' || nextPhase === 'documentation' || nextPhase === 'completed',
-        showBooking: (triageLevel && triageLevel >= 3) || nextPhase === 'plan' || nextPhase === 'documentation',
-        showEmergency: safetyResult.triggered || (triageLevel && triageLevel <= 2),
-        showSummary: nextPhase === 'completed',
-      };
-
-      // Determine if multi-agent assessment should run
-      // Trigger when: history_taking phase complete (70%+) OR entering triage phase
-      const shouldAssess = (
-        (currentPhase === 'history_taking' && historyCompleteness >= 0.7) ||
-        (nextPhase === 'triage' && currentPhase !== 'triage') ||
-        (nextPhase === 'differential')
-      ) && !safetyResult.requiresEscalation;
-
-      // Extract OLDCARTS data for orchestrator
-      const oldcartsData = {
-        onset: extractFromHistory(history, 'onset'),
-        location: extractFromHistory(history, 'location'),
-        duration: extractFromHistory(history, 'duration'),
-        character: extractFromHistory(history, 'character'),
-        aggravating: extractFromHistory(history, 'aggravating'),
-        relieving: extractFromHistory(history, 'relieving'),
-        timing: extractFromHistory(history, 'timing'),
-        severity: extractFromHistory(history, 'severity'),
-        associatedSymptoms: patientState.symptoms,
+        showAssessment: result.assessmentReady,
+        showBooking: result.recommendDoctor,
+        showEmergency: result.phase === 'escalated' || (result.triageLevel && result.triageLevel <= 2),
+        showSummary: result.phase === 'completed',
       };
 
       return new Response(JSON.stringify({
         success: true,
         session_id: session_id,
-        phase: nextPhase,
-        previous_phase: currentPhase,
-        message: reply,
-        triage_level: triageLevel,
-        red_flags: safetyResult.redFlags,
-        history_completeness: historyCompleteness,
+        phase: result.phase,
+        message: result.message,
+        triage_level: result.triageLevel,
+        red_flags: result.redFlags,
+        oldcarts_progress: result.oldcartsProgress,
+        assessment_ready: result.assessmentReady,
+        trigger_orchestrator: result.triggerOrchestrator,
+        orchestrator_payload: result.orchestratorPayload,
+        consensus: result.consensus,
+        orchestration: result.orchestration,
+        soap_note: result.soapNote,
+        dissenting_opinions: result.orchestration?.consensus.dissenting_opinions,
+        recommend_doctor: result.recommendDoctor,
         ui_triggers: uiTriggers,
-        soap_note: nextPhase === 'documentation' || nextPhase === 'completed' ? soapNote : undefined,
-        oldcarts: oldcartsData,
-        // Debug info for frontend orchestrator triggering
-        _debug: {
-          assessmentTrigger: {
-            shouldAssess,
-            reason: shouldAssess ? `Phase: ${currentPhase} -> ${nextPhase}, completeness: ${historyCompleteness.toFixed(2)}` : null,
-          },
-        },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -885,31 +1434,11 @@ GUIDELINES:
         });
       }
 
-      // Try Lovable Cloud first, then fall back to dev project
-      let session: Record<string, unknown> | null = null;
-      
-      const { data: cloudSession } = await supabase
+      const { data: session } = await supabase
         .from("helios_sessions")
         .select("*")
         .eq("session_id", session_id)
         .single();
-
-      if (cloudSession) {
-        session = cloudSession;
-      } else if (devSupabase) {
-        // Fallback to dev project
-        console.log("[HELIOS] Session not found in Cloud for complete, checking dev project...");
-        const { data: devSession } = await devSupabase
-          .from("helios_sessions")
-          .select("*")
-          .eq("session_id", session_id)
-          .single();
-        
-        if (devSession) {
-          console.log("[HELIOS] Found session in dev project for completion");
-          session = devSession;
-        }
-      }
 
       if (!session) {
         return new Response(JSON.stringify({ success: false, error: "Session not found" }), {
@@ -918,46 +1447,45 @@ GUIDELINES:
         });
       }
 
-      // Generate SOAP note if not already done
-      const sessionMessages = (session.messages || []) as Array<{role: string, content: string}>;
-      let soapNote = session.soap_note as string | null;
-      if (!soapNote && sessionMessages.length > 0) {
+      let soapNote = session.soap_note;
+      if (!soapNote && session.messages?.length > 0) {
+        const oldcarts = session.oldcarts_data || createEmptyOLDCARTS(session.chief_complaint || "");
         soapNote = await generateSOAPNote(
           anthropic,
-          sessionMessages,
-          (session.specialty as string) || "primary-care",
-          (session.patient_info as Record<string, unknown>) || {},
-          (session.language as string) || "en"
+          session.messages,
+          oldcarts,
+          session.patient_info || {},
+          (session.language || "en") as Language
         );
       }
 
-      // Generate summary
-      const userMessages = sessionMessages
-        .filter((m) => m.role === "user")
-        .map((m) => m.content)
+      const completedAt = new Date().toISOString();
+      const userMessages = (session.messages || [])
+        .filter((m: { role: string }) => m.role === "user")
+        .map((m: { content: string }) => m.content)
         .join(". ")
         .substring(0, 500);
 
-      const completedAt = new Date().toISOString();
-
-      // Determine disposition based on triage level
-      const sessionTriageLevel = session.triage_level as number | null;
-      let disposition = session.disposition as string | null;
-      if (!disposition && sessionTriageLevel) {
-        if (sessionTriageLevel <= 2) disposition = 'emergency';
-        else if (sessionTriageLevel === 3) disposition = 'urgent_care';
-        else if (sessionTriageLevel === 4) disposition = 'primary_care';
+      let disposition = session.disposition;
+      if (!disposition && session.triage_level) {
+        if (session.triage_level <= 2) disposition = 'emergency';
+        else if (session.triage_level === 3) disposition = 'urgent_care';
+        else if (session.triage_level === 4) disposition = 'primary_care';
         else disposition = 'self_care';
       }
 
-      // Update with only columns that exist
       const completeUpdate: Record<string, unknown> = {
         current_phase: "completed",
+        completed_at: completedAt,
         updated_at: completedAt,
+        summary: userMessages || "No symptoms recorded",
+        disposition,
       };
 
-      // Store user_id in patient_info to avoid foreign key constraint
-      // (user may be from a different Supabase project)
+      if (soapNote) {
+        completeUpdate.soap_note = soapNote;
+      }
+
       if (user_id && typeof user_id === 'string' && user_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
         completeUpdate.patient_info = {
           ...(session.patient_info || {}),
@@ -965,51 +1493,16 @@ GUIDELINES:
         };
       }
 
-      // Update session with completion data - try full update first, fallback to minimal
-      console.log("[HELIOS] Updating session:", session_id);
-
-      const fullCompleteUpdate = {
-        ...completeUpdate,
-        completed_at: completedAt,
-        summary: userMessages || "No symptoms recorded",
-      };
-
-      // First try with all columns including soap_note
-      let { data: updateData, error: updateErr } = await supabase.from("helios_sessions").update({
-        ...fullCompleteUpdate,
-        soap_note: soapNote,
-      }).eq("session_id", session_id).select();
-
-      // If soap_note column doesn't exist, try without it
-      if (updateErr && updateErr.message?.includes("soap_note")) {
-        console.log("[HELIOS] Retrying without soap_note column");
-        const result = await supabase.from("helios_sessions").update(fullCompleteUpdate).eq("session_id", session_id).select();
-        updateData = result.data;
-        updateErr = result.error;
-      }
-
-      // If still failing, try minimal update
-      if (updateErr) {
-        console.log("[HELIOS] Retrying with minimal update");
-        const result = await supabase.from("helios_sessions").update(completeUpdate).eq("session_id", session_id).select();
-        updateData = result.data;
-        updateErr = result.error;
-      }
+      const { error: updateErr } = await supabase
+        .from("helios_sessions")
+        .update(completeUpdate)
+        .eq("session_id", session_id);
 
       if (updateErr) {
         console.error("[HELIOS] Failed to update session:", updateErr);
-        return new Response(JSON.stringify({
-          success: false,
-          error: "Failed to update session: " + updateErr.message,
-          details: updateErr,
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
       }
 
-      // DUAL-WRITE: Sync completion to dev project (best-effort)
-      await syncToDevProject(devSupabase, "helios_sessions", "update", fullCompleteUpdate, "session_id", session_id);
+      await syncToDevProject(devSupabase, "helios_sessions", "update", completeUpdate, "session_id", session_id);
 
       return new Response(JSON.stringify({
         success: true,
@@ -1018,8 +1511,8 @@ GUIDELINES:
         soap_note: soapNote,
         disposition: disposition,
         triage_level: session.triage_level,
+        oldcarts_progress: session.oldcarts_data?.completenessPercentage || 0,
         completed_at: completedAt,
-        updated_rows: updateData?.length || 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -1036,44 +1529,23 @@ GUIDELINES:
         });
       }
 
-      // Try Lovable Cloud first
-      let sess: Record<string, unknown> | null = null;
-      const { data: cloudSess, error: getErr } = await supabase
+      const { data: sess, error: getErr } = await supabase
         .from("helios_sessions")
         .select("*")
         .eq("session_id", session_id)
         .single();
 
-      if (!getErr && cloudSess) {
-        sess = cloudSess;
-      } else if (devSupabase) {
-        // Fallback to dev project if not found in Lovable Cloud
-        console.log("[HELIOS] Session not found in Cloud, checking dev project...");
-        const { data: devSess, error: devErr } = await devSupabase
-          .from("helios_sessions")
-          .select("*")
-          .eq("session_id", session_id)
-          .single();
-        
-        if (!devErr && devSess) {
-          console.log("[HELIOS] Found session in dev project");
-          sess = devSess;
-        }
-      }
-
-      if (!sess) {
+      if (getErr || !sess) {
         return new Response(JSON.stringify({ success: false, error: "Session not found" }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Calculate UI triggers based on current state
-      const sessTriageLevel = sess.triage_level as number | null;
       const uiTriggers = {
-        showAssessment: sess.current_phase === 'plan' || sess.current_phase === 'documentation' || sess.current_phase === 'completed',
-        showBooking: (sessTriageLevel && sessTriageLevel >= 3) || sess.current_phase === 'plan',
-        showEmergency: sess.escalation_triggered || (sessTriageLevel && sessTriageLevel <= 2),
+        showAssessment: sess.consensus_result != null || sess.current_phase === 'plan' || sess.current_phase === 'documentation' || sess.current_phase === 'completed',
+        showBooking: (sess.triage_level && sess.triage_level >= 3) || sess.current_phase === 'plan',
+        showEmergency: sess.current_phase === 'escalated' || (sess.triage_level && sess.triage_level <= 2),
         showSummary: sess.current_phase === 'completed',
       };
 
@@ -1087,10 +1559,11 @@ GUIDELINES:
         language: sess.language,
         messages: sess.messages || [],
         patient_info: sess.patient_info || {},
+        oldcarts_data: sess.oldcarts_data,
+        oldcarts_progress: sess.oldcarts_data?.completenessPercentage || 0,
         red_flags: sess.red_flags || [],
         triage_level: sess.triage_level,
-        escalated: sess.escalation_triggered || false,
-        escalation_reason: sess.escalation_reason,
+        consensus: sess.consensus_result,
         created_at: sess.created_at,
         updated_at: sess.updated_at,
         completed_at: sess.completed_at,
@@ -1098,7 +1571,6 @@ GUIDELINES:
         chief_complaint: sess.chief_complaint,
         disposition: sess.disposition,
         soap_note: sess.soap_note,
-        recommended_action: sess.recommended_action,
         ui_triggers: uiTriggers,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -1116,8 +1588,6 @@ GUIDELINES:
         });
       }
 
-      // Query sessions by external_user_id in patient_info (for cross-project auth)
-      // OR by user_id column (for same-project auth)
       const { data: sessions, error: listErr } = await supabase
         .from("helios_sessions")
         .select("*")
@@ -1132,7 +1602,6 @@ GUIDELINES:
         });
       }
 
-      // Map to consistent format, handling missing columns
       const mappedSessions = (sessions || []).map((s: Record<string, unknown>) => ({
         session_id: s.session_id,
         user_id: s.user_id,
@@ -1140,6 +1609,7 @@ GUIDELINES:
         current_phase: s.current_phase || 'intake',
         chief_complaint: s.chief_complaint || null,
         triage_level: s.triage_level || null,
+        oldcarts_progress: (s.oldcarts_data as OLDCARTSData | null)?.completenessPercentage || 0,
         created_at: s.created_at,
         updated_at: s.updated_at,
         completed_at: s.completed_at || null,
@@ -1181,10 +1651,8 @@ GUIDELINES:
         });
       }
 
-      // Generate booking ID
       const booking_id = crypto.randomUUID();
 
-      // Get session data for SOAP note if needed
       let soap_note = null;
       if (booking.include_soap_note) {
         const { data: sessionData } = await supabase
@@ -1195,7 +1663,6 @@ GUIDELINES:
         soap_note = sessionData?.soap_note || null;
       }
 
-      // Insert booking record
       const bookingData: Record<string, unknown> = {
         booking_id,
         session_id,
@@ -1208,17 +1675,8 @@ GUIDELINES:
         created_at: new Date().toISOString(),
       };
 
-      const { error: bookingErr } = await supabase
-        .from("helios_bookings")
-        .insert(bookingData);
+      await supabase.from("helios_bookings").insert(bookingData);
 
-      // If table doesn't exist, we'll just return success anyway
-      // The booking ID is still valid for tracking
-      if (bookingErr) {
-        console.log("[HELIOS] Booking insert error (may be missing table):", bookingErr.message);
-      }
-
-      // Update session to link booking
       await supabase
         .from("helios_sessions")
         .update({
@@ -1235,59 +1693,6 @@ GUIDELINES:
         specialty: booking.specialty,
         soap_note_shared: booking.include_soap_note,
         message: `Your video visit has been scheduled for ${new Date(booking.scheduled_at).toLocaleString()}. You'll receive a confirmation email shortly.`,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ========================================
-    // ACTION: STORE ASSESSMENT (from frontend orchestrator)
-    // ========================================
-    if (action === "store_assessment") {
-      if (!session_id) {
-        return new Response(JSON.stringify({ success: false, error: "session_id required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const consensus_result = body.consensus_result;
-      if (!consensus_result) {
-        return new Response(JSON.stringify({ success: false, error: "consensus_result required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Update session with consensus result
-      const updateData: Record<string, unknown> = {
-        consensus_result: consensus_result,
-        triage_level: consensus_result.triage_level || null,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error: updateErr } = await supabase
-        .from("helios_sessions")
-        .update(updateData)
-        .eq("session_id", session_id);
-
-      if (updateErr) {
-        console.error("[HELIOS] Failed to store assessment:", updateErr);
-        return new Response(JSON.stringify({ success: false, error: updateErr.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // DUAL-WRITE: Sync to dev project
-      await syncToDevProject(devSupabase, "helios_sessions", "update", updateData, "session_id", session_id);
-
-      console.log("[HELIOS] Assessment stored for session:", session_id);
-
-      return new Response(JSON.stringify({
-        success: true,
-        session_id,
-        message: "Assessment stored successfully",
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

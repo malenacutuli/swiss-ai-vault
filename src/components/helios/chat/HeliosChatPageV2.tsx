@@ -8,7 +8,8 @@ import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
 import { VoiceConsultation } from '../voice/VoiceConsultation';
-import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check, CheckCircle2, Download, Phone, PhoneOff, Stethoscope, Users, AlertTriangle, Activity } from 'lucide-react';
+import { AssessmentPanel } from '../assessment/AssessmentPanel';
+import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check, CheckCircle2, Download, Phone, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,16 +22,16 @@ import {
 } from '@/components/ui/select';
 
 const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Español' },
-  { code: 'fr', name: 'Français' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'it', name: 'Italiano' },
-  { code: 'pt', name: 'Português' },
-  { code: 'zh', name: '中文' },
-  { code: 'ja', name: '日本語' },
-  { code: 'ko', name: '한국어' },
-  { code: 'ar', name: 'العربية' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+  { code: 'pt', name: 'Português', flag: '🇧🇷' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'ko', name: '한국어', flag: '🇰🇷' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
 ];
 
 interface HeliosChatPageV2Props {
@@ -49,14 +50,15 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
   const {
     messages,
     isLoading,
-    isAssessing,
+    isLoadingOrchestrator,
     isEscalated,
     redFlags,
     phase,
     caseState,
     intakeRequired,
     sessionId,
-    consensusResult,
+    uiTriggers,
+    orchestration,
     sendMessage,
     submitIntake,
     startSession,
@@ -469,7 +471,10 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
                 <SelectContent>
                   {SUPPORTED_LANGUAGES.map((lang) => (
                     <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name}
+                      <span className="flex items-center gap-2">
+                        <span>{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -529,110 +534,32 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
           </div>
         )}
 
-        {/* Multi-agent assessment loading */}
-        {isAssessing && (
-          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse">
-            <div className="relative">
-              <Users className="h-6 w-6 text-blue-600" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-ping" />
-            </div>
+        {/* Orchestrator loading indicator */}
+        {isLoadingOrchestrator && (
+          <div className="flex items-center gap-2 text-teal-600 bg-teal-50 px-4 py-3 rounded-lg">
+            <Loader2 className="w-5 h-5 animate-spin" />
             <div>
-              <p className="font-medium text-blue-800">Running multi-agent consultation...</p>
-              <p className="text-sm text-blue-600">5 specialist agents are analyzing your symptoms (10-15 seconds)</p>
+              <span className="font-medium">Running multi-specialist assessment...</span>
+              <p className="text-sm text-teal-700">Multiple AI specialists are analyzing your symptoms</p>
             </div>
           </div>
         )}
 
-        {/* Consensus Result Panel */}
-        {consensusResult && (
-          <div className="mt-4 p-4 bg-gradient-to-br from-teal-50 to-blue-50 border border-teal-200 rounded-xl shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <Stethoscope className="h-5 w-5 text-teal-600" />
-              <h3 className="font-semibold text-teal-800">Multi-Agent Clinical Assessment</h3>
-              <span className="ml-auto text-xs text-gray-500">
-                {consensusResult.agents?.length || 5} specialists • {((consensusResult.processing_time_ms || 0) / 1000).toFixed(1)}s
-              </span>
-            </div>
-
-            {/* Primary Diagnosis */}
-            <div className="mb-4 p-3 bg-white rounded-lg border border-teal-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Primary Assessment</span>
-                <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-medium">
-                  {Math.round((consensusResult.consensus?.confidence || 0) * 100)}% confidence
-                </span>
-              </div>
-              <p className="text-lg font-semibold text-gray-800">
-                {consensusResult.consensus?.primary_diagnosis || 'Analysis complete'}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                Supported by {consensusResult.consensus?.supporting_agents || 0} of {consensusResult.agents?.length || 5} specialists
-              </p>
-            </div>
-
-            {/* Differentials */}
-            {consensusResult.consensus?.differentials && consensusResult.consensus.differentials.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-600 mb-2">Differential Considerations</h4>
-                <div className="space-y-2">
-                  {consensusResult.consensus.differentials.slice(0, 3).map((diff, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700">{diff.diagnosis}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-teal-500 rounded-full"
-                            style={{ width: `${diff.probability * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-500 w-8">{Math.round(diff.probability * 100)}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Red Flags */}
-            {consensusResult.consensus?.red_flags && consensusResult.consensus.red_flags.length > 0 && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <span className="text-sm font-medium text-red-700">Warning Signs to Monitor</span>
-                </div>
-                <ul className="text-sm text-red-600 space-y-1">
-                  {consensusResult.consensus.red_flags.map((flag, idx) => (
-                    <li key={idx}>• {flag}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Recommendation */}
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-teal-100">
-              <Activity className="h-5 w-5 text-teal-600" />
-              <div>
-                <span className="text-sm font-medium text-gray-600">Recommended Next Step:</span>
-                <p className="text-sm text-gray-800 font-medium">
-                  {consensusResult.consensus?.recommended_specialty
-                    ? `Consult ${consensusResult.consensus.recommended_specialty.replace('-', ' ')}`
-                    : 'Follow up with your healthcare provider'}
-                </p>
-                {consensusResult.consensus?.urgency && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
-                    consensusResult.consensus.urgency === 'immediate' ? 'bg-red-100 text-red-700' :
-                    consensusResult.consensus.urgency === 'urgent' ? 'bg-orange-100 text-orange-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {consensusResult.consensus.urgency.charAt(0).toUpperCase() + consensusResult.consensus.urgency.slice(1)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              This AI assessment is for informational purposes only. Always consult a licensed healthcare provider.
-            </p>
+        {/* Assessment Panel - shows when orchestration completes */}
+        {orchestration && uiTriggers?.showAssessment && (
+          <div className="mt-6">
+            <AssessmentPanel
+              orchestration={orchestration}
+              onFeedback={(rating) => {
+                console.log('[HELIOS] Assessment feedback:', rating);
+                // Could save feedback to database here
+              }}
+              onBookDoctor={() => {
+                // Navigate to booking with session context
+                navigate(`/health/book/${sessionId}`);
+              }}
+              language={language as 'en' | 'es' | 'fr'}
+            />
           </div>
         )}
 

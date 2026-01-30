@@ -45,6 +45,14 @@ export { ConsultSavePrompt } from './auth/ConsultSavePrompt';
 export { AIVisitRequiredModal } from './booking/AIVisitRequiredModal';
 export { BookingModal } from './booking/BookingModal';
 export { DoctorDirectory } from './booking/DoctorDirectory';
+export { DoctorBookingModal } from './booking/DoctorBookingModal';
+export type {
+  DoctorBookingModalProps,
+  ESILevel,
+  Provider,
+  TimeSlot,
+  Appointment,
+} from './booking/DoctorBookingModal';
 
 // Record
 export { AddMedicationModal } from './record/AddMedicationModal';
@@ -56,3 +64,29 @@ export { DocumentUploadModal } from './record/DocumentUploadModal';
 export { LanguageSelector } from './common/LanguageSelector';
 export { TriageLevelBadge } from './common/TriageLevel';
 export { DispositionBadge } from './common/DispositionBadge';
+
+// Assessment (Grand Rounds)
+export { AssessmentPanel } from './assessment';
+export type {
+  AssessmentPanelProps,
+  ConsensusResult,
+  SOAPNote,
+  DifferentialDiagnosis,
+  PlanOfAction,
+  FeedbackRating,
+  ICD10Code,
+  SOAPSubjective,
+  SOAPObjective,
+  SOAPAssessment,
+  SOAPPlan,
+} from './assessment';
+
+// OLDCARTS Progress
+export { OLDCARTSProgress, OLDCARTSLegend, calculateWeightedCompleteness } from './OLDCARTSProgress';
+export type {
+  OLDCARTSProgressProps,
+  OLDCARTSData,
+  OLDCARTSItem,
+  ComponentBreakdown,
+  CompletenessResult,
+} from './OLDCARTSProgress';

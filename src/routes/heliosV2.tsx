@@ -14,6 +14,7 @@ import { AppointmentsPage } from '@/components/helios/pages/AppointmentsPage';
 import { SOAPNoteView } from '@/components/helios/reports/SOAPNoteView';
 import { AssessmentPlanView } from '@/components/helios/reports/AssessmentPlanView';
 import { SignInPrompt } from '@/components/helios/auth/SignInPrompt';
+import HeliosChatReviewPage from '@/pages/health/HeliosChatReviewPage';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function HeliosRoutesV2() {
@@ -84,6 +85,9 @@ export function HeliosRoutesV2() {
 
           {/* Chat */}
           <Route path="/chat/:sessionId" element={<HeliosChatPageV2 />} />
+
+          {/* Chat Review / Summary */}
+          <Route path="/chat-review/:sessionId" element={<HeliosChatReviewPage />} />
 
           {/* Reports */}
           <Route path="/chat/:sessionId/soap" element={<SOAPNoteRoute />} />
