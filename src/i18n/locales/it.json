@@ -781,5 +781,130 @@
     },
     "downloadWhitepaper": "Scarica il Whitepaper sulla Sicurezza",
     "talkToCISO": "Parla con il nostro CISO"
+  },
+  "helios": {
+    "title": "Assistente Sanitario",
+    "subtitle": "Il tuo compagno di salute con IA",
+    "welcome": "Ciao! Sono il tuo assistente sanitario. Come posso aiutarti oggi?",
+    "inputPlaceholder": "Descrivi i tuoi sintomi o fai una domanda sulla salute...",
+    "disclaimer": "Questo non sostituisce il consiglio medico professionale. In caso di emergenza, chiama immediatamente i servizi di emergenza.",
+    "endSession": "Termina e Salva",
+    "newConsult": "Nuova Consulenza",
+    "viewHistory": "Visualizza Cronologia",
+    "chat": {
+      "thinking": "Analisi in corso...",
+      "error": "Si è verificato un errore. Riprova.",
+      "sessionEnded": "Consulenza terminata",
+      "sessionSaved": "La tua consulenza è stata salvata"
+    },
+    "triage": {
+      "title": "Valutazione Triage",
+      "level": "Livello di Urgenza",
+      "recommendation": "Raccomandazione",
+      "emergency": "Emergenza - Chiama il 118 immediatamente",
+      "urgent": "Urgente - Cerca assistenza entro 24 ore",
+      "semiUrgent": "Semi-urgente - Prenota un appuntamento presto",
+      "routine": "Routine - Prenota un appuntamento regolare",
+      "selfCare": "Auto-cura - Monitora a casa"
+    },
+    "disposition": {
+      "emergency": "Emergenza",
+      "urgent_care": "Pronto Soccorso",
+      "primary_care": "Medico di Base",
+      "specialist": "Specialista",
+      "telehealth": "Telemedicina",
+      "self_care": "Auto-cura"
+    },
+    "prescription": {
+      "title": "Richiesta Ricetta",
+      "refill": "Rinnovo Ricetta",
+      "new": "Nuova Ricetta",
+      "medicationName": "Nome del farmaco",
+      "dosage": "Dosaggio",
+      "frequency": "Frequenza",
+      "prescribingDoctor": "Medico prescrittore",
+      "uploadPrescription": "Carica ricetta attuale",
+      "patientInfo": "Informazioni del Paziente",
+      "fullName": "Nome completo",
+      "dateOfBirth": "Data di nascita",
+      "address": "Indirizzo",
+      "summary": "Riepilogo della Richiesta",
+      "confirm": "Conferma Richiesta",
+      "disclaimer": "Un medico esaminerà e potrà approvare, richiedere maggiori informazioni o programmare una videochiamata.",
+      "questions": {
+        "takenBefore": "Hai già preso questo farmaco?",
+        "whatMedication": "Qual è il nome del farmaco?",
+        "whatDosage": "Quale dosaggio stai assumendo?",
+        "howOften": "Quanto spesso lo prendi?",
+        "havePrescription": "Hai una copia della tua ricetta attuale?",
+        "doctorName": "Qual è il nome del medico che te l'ha prescritto?"
+      }
+    },
+    "specialty": {
+      "general": "Salute Generale",
+      "dermatology": "Dermatologia",
+      "cardiology": "Cardiologia",
+      "pediatrics": "Pediatria",
+      "mentalHealth": "Salute Mentale",
+      "womensHealth": "Salute della Donna",
+      "mensHealth": "Salute dell'Uomo",
+      "nutrition": "Nutrizione",
+      "sleep": "Sonno",
+      "chronicPain": "Dolore Cronico"
+    },
+    "symptoms": {
+      "onset": "Quando è iniziato?",
+      "location": "Dove si trova?",
+      "duration": "Quanto dura?",
+      "character": "Come lo descriveresti?",
+      "aggravating": "Cosa lo peggiora?",
+      "relieving": "Cosa lo allevia?",
+      "timing": "Quando si verifica?",
+      "severity": "Quanto è grave? (1-10)"
+    },
+    "emergency": {
+      "title": "Numeri di Emergenza",
+      "general": "Emergenza",
+      "crisis": "Linea di Crisi",
+      "police": "Polizia",
+      "ambulance": "Ambulanza",
+      "fire": "Vigili del Fuoco",
+      "selectCountry": "Seleziona il tuo paese",
+      "disclaimer": "Per emergenze immediate, chiama i servizi di emergenza locali."
+    },
+    "soap": {
+      "title": "Riepilogo Clinico",
+      "subjective": "Soggettivo",
+      "objective": "Oggettivo",
+      "assessment": "Valutazione",
+      "plan": "Piano"
+    },
+    "booking": {
+      "title": "Prenota Appuntamento",
+      "selectProvider": "Seleziona professionista",
+      "selectDate": "Seleziona data",
+      "selectTime": "Seleziona orario",
+      "confirmBooking": "Conferma prenotazione",
+      "bookingConfirmed": "Il tuo appuntamento è stato confermato"
+    },
+    "history": {
+      "title": "Cronologia Consulenze",
+      "noHistory": "Nessuna consulenza precedente",
+      "viewDetails": "Visualizza Dettagli",
+      "date": "Data",
+      "summary": "Riepilogo",
+      "status": "Stato"
+    },
+    "status": {
+      "active": "Attivo",
+      "completed": "Completato",
+      "pending": "In Attesa di Revisione"
+    },
+    "actions": {
+      "startChat": "Avvia Chat Salute",
+      "askQuestion": "Fai una Domanda",
+      "uploadImage": "Carica Immagine",
+      "recordSymptoms": "Registra Sintomi"
+    }
   }
 }

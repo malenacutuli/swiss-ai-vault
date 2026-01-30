@@ -781,5 +781,130 @@
     },
     "downloadWhitepaper": "Télécharger le Livre Blanc Sécurité",
     "talkToCISO": "Parler à notre RSSI"
+  },
+  "helios": {
+    "title": "Assistant Santé",
+    "subtitle": "Votre compagnon santé propulsé par l'IA",
+    "welcome": "Bonjour ! Je suis votre assistant santé. Comment puis-je vous aider aujourd'hui ?",
+    "inputPlaceholder": "Décrivez vos symptômes ou posez une question de santé...",
+    "disclaimer": "Ceci ne remplace pas un avis médical professionnel. En cas d'urgence, appelez les services d'urgence immédiatement.",
+    "endSession": "Terminer et Sauvegarder",
+    "newConsult": "Nouvelle Consultation",
+    "viewHistory": "Voir l'Historique",
+    "chat": {
+      "thinking": "Analyse en cours...",
+      "error": "Une erreur s'est produite. Veuillez réessayer.",
+      "sessionEnded": "Consultation terminée",
+      "sessionSaved": "Votre consultation a été sauvegardée"
+    },
+    "triage": {
+      "title": "Évaluation de Triage",
+      "level": "Niveau d'Urgence",
+      "recommendation": "Recommandation",
+      "emergency": "Urgence - Appelez le 15 immédiatement",
+      "urgent": "Urgent - Consultez dans les 24 heures",
+      "semiUrgent": "Semi-urgent - Prenez rendez-vous rapidement",
+      "routine": "Routine - Prenez un rendez-vous régulier",
+      "selfCare": "Auto-soins - Surveillez à domicile"
+    },
+    "disposition": {
+      "emergency": "Urgence",
+      "urgent_care": "Soins Urgents",
+      "primary_care": "Soins Primaires",
+      "specialist": "Spécialiste",
+      "telehealth": "Télésanté",
+      "self_care": "Auto-soins"
+    },
+    "prescription": {
+      "title": "Demande d'Ordonnance",
+      "refill": "Renouvellement d'Ordonnance",
+      "new": "Nouvelle Ordonnance",
+      "medicationName": "Nom du médicament",
+      "dosage": "Dosage",
+      "frequency": "Fréquence",
+      "prescribingDoctor": "Médecin prescripteur",
+      "uploadPrescription": "Télécharger l'ordonnance actuelle",
+      "patientInfo": "Informations du Patient",
+      "fullName": "Nom complet",
+      "dateOfBirth": "Date de naissance",
+      "address": "Adresse",
+      "summary": "Résumé de la Demande",
+      "confirm": "Confirmer la Demande",
+      "disclaimer": "Un médecin examinera et pourra approuver, demander plus d'informations ou programmer un appel vidéo.",
+      "questions": {
+        "takenBefore": "Avez-vous déjà pris ce médicament ?",
+        "whatMedication": "Quel est le nom du médicament ?",
+        "whatDosage": "Quel dosage prenez-vous ?",
+        "howOften": "À quelle fréquence le prenez-vous ?",
+        "havePrescription": "Avez-vous une copie de votre ordonnance actuelle ?",
+        "doctorName": "Quel est le nom de votre médecin prescripteur ?"
+      }
+    },
+    "specialty": {
+      "general": "Santé Générale",
+      "dermatology": "Dermatologie",
+      "cardiology": "Cardiologie",
+      "pediatrics": "Pédiatrie",
+      "mentalHealth": "Santé Mentale",
+      "womensHealth": "Santé des Femmes",
+      "mensHealth": "Santé des Hommes",
+      "nutrition": "Nutrition",
+      "sleep": "Sommeil",
+      "chronicPain": "Douleur Chronique"
+    },
+    "symptoms": {
+      "onset": "Quand cela a-t-il commencé ?",
+      "location": "Où est-ce localisé ?",
+      "duration": "Combien de temps cela dure-t-il ?",
+      "character": "Comment le décririez-vous ?",
+      "aggravating": "Qu'est-ce qui l'aggrave ?",
+      "relieving": "Qu'est-ce qui le soulage ?",
+      "timing": "Quand cela se produit-il ?",
+      "severity": "Quelle est la sévérité ? (1-10)"
+    },
+    "emergency": {
+      "title": "Numéros d'Urgence",
+      "general": "Urgence",
+      "crisis": "Ligne de Crise",
+      "police": "Police",
+      "ambulance": "Ambulance",
+      "fire": "Pompiers",
+      "selectCountry": "Sélectionnez votre pays",
+      "disclaimer": "Pour les urgences immédiates, appelez les services d'urgence locaux."
+    },
+    "soap": {
+      "title": "Résumé Clinique",
+      "subjective": "Subjectif",
+      "objective": "Objectif",
+      "assessment": "Évaluation",
+      "plan": "Plan"
+    },
+    "booking": {
+      "title": "Prendre Rendez-vous",
+      "selectProvider": "Sélectionner le praticien",
+      "selectDate": "Sélectionner la date",
+      "selectTime": "Sélectionner l'heure",
+      "confirmBooking": "Confirmer le rendez-vous",
+      "bookingConfirmed": "Votre rendez-vous a été confirmé"
+    },
+    "history": {
+      "title": "Historique des Consultations",
+      "noHistory": "Aucune consultation précédente",
+      "viewDetails": "Voir les Détails",
+      "date": "Date",
+      "summary": "Résumé",
+      "status": "Statut"
+    },
+    "status": {
+      "active": "Actif",
+      "completed": "Terminé",
+      "pending": "En Attente de Révision"
+    },
+    "actions": {
+      "startChat": "Démarrer le Chat Santé",
+      "askQuestion": "Poser une Question",
+      "uploadImage": "Télécharger une Image",
+      "recordSymptoms": "Enregistrer les Symptômes"
+    }
   }
 }

@@ -1666,5 +1666,130 @@
       "title": "Konto erstellt!",
       "description": "Überprüfen Sie Ihre E-Mail, um Ihr Konto zu verifizieren"
     }
+  },
+  "helios": {
+    "title": "Gesundheitsassistent",
+    "subtitle": "Ihr KI-gestützter Gesundheitsbegleiter",
+    "welcome": "Hallo! Ich bin Ihr Gesundheitsassistent. Wie kann ich Ihnen heute helfen?",
+    "inputPlaceholder": "Beschreiben Sie Ihre Symptome oder stellen Sie eine Gesundheitsfrage...",
+    "disclaimer": "Dies ersetzt keine professionelle medizinische Beratung. Im Notfall rufen Sie sofort den Notruf an.",
+    "endSession": "Beenden und Speichern",
+    "newConsult": "Neue Konsultation",
+    "viewHistory": "Verlauf anzeigen",
+    "chat": {
+      "thinking": "Analyse...",
+      "error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+      "sessionEnded": "Konsultation beendet",
+      "sessionSaved": "Ihre Konsultation wurde gespeichert"
+    },
+    "triage": {
+      "title": "Triage-Bewertung",
+      "level": "Dringlichkeitsstufe",
+      "recommendation": "Empfehlung",
+      "emergency": "Notfall - Rufen Sie sofort 112 an",
+      "urgent": "Dringend - Suchen Sie innerhalb von 24 Stunden Hilfe",
+      "semiUrgent": "Halb-dringend - Vereinbaren Sie bald einen Termin",
+      "routine": "Routine - Vereinbaren Sie einen regulären Termin",
+      "selfCare": "Selbstpflege - Überwachen Sie zu Hause"
+    },
+    "disposition": {
+      "emergency": "Notfall",
+      "urgent_care": "Notaufnahme",
+      "primary_care": "Hausarzt",
+      "specialist": "Facharzt",
+      "telehealth": "Telemedizin",
+      "self_care": "Selbstpflege"
+    },
+    "prescription": {
+      "title": "Rezeptanfrage",
+      "refill": "Rezeptverlängerung",
+      "new": "Neues Rezept",
+      "medicationName": "Medikamentenname",
+      "dosage": "Dosierung",
+      "frequency": "Häufigkeit",
+      "prescribingDoctor": "Verschreibender Arzt",
+      "uploadPrescription": "Aktuelles Rezept hochladen",
+      "patientInfo": "Patienteninformationen",
+      "fullName": "Vollständiger Name",
+      "dateOfBirth": "Geburtsdatum",
+      "address": "Adresse",
+      "summary": "Anfragezusammenfassung",
+      "confirm": "Anfrage bestätigen",
+      "disclaimer": "Ein Arzt wird prüfen und kann genehmigen, weitere Informationen anfordern oder einen Videoanruf vereinbaren.",
+      "questions": {
+        "takenBefore": "Haben Sie dieses Medikament schon einmal eingenommen?",
+        "whatMedication": "Wie heißt das Medikament?",
+        "whatDosage": "Welche Dosierung nehmen Sie?",
+        "howOften": "Wie oft nehmen Sie es?",
+        "havePrescription": "Haben Sie eine Kopie Ihres aktuellen Rezepts?",
+        "doctorName": "Wie heißt Ihr verschreibender Arzt?"
+      }
+    },
+    "specialty": {
+      "general": "Allgemeinmedizin",
+      "dermatology": "Dermatologie",
+      "cardiology": "Kardiologie",
+      "pediatrics": "Pädiatrie",
+      "mentalHealth": "Psychische Gesundheit",
+      "womensHealth": "Frauengesundheit",
+      "mensHealth": "Männergesundheit",
+      "nutrition": "Ernährung",
+      "sleep": "Schlaf",
+      "chronicPain": "Chronische Schmerzen"
+    },
+    "symptoms": {
+      "onset": "Wann hat es begonnen?",
+      "location": "Wo befindet es sich?",
+      "duration": "Wie lange dauert es?",
+      "character": "Wie würden Sie es beschreiben?",
+      "aggravating": "Was verschlimmert es?",
+      "relieving": "Was lindert es?",
+      "timing": "Wann tritt es auf?",
+      "severity": "Wie schwer ist es? (1-10)"
+    },
+    "emergency": {
+      "title": "Notrufnummern",
+      "general": "Notfall",
+      "crisis": "Krisentelefon",
+      "police": "Polizei",
+      "ambulance": "Krankenwagen",
+      "fire": "Feuerwehr",
+      "selectCountry": "Wählen Sie Ihr Land",
+      "disclaimer": "Rufen Sie bei sofortigen Notfällen Ihren lokalen Notdienst an."
+    },
+    "soap": {
+      "title": "Klinische Zusammenfassung",
+      "subjective": "Subjektiv",
+      "objective": "Objektiv",
+      "assessment": "Beurteilung",
+      "plan": "Plan"
+    },
+    "booking": {
+      "title": "Termin buchen",
+      "selectProvider": "Anbieter auswählen",
+      "selectDate": "Datum auswählen",
+      "selectTime": "Uhrzeit auswählen",
+      "confirmBooking": "Buchung bestätigen",
+      "bookingConfirmed": "Ihr Termin wurde bestätigt"
+    },
+    "history": {
+      "title": "Konsultationsverlauf",
+      "noHistory": "Keine früheren Konsultationen",
+      "viewDetails": "Details anzeigen",
+      "date": "Datum",
+      "summary": "Zusammenfassung",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Aktiv",
+      "completed": "Abgeschlossen",
+      "pending": "Ausstehende Überprüfung"
+    },
+    "actions": {
+      "startChat": "Gesundheits-Chat starten",
+      "askQuestion": "Eine Frage stellen",
+      "uploadImage": "Bild hochladen",
+      "recordSymptoms": "Symptome aufzeichnen"
+    }
   }
 }
