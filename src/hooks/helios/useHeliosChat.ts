@@ -1,7 +1,11 @@
 // src/hooks/helios/useHeliosChat.ts
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { agentsDevSupabase } from '@/integrations/supabase/agents-client-dev';
 import type { Message, RedFlag } from '@/lib/helios/types';
+
+// Use the dev project for HELIOS edge functions (where they're deployed)
+const heliosSupabase = agentsDevSupabase;
 
 interface CaseState {
   session_id: string;
@@ -149,7 +153,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     try {
       console.log('[HELIOS] Creating session with specialty:', specialty || initialSpecialty || 'primary-care');
 
-      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+      const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
         body: {
           action: 'create',
           specialty: specialty || initialSpecialty || 'primary-care',
@@ -226,7 +230,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     try {
       console.log('[HELIOS] Sending message to session:', sessionIdRef.current);
 
-      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+      const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
         body: {
           action: 'message',
           session_id: sessionIdRef.current,
@@ -286,7 +290,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
         setIsLoadingOrchestrator(true);
 
         try {
-          const { data: orchData, error: orchError } = await supabase.functions.invoke('helios-orchestrator', {
+          const { data: orchData, error: orchError } = await heliosSupabase.functions.invoke('helios-orchestrator', {
             body: data.orchestrator_payload,
           });
 
@@ -345,7 +349,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     // Send intake action to update session
     setIsLoading(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+      const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
         body: {
           action: 'intake',
           session_id: sessionIdRef.current,
@@ -383,7 +387,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     try {
       console.log('[HELIOS] Loading session:', sessionId);
 
-      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+      const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
         body: {
           action: 'get',
           session_id: sessionId,
@@ -453,7 +457,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     try {
       console.log('[HELIOS] Completing session:', sessionIdRef.current, 'user_id:', userId);
 
-      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+      const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
         body: {
           action: 'complete_session',
           session_id: sessionIdRef.current,
@@ -503,7 +507,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     try {
       console.log('[HELIOS] Creating booking for session:', sessionIdRef.current);
 
-      const { data, error: fnError } = await supabase.functions.invoke('helios-chat', {
+      const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
         body: {
           action: 'create_booking',
           session_id: sessionIdRef.current,
