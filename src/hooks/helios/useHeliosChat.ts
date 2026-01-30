@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { agentsDevSupabase } from '@/integrations/supabase/agents-client-dev';
-import type { Message, RedFlag } from '@/lib/helios/types';
+import type { Message, RedFlag, MessageButton } from '@/lib/helios/types';
 
 // Use the dev project for HELIOS edge functions (where they're deployed)
 const heliosSupabase = agentsDevSupabase;
@@ -41,7 +41,7 @@ interface UseHeliosChatReturn {
   uiTriggers: UITriggers;
   soapNote: string | null;
   orchestration: OrchestrationResponse | null;
-  sendMessage: (content: string, language?: string) => Promise<void>;
+  sendMessage: (content: string, language?: string, isButtonResponse?: boolean) => Promise<void>;
   submitIntake: (age: number, sex: 'male' | 'female') => Promise<void>;
   startSession: (specialty?: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<boolean>;
@@ -147,7 +147,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
   }, [initialSpecialty, userId]);
 
   // Send a message
-  const sendMessage = useCallback(async (content: string, language: string = 'en') => {
+  const sendMessage = useCallback(async (content: string, language: string = 'en', isButtonResponse: boolean = false) => {
     if (!content.trim()) return;
 
     setError(null);
@@ -164,7 +164,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     setIsLoading(true);
 
     try {
-      console.log('[HELIOS] Sending message to session:', sessionIdRef.current);
+      console.log('[HELIOS] Sending message to session:', sessionIdRef.current, 'isButtonResponse:', isButtonResponse);
 
       const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
         body: {
@@ -173,6 +173,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
           message: content.trim(),
           patient_info: caseState?.patient_info,
           language: language,
+          is_button_response: isButtonResponse,
         },
       });
 
@@ -203,13 +204,16 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
         setSoapNote(data.soap_note);
       }
 
-      // Add assistant message
+      // Add assistant message with buttons if provided
       const assistantMessage: Message = {
         message_id: crypto.randomUUID(),
         role: 'assistant',
         content: data.message,
         language: 'en',
         timestamp: new Date().toISOString(),
+        buttons: data.buttons as MessageButton[] | undefined,
+        inputType: data.input_type,
+        inputPlaceholder: data.input_placeholder,
       };
       setMessages(prev => [...prev, assistantMessage]);
 

@@ -373,6 +373,12 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
     await sendMessage(message, language);
   };
 
+  // Handle button clicks from chat messages
+  const handleButtonClick = async (value: string) => {
+    if (isLoading || !termsAccepted) return;
+    await sendMessage(value, language, true);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -516,6 +522,7 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
             key={message.message_id}
             message={message}
             isLast={index === messages.length - 1}
+            onButtonClick={handleButtonClick}
           />
         ))}
 

@@ -1,19 +1,21 @@
 /**
  * Chat Message Component
  * Renders user and AI messages with proper styling
+ * Supports inline action buttons for structured flows
  */
 
 import React from 'react';
 import { Share2, FileText, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Message } from '@/lib/helios/types';
+import type { Message, MessageButton } from '@/lib/helios/types';
 
 interface ChatMessageProps {
   message: Message;
   isLast?: boolean;
+  onButtonClick?: (value: string) => void;
 }
 
-export function ChatMessage({ message, isLast }: ChatMessageProps) {
+export function ChatMessage({ message, isLast, onButtonClick }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
@@ -83,6 +85,26 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
           )}>
             <AlertTriangle className="w-4 h-4" />
             <span>{message.redFlags.length} concern(s) noted</span>
+          </div>
+        )}
+
+        {/* Inline action buttons */}
+        {message.buttons && message.buttons.length > 0 && isLast && onButtonClick && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {message.buttons.map((btn: MessageButton) => (
+              <button
+                key={btn.value}
+                onClick={() => onButtonClick(btn.value)}
+                className={cn(
+                  "px-4 py-2 text-sm rounded-full transition-colors",
+                  btn.variant === 'primary'
+                    ? "bg-teal-600 text-white hover:bg-teal-700"
+                    : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                {btn.label}
+              </button>
+            ))}
           </div>
         )}
       </div>

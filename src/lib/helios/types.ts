@@ -36,6 +36,12 @@ export interface MessageAttachment {
   url?: string;
 }
 
+export interface MessageButton {
+  label: string;
+  value: string;
+  variant?: 'default' | 'primary' | 'outline';
+}
+
 export interface Message {
   id?: string;
   message_id: string;
@@ -46,6 +52,9 @@ export interface Message {
   timestamp: string;
   attachments?: MessageAttachment[];
   redFlags?: RedFlag[];
+  buttons?: MessageButton[];
+  inputType?: 'text' | 'file' | 'date';
+  inputPlaceholder?: string;
 }
 
 export interface RedFlag {

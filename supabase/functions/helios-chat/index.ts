@@ -58,11 +58,248 @@ async function syncToDevProject(
 // TYPES
 // ============================================
 
-type Phase = 'intake' | 'chief_complaint' | 'history_taking' | 'triage' | 'differential' | 'plan' | 'documentation' | 'completed' | 'escalated';
+type Phase = 'intake' | 'chief_complaint' | 'history_taking' | 'triage' | 'differential' | 'plan' | 'documentation' | 'completed' | 'escalated' | 'prescription_refill' | 'prescription_new';
 type Severity = 'low' | 'moderate' | 'high' | 'critical';
 type EscalationLevel = 'emergency' | 'urgent' | 'flag_only';
 type TriageLevel = 1 | 2 | 3 | 4 | 5;
 type Language = 'en' | 'es' | 'fr';
+
+// ============================================
+// PRESCRIPTION FLOW TYPES
+// ============================================
+
+type PrescriptionFlowType = 'refill' | 'new' | null;
+
+interface PrescriptionFlowStep {
+  step: number;
+  question: string;
+  field: string;
+  inputType?: 'text' | 'buttons' | 'file';
+  buttons?: Array<{ label: string; value: string }>;
+  placeholder?: string;
+}
+
+interface PrescriptionFlowState {
+  type: PrescriptionFlowType;
+  currentStep: number;
+  data: Record<string, string | boolean>;
+}
+
+// Refill flow steps
+const REFILL_FLOW_STEPS: PrescriptionFlowStep[] = [
+  {
+    step: 0,
+    question: "Have you taken this medication before?",
+    field: "previously_taken",
+    inputType: "buttons",
+    buttons: [
+      { label: "Yes, I've taken it before", value: "yes" },
+      { label: "No, this is new to me", value: "no" }
+    ]
+  },
+  {
+    step: 1,
+    question: "What is the name of the medication you need refilled?",
+    field: "medication_name",
+    inputType: "text",
+    placeholder: "e.g., Lisinopril, Metformin, Atorvastatin"
+  },
+  {
+    step: 2,
+    question: "What dosage are you currently taking?",
+    field: "dosage",
+    inputType: "text",
+    placeholder: "e.g., 10mg, 500mg, 20mg"
+  },
+  {
+    step: 3,
+    question: "How often do you take this medication?",
+    field: "frequency",
+    inputType: "buttons",
+    buttons: [
+      { label: "Once daily", value: "once_daily" },
+      { label: "Twice daily", value: "twice_daily" },
+      { label: "Three times daily", value: "three_times_daily" },
+      { label: "As needed", value: "as_needed" },
+      { label: "Other", value: "other" }
+    ]
+  },
+  {
+    step: 4,
+    question: "Do you have a copy of your current prescription or medication bottle? If so, please upload a photo.",
+    field: "prescription_photo",
+    inputType: "buttons",
+    buttons: [
+      { label: "📷 Upload Photo", value: "upload_photo" },
+      { label: "I don't have one", value: "no_photo" }
+    ]
+  },
+  {
+    step: 5,
+    question: "What is the name of the doctor who originally prescribed this medication?",
+    field: "prescribing_doctor",
+    inputType: "text",
+    placeholder: "Dr. Smith, Dr. Johnson, etc."
+  },
+  {
+    step: 6,
+    question: "Please provide your full legal name for the prescription.",
+    field: "patient_name",
+    inputType: "text",
+    placeholder: "First and Last Name"
+  },
+  {
+    step: 7,
+    question: "What is your date of birth?",
+    field: "date_of_birth",
+    inputType: "text",
+    placeholder: "MM/DD/YYYY"
+  },
+  {
+    step: 8,
+    question: "What is your current address for the prescription?",
+    field: "address",
+    inputType: "text",
+    placeholder: "Street Address, City, State, ZIP"
+  }
+];
+
+// New prescription flow steps (starts with symptom collection, then patient info)
+const NEW_RX_INITIAL_STEPS: PrescriptionFlowStep[] = [
+  {
+    step: 0,
+    question: "I'll help you request a new prescription. First, let me understand your symptoms. What health concern brings you here today?",
+    field: "chief_complaint",
+    inputType: "text",
+    placeholder: "Describe your symptoms..."
+  }
+];
+
+const NEW_RX_PATIENT_INFO_STEPS: PrescriptionFlowStep[] = [
+  {
+    step: 100,
+    question: "Thank you for sharing that information. To proceed with the prescription request, please provide your full legal name.",
+    field: "patient_name",
+    inputType: "text",
+    placeholder: "First and Last Name"
+  },
+  {
+    step: 101,
+    question: "What is your date of birth?",
+    field: "date_of_birth",
+    inputType: "text",
+    placeholder: "MM/DD/YYYY"
+  },
+  {
+    step: 102,
+    question: "What is your current address?",
+    field: "address",
+    inputType: "text",
+    placeholder: "Street Address, City, State, ZIP"
+  }
+];
+
+function detectPrescriptionIntent(message: string): PrescriptionFlowType {
+  const lowerMessage = message.toLowerCase();
+  
+  const refillKeywords = [
+    'prescription refill', 'refill prescription', 'refill my', 'need refill',
+    'medication refill', 'refill medication', 'renew prescription', 'renew my',
+    'refill request', 'refill_prescription', 'prescription_refill'
+  ];
+  
+  const newRxKeywords = [
+    'new prescription', 'need prescription', 'get prescription', 'prescription for',
+    'new medication', 'need medication', 'new_prescription', 'prescription_new'
+  ];
+  
+  if (refillKeywords.some(kw => lowerMessage.includes(kw))) {
+    return 'refill';
+  }
+  
+  if (newRxKeywords.some(kw => lowerMessage.includes(kw))) {
+    return 'new';
+  }
+  
+  return null;
+}
+
+function getNextPrescriptionStep(
+  flowState: PrescriptionFlowState,
+  language: Language
+): { message: string; buttons?: Array<{ label: string; value: string }>; inputType?: string; placeholder?: string; isComplete: boolean } {
+  const steps = flowState.type === 'refill' ? REFILL_FLOW_STEPS : 
+                flowState.currentStep >= 100 ? NEW_RX_PATIENT_INFO_STEPS :
+                NEW_RX_INITIAL_STEPS;
+  
+  const currentStep = steps.find(s => s.step === flowState.currentStep);
+  
+  if (!currentStep) {
+    // Flow complete
+    const frequencyVal = flowState.data.frequency;
+    const frequencyDisplay = typeof frequencyVal === 'string' ? frequencyVal.replace('_', ' ') : 'Not specified';
+    
+    return {
+      message: flowState.type === 'refill' 
+        ? "Thank you! I have all the information needed for your prescription refill request. Here's a summary of your request:\n\n" +
+          `**Medication:** ${flowState.data.medication_name || 'Not specified'}\n` +
+          `**Dosage:** ${flowState.data.dosage || 'Not specified'}\n` +
+          `**Frequency:** ${frequencyDisplay}\n` +
+          `**Prescribing Doctor:** ${flowState.data.prescribing_doctor || 'Not specified'}\n\n` +
+          "A licensed physician will review your request. They may approve it, request more information, or schedule a brief video consultation.\n\n" +
+          "Would you like to proceed to payment to submit your refill request?"
+        : "Thank you! Based on your symptoms and information, a licensed physician will review your case. They may:\n\n" +
+          "• Approve a prescription if appropriate\n" +
+          "• Request additional information\n" +
+          "• Schedule a video consultation\n\n" +
+          "**Important:** Prescription decisions are made by licensed physicians, not AI.\n\n" +
+          "Would you like to proceed to payment to submit your request?",
+      buttons: [
+        { label: "Proceed to Payment", value: "proceed_payment" },
+        { label: "Cancel Request", value: "cancel_request" }
+      ],
+      isComplete: true
+    };
+  }
+  
+  return {
+    message: currentStep.question,
+    buttons: currentStep.buttons,
+    inputType: currentStep.inputType,
+    placeholder: currentStep.placeholder,
+    isComplete: false
+  };
+}
+
+function processRefillFlowStep(
+  flowState: PrescriptionFlowState,
+  userMessage: string
+): PrescriptionFlowState {
+  const steps = REFILL_FLOW_STEPS;
+  const currentStep = steps.find(s => s.step === flowState.currentStep);
+  
+  if (!currentStep) return flowState;
+  
+  // Store the response
+  const newData = { ...flowState.data, [currentStep.field]: userMessage };
+  
+  // Special handling for "no" on first question
+  if (currentStep.step === 0 && userMessage.toLowerCase() === 'no') {
+    // Redirect to new prescription flow
+    return {
+      type: 'new',
+      currentStep: 0,
+      data: {}
+    };
+  }
+  
+  // Move to next step
+  return {
+    ...flowState,
+    currentStep: flowState.currentStep + 1,
+    data: newData
+  };
+}
 
 interface RedFlag {
   flag_id: string;
@@ -1064,6 +1301,10 @@ interface HandleMessageResult {
   triageLevel?: TriageLevel;
   phase: Phase;
   redFlags: RedFlag[];
+  // Prescription flow fields
+  buttons?: Array<{ label: string; value: string }>;
+  inputType?: string;
+  inputPlaceholder?: string;
 }
 
 async function handleMessage(
@@ -1119,6 +1360,67 @@ async function handleMessage(
       oldcartsProgress: oldcarts.completenessPercentage,
       phase: "escalated",
       redFlags: safetyResult.redFlags,
+    };
+  }
+
+  // 2.5. Check for prescription flow
+  let prescriptionFlow: PrescriptionFlowState | null = session.prescription_flow || null;
+  const prescriptionIntent = detectPrescriptionIntent(userMessage);
+  
+  // Start a new prescription flow if intent detected and not already in one
+  if (prescriptionIntent && !prescriptionFlow) {
+    prescriptionFlow = { type: prescriptionIntent, currentStep: 0, data: {} };
+    const stepResult = getNextPrescriptionStep(prescriptionFlow, language);
+    
+    const now = new Date().toISOString();
+    await supabase.from("helios_sessions").update({
+      prescription_flow: prescriptionFlow,
+      current_phase: prescriptionIntent === 'refill' ? 'prescription_refill' : 'prescription_new',
+      messages: [...history, 
+        { role: "user", content: userMessage, message_id: crypto.randomUUID(), timestamp: now },
+        { role: "assistant", content: stepResult.message, message_id: crypto.randomUUID(), timestamp: now }
+      ],
+      updated_at: now,
+    }).eq("session_id", sessionId);
+    
+    return {
+      message: stepResult.message,
+      buttons: stepResult.buttons,
+      inputType: stepResult.inputType,
+      inputPlaceholder: stepResult.placeholder,
+      assessmentReady: false,
+      recommendDoctor: false,
+      oldcartsProgress: 0,
+      phase: prescriptionIntent === 'refill' ? 'prescription_refill' : 'prescription_new',
+      redFlags: [],
+    };
+  }
+  
+  // Continue existing prescription flow
+  if (prescriptionFlow && (currentPhase === 'prescription_refill' || currentPhase === 'prescription_new')) {
+    prescriptionFlow = processRefillFlowStep(prescriptionFlow, userMessage);
+    const stepResult = getNextPrescriptionStep(prescriptionFlow, language);
+    
+    const now = new Date().toISOString();
+    await supabase.from("helios_sessions").update({
+      prescription_flow: prescriptionFlow,
+      messages: [...history,
+        { role: "user", content: userMessage, message_id: crypto.randomUUID(), timestamp: now },
+        { role: "assistant", content: stepResult.message, message_id: crypto.randomUUID(), timestamp: now }
+      ],
+      updated_at: now,
+    }).eq("session_id", sessionId);
+    
+    return {
+      message: stepResult.message,
+      buttons: stepResult.buttons,
+      inputType: stepResult.inputType,
+      inputPlaceholder: stepResult.placeholder,
+      assessmentReady: stepResult.isComplete,
+      recommendDoctor: stepResult.isComplete,
+      oldcartsProgress: 0,
+      phase: currentPhase,
+      redFlags: [],
     };
   }
 
@@ -1428,6 +1730,10 @@ serve(async (req) => {
         dissenting_opinions: result.orchestration?.consensus.dissenting_opinions,
         recommend_doctor: result.recommendDoctor,
         ui_triggers: uiTriggers,
+        // Prescription flow fields
+        buttons: result.buttons,
+        input_type: result.inputType,
+        input_placeholder: result.inputPlaceholder,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
