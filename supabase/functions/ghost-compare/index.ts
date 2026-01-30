@@ -221,10 +221,13 @@ serve(async (req) => {
 
         const latency = Date.now() - startTime;
 
+        // Mask provider for SwissVault models (don't expose underlying Google/OpenAI)
+        const displayProvider = modelKey.startsWith('swissvault') ? 'SwissVault' : config.provider;
+        
         return {
           model: modelKey,
           displayName: config.displayName,
-          provider: config.provider,
+          provider: displayProvider,
           response: result.text,
           tokens: result.tokens,
           latency,
@@ -239,10 +242,13 @@ serve(async (req) => {
         return result.value;
       } else {
         const config = MODEL_CONFIGS[models[index]];
+        const modelKey = models[index];
+        // Mask provider for SwissVault models even in error case
+        const displayProvider = modelKey.startsWith('swissvault') ? 'SwissVault' : (config?.provider || 'unknown');
         return {
-          model: models[index],
-          displayName: config?.displayName || models[index],
-          provider: config?.provider || 'unknown',
+          model: modelKey,
+          displayName: config?.displayName || modelKey,
+          provider: displayProvider,
           response: null,
           error: result.reason?.message || 'Unknown error',
           tokens: 0,

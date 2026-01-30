@@ -1048,6 +1048,14 @@ function calculateTriageLevel(
 interface HandleMessageResult {
   message: string;
   assessmentReady: boolean;
+  triggerOrchestrator?: boolean;
+  orchestratorPayload?: {
+    session_id: string;
+    chief_complaint: string;
+    oldcarts_data: Record<string, unknown>;
+    symptoms: string[];
+    patient_demographics: Record<string, unknown>;
+  };
   consensus?: ConsensusResult;
   orchestration?: OrchestrationResponse;
   soapNote?: string;
@@ -1229,28 +1237,30 @@ async function handleMessage(
   }
 
   // Store full orchestration result with dissenting opinions and safety data
-  if (orchestration) {
+  // Use type assertion since TypeScript narrows to never when variable is unused in current path
+  const orchestrationData = orchestration as OrchestrationResponse | null;
+  if (orchestrationData) {
     updateData.orchestration_result = {
-      consensus: orchestration.consensus,
-      triage: orchestration.triage,
-      plan: orchestration.plan,
-      safety: orchestration.safety,
-      processing_time_ms: orchestration.processing_time_ms,
+      consensus: orchestrationData.consensus,
+      triage: orchestrationData.triage,
+      plan: orchestrationData.plan,
+      safety: orchestrationData.safety,
+      processing_time_ms: orchestrationData.processing_time_ms,
     };
 
     // Store dissenting opinions separately for easy access
-    if (orchestration.consensus.dissenting_opinions?.length) {
-      updateData.dissenting_opinions = orchestration.consensus.dissenting_opinions;
+    if (orchestrationData.consensus.dissenting_opinions?.length) {
+      updateData.dissenting_opinions = orchestrationData.consensus.dissenting_opinions;
     }
 
     // Update triage level from orchestrator if available
-    if (orchestration.triage.esi_level) {
-      updateData.triage_level = orchestration.triage.esi_level;
+    if (orchestrationData.triage.esi_level) {
+      updateData.triage_level = orchestrationData.triage.esi_level;
     }
 
     // Update disposition from orchestrator
-    if (orchestration.triage.disposition) {
-      updateData.disposition = orchestration.triage.disposition;
+    if (orchestrationData.triage.disposition) {
+      updateData.disposition = orchestrationData.triage.disposition;
     }
   }
 
@@ -1286,11 +1296,11 @@ async function handleMessage(
     triggerOrchestrator: shouldTriggerOrchestrator,
     orchestratorPayload,
     consensus: consensus || undefined,
-    orchestration: orchestration || undefined,
+    orchestration: orchestrationData || undefined,
     soapNote,
     recommendDoctor: triageLevel <= 3,
     oldcartsProgress: oldcarts.completenessPercentage,
-    triageLevel: orchestration?.triage.esi_level || triageLevel,
+    triageLevel: orchestrationData?.triage.esi_level || triageLevel,
     phase: newPhase,
     redFlags: safetyResult.redFlags,
   };
