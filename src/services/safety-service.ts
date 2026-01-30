@@ -90,6 +90,7 @@ export interface AuditLogEntry {
 // Maps to helios.audit_event_type enum in database
 export type AuditEventType =
   | 'session_started'
+  | 'session_start'
   | 'phase_transition'
   | 'message_received'
   | 'message_sent'
@@ -104,7 +105,11 @@ export type AuditEventType =
   | 'session_completed'
   | 'voice_processed'
   | 'emotion_detected'
-  | 'error_occurred';
+  | 'error_occurred'
+  | 'confidence_gated'
+  | 'diagnosis_filtered'
+  | 'emergency_detected'
+  | 'human_escalation';
 
 // Safety-specific event type mapping
 const SAFETY_EVENT_MAP = {
@@ -869,48 +874,13 @@ export async function logAuditEvent(
     ...eventPayload,
   }, null, 2));
 
-  // Store in helios.audit_log table
-  try {
-    // Using raw SQL via RPC for schema-qualified table access
-    const { error } = await supabase.rpc('insert_audit_log', {
-      p_session_id: entry.sessionId,
-      p_event_type: mappedEventType,
-      p_actor_type: 'safety_service',
-      p_actor_id: 'helios_safety_v1',
-      p_event_payload: eventPayload,
-      p_language: language,
-      p_previous_hash: lastEventHash,
-      p_event_hash: eventHash,
-    });
-
-    if (error) {
-      // Fallback: try direct insert if RPC not available
-      console.warn('[AUDIT] RPC not available, using direct insert');
-      const { error: directError } = await supabase
-        .from('helios_audit_log')
-        .insert({
-          session_id: entry.sessionId,
-          event_type: mappedEventType,
-          actor_type: 'safety_service',
-          actor_id: 'helios_safety_v1',
-          event_payload: eventPayload,
-          language,
-          previous_hash: lastEventHash,
-          event_hash: eventHash,
-        });
-
-      if (directError) {
-        console.error('[AUDIT] Failed to store audit log:', directError);
-      } else {
-        lastEventHash = eventHash;
-      }
-    } else {
-      // Update hash chain on success
-      lastEventHash = eventHash;
-    }
-  } catch (err) {
-    console.error('[AUDIT] Database error:', err);
-  }
+  // Store in helios.audit_log table - disabled until table is created
+  // For now, just log to console
+  console.log('[AUDIT] Entry logged (DB disabled):', {
+    session_id: entry.sessionId,
+    event_type: mappedEventType,
+    timestamp,
+  });
 }
 
 /**

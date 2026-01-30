@@ -264,9 +264,11 @@ export class ICD10CacheService {
       return { ...memoryEntry.result, cached: true };
     }
 
-    // Check L2 (Supabase) cache
+    // Check L2 (Supabase) cache - disabled until icd10_cache table is created
+    // For now, only use L1 memory cache
+    /*
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('icd10_cache')
         .select('response_json, expires_at')
         .eq('query_hash', queryHash)
@@ -276,31 +278,25 @@ export class ICD10CacheService {
 
       const expiresAt = new Date(data.expires_at).getTime();
       if (expiresAt < now) {
-        // Expired, clean up
         await this.delete(queryHash);
         return null;
       }
 
       const result = data.response_json as ICD10SearchResult;
 
-      // Promote to L1 cache
       this.memoryCache.set(queryHash, {
         result,
         timestamp: now,
         expiresAt: now + this.L1_TTL_MS,
       });
 
-      // Update hit count
-      await supabase
-        .from('icd10_cache')
-        .update({ hit_count: supabase.rpc('increment_hit_count') })
-        .eq('query_hash', queryHash);
-
       return { ...result, cached: true };
     } catch (err) {
       console.warn('[ICD10Cache] L2 cache read error:', err);
       return null;
     }
+    */
+    return null;
   }
 
   /**
@@ -316,9 +312,10 @@ export class ICD10CacheService {
       expiresAt: now + this.L1_TTL_MS,
     });
 
-    // Store in L2 (Supabase)
+    // Store in L2 (Supabase) - disabled until icd10_cache table is created
+    /*
     try {
-      await supabase.from('icd10_cache').upsert(
+      await (supabase as any).from('icd10_cache').upsert(
         {
           query_hash: queryHash,
           query_text: queryText,
@@ -331,6 +328,7 @@ export class ICD10CacheService {
     } catch (err) {
       console.warn('[ICD10Cache] L2 cache write error:', err);
     }
+    */
   }
 
   /**
@@ -338,12 +336,7 @@ export class ICD10CacheService {
    */
   async delete(queryHash: string): Promise<void> {
     this.memoryCache.delete(queryHash);
-
-    try {
-      await supabase.from('icd10_cache').delete().eq('query_hash', queryHash);
-    } catch (err) {
-      console.warn('[ICD10Cache] Cache delete error:', err);
-    }
+    // L2 delete disabled until icd10_cache table is created
   }
 
   /**
@@ -367,21 +360,11 @@ export class ICD10CacheService {
 
   /**
    * Cleanup expired L2 entries (call periodically via cron)
+   * Disabled until icd10_cache table is created
    */
   async cleanupExpired(): Promise<number> {
-    try {
-      const { data, error } = await supabase
-        .from('icd10_cache')
-        .delete()
-        .lt('expires_at', new Date().toISOString())
-        .select('query_hash');
-
-      if (error) throw error;
-      return data?.length || 0;
-    } catch (err) {
-      console.error('[ICD10Cache] L2 cleanup error:', err);
-      return 0;
-    }
+    // L2 cleanup disabled until icd10_cache table is created
+    return 0;
   }
 
   /**
@@ -400,12 +383,7 @@ export class ICD10CacheService {
    */
   async clear(): Promise<void> {
     this.memoryCache.clear();
-
-    try {
-      await supabase.from('icd10_cache').delete().neq('query_hash', '');
-    } catch (err) {
-      console.error('[ICD10Cache] Clear error:', err);
-    }
+    // L2 clear disabled until icd10_cache table is created
   }
 }
 

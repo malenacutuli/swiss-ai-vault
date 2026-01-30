@@ -24,72 +24,8 @@ interface UITriggers {
   showSummary: boolean;
 }
 
-// OrchestrationResponse from helios-orchestrator
-interface OrchestrationResponse {
-  session_id: string;
-  consensus: {
-    achieved: boolean;
-    agreement_score: number;
-    kendall_w: number;
-    rounds_required: number;
-    consensus_reached: boolean;
-    participating_agents: string[];
-    primary_diagnosis: {
-      rank: number;
-      diagnosis: string;
-      confidence: number;
-      reasoning: string;
-      supporting_experts: string[];
-      icd10_code: string;
-      icd10_name: string;
-    };
-    differential_diagnoses: Array<{
-      rank: number;
-      diagnosis: string;
-      confidence: number;
-      reasoning: string;
-      supporting_experts: string[];
-      icd10_code: string;
-      icd10_name: string;
-    }>;
-    dissenting_opinions?: Array<{
-      agent_id: string;
-      diagnosis: string;
-      reasoning: string;
-    }>;
-  };
-  triage: {
-    esi_level: 1 | 2 | 3 | 4 | 5;
-    disposition: string;
-    urgency: string;
-    reasoning: string;
-    human_review_required?: boolean;
-  };
-  plan: {
-    immediate_actions: string[];
-    lab_tests: string[];
-    imaging: string[];
-    referrals: string[];
-    medications?: string[];
-    patient_education?: string[];
-    follow_up: string;
-    red_flag_warnings?: string[];
-  };
-  safety: {
-    critical_finding: boolean;
-    human_review_required: boolean;
-    red_flags_identified: string[];
-    confidence_level: string;
-  };
-  soap_note: {
-    subjective: string;
-    objective: string;
-    assessment: string;
-    plan: string;
-  };
-  processing_time_ms: number;
-  experts_consulted: number;
-}
+// Import OrchestrationResponse from AssessmentPanel to ensure type compatibility
+import type { OrchestrationResponse } from '@/components/helios/assessment/AssessmentPanel';
 
 interface UseHeliosChatReturn {
   messages: Message[];

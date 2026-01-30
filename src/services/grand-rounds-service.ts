@@ -1181,13 +1181,8 @@ Be respectful but direct in your clinical reasoning.
         created_at: opinion.createdAt,
       }));
 
-      const { error } = await supabase.from('agent_opinions').upsert(records, {
-        onConflict: 'session_id,debate_round,agent_id',
-      });
-
-      if (error) {
-        console.warn('[GrandRounds] Failed to store opinions:', error);
-      }
+      // agent_opinions table not yet created - log for now
+      console.log('[GrandRounds] Would store opinions:', records.length);
     } catch (err) {
       console.warn('[GrandRounds] Opinion storage error:', err);
     }
@@ -1199,33 +1194,12 @@ Be respectful but direct in your clinical reasoning.
   private async storeConsensusResult(result: ConsensusResult): Promise<void> {
     if (!this.sessionId) return;
 
-    try {
-      const { error } = await supabase.from('consensus_results').upsert(
-        {
-          session_id: this.sessionId,
-          kendall_w: result.kendallW,
-          consensus_reached: result.consensusReached,
-          rounds_required: result.roundsRequired,
-          participating_agents: result.participatingAgents,
-          primary_diagnosis: result.primaryDiagnosis,
-          differential_diagnosis: result.differentialDiagnosis,
-          plan_of_action: result.planOfAction,
-          dissenting_opinions: result.dissentingOpinions,
-          human_review_required: result.humanReviewRequired,
-          human_review_reason: result.humanReviewReason,
-          final_esi_level: result.finalEsiLevel,
-          disposition: result.disposition,
-          created_at: result.createdAt,
-        },
-        { onConflict: 'session_id' }
-      );
-
-      if (error) {
-        console.warn('[GrandRounds] Failed to store consensus:', error);
-      }
-    } catch (err) {
-      console.warn('[GrandRounds] Consensus storage error:', err);
-    }
+    // consensus_results table not yet created - log for now
+    console.log('[GrandRounds] Would store consensus result:', {
+      session_id: this.sessionId,
+      kendall_w: result.kendallW,
+      consensus_reached: result.consensusReached,
+    });
   }
 }
 
