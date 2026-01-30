@@ -787,10 +787,31 @@
     "subtitle": "El teu company de salut amb IA",
     "welcome": "Hola! Sóc el teu assistent de salut. Com puc ajudar-te avui?",
     "inputPlaceholder": "Descriu els teus símptomes o fes una pregunta de salut...",
-    "disclaimer": "Això no substitueix el consell mèdic professional. En cas d'emergència, truca als serveis d'emergència immediatament.",
     "endSession": "Finalitzar i Desar",
     "newConsult": "Nova Consulta",
     "viewHistory": "Veure Historial",
+    "nav": {
+      "newConsult": "Nova Consulta",
+      "consults": "Consultes",
+      "healthRecord": "Historial Mèdic",
+      "appointments": "Cites",
+      "specialistConsults": "Consultes IA Especialistes"
+    },
+    "specialties": {
+      "primaryCare": "Atenció Primària",
+      "dermatology": "Dermatologia",
+      "womensHealth": "Salut de la Dona",
+      "mentalHealth": "Salut Mental",
+      "pediatrics": "Pediatria",
+      "cardiology": "Cardiologia"
+    },
+    "privacy": {
+      "badge": "Xifrat d'extrem a extrem • Les dades romanen al teu dispositiu"
+    },
+    "disclaimer": {
+      "discussWithDoctor": "Sempre discuteix els resultats d'HELIOS amb un metge",
+      "aiAssistant": " HELIOS és un assistent de salut amb IA, no és un metge llicenciat, no practica medicina i no proporciona consells ni atenció mèdica."
+    },
     "chat": {
       "thinking": "Analitzant...",
       "error": "S'ha produït un error. Si us plau, torna-ho a provar.",
@@ -830,7 +851,6 @@
       "address": "Adreça",
       "summary": "Resum de Sol·licitud",
       "confirm": "Confirmar Sol·licitud",
-      "disclaimer": "Un metge revisarà i podrà aprovar, sol·licitar més informació o programar una videotrucada.",
       "questions": {
         "takenBefore": "Has pres aquest medicament abans?",
         "whatMedication": "Quin és el nom del medicament?",

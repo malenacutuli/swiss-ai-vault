@@ -1672,10 +1672,31 @@
     "subtitle": "Ihr KI-gestützter Gesundheitsbegleiter",
     "welcome": "Hallo! Ich bin Ihr Gesundheitsassistent. Wie kann ich Ihnen heute helfen?",
     "inputPlaceholder": "Beschreiben Sie Ihre Symptome oder stellen Sie eine Gesundheitsfrage...",
-    "disclaimer": "Dies ersetzt keine professionelle medizinische Beratung. Im Notfall rufen Sie sofort den Notruf an.",
     "endSession": "Beenden und Speichern",
     "newConsult": "Neue Konsultation",
     "viewHistory": "Verlauf anzeigen",
+    "nav": {
+      "newConsult": "Neue Konsultation",
+      "consults": "Konsultationen",
+      "healthRecord": "Gesundheitsakte",
+      "appointments": "Termine",
+      "specialistConsults": "KI-Facharzt-Konsultationen"
+    },
+    "specialties": {
+      "primaryCare": "Allgemeinmedizin",
+      "dermatology": "Dermatologie",
+      "womensHealth": "Frauengesundheit",
+      "mentalHealth": "Psychische Gesundheit",
+      "pediatrics": "Pädiatrie",
+      "cardiology": "Kardiologie"
+    },
+    "privacy": {
+      "badge": "Ende-zu-Ende-Verschlüsselung • Daten bleiben auf Ihrem Gerät"
+    },
+    "disclaimer": {
+      "discussWithDoctor": "Besprechen Sie HELIOS-Ergebnisse immer mit einem Arzt",
+      "aiAssistant": " HELIOS ist ein KI-Gesundheitsassistent, kein zugelassener Arzt, praktiziert keine Medizin und bietet keine medizinische Beratung oder Versorgung."
+    },
     "chat": {
       "thinking": "Analyse...",
       "error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
@@ -1715,7 +1736,6 @@
       "address": "Adresse",
       "summary": "Anfragezusammenfassung",
       "confirm": "Anfrage bestätigen",
-      "disclaimer": "Ein Arzt wird prüfen und kann genehmigen, weitere Informationen anfordern oder einen Videoanruf vereinbaren.",
       "questions": {
         "takenBefore": "Haben Sie dieses Medikament schon einmal eingenommen?",
         "whatMedication": "Wie heißt das Medikament?",

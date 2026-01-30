@@ -1588,10 +1588,31 @@
     "subtitle": "Seu companheiro de saúde com IA",
     "welcome": "Olá! Sou seu assistente de saúde. Como posso ajudá-lo hoje?",
     "inputPlaceholder": "Descreva seus sintomas ou faça uma pergunta sobre saúde...",
-    "disclaimer": "Isto não substitui aconselhamento médico profissional. Em caso de emergência, ligue para os serviços de emergência imediatamente.",
     "endSession": "Finalizar e Salvar",
     "newConsult": "Nova Consulta",
     "viewHistory": "Ver Histórico",
+    "nav": {
+      "newConsult": "Nova Consulta",
+      "consults": "Consultas",
+      "healthRecord": "Prontuário Médico",
+      "appointments": "Agendamentos",
+      "specialistConsults": "Consultas IA Especialistas"
+    },
+    "specialties": {
+      "primaryCare": "Clínica Geral",
+      "dermatology": "Dermatologia",
+      "womensHealth": "Saúde da Mulher",
+      "mentalHealth": "Saúde Mental",
+      "pediatrics": "Pediatria",
+      "cardiology": "Cardiologia"
+    },
+    "privacy": {
+      "badge": "Criptografia ponta a ponta • Dados permanecem no seu dispositivo"
+    },
+    "disclaimer": {
+      "discussWithDoctor": "Sempre discuta os resultados do HELIOS com um médico",
+      "aiAssistant": " O HELIOS é um assistente de saúde com IA, não é um médico licenciado, não pratica medicina e não fornece aconselhamento ou cuidados médicos."
+    },
     "chat": {
       "thinking": "Analisando...",
       "error": "Ocorreu um erro. Por favor, tente novamente.",
@@ -1631,7 +1652,6 @@
       "address": "Endereço",
       "summary": "Resumo da Solicitação",
       "confirm": "Confirmar Solicitação",
-      "disclaimer": "Um médico revisará e poderá aprovar, solicitar mais informações ou agendar uma videochamada.",
       "questions": {
         "takenBefore": "Você já tomou este medicamento antes?",
         "whatMedication": "Qual é o nome do medicamento?",

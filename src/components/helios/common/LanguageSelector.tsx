@@ -24,6 +24,10 @@ const LANGUAGES: Array<{ code: SupportedLanguage; name: string; nativeName: stri
   { code: 'en', name: 'English', nativeName: 'English' },
   { code: 'es', name: 'Spanish', nativeName: 'Español' },
   { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+  { code: 'ca', name: 'Catalan', nativeName: 'Català' },
 ];
 
 export function LanguageSelector({ value, onChange, variant = 'default' }: LanguageSelectorProps) {

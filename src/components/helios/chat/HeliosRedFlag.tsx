@@ -22,28 +22,32 @@ export function HeliosRedFlag({ flag, language }: HeliosRedFlagProps) {
 
   const labels: Record<SupportedLanguage, Record<string, string>> = {
     en: {
-      emergency: 'EMERGENCY',
-      urgent: 'URGENT',
-      warning: 'WARNING',
-      call911: 'Call 911',
-      callEmergency: 'Call Emergency Services',
-      actionTaken: 'Action:',
+      emergency: 'EMERGENCY', urgent: 'URGENT', warning: 'WARNING',
+      call911: 'Call 911', callEmergency: 'Call Emergency Services', actionTaken: 'Action:',
     },
     es: {
-      emergency: 'EMERGENCIA',
-      urgent: 'URGENTE',
-      warning: 'ADVERTENCIA',
-      call911: 'Llame al 911',
-      callEmergency: 'Llamar a Emergencias',
-      actionTaken: 'Accion:',
+      emergency: 'EMERGENCIA', urgent: 'URGENTE', warning: 'ADVERTENCIA',
+      call911: 'Llame al 911', callEmergency: 'Llamar a Emergencias', actionTaken: 'Accion:',
     },
     fr: {
-      emergency: 'URGENCE',
-      urgent: 'URGENT',
-      warning: 'AVERTISSEMENT',
-      call911: 'Appelez le 15',
-      callEmergency: 'Appeler les Urgences',
-      actionTaken: 'Action:',
+      emergency: 'URGENCE', urgent: 'URGENT', warning: 'AVERTISSEMENT',
+      call911: 'Appelez le 15', callEmergency: 'Appeler les Urgences', actionTaken: 'Action:',
+    },
+    de: {
+      emergency: 'NOTFALL', urgent: 'DRINGEND', warning: 'WARNUNG',
+      call911: 'Rufen Sie 112', callEmergency: 'Notdienst anrufen', actionTaken: 'Aktion:',
+    },
+    pt: {
+      emergency: 'EMERGÊNCIA', urgent: 'URGENTE', warning: 'AVISO',
+      call911: 'Ligue 112', callEmergency: 'Ligar para Emergência', actionTaken: 'Ação:',
+    },
+    it: {
+      emergency: 'EMERGENZA', urgent: 'URGENTE', warning: 'ATTENZIONE',
+      call911: 'Chiama 118', callEmergency: 'Chiamare Emergenza', actionTaken: 'Azione:',
+    },
+    ca: {
+      emergency: 'EMERGÈNCIA', urgent: 'URGENT', warning: 'AVÍS',
+      call911: 'Truqueu al 112', callEmergency: 'Trucar Emergències', actionTaken: 'Acció:',
     },
   };
 
@@ -62,12 +66,13 @@ export function HeliosRedFlag({ flag, language }: HeliosRedFlagProps) {
 
   const getEmergencyNumber = () => {
     switch (language) {
-      case 'fr':
-        return '15'; // SAMU in France
-      case 'es':
-        return '911';
-      default:
-        return '911';
+      case 'fr': return '15'; // SAMU in France
+      case 'es': return '911';
+      case 'de': return '112';
+      case 'pt': return '112';
+      case 'it': return '118';
+      case 'ca': return '112';
+      default: return '911';
     }
   };
 
@@ -129,13 +134,13 @@ export function HeliosRedFlag({ flag, language }: HeliosRedFlagProps) {
 }
 
 function getEmergencyLink(language: SupportedLanguage): string {
-  // Links to local emergency services info pages
   switch (language) {
-    case 'fr':
-      return 'https://www.samu-de-france.fr/';
-    case 'es':
-      return 'https://www.911.gov/';
-    default:
-      return 'https://www.911.gov/';
+    case 'fr': return 'https://www.samu-de-france.fr/';
+    case 'es': return 'https://www.911.gov/';
+    case 'de': return 'https://www.notruf-112.de/';
+    case 'pt': return 'https://www.inem.pt/';
+    case 'it': return 'https://www.118.it/';
+    case 'ca': return 'https://112.gencat.cat/';
+    default: return 'https://www.911.gov/';
   }
 }

@@ -3,7 +3,7 @@
  * Shared types for React components
  */
 
-export type SupportedLanguage = 'en' | 'es' | 'fr';
+export type SupportedLanguage = 'en' | 'es' | 'fr' | 'de' | 'pt' | 'it' | 'ca';
 
 export type Phase =
   | 'intake'
