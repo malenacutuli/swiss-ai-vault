@@ -172,7 +172,12 @@ export function CompareResults({ result, onRate, onUseResponse }: CompareResults
       {/* Prompt shown above results */}
       <div className="p-3 rounded-lg bg-muted/50 border">
         <span className="text-xs font-medium text-muted-foreground">Your prompt:</span>
-        <p className="text-sm mt-1">{result.prompt}</p>
+        <p className="text-sm mt-1">{result.displayPrompt || result.prompt}</p>
+        {result.attachmentSummary && (
+          <Badge variant="secondary" className="mt-2 text-xs">
+            📎 {result.attachmentSummary}
+          </Badge>
+        )}
       </div>
 
       {/* Desktop View - Side by Side */}

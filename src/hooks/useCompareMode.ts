@@ -24,6 +24,8 @@ export interface CompareResponse {
 
 export interface CompareResult {
   prompt: string;
+  displayPrompt?: string;  // User-friendly prompt (without document text)
+  attachmentSummary?: string;  // Summary of attached files for UI display
   responses: CompareResponse[];
   timestamp: string;
 }
@@ -198,18 +200,28 @@ export function useCompareMode() {
 
     setIsComparing(true);
 
-    // Build document context from text-based attachments
+    // Build document context from text-based attachments (hidden from UI)
     let documentContext = '';
+    const documentNames: string[] = [];
     attachments?.forEach(att => {
       if (att.text) {
         documentContext += `\n\n=== ${att.name} ===\n${att.text.slice(0, 50000)}`;
+        documentNames.push(att.name);
       }
     });
 
-    // Build the full prompt with document context
+    // Build the full prompt with document context (sent to models)
     const fullPrompt = documentContext 
       ? `${prompt}\n\n--- ATTACHED DOCUMENTS ---${documentContext}`
       : prompt;
+    
+    // Display prompt is just the user's question (shown in UI)
+    const displayPrompt = prompt;
+    
+    // Build attachment summary for UI
+    const attachmentSummary = attachments && attachments.length > 0
+      ? `${attachments.length} file(s): ${attachments.map(a => a.name).join(', ')}`
+      : undefined;
 
     // Prepare image attachments for multimodal models
     const imageAttachments = hasImages 
@@ -237,6 +249,8 @@ export function useCompareMode() {
 
     setResult({
       prompt: fullPrompt,
+      displayPrompt,
+      attachmentSummary,
       responses: placeholderResponses,
       timestamp: nowIso,
     });
