@@ -17,3 +17,15 @@ export type {
   SOAPAssessment,
   SOAPPlan,
 } from './AssessmentPanel';
+
+export { AssessmentResultsPanel } from './AssessmentResultsPanel';
+export type {
+  AssessmentResultsPanelProps,
+  AssessmentData,
+  DiagnosisItem,
+  PlanCategory,
+  SOAPNote as ResultsSOAPNote,
+} from './AssessmentResultsPanel';
+
+export { assessmentTranslations, getAssessmentTranslation } from './assessmentTranslations';
+export type { AssessmentTranslationKey, SupportedAssessmentLanguage } from './assessmentTranslations';
