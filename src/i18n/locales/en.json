@@ -2582,6 +2582,131 @@
     "oldest": "Oldest",
     "name": "Name"
   },
+  "helios": {
+    "title": "Health Assistant",
+    "subtitle": "Your AI-powered health companion",
+    "welcome": "Hello! I'm your health assistant. How can I help you today?",
+    "inputPlaceholder": "Describe your symptoms or ask a health question...",
+    "disclaimer": "This is not a substitute for professional medical advice. In case of emergency, call emergency services immediately.",
+    "endSession": "End & Save",
+    "newConsult": "New Consultation",
+    "viewHistory": "View History",
+    "chat": {
+      "thinking": "Analyzing...",
+      "error": "An error occurred. Please try again.",
+      "sessionEnded": "Consultation ended",
+      "sessionSaved": "Your consultation has been saved"
+    },
+    "triage": {
+      "title": "Triage Assessment",
+      "level": "Urgency Level",
+      "recommendation": "Recommendation",
+      "emergency": "Emergency - Call 911 immediately",
+      "urgent": "Urgent - Seek care within 24 hours",
+      "semiUrgent": "Semi-urgent - Schedule appointment soon",
+      "routine": "Routine - Schedule regular appointment",
+      "selfCare": "Self-care - Monitor at home"
+    },
+    "disposition": {
+      "emergency": "Emergency",
+      "urgent_care": "Urgent Care",
+      "primary_care": "Primary Care",
+      "specialist": "Specialist",
+      "telehealth": "Telehealth",
+      "self_care": "Self Care"
+    },
+    "prescription": {
+      "title": "Prescription Request",
+      "refill": "Prescription Refill",
+      "new": "New Prescription",
+      "medicationName": "Medication name",
+      "dosage": "Dosage",
+      "frequency": "Frequency",
+      "prescribingDoctor": "Prescribing doctor",
+      "uploadPrescription": "Upload current prescription",
+      "patientInfo": "Patient Information",
+      "fullName": "Full name",
+      "dateOfBirth": "Date of birth",
+      "address": "Address",
+      "summary": "Request Summary",
+      "confirm": "Confirm Request",
+      "disclaimer": "A doctor will review and may approve, request more info, or schedule a video call.",
+      "questions": {
+        "takenBefore": "Have you taken this medication before?",
+        "whatMedication": "What is the medication name?",
+        "whatDosage": "What dosage are you taking?",
+        "howOften": "How often do you take it?",
+        "havePrescription": "Do you have a copy of your current prescription?",
+        "doctorName": "What is the name of your prescribing doctor?"
+      }
+    },
+    "specialty": {
+      "general": "General Health",
+      "dermatology": "Dermatology",
+      "cardiology": "Cardiology",
+      "pediatrics": "Pediatrics",
+      "mentalHealth": "Mental Health",
+      "womensHealth": "Women's Health",
+      "mensHealth": "Men's Health",
+      "nutrition": "Nutrition",
+      "sleep": "Sleep",
+      "chronicPain": "Chronic Pain"
+    },
+    "symptoms": {
+      "onset": "When did it start?",
+      "location": "Where is it located?",
+      "duration": "How long does it last?",
+      "character": "How would you describe it?",
+      "aggravating": "What makes it worse?",
+      "relieving": "What makes it better?",
+      "timing": "When does it occur?",
+      "severity": "How severe is it? (1-10)"
+    },
+    "emergency": {
+      "title": "Emergency Numbers",
+      "general": "Emergency",
+      "crisis": "Crisis Line",
+      "police": "Police",
+      "ambulance": "Ambulance",
+      "fire": "Fire",
+      "selectCountry": "Select your country",
+      "disclaimer": "For immediate emergencies, call your local emergency services."
+    },
+    "soap": {
+      "title": "Clinical Summary",
+      "subjective": "Subjective",
+      "objective": "Objective",
+      "assessment": "Assessment",
+      "plan": "Plan"
+    },
+    "booking": {
+      "title": "Book Appointment",
+      "selectProvider": "Select provider",
+      "selectDate": "Select date",
+      "selectTime": "Select time",
+      "confirmBooking": "Confirm booking",
+      "bookingConfirmed": "Your appointment has been confirmed"
+    },
+    "history": {
+      "title": "Consultation History",
+      "noHistory": "No previous consultations",
+      "viewDetails": "View Details",
+      "date": "Date",
+      "summary": "Summary",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "pending": "Pending Review"
+    },
+    "actions": {
+      "startChat": "Start Health Chat",
+      "askQuestion": "Ask a Question",
+      "uploadImage": "Upload Image",
+      "recordSymptoms": "Record Symptoms"
+    }
+  },
   "common": {
     "cancel": "Cancel"
   }

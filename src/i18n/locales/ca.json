@@ -781,5 +781,130 @@
     },
     "downloadWhitepaper": "Descarregar Document de Seguretat",
     "talkToCISO": "Parlar amb el nostre CISO"
+  },
+  "helios": {
+    "title": "Assistent de Salut",
+    "subtitle": "El teu company de salut amb IA",
+    "welcome": "Hola! Sóc el teu assistent de salut. Com puc ajudar-te avui?",
+    "inputPlaceholder": "Descriu els teus símptomes o fes una pregunta de salut...",
+    "disclaimer": "Això no substitueix el consell mèdic professional. En cas d'emergència, truca als serveis d'emergència immediatament.",
+    "endSession": "Finalitzar i Desar",
+    "newConsult": "Nova Consulta",
+    "viewHistory": "Veure Historial",
+    "chat": {
+      "thinking": "Analitzant...",
+      "error": "S'ha produït un error. Si us plau, torna-ho a provar.",
+      "sessionEnded": "Consulta finalitzada",
+      "sessionSaved": "La teva consulta s'ha desat"
+    },
+    "triage": {
+      "title": "Avaluació de Triatge",
+      "level": "Nivell d'Urgència",
+      "recommendation": "Recomanació",
+      "emergency": "Emergència - Truca al 112 immediatament",
+      "urgent": "Urgent - Busca atenció en 24 hores",
+      "semiUrgent": "Semi-urgent - Programa una cita aviat",
+      "routine": "Rutina - Programa una cita regular",
+      "selfCare": "Autocura - Monitora a casa"
+    },
+    "disposition": {
+      "emergency": "Emergència",
+      "urgent_care": "Urgències",
+      "primary_care": "Atenció Primària",
+      "specialist": "Especialista",
+      "telehealth": "Telesalut",
+      "self_care": "Autocura"
+    },
+    "prescription": {
+      "title": "Sol·licitud de Recepta",
+      "refill": "Renovació de Recepta",
+      "new": "Nova Recepta",
+      "medicationName": "Nom del medicament",
+      "dosage": "Dosi",
+      "frequency": "Freqüència",
+      "prescribingDoctor": "Metge prescriptor",
+      "uploadPrescription": "Pujar recepta actual",
+      "patientInfo": "Informació del Pacient",
+      "fullName": "Nom complet",
+      "dateOfBirth": "Data de naixement",
+      "address": "Adreça",
+      "summary": "Resum de Sol·licitud",
+      "confirm": "Confirmar Sol·licitud",
+      "disclaimer": "Un metge revisarà i podrà aprovar, sol·licitar més informació o programar una videotrucada.",
+      "questions": {
+        "takenBefore": "Has pres aquest medicament abans?",
+        "whatMedication": "Quin és el nom del medicament?",
+        "whatDosage": "Quina dosi estàs prenent?",
+        "howOften": "Amb quina freqüència el prens?",
+        "havePrescription": "Tens una còpia de la teva recepta actual?",
+        "doctorName": "Quin és el nom del metge que te'l va receptar?"
+      }
+    },
+    "specialty": {
+      "general": "Salut General",
+      "dermatology": "Dermatologia",
+      "cardiology": "Cardiologia",
+      "pediatrics": "Pediatria",
+      "mentalHealth": "Salut Mental",
+      "womensHealth": "Salut de la Dona",
+      "mensHealth": "Salut de l'Home",
+      "nutrition": "Nutrició",
+      "sleep": "Son",
+      "chronicPain": "Dolor Crònic"
+    },
+    "symptoms": {
+      "onset": "Quan va començar?",
+      "location": "On es localitza?",
+      "duration": "Quant de temps dura?",
+      "character": "Com el descriuries?",
+      "aggravating": "Què l'empitjora?",
+      "relieving": "Què el millora?",
+      "timing": "Quan passa?",
+      "severity": "Quina és la severitat? (1-10)"
+    },
+    "emergency": {
+      "title": "Números d'Emergència",
+      "general": "Emergència",
+      "crisis": "Línia de Crisi",
+      "police": "Policia",
+      "ambulance": "Ambulància",
+      "fire": "Bombers",
+      "selectCountry": "Selecciona el teu país",
+      "disclaimer": "Per a emergències immediates, truca als serveis d'emergència locals."
+    },
+    "soap": {
+      "title": "Resum Clínic",
+      "subjective": "Subjectiu",
+      "objective": "Objectiu",
+      "assessment": "Avaluació",
+      "plan": "Pla"
+    },
+    "booking": {
+      "title": "Reservar Cita",
+      "selectProvider": "Seleccionar proveïdor",
+      "selectDate": "Seleccionar data",
+      "selectTime": "Seleccionar hora",
+      "confirmBooking": "Confirmar reserva",
+      "bookingConfirmed": "La teva cita ha estat confirmada"
+    },
+    "history": {
+      "title": "Historial de Consultes",
+      "noHistory": "Sense consultes prèvies",
+      "viewDetails": "Veure Detalls",
+      "date": "Data",
+      "summary": "Resum",
+      "status": "Estat"
+    },
+    "status": {
+      "active": "Actiu",
+      "completed": "Completat",
+      "pending": "Pendent de Revisió"
+    },
+    "actions": {
+      "startChat": "Iniciar Xat de Salut",
+      "askQuestion": "Fer una Pregunta",
+      "uploadImage": "Pujar Imatge",
+      "recordSymptoms": "Registrar Símptomes"
+    }
   }
 }

@@ -1582,5 +1582,130 @@
         "failedDesc": "Não foi possível enviar a solicitação de exclusão. Entre em contato com o suporte."
       }
     }
+  },
+  "helios": {
+    "title": "Assistente de Saúde",
+    "subtitle": "Seu companheiro de saúde com IA",
+    "welcome": "Olá! Sou seu assistente de saúde. Como posso ajudá-lo hoje?",
+    "inputPlaceholder": "Descreva seus sintomas ou faça uma pergunta sobre saúde...",
+    "disclaimer": "Isto não substitui aconselhamento médico profissional. Em caso de emergência, ligue para os serviços de emergência imediatamente.",
+    "endSession": "Finalizar e Salvar",
+    "newConsult": "Nova Consulta",
+    "viewHistory": "Ver Histórico",
+    "chat": {
+      "thinking": "Analisando...",
+      "error": "Ocorreu um erro. Por favor, tente novamente.",
+      "sessionEnded": "Consulta encerrada",
+      "sessionSaved": "Sua consulta foi salva"
+    },
+    "triage": {
+      "title": "Avaliação de Triagem",
+      "level": "Nível de Urgência",
+      "recommendation": "Recomendação",
+      "emergency": "Emergência - Ligue para 192 imediatamente",
+      "urgent": "Urgente - Busque atendimento em 24 horas",
+      "semiUrgent": "Semi-urgente - Agende uma consulta em breve",
+      "routine": "Rotina - Agende uma consulta regular",
+      "selfCare": "Autocuidado - Monitore em casa"
+    },
+    "disposition": {
+      "emergency": "Emergência",
+      "urgent_care": "Pronto-Socorro",
+      "primary_care": "Atenção Primária",
+      "specialist": "Especialista",
+      "telehealth": "Telemedicina",
+      "self_care": "Autocuidado"
+    },
+    "prescription": {
+      "title": "Solicitação de Receita",
+      "refill": "Renovação de Receita",
+      "new": "Nova Receita",
+      "medicationName": "Nome do medicamento",
+      "dosage": "Dosagem",
+      "frequency": "Frequência",
+      "prescribingDoctor": "Médico prescritor",
+      "uploadPrescription": "Enviar receita atual",
+      "patientInfo": "Informações do Paciente",
+      "fullName": "Nome completo",
+      "dateOfBirth": "Data de nascimento",
+      "address": "Endereço",
+      "summary": "Resumo da Solicitação",
+      "confirm": "Confirmar Solicitação",
+      "disclaimer": "Um médico revisará e poderá aprovar, solicitar mais informações ou agendar uma videochamada.",
+      "questions": {
+        "takenBefore": "Você já tomou este medicamento antes?",
+        "whatMedication": "Qual é o nome do medicamento?",
+        "whatDosage": "Qual dosagem você está tomando?",
+        "howOften": "Com que frequência você o toma?",
+        "havePrescription": "Você tem uma cópia da sua receita atual?",
+        "doctorName": "Qual é o nome do médico que prescreveu?"
+      }
+    },
+    "specialty": {
+      "general": "Saúde Geral",
+      "dermatology": "Dermatologia",
+      "cardiology": "Cardiologia",
+      "pediatrics": "Pediatria",
+      "mentalHealth": "Saúde Mental",
+      "womensHealth": "Saúde da Mulher",
+      "mensHealth": "Saúde do Homem",
+      "nutrition": "Nutrição",
+      "sleep": "Sono",
+      "chronicPain": "Dor Crônica"
+    },
+    "symptoms": {
+      "onset": "Quando começou?",
+      "location": "Onde está localizado?",
+      "duration": "Quanto tempo dura?",
+      "character": "Como você o descreveria?",
+      "aggravating": "O que piora?",
+      "relieving": "O que melhora?",
+      "timing": "Quando ocorre?",
+      "severity": "Qual a gravidade? (1-10)"
+    },
+    "emergency": {
+      "title": "Números de Emergência",
+      "general": "Emergência",
+      "crisis": "Linha de Crise",
+      "police": "Polícia",
+      "ambulance": "Ambulância",
+      "fire": "Bombeiros",
+      "selectCountry": "Selecione seu país",
+      "disclaimer": "Para emergências imediatas, ligue para os serviços de emergência locais."
+    },
+    "soap": {
+      "title": "Resumo Clínico",
+      "subjective": "Subjetivo",
+      "objective": "Objetivo",
+      "assessment": "Avaliação",
+      "plan": "Plano"
+    },
+    "booking": {
+      "title": "Agendar Consulta",
+      "selectProvider": "Selecionar profissional",
+      "selectDate": "Selecionar data",
+      "selectTime": "Selecionar horário",
+      "confirmBooking": "Confirmar agendamento",
+      "bookingConfirmed": "Sua consulta foi confirmada"
+    },
+    "history": {
+      "title": "Histórico de Consultas",
+      "noHistory": "Sem consultas anteriores",
+      "viewDetails": "Ver Detalhes",
+      "date": "Data",
+      "summary": "Resumo",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Ativo",
+      "completed": "Concluído",
+      "pending": "Pendente de Revisão"
+    },
+    "actions": {
+      "startChat": "Iniciar Chat de Saúde",
+      "askQuestion": "Fazer uma Pergunta",
+      "uploadImage": "Enviar Imagem",
+      "recordSymptoms": "Registrar Sintomas"
+    }
   }
 }
