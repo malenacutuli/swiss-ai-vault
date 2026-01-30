@@ -1987,9 +1987,25 @@ Use this context to inform your response when relevant. Cite sources by number w
 
     // Check if compare mode is active
     if (isCompareMode && mode === 'text') {
-      console.log('[GhostChat] Using compare mode');
+      console.log('[GhostChat] Using compare mode with attachments:', attachedFiles.length);
+      
+      // Build attachments for compare (extract file content)
+      const compareAttachments = attachedFiles.map(f => ({
+        type: f.type as 'image' | 'document' | 'text' | 'audio',
+        name: f.name,
+        base64: f.base64,
+        text: f.text,
+        mimeType: f.file?.type,
+      }));
+      
       setInputValue('');
-      await compare(messageContent, settings?.system_prompt || undefined);
+      setAttachedFiles([]); // Clear attachments after sending
+      
+      await compare(
+        messageContent, 
+        settings?.system_prompt || undefined,
+        compareAttachments.length > 0 ? compareAttachments : undefined
+      );
       return;
     }
 
