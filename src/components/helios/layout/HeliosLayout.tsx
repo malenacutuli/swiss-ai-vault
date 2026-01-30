@@ -9,6 +9,7 @@ import {
   Menu, X, User, Settings, LogOut, Shield, Heart
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 interface HeliosLayoutProps {
@@ -16,25 +17,26 @@ interface HeliosLayoutProps {
   userName?: string;
 }
 
-const navigation = [
-  { name: 'New Consult', href: '/health', icon: MessageSquare, primary: true },
-  { name: 'Consults', href: '/health/consults', icon: Stethoscope },
-  { name: 'Health Record', href: '/health/record', icon: FileText },
-  { name: 'Appointments', href: '/health/appointments', icon: Calendar },
+const navigationKeys = [
+  { key: 'newConsult', href: '/health', icon: MessageSquare, primary: true },
+  { key: 'consults', href: '/health/consults', icon: Stethoscope },
+  { key: 'healthRecord', href: '/health/record', icon: FileText },
+  { key: 'appointments', href: '/health/appointments', icon: Calendar },
 ];
 
-const specialtyConsults = [
-  { name: 'Primary Care', slug: 'primary-care' },
-  { name: 'Dermatology', slug: 'dermatology' },
-  { name: 'Women\'s Health', slug: 'womens-health' },
-  { name: 'Mental Health', slug: 'mental-health' },
-  { name: 'Pediatrics', slug: 'pediatrics' },
-  { name: 'Cardiology', slug: 'cardiology' },
+const specialtyKeys = [
+  { key: 'primaryCare', slug: 'primary-care' },
+  { key: 'dermatology', slug: 'dermatology' },
+  { key: 'womensHealth', slug: 'womens-health' },
+  { key: 'mentalHealth', slug: 'mental-health' },
+  { key: 'pediatrics', slug: 'pediatrics' },
+  { key: 'cardiology', slug: 'cardiology' },
 ];
 
 export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { t } = useTranslation();
   
   // Get active specialty from URL search params
   const searchParams = new URLSearchParams(location.search);
@@ -70,10 +72,10 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
           {/* Main Navigation */}
           <nav className="flex-1 p-4 overflow-y-auto">
             <ul className="space-y-1">
-              {navigation.map((item) => {
+              {navigationKeys.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
-                  <li key={item.name}>
+                  <li key={item.key}>
                     <Link
                       to={item.href}
                       className={cn(
@@ -85,7 +87,7 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
                       )}
                     >
                       <item.icon className="w-5 h-5" />
-                      {item.name}
+                      {t(`helios.nav.${item.key}`)}
                     </Link>
                   </li>
                 );
@@ -95,10 +97,10 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
             {/* Specialty Consults */}
             <div className="mt-8">
             <h3 className="px-4 text-sm font-medium text-gray-500 mb-2">
-                Specialist AI Consults
+                {t('helios.nav.specialistConsults')}
               </h3>
               <ul className="space-y-1">
-                {specialtyConsults.map((specialty) => {
+                {specialtyKeys.map((specialty) => {
                   const isActiveSpecialty = activeSpecialty === specialty.slug && location.pathname === '/health';
                   return (
                     <li key={specialty.slug}>
@@ -111,7 +113,7 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
                             : "text-gray-600 hover:bg-gray-100"
                         )}
                       >
-                        {specialty.name}
+                        {t(`helios.specialties.${specialty.key}`)}
                       </Link>
                     </li>
                   );
@@ -124,16 +126,15 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
           <div className="p-4 border-t">
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Shield className="w-4 h-4" />
-              <span>End-to-end encrypted • Data stays on your device</span>
+              <span>{t('helios.privacy.badge')}</span>
             </div>
           </div>
 
           {/* Disclaimer */}
           <div className="p-4 border-t text-xs text-gray-400 leading-relaxed">
             <p>
-              <span className="underline">Always discuss HELIOS output with a doctor</span>.
-              HELIOS is an AI health assistant, not a licensed doctor, does not practice medicine,
-              and does not provide medical advice or care.
+              <span className="underline">{t('helios.disclaimer.discussWithDoctor')}</span>.
+              {t('helios.disclaimer.aiAssistant')}
             </p>
           </div>
         </div>

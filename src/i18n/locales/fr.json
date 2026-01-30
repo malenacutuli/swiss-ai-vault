@@ -787,10 +787,31 @@
     "subtitle": "Votre compagnon santé propulsé par l'IA",
     "welcome": "Bonjour ! Je suis votre assistant santé. Comment puis-je vous aider aujourd'hui ?",
     "inputPlaceholder": "Décrivez vos symptômes ou posez une question de santé...",
-    "disclaimer": "Ceci ne remplace pas un avis médical professionnel. En cas d'urgence, appelez les services d'urgence immédiatement.",
     "endSession": "Terminer et Sauvegarder",
     "newConsult": "Nouvelle Consultation",
     "viewHistory": "Voir l'Historique",
+    "nav": {
+      "newConsult": "Nouvelle Consultation",
+      "consults": "Consultations",
+      "healthRecord": "Dossier Médical",
+      "appointments": "Rendez-vous",
+      "specialistConsults": "Consultations IA Spécialistes"
+    },
+    "specialties": {
+      "primaryCare": "Médecine Générale",
+      "dermatology": "Dermatologie",
+      "womensHealth": "Santé des Femmes",
+      "mentalHealth": "Santé Mentale",
+      "pediatrics": "Pédiatrie",
+      "cardiology": "Cardiologie"
+    },
+    "privacy": {
+      "badge": "Chiffrement de bout en bout • Les données restent sur votre appareil"
+    },
+    "disclaimer": {
+      "discussWithDoctor": "Discutez toujours des résultats HELIOS avec un médecin",
+      "aiAssistant": " HELIOS est un assistant santé IA, pas un médecin agréé, ne pratique pas la médecine et ne fournit pas de conseils ou de soins médicaux."
+    },
     "chat": {
       "thinking": "Analyse en cours...",
       "error": "Une erreur s'est produite. Veuillez réessayer.",
@@ -830,7 +851,6 @@
       "address": "Adresse",
       "summary": "Résumé de la Demande",
       "confirm": "Confirmer la Demande",
-      "disclaimer": "Un médecin examinera et pourra approuver, demander plus d'informations ou programmer un appel vidéo.",
       "questions": {
         "takenBefore": "Avez-vous déjà pris ce médicament ?",
         "whatMedication": "Quel est le nom du médicament ?",

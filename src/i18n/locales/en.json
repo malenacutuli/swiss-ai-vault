@@ -2591,6 +2591,24 @@
     "endSession": "End & Save",
     "newConsult": "New Consultation",
     "viewHistory": "View History",
+    "nav": {
+      "newConsult": "New Consult",
+      "consults": "Consults",
+      "healthRecord": "Health Record",
+      "appointments": "Appointments",
+      "specialistConsults": "Specialist AI Consults"
+    },
+    "specialties": {
+      "primaryCare": "Primary Care",
+      "dermatology": "Dermatology",
+      "womensHealth": "Women's Health",
+      "mentalHealth": "Mental Health",
+      "pediatrics": "Pediatrics",
+      "cardiology": "Cardiology"
+    },
+    "privacy": {
+      "badge": "End-to-end encrypted • Data stays on your device"
+    },
     "chat": {
       "thinking": "Analyzing...",
       "error": "An error occurred. Please try again.",
@@ -2651,6 +2669,10 @@
       "nutrition": "Nutrition",
       "sleep": "Sleep",
       "chronicPain": "Chronic Pain"
+    },
+    "disclaimer": {
+      "discussWithDoctor": "Always discuss HELIOS output with a doctor",
+      "aiAssistant": " HELIOS is an AI health assistant, not a licensed doctor, does not practice medicine, and does not provide medical advice or care."
     },
     "symptoms": {
       "onset": "When did it start?",

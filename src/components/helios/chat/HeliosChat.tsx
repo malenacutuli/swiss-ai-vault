@@ -252,6 +252,10 @@ export function HeliosChat({
     en: 'Describe your symptoms...',
     es: 'Describe tus síntomas...',
     fr: 'Décrivez vos symptômes...',
+    de: 'Beschreiben Sie Ihre Symptome...',
+    pt: 'Descreva seus sintomas...',
+    it: 'Descrivi i tuoi sintomi...',
+    ca: 'Descriu els teus símptomes...',
   };
 
   return (
