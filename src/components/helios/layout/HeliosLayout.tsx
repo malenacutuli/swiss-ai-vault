@@ -94,8 +94,8 @@ export function HeliosLayout({ children, userName }: HeliosLayoutProps) {
 
             {/* Specialty Consults */}
             <div className="mt-8">
-              <h3 className="px-4 text-sm font-medium text-gray-500 mb-2">
-                Free AI Doctor Consults
+            <h3 className="px-4 text-sm font-medium text-gray-500 mb-2">
+                Specialist AI Consults
               </h3>
               <ul className="space-y-1">
                 {specialtyConsults.map((specialty) => {
