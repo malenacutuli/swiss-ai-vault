@@ -27,6 +27,8 @@ interface UITriggers {
 // Import OrchestrationResponse from AssessmentPanel to ensure type compatibility
 import type { OrchestrationResponse } from '@/components/helios/assessment/AssessmentPanel';
 
+type FeedbackRating = 'not-helpful' | 'so-so' | 'helpful';
+
 interface UseHeliosChatReturn {
   messages: Message[];
   isLoading: boolean;
@@ -43,6 +45,7 @@ interface UseHeliosChatReturn {
   orchestration: OrchestrationResponse | null;
   sendMessage: (content: string, language?: string, isButtonResponse?: boolean) => Promise<void>;
   submitIntake: (age: number, sex: 'male' | 'female') => Promise<void>;
+  submitFeedback: (rating: FeedbackRating, comment?: string) => Promise<{ success: boolean }>;
   startSession: (specialty?: string) => Promise<void>;
   loadSession: (sessionId: string) => Promise<boolean>;
   completeSession: () => Promise<{ success: boolean; summary?: string; soap_note?: string }>;
@@ -479,6 +482,36 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     }
   }, [userId]);
 
+  // Submit feedback on assessment quality
+  const submitFeedback = useCallback(async (
+    rating: FeedbackRating,
+    comment?: string
+  ): Promise<{ success: boolean }> => {
+    try {
+      console.log('[HELIOS] Submitting feedback:', { rating, comment, sessionId: sessionIdRef.current });
+
+      const { data, error: fnError } = await heliosSupabase.functions.invoke('helios-chat', {
+        body: {
+          action: 'submit_feedback',
+          session_id: sessionIdRef.current,
+          user_id: userId,
+          rating,
+          comment,
+        },
+      });
+
+      console.log('[HELIOS] Feedback response:', { data, fnError });
+
+      if (fnError) throw fnError;
+      if (!data?.success) throw new Error(data?.error || 'Failed to submit feedback');
+
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+      return { success: false };
+    }
+  }, [userId]);
+
   return {
     messages,
     isLoading,
@@ -495,6 +528,7 @@ export function useHeliosChat(initialSpecialty?: string, initialLanguage: 'en' |
     orchestration,
     sendMessage,
     submitIntake,
+    submitFeedback,
     startSession,
     loadSession,
     completeSession,

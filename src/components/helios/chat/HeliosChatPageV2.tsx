@@ -62,6 +62,7 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
     orchestration,
     sendMessage,
     submitIntake,
+    submitFeedback,
     startSession,
     loadSession,
     completeSession,
@@ -602,9 +603,21 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
           <div className="mt-6">
             <AssessmentPanel
               orchestration={orchestration}
-              onFeedback={(rating) => {
-                console.log('[HELIOS] Assessment feedback:', rating);
-                // Could save feedback to database here
+              onFeedback={async (rating) => {
+                // Map AssessmentPanel rating format to API format
+                const ratingMap: Record<string, 'not-helpful' | 'so-so' | 'helpful'> = {
+                  'not_helpful': 'not-helpful',
+                  'so_so': 'so-so',
+                  'helpful': 'helpful',
+                };
+                const apiRating = ratingMap[rating] || 'helpful';
+                console.log('[HELIOS] Submitting feedback:', apiRating);
+                const result = await submitFeedback(apiRating);
+                if (result.success) {
+                  console.log('[HELIOS] Feedback submitted successfully');
+                } else {
+                  console.error('[HELIOS] Failed to submit feedback');
+                }
               }}
               onBookDoctor={() => {
                 // Navigate to booking with session context
