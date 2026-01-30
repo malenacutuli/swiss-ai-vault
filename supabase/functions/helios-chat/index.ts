@@ -2125,6 +2125,87 @@ serve(async (req) => {
       });
     }
 
+    // ========================================
+    // ACTION: SUBMIT FEEDBACK
+    // ========================================
+    if (action === "submit_feedback") {
+      const rating = body.rating as string;
+      const comment = body.comment as string | undefined;
+
+      // Validate rating
+      if (!rating || !['not-helpful', 'so-so', 'helpful'].includes(rating)) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Invalid rating. Must be 'not-helpful', 'so-so', or 'helpful'."
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get session context for feedback analytics
+      let sessionContext: Record<string, unknown> = {
+        timestamp: new Date().toISOString(),
+      };
+
+      if (session_id) {
+        const { data: session } = await supabase
+          .from("helios_sessions")
+          .select("triage_level, specialty, current_phase, consensus_result")
+          .eq("session_id", session_id)
+          .single();
+
+        if (session) {
+          sessionContext = {
+            ...sessionContext,
+            triage_level: session.triage_level,
+            specialty: session.specialty,
+            phase: session.current_phase,
+            had_consensus: session.consensus_result != null,
+            kendall_w: session.consensus_result?.kendallW || null,
+          };
+        }
+      }
+
+      // Insert feedback
+      const { error: feedbackError } = await supabase
+        .from("helios_feedback")
+        .insert({
+          session_id: session_id || null,
+          user_id: user_id || null,
+          rating,
+          comment: comment || null,
+          context: sessionContext,
+        });
+
+      if (feedbackError) {
+        console.error("[HELIOS] Feedback error:", feedbackError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: feedbackError.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Sync to dev project
+      await syncToDevProject(devSupabase, "helios_feedback", "insert", {
+        session_id: session_id || null,
+        user_id: user_id || null,
+        rating,
+        comment: comment || null,
+        context: sessionContext,
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Thank you for your feedback!",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ success: false, error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
