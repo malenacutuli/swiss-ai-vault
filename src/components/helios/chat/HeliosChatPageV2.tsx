@@ -9,6 +9,7 @@ import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
 import { VoiceConsultation } from '../voice/VoiceConsultation';
 import { AssessmentPanel } from '../assessment/AssessmentPanel';
+import { downloadSOAPPDF } from '@/utils/generateSOAPPDF';
 import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check, CheckCircle2, Download, Phone, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -206,7 +207,51 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
     }
   };
 
-  // Download consult as PDF
+  // Download SOAP note as professional PDF
+  const handleDownloadSOAPPDF = async () => {
+    if (!orchestration || !sessionId) return;
+
+    try {
+      // Extract patient info from case state (if available)
+      const patientAge = caseState?.patient?.age;
+      const patientSex = caseState?.patient?.sex;
+
+      // Build SOAP data from orchestration response
+      const soapData = {
+        subjective: orchestration.soap_note?.subjective || '',
+        objective: orchestration.soap_note?.objective || '',
+        assessment: orchestration.soap_note?.assessment || '',
+        plan: orchestration.soap_note?.plan || '',
+      };
+
+      // Build session info
+      const sessionInfo = {
+        sessionId: sessionId,
+        chiefComplaint: caseState?.chief_complaint,
+        patient: {
+          age: patientAge,
+          sex: patientSex,
+        },
+        triageLevel: orchestration.triage?.esi_level,
+        disposition: orchestration.triage?.disposition,
+        consultDate: new Date().toISOString(),
+        expertCount: orchestration.consensus?.participating_agents?.length || 0,
+        agreementScore: orchestration.consensus?.kendall_w,
+        redFlags: orchestration.safety?.red_flags?.map(rf => rf.description) ||
+                  orchestration.plan?.red_flag_warnings || [],
+      };
+
+      await downloadSOAPPDF(soapData, sessionInfo, {
+        includeDisclaimer: true,
+        includeMetadata: true,
+        language: language as 'en' | 'es' | 'fr',
+      });
+    } catch (err) {
+      console.error('Failed to generate SOAP PDF:', err);
+    }
+  };
+
+  // Download consult as PDF (conversation summary)
   const handleDownloadPDF = async () => {
     if (messages.length === 0) return;
 
@@ -565,6 +610,7 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
                 // Navigate to booking with session context
                 navigate(`/health/book/${sessionId}`);
               }}
+              onDownloadPDF={handleDownloadSOAPPDF}
               language={language as 'en' | 'es' | 'fr'}
             />
           </div>
