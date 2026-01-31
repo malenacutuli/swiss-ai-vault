@@ -214,8 +214,8 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
 
     try {
       // Extract patient info from case state (if available)
-      const patientAge = caseState?.patient?.age;
-      const patientSex = caseState?.patient?.sex;
+      const patientAge = caseState?.patient_info?.age;
+      const patientSex = caseState?.patient_info?.sex;
 
       // Build SOAP data from orchestration response
       const soapData = {
@@ -228,7 +228,7 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
       // Build session info
       const sessionInfo = {
         sessionId: sessionId,
-        chiefComplaint: caseState?.chief_complaint,
+        chiefComplaint: orchestration.soap_note?.subjective?.split('.')[0] || 'Health consultation',
         patient: {
           age: patientAge,
           sex: patientSex,

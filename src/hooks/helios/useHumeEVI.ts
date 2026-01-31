@@ -216,14 +216,31 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
         break;
       }
 
-      case 'error':
+      case 'error': {
+        // Log full error for debugging but show user-friendly message
         console.error('[Hume EVI] Error:', message);
+        
+        // Map error codes to user-friendly messages without exposing provider details
+        const errorCode = message.code as string;
+        let userMessage = 'Voice consultation temporarily unavailable. Please try again.';
+        
+        if (errorCode === 'I0100' || errorCode === 'uncaught') {
+          userMessage = 'Voice service experienced an issue. Please try again in a moment.';
+        } else if (errorCode === 'audio_error') {
+          userMessage = 'Audio processing error. Please check your microphone.';
+        } else if (errorCode === 'rate_limit') {
+          userMessage = 'Too many requests. Please wait a moment and try again.';
+        } else if (errorCode === 'auth_error') {
+          userMessage = 'Session expired. Please refresh and try again.';
+        }
+        
         toast({
-          title: 'Voice error',
-          description: (message.message as string) || 'An error occurred',
+          title: 'Voice consultation error',
+          description: userMessage,
           variant: 'destructive',
         });
         break;
+      }
     }
   }, [onMessage, onEmotionDetected, onConsultationEnd, toast]);
 
