@@ -7,7 +7,7 @@ import { useHealthVault } from '@/hooks/helios/useHealthVault';
 import { ChatMessage } from './ChatMessage';
 import { IntakeForm } from './IntakeForm';
 import { RedFlagAlert } from './RedFlagAlert';
-import { VoiceConsultation } from '../voice/VoiceConsultation';
+import { HeliosVoiceConsultation } from '../voice/HeliosVoiceConsultation';
 import { AssessmentPanel } from '../assessment/AssessmentPanel';
 import { downloadSOAPPDF } from '@/utils/generateSOAPPDF';
 import { Loader2, Send, Paperclip, Mic, MicOff, X, Image, Globe, Save, Check, CheckCircle2, Download, Phone, PhoneOff } from 'lucide-react';
@@ -635,15 +635,10 @@ export function HeliosChatPageV2({ specialty: propSpecialty = 'primary-care' }: 
       {/* Voice Consultation Mode OR Text Input */}
       {voiceMode ? (
         <div className="px-6 py-4 border-t bg-gray-50">
-          <VoiceConsultation
-            sessionId={sessionId || ''}
+          <HeliosVoiceConsultation
+            onClose={() => setVoiceMode(false)}
             specialty={specialty}
             language={language}
-            onComplete={(summary) => {
-              console.log('[HELIOS] Voice consultation complete:', summary);
-              setVoiceMode(false);
-              navigate('/health/consults');
-            }}
           />
         </div>
       ) : (

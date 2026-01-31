@@ -214,7 +214,7 @@ function VoiceChatInner({ onClose, accessToken, onSessionCreated, onMessagesUpda
       }, 500);
       
     } catch (error) {
-      console.error('Failed to connect to Hume:', error);
+      console.error('[Voice] Connection failed:', error);
     } finally {
       setIsConnecting(false);
     }
@@ -577,8 +577,8 @@ export function HealthVoiceChat({ onClose }: HealthVoiceChatProps) {
     <VoiceProvider
       messageHistoryLimit={50}
       clearMessagesOnDisconnect={true}
-      onError={(error) => console.error('Hume Voice error:', error)}
-      onClose={() => console.log('Hume connection closed')}
+      onError={(error) => console.error('[Voice] Error:', error)}
+      onClose={() => console.log('[Voice] Connection closed')}
     >
       <VoiceChatInner 
         onClose={handleClose} 
