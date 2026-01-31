@@ -196,7 +196,7 @@ function VoiceChatInner({ onClose, accessToken, specialty = 'primary-care', lang
     setIsConnecting(true);
     setCrisisDetected(null);
     try {
-      console.log('[HeliosVoice] Connecting to Hume EVI...');
+      console.log('[HeliosVoice] Connecting to voice service...');
       await connect({
         auth: { type: 'accessToken', value: accessToken },
         hostname: 'api.hume.ai',
