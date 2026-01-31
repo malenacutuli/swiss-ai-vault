@@ -1,5 +1,5 @@
 /**
- * VoiceConsultation Component - Hume EVI Speech-to-Speech Interface
+ * VoiceConsultation Component - Speech-to-Speech Interface
  * Provides empathetic voice consultations with emotion detection
  */
 

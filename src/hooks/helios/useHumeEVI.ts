@@ -1,5 +1,5 @@
 /**
- * Hume EVI (Empathic Voice Interface) Hook for HELIOS
+ * Voice Interface Hook for HELIOS
  * Speech-to-speech voice consultations with emotion detection
  */
 
@@ -56,7 +56,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
   // Initialize Hume EVI connection
   const connect = useCallback(async () => {
     try {
-      console.log('[Hume EVI] Connecting...', { sessionId, specialty, language });
+      console.log('[Voice] Connecting...', { sessionId, specialty, language });
       
       // Get access token from backend
       const { data, error } = await supabase.functions.invoke('helios-hume-evi', {
@@ -69,40 +69,39 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
       });
 
       if (error) {
-        console.error('[Hume EVI] Token error:', error);
+        console.error('[Voice] Token error:', error);
         throw error;
       }
 
       if (!data?.accessToken) {
-        console.error('[Hume EVI] No access token received:', data);
+        console.error('[Voice] No access token received:', data);
         throw new Error('Failed to get access token');
       }
 
       const { accessToken, systemPrompt } = data;
-      console.log('[Hume EVI] Got access token, connecting to WebSocket');
+      console.log('[Voice] Got access token, connecting to WebSocket');
 
       // Connect to Hume EVI WebSocket with the access token
-      // Hume EVI requires the config to be passed in URL params, not as a message
+      // Use the correct EVI chat endpoint format
       const wsUrl = `wss://api.hume.ai/v0/evi/chat?access_token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[Hume EVI] WebSocket opened, sending session settings');
+        console.log('[Voice] WebSocket opened, configuring session');
         
-        // Send session settings as the first message after connection
-        // This configures the EVI session with our HELIOS system prompt
-        ws.send(JSON.stringify({
+        // Send session settings using the correct Hume EVI format
+        // The system_prompt goes directly in session_settings, not nested
+        const sessionSettings = {
           type: 'session_settings',
-          session_settings: {
-            system_prompt: systemPrompt,
-            language_model_api_key: '', // Use Hume's default
-            context: {
-              text: `HELIOS Health Assistant - ${specialty} consultation. Patient session: ${sessionId}`,
-              type: 'persistent'
-            }
+          system_prompt: systemPrompt,
+          context: {
+            text: `Health Assistant - ${specialty} consultation`,
+            type: 'editable' as const
           }
-        }));
+        };
+        
+        ws.send(JSON.stringify(sessionSettings));
         
         setIsConnected(true);
         toast({
@@ -117,7 +116,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
       };
 
       ws.onerror = (error) => {
-        console.error('[Hume EVI] WebSocket error:', error);
+        console.error('[Voice] WebSocket error:', error);
         toast({
           title: 'Connection error',
           description: 'Voice consultation unavailable. Please try again.',
@@ -126,13 +125,13 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
       };
 
       ws.onclose = () => {
-        console.log('[Hume EVI] Disconnected');
+        console.log('[Voice] Disconnected');
         setIsConnected(false);
         setIsListening(false);
       };
 
     } catch (err) {
-      console.error('[Hume EVI] Connection error:', err);
+      console.error('[Voice] Connection error:', err);
       toast({
         title: 'Failed to start voice consultation',
         description: 'Please check your connection and try again.',
@@ -143,7 +142,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
 
   // Handle incoming Hume messages
   const handleHumeMessage = useCallback((message: Record<string, unknown>) => {
-    console.log('[Hume EVI] Message received:', message.type);
+    console.log('[Voice] Message received:', message.type);
     
     switch (message.type) {
       case 'user_message': {
@@ -218,7 +217,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
 
       case 'error': {
         // Log full error for debugging but show user-friendly message
-        console.error('[Hume EVI] Error:', message);
+        console.error('[Voice] Error:', message);
         
         // Map error codes to user-friendly messages without exposing provider details
         const errorCode = message.code as string;
@@ -246,7 +245,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
 
   // Handle tool calls from Hume
   const handleToolCall = async (toolName: string, params: Record<string, unknown>) => {
-    console.log('[Hume EVI] Tool call:', toolName, params);
+    console.log('[Voice] Tool call:', toolName, params);
     
     const { data } = await supabase.functions.invoke('helios-hume-evi', {
       body: {
@@ -279,7 +278,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
     }
 
     try {
-      console.log('[Hume EVI] Requesting microphone access');
+      console.log('[Voice] Requesting microphone access');
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -316,10 +315,10 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
       processor.connect(audioContextRef.current.destination);
 
       setIsListening(true);
-      console.log('[Hume EVI] Listening started');
+      console.log('[Voice] Listening started');
       
     } catch (err) {
-      console.error('[Hume EVI] Microphone error:', err);
+      console.error('[Voice] Microphone error:', err);
       toast({
         title: 'Microphone access denied',
         description: 'Please allow microphone access for voice consultation.',
@@ -330,7 +329,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
 
   // Stop listening
   const stopListening = useCallback(() => {
-    console.log('[Hume EVI] Stopping listening');
+    console.log('[Voice] Stopping listening');
     
     if (sourceRef.current) {
       sourceRef.current.disconnect();
@@ -379,16 +378,16 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
       };
       
       audio.play().catch(err => {
-        console.error('[Hume EVI] Audio playback error:', err);
+        console.error('[Voice] Audio playback error:', err);
       });
     } catch (err) {
-      console.error('[Hume EVI] Audio decode error:', err);
+      console.error('[Voice] Audio decode error:', err);
     }
   }, []);
 
   // Save transcript to database
   const saveTranscript = useCallback(async () => {
-    console.log('[Hume EVI] Saving transcript');
+    console.log('[Voice] Saving transcript');
     
     await supabase.functions.invoke('helios-hume-evi', {
       body: {
@@ -402,7 +401,7 @@ export function useHumeEVI(options: UseHumeEVIOptions) {
 
   // End consultation
   const endConsultation = useCallback(() => {
-    console.log('[Hume EVI] Ending consultation');
+    console.log('[Voice] Ending consultation');
     
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({

@@ -195,12 +195,12 @@ function VoiceChatInner({ onClose, accessToken, onSessionCreated, onMessagesUpda
     setIsConnecting(true);
     setCrisisDetected(null);
     try {
-      console.log('Attempting to connect to Hume EVI...');
+      console.log('[Voice] Connecting to voice service...');
       await connect({
         auth: { type: 'accessToken', value: accessToken },
         hostname: 'api.hume.ai',
       });
-      console.log('Connected to Hume EVI successfully');
+      console.log('[Voice] Connected successfully');
       
       // Reset conversation
       conversationHistory.current = [];
