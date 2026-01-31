@@ -36,13 +36,13 @@ serve(async (req) => {
     );
 
     if (action === 'get_access_token') {
-      // Get Hume access token for WebSocket connection using OAuth
+      // Get voice access token for WebSocket connection using OAuth
       const { session_id, specialty, language } = body;
 
       if (!HUME_API_KEY || !HUME_SECRET_KEY) {
-        console.error('Hume API credentials not configured');
+        console.error('[Voice] API credentials not configured');
         return new Response(
-          JSON.stringify({ error: 'Hume API not configured' }),
+          JSON.stringify({ error: 'Voice service is not configured' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -61,9 +61,9 @@ serve(async (req) => {
 
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
-        console.error('Hume token error:', errorText);
+        console.error('[Voice] Token error:', errorText);
         return new Response(
-          JSON.stringify({ error: 'Failed to get Hume access token' }),
+          JSON.stringify({ error: 'Failed to get voice access token' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -71,7 +71,7 @@ serve(async (req) => {
       const tokenData = await tokenResponse.json();
       const accessToken = tokenData.access_token;
       
-      console.log('[helios-hume-evi] Access token generated for session:', session_id);
+      console.log('[Voice] Access token generated for session:', session_id);
 
       // Build system prompt for the specialty
       const systemPrompt = buildSystemPrompt(specialty, language);
@@ -142,9 +142,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[helios-hume-evi] Error:', error);
+    console.error('[Voice] Error:', error);
     return new Response(
-      JSON.stringify({ error: (error as Error).message }),
+      JSON.stringify({ error: 'Voice service error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

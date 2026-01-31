@@ -10,14 +10,14 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   try {
-    // Get Hume API credentials
+    // Get voice provider API credentials
     const humeApiKey = Deno.env.get('HUME_API_KEY');
     const humeSecretKey = Deno.env.get('HUME_SECRET_KEY');
 
     if (!humeApiKey || !humeSecretKey) {
-      console.error('Hume API credentials not configured');
+      console.error('[Voice] API credentials not configured');
       return new Response(
-        JSON.stringify({ error: 'Hume API not configured' }),
+        JSON.stringify({ error: 'Voice service is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -36,16 +36,16 @@ serve(async (req) => {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error('Hume token error:', errorText);
+      console.error('[Voice] Token error:', errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to get Hume access token' }),
+        JSON.stringify({ error: 'Failed to get voice access token' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const tokenData = await tokenResponse.json();
     
-    console.log('Hume access token generated for voice avatar');
+    console.log('[Voice] Access token generated');
 
     return new Response(
       JSON.stringify({ 
@@ -56,7 +56,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in hume-access-token:', error);
+    console.error('[Voice] Error generating token:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

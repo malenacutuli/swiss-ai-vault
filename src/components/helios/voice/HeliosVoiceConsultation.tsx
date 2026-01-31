@@ -12,6 +12,23 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Mic, MicOff, X, Loader2, VolumeX, AlertCircle, Heart, Phone, Globe, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+function sanitizeVoiceErrorForLogs(err: unknown): unknown {
+  try {
+    const text = typeof err === 'string' ? err : JSON.stringify(err);
+    // Remove provider name from any logs.
+    const sanitized = text.replace(/hume/gi, 'Voice Service');
+    return JSON.parse(sanitized);
+  } catch {
+    if (err instanceof Error) {
+      return {
+        name: err.name,
+        message: (err.message || '').replace(/hume/gi, 'Voice Service'),
+      };
+    }
+    return err;
+  }
+}
+
 // Lazy load the 3D component for better performance
 const HeliosVoiceAvatar = lazy(() => 
   import('./HeliosVoiceAvatar').then(m => ({ default: m.HeliosVoiceAvatar }))
@@ -513,7 +530,7 @@ export function HeliosVoiceConsultation({ onClose, specialty = 'primary-care', l
     <VoiceProvider
       messageHistoryLimit={50}
       clearMessagesOnDisconnect={true}
-      onError={(error) => console.error('[HeliosVoice] Hume error:', error)}
+      onError={(error) => console.error('[Voice] Error:', sanitizeVoiceErrorForLogs(error))}
       onClose={() => console.log('[HeliosVoice] Connection closed')}
     >
       <VoiceChatInner 
